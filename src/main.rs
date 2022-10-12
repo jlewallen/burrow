@@ -50,9 +50,11 @@ fn main() -> Result<()> {
     match &cli.command {
         Some(Commands::Serve(cmd)) => serve::execute_command(cmd),
         Some(Commands::Eval) => {
+            let domain = kernel::Domain::new();
+            let session = domain.open_session()?;
+
             for text in &["look", "hold rake", "drop"] {
-                let action = eval::evaluate(text)?;
-                let _performed = action.perform()?;
+                session.evaluate_and_perform(text)?;
             }
 
             Ok(())
