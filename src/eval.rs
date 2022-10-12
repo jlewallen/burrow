@@ -1,10 +1,6 @@
 use anyhow::Result;
 // use tracing::{debug, info};
 
-pub trait Node: std::fmt::Debug {
-    fn describe(&self) -> String;
-}
-
 mod vocab {
     use nom::{
         branch::alt,
@@ -16,12 +12,22 @@ mod vocab {
         IResult,
     };
 
-    use super::Node;
+    #[derive(Debug, Eq, PartialEq)]
+    pub enum Item {
+        Described(String),
+    }
+
+    #[derive(Debug, Eq, PartialEq)]
+    pub enum Sentence {
+        Look,
+        Hold(Item),
+        Drop(Option<Item>),
+    }
 
     // Maybe we define separate parsers for each language?
-    #[derive(Debug)]
+    #[derive(Debug, Eq, PartialEq)]
     pub struct English {
-        n: Box<dyn Node>,
+        pub s: Sentence,
     }
 
     fn word(i: &str) -> IResult<&str, &str> {
@@ -32,83 +38,25 @@ mod vocab {
         take_while1(move |c| " \t".contains(c))(i)
     }
 
-    #[derive(Debug)]
-    struct NounNode {
-        value: String,
+    fn noun(i: &str) -> IResult<&str, Item> {
+        map(word, |s: &str| Item::Described(s.to_owned()))(i)
     }
 
-    impl Node for NounNode {
-        fn describe(&self) -> String {
-            self.value.to_owned()
-        }
+    fn look(i: &str) -> IResult<&str, Sentence> {
+        map(tag("look"), |_| Sentence::Look)(i)
     }
 
-    fn noun(i: &str) -> IResult<&str, Box<dyn Node>> {
-        map(word, |s: &str| -> Box<dyn Node> {
-            Box::new(NounNode {
-                value: s.to_owned(),
-            })
+    fn hold(i: &str) -> IResult<&str, Sentence> {
+        map(separated_pair(tag("hold"), spaces, noun), |(_, target)| {
+            Sentence::Hold(target)
         })(i)
     }
-
-    #[derive(Debug)]
-    struct LookNode {}
-
-    impl Node for LookNode {
-        fn describe(&self) -> String {
-            "look".to_string()
-        }
-    }
-
-    fn look(i: &str) -> IResult<&str, Box<dyn Node>> {
-        map(tag("look"), |_| -> Box<dyn Node> { Box::new(LookNode {}) })(i)
-    }
-
-    #[derive(Debug)]
-    struct HoldNode {
-        target: Box<dyn Node>,
-    }
-
-    impl Node for HoldNode {
-        fn describe(&self) -> String {
-            format!("hold {}", self.target.describe())
-        }
-    }
-
-    fn hold(i: &str) -> IResult<&str, Box<dyn Node>> {
-        map(
-            separated_pair(tag("hold"), spaces, noun),
-            |(_, target)| -> Box<dyn Node> { Box::new(HoldNode { target: target }) },
-        )(i)
-    }
-
-    #[derive(Debug)]
-    struct DropNode {
-        target: Option<Box<dyn Node>>,
-    }
-
-    impl Node for DropNode {
-        fn describe(&self) -> String {
-            match &self.target {
-                Some(item) => format!("drop {}", item.describe()),
-                None => format!("drop"),
-            }
-        }
-    }
-
-    fn drop(i: &str) -> IResult<&str, Box<dyn Node>> {
-        let specific = map(
-            separated_pair(tag("drop"), spaces, noun),
-            |(_, target)| -> Box<dyn Node> {
-                Box::new(DropNode {
-                    target: Some(target),
-                })
-            },
-        );
-
-        let everything = map(tag("drop"), |_| -> Box<dyn Node> {
-            Box::new(DropNode { target: None })
+    fn drop(i: &str) -> IResult<&str, Sentence> {
+        let specific = map(separated_pair(tag("drop"), spaces, noun), |(_, target)| {
+            Sentence::Drop(Some(target))
         });
+
+        let everything = map(tag("drop"), |_| Sentence::Drop(None));
 
         alt((specific, everything))(i)
     }
@@ -117,11 +65,7 @@ mod vocab {
         pub fn parse(s: &str) -> IResult<&str, Self> {
             let ours = alt((look, hold, drop));
 
-            map(ours, |node| Self { n: node })(s)
-        }
-
-        pub fn describe(&self) -> String {
-            self.n.describe()
+            map(ours, |sentence| Self { s: sentence })(s)
         }
     }
 }
@@ -138,25 +82,40 @@ mod tests {
     fn it_parses_look_correctly() {
         let (remaining, actual) = English::parse("look").unwrap();
         assert_eq!(remaining, "");
-        assert_eq!(actual.describe(), "look")
+        assert_eq!(actual, English { s: Sentence::Look })
     }
 
     #[test]
     fn it_parses_hold_noun_correctly() {
         let (remaining, actual) = English::parse("hold rake").unwrap();
         assert_eq!(remaining, "");
-        assert_eq!(actual.describe(), "hold rake")
+        assert_eq!(
+            actual,
+            English {
+                s: Sentence::Hold(Item::Described("rake".to_owned()))
+            }
+        )
     }
     #[test]
     fn it_parses_solo_drop_correctly() {
         let (remaining, actual) = English::parse("drop").unwrap();
         assert_eq!(remaining, "");
-        assert_eq!(actual.describe(), "drop")
+        assert_eq!(
+            actual,
+            English {
+                s: Sentence::Drop(None)
+            }
+        )
     }
     #[test]
     fn it_parses_drop_noun_correctly() {
         let (remaining, actual) = English::parse("drop rake").unwrap();
         assert_eq!(remaining, "");
-        assert_eq!(actual.describe(), "drop rake")
+        assert_eq!(
+            actual,
+            English {
+                s: Sentence::Drop(Some(Item::Described("rake".to_owned())))
+            }
+        )
     }
 }
