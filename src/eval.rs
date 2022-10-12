@@ -1,6 +1,10 @@
 use anyhow::Result;
 // use tracing::{debug, info};
 
+trait Action {
+    fn perform(&self) -> Result<()>;
+}
+
 mod vocab {
     use nom::{
         branch::alt,
@@ -12,12 +16,15 @@ mod vocab {
         IResult,
     };
 
-    #[derive(Debug, Eq, PartialEq)]
+    use super::Action;
+    use anyhow::Result;
+
+    #[derive(Debug, Clone, Eq, PartialEq)]
     pub enum Item {
         Described(String),
     }
 
-    #[derive(Debug, Eq, PartialEq)]
+    #[derive(Debug, Clone, Eq, PartialEq)]
     pub enum Sentence {
         Look,
         Hold(Item),
@@ -66,6 +73,51 @@ mod vocab {
             let ours = alt((look, hold, drop));
 
             map(ours, |sentence| Self { s: sentence })(s)
+        }
+    }
+
+    pub trait Visitor<T> {
+        fn visit_sentence(&mut self, n: &Sentence) -> T;
+    }
+
+    struct LookAction {}
+    impl Action for LookAction {
+        fn perform(&self) -> Result<()> {
+            Ok(())
+        }
+    }
+
+    struct HoldAction {
+        sentence: Sentence,
+    }
+    impl Action for HoldAction {
+        fn perform(&self) -> Result<()> {
+            Ok(())
+        }
+    }
+
+    struct DropAction {
+        sentence: Sentence,
+    }
+    impl Action for DropAction {
+        fn perform(&self) -> Result<()> {
+            Ok(())
+        }
+    }
+
+    struct Interpreter;
+
+    impl Visitor<Box<dyn Action>> for Interpreter {
+        fn visit_sentence(&mut self, s: &Sentence) -> Box<dyn Action> {
+            match *s {
+                Sentence::Hold(ref e) => Box::new(HoldAction {
+                    sentence: s.clone(), // TODO Another way to achieve this?
+                }),
+                Sentence::Drop(ref e) => Box::new(DropAction {
+                    sentence: s.clone(), // TODO Another way to achieve this?
+                }),
+                Sentence::Look => Box::new(LookAction {}),
+            }
         }
     }
 }
