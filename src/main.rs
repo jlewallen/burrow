@@ -1,10 +1,14 @@
 use std::path::PathBuf;
 
+use anyhow::{Error, Result};
+
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Registry};
 use tracing_tree::HierarchicalLayer;
 
 use clap::{Parser, Subcommand};
+
+pub mod serve;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -21,10 +25,10 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    Serve {},
+    Serve(serve::Command),
 }
 
-fn main() {
+fn main() -> Result<()> {
     Registry::default()
         .with(EnvFilter::from_default_env())
         .with(
@@ -34,12 +38,12 @@ fn main() {
         )
         .init();
 
+    info!("initialized, ready");
+
     let cli = Cli::parse();
 
     match &cli.command {
-        Some(Commands::Serve {}) => {
-            info!("serving");
-        }
-        None => {}
+        Some(Commands::Serve(cmd)) => serve::execute_command(cmd),
+        None => Ok(()),
     }
 }
