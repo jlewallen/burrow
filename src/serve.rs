@@ -1,4 +1,4 @@
-use anyhow::{Error, Result};
+use anyhow::Result;
 
 use tracing::{debug, info};
 

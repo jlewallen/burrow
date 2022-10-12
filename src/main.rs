@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use anyhow::{Error, Result};
+use anyhow::Result;
 
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -36,6 +36,7 @@ fn main() -> Result<()> {
         .init();
 
     info!("initialized, ready");
+    debug!("debug enabled");
 
     let cli = Cli::parse();
 
