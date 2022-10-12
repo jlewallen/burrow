@@ -7,6 +7,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use clap::{Parser, Subcommand};
 
+pub mod eval;
 pub mod serve;
 
 #[derive(Parser)]
