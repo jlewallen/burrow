@@ -3,8 +3,7 @@ use std::path::PathBuf;
 use anyhow::{Error, Result};
 
 use tracing::{debug, info};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Registry};
-use tracing_tree::HierarchicalLayer;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use clap::{Parser, Subcommand};
 
@@ -29,13 +28,11 @@ enum Commands {
 }
 
 fn main() -> Result<()> {
-    Registry::default()
-        .with(EnvFilter::from_default_env())
-        .with(
-            HierarchicalLayer::new(2)
-                .with_targets(true)
-                .with_bracketed_fields(true),
-        )
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::EnvFilter::new(
+            std::env::var("RUST_LOG").unwrap_or_else(|_| "rudder=debug,tower_http=debug".into()),
+        ))
+        .with(tracing_subscriber::fmt::layer())
         .init();
 
     info!("initialized, ready");
