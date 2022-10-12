@@ -45,8 +45,10 @@ fn main() -> Result<()> {
     match &cli.command {
         Some(Commands::Serve(cmd)) => serve::execute_command(cmd),
         Some(Commands::Eval) => {
-            let action = eval::evaluate("look")?;
-            let _performed = action.perform()?;
+            for text in &["look", "hold rake", "drop"] {
+                let action = eval::evaluate(text)?;
+                let _performed = action.perform()?;
+            }
 
             Ok(())
         }
