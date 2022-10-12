@@ -1,7 +1,18 @@
 use anyhow::Result;
+use thiserror::Error;
 
-trait Action {
+pub trait Action {
     fn perform(&self) -> Result<()>;
+}
+
+#[derive(Error, Debug)]
+pub enum EvaluationError {
+    #[error("unknown parsing human readable")]
+    ParseError,
+}
+
+pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
+    looking::evaluate(i).or(carrying::evaluate(i))
 }
 
 mod library {
@@ -27,16 +38,14 @@ mod library {
 
 mod looking {
     // use super::library::*;
+    use super::{Action, EvaluationError};
+    use anyhow::Result;
 
     use nom::{bytes::complete::tag, combinator::map, IResult};
 
     #[derive(Debug, Clone, Eq, PartialEq)]
     pub enum Sentence {
         Look,
-    }
-
-    pub trait Visitor<T> {
-        fn visit_sentence(&mut self, n: &Sentence) -> T;
     }
 
     fn look(i: &str) -> IResult<&str, Sentence> {
@@ -47,17 +56,33 @@ mod looking {
         look(i)
     }
 
+    pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
+        match parse(i).map(|(_, sentence)| actions::evaluate(&sentence)) {
+            Ok(action) => Ok(action),
+            Err(_e) => Err(EvaluationError::ParseError), // TODO Weak
+        }
+    }
+
     mod actions {
         use super::super::Action;
         use super::*;
 
         use anyhow::Result;
 
+        use tracing::info;
+
         struct LookAction {}
         impl Action for LookAction {
             fn perform(&self) -> Result<()> {
+                info!("look!");
+
                 Ok(())
             }
+        }
+
+        /*
+        pub trait Visitor<T> {
+            fn visit_sentence(&mut self, n: &Sentence) -> T;
         }
 
         struct Interpreter;
@@ -67,6 +92,13 @@ mod looking {
                 match *s {
                     Sentence::Look => Box::new(LookAction {}),
                 }
+            }
+        }
+        */
+
+        pub fn evaluate(s: &Sentence) -> Box<dyn Action> {
+            match *s {
+                Sentence::Look => Box::new(LookAction {}),
             }
         }
     }
@@ -92,6 +124,7 @@ mod looking {
 
 mod carrying {
     use super::library::*;
+    use super::{Action, EvaluationError};
 
     use nom::{
         branch::alt, bytes::complete::tag, combinator::map, sequence::separated_pair, IResult,
@@ -101,10 +134,6 @@ mod carrying {
     pub enum Sentence {
         Hold(Item),
         Drop(Option<Item>),
-    }
-
-    pub trait Visitor<T> {
-        fn visit_sentence(&mut self, n: &Sentence) -> T;
     }
 
     fn hold(i: &str) -> IResult<&str, Sentence> {
@@ -127,17 +156,27 @@ mod carrying {
         alt((hold, drop))(i)
     }
 
+    pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
+        match parse(i).map(|(_, sentence)| actions::evaluate(&sentence)) {
+            Ok(action) => Ok(action),
+            Err(_e) => Err(EvaluationError::ParseError), // TODO Weak
+        }
+    }
+
     mod actions {
         use super::super::Action;
         use super::*;
 
         use anyhow::Result;
+        use tracing::info;
 
         struct HoldAction {
             sentence: Sentence,
         }
         impl Action for HoldAction {
             fn perform(&self) -> Result<()> {
+                info!("hold {:?}!", self.sentence);
+
                 Ok(())
             }
         }
@@ -147,23 +186,21 @@ mod carrying {
         }
         impl Action for DropAction {
             fn perform(&self) -> Result<()> {
+                info!("drop {:?}!", self.sentence);
+
                 Ok(())
             }
         }
 
-        struct Interpreter;
-
-        impl Visitor<Box<dyn Action>> for Interpreter {
-            fn visit_sentence(&mut self, s: &Sentence) -> Box<dyn Action> {
-                // TODO This could be improved.
-                match *s {
-                    Sentence::Hold(ref _e) => Box::new(HoldAction {
-                        sentence: s.clone(),
-                    }),
-                    Sentence::Drop(ref _e) => Box::new(DropAction {
-                        sentence: s.clone(),
-                    }),
-                }
+        pub fn evaluate(s: &Sentence) -> Box<dyn Action> {
+            // TODO This could be improved.
+            match *s {
+                Sentence::Hold(ref _e) => Box::new(HoldAction {
+                    sentence: s.clone(),
+                }),
+                Sentence::Drop(ref _e) => Box::new(DropAction {
+                    sentence: s.clone(),
+                }),
             }
         }
     }
@@ -178,12 +215,14 @@ mod carrying {
             assert_eq!(remaining, "");
             assert_eq!(actual, Sentence::Hold(Item::Described("rake".to_owned())))
         }
+
         #[test]
         fn it_parses_solo_drop_correctly() {
             let (remaining, actual) = parse("drop").unwrap();
             assert_eq!(remaining, "");
             assert_eq!(actual, Sentence::Drop(None))
         }
+
         #[test]
         fn it_parses_drop_noun_correctly() {
             let (remaining, actual) = parse("drop rake").unwrap();

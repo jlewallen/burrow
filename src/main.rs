@@ -26,6 +26,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     Serve(serve::Command),
+    Eval,
 }
 
 fn main() -> Result<()> {
@@ -43,6 +44,12 @@ fn main() -> Result<()> {
 
     match &cli.command {
         Some(Commands::Serve(cmd)) => serve::execute_command(cmd),
+        Some(Commands::Eval) => {
+            let action = eval::evaluate("look")?;
+            let _performed = action.perform()?;
+
+            Ok(())
+        }
         None => Ok(()),
     }
 }
