@@ -8,6 +8,10 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use clap::{Parser, Subcommand};
 
 pub mod eval;
+pub mod kernel;
+pub mod library;
+pub mod model;
+pub mod plugins;
 pub mod serve;
 
 #[derive(Parser)]
@@ -38,6 +42,7 @@ fn main() -> Result<()> {
         .init();
 
     info!("initialized, ready");
+
     debug!("debug enabled");
 
     let cli = Cli::parse();
