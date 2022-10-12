@@ -116,6 +116,10 @@ impl English {
 
         map(ours, |node| Self { n: node })(s)
     }
+
+    pub fn describe(&self) -> String {
+        self.n.describe()
+    }
 }
 
 pub fn evaluate() -> Result<()> {
@@ -130,25 +134,25 @@ mod tests {
     fn it_parses_look_correctly() {
         let (remaining, actual) = English::parse("look").unwrap();
         assert_eq!(remaining, "");
-        assert_eq!(actual.n.describe(), "look")
+        assert_eq!(actual.describe(), "look")
     }
 
     #[test]
     fn it_parses_hold_noun_correctly() {
         let (remaining, actual) = English::parse("hold rake").unwrap();
         assert_eq!(remaining, "");
-        assert_eq!(actual.n.describe(), "hold rake")
+        assert_eq!(actual.describe(), "hold rake")
     }
     #[test]
     fn it_parses_solo_drop_correctly() {
         let (remaining, actual) = English::parse("drop").unwrap();
         assert_eq!(remaining, "");
-        assert_eq!(actual.n.describe(), "drop")
+        assert_eq!(actual.describe(), "drop")
     }
     #[test]
     fn it_parses_drop_noun_correctly() {
         let (remaining, actual) = English::parse("drop rake").unwrap();
         assert_eq!(remaining, "");
-        assert_eq!(actual.n.describe(), "drop rake")
+        assert_eq!(actual.describe(), "drop rake")
     }
 }
