@@ -23,7 +23,11 @@ pub mod looking {
         }
     }
 
-    pub mod model {}
+    pub mod model {
+        use crate::kernel::EntityKey;
+
+        pub fn discover(_entity_keys: &mut Vec<EntityKey>) {}
+    }
 
     pub mod actions {
         use super::*;
@@ -145,6 +149,8 @@ pub mod carrying {
                 }
             }
         }
+
+        pub fn discover(_entity_keys: &mut Vec<EntityKey>) {}
     }
 
     pub mod actions {
@@ -273,6 +279,8 @@ pub mod moving {
         }
 
         impl Scope for Here {}
+
+        pub fn discover(_entity_keys: &mut Vec<EntityKey>) {}
     }
 
     pub mod actions {

@@ -1,11 +1,8 @@
-use std::path::PathBuf;
-
 use anyhow::Result;
-
+use clap::{Parser, Subcommand};
+use std::path::PathBuf;
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
-use clap::{Parser, Subcommand};
 
 pub mod eval;
 pub mod kernel;
@@ -13,6 +10,7 @@ pub mod library;
 pub mod model;
 pub mod plugins;
 pub mod serve;
+pub mod storage;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
