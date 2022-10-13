@@ -115,16 +115,24 @@ pub mod carrying {
         use serde::{Deserialize, Serialize};
 
         #[derive(Debug, Serialize, Deserialize)]
-        struct Carrying {
+        pub struct Carrying {
             pub holding: Vec<EntityRef>,
         }
 
-        impl Scope for Carrying {}
+        impl Scope for Carrying {
+            fn scope_key() -> &'static str {
+                "carrying"
+            }
+        }
 
         #[derive(Debug, Serialize, Deserialize)]
         struct Carryable {}
 
-        impl Scope for Carryable {}
+        impl Scope for Carryable {
+            fn scope_key() -> &'static str {
+                "carryable"
+            }
+        }
 
         #[derive(Debug)]
         pub enum CarryingEvent {
@@ -262,23 +270,35 @@ pub mod moving {
         use serde::{Deserialize, Serialize};
 
         #[derive(Debug, Serialize, Deserialize)]
-        struct Location {
+        pub struct Location {
             pub container: Option<EntityRef>,
         }
 
-        impl Scope for Location {}
+        impl Scope for Location {
+            fn scope_key() -> &'static str {
+                "location"
+            }
+        }
 
         #[derive(Debug, Serialize, Deserialize)]
-        struct Exit {}
+        pub struct Exit {}
 
-        impl Scope for Exit {}
+        impl Scope for Exit {
+            fn scope_key() -> &'static str {
+                "exit"
+            }
+        }
 
         #[derive(Debug, Serialize, Deserialize)]
-        struct Here {
+        pub struct Here {
             pub here: Vec<EntityRef>,
         }
 
-        impl Scope for Here {}
+        impl Scope for Here {
+            fn scope_key() -> &'static str {
+                "here"
+            }
+        }
 
         pub fn discover(_entity_keys: &mut Vec<EntityKey>) {}
     }
@@ -320,6 +340,25 @@ pub mod moving {
         fn it_errors_on_unknown_text() {
             let output = parse("hello");
             assert!(output.is_err()); // TODO Weak
+        }
+    }
+}
+
+pub mod users {
+    pub mod model {
+        use crate::kernel::*;
+        use serde::{Deserialize, Serialize};
+        use std::collections::HashMap;
+
+        #[derive(Debug, Serialize, Deserialize)]
+        pub struct Usernames {
+            pub users: HashMap<String, String>,
+        }
+
+        impl Scope for Usernames {
+            fn scope_key() -> &'static str {
+                "usernames"
+            }
         }
     }
 }

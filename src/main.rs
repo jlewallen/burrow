@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+pub mod domain;
 pub mod eval;
 pub mod kernel;
 pub mod library;
@@ -48,7 +49,7 @@ fn main() -> Result<()> {
     match &cli.command {
         Some(Commands::Serve(cmd)) => serve::execute_command(cmd),
         Some(Commands::Eval) => {
-            let domain = kernel::Domain::new();
+            let domain = domain::Domain::new();
             let session = domain.open_session()?;
 
             for text in &["look", "hold rake", "drop"] {

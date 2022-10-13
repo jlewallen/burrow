@@ -1,11 +1,12 @@
-use crate::eval;
-use crate::storage::EntityStorage;
-use anyhow::Result;
+use anyhow::{anyhow, Error, Result};
 use once_cell::sync::Lazy;
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use thiserror::Error;
 use tracing::{debug, info};
+
+pub static WORLD_KEY: Lazy<EntityKey> = Lazy::new(|| "world".to_string());
 
 pub trait Action {
     fn perform(&self) -> Result<()>;
@@ -19,87 +20,118 @@ pub enum EvaluationError {
 
 pub type EntityKey = String;
 
-static WORLD_KEY: Lazy<EntityKey> = Lazy::new(|| "world".to_string());
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EntityRef {
+    #[serde(alias = "py/object")]
+    py_object: String,
+    #[serde(alias = "py/ref")]
+    py_ref: String,
+    key: EntityKey,
+    klass: String,
+    name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Identity {
+    #[serde(alias = "py/object")]
+    py_object: String,
+    private: String,
+    public: String,
+    signature: Option<String>, // TODO Why does this happen?
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Kind {
+    #[serde(alias = "py/object")]
+    py_object: String,
+    identity: Identity,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EntityClass {
+    #[serde(alias = "py/type")]
+    py_type: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AclRule {
+    #[serde(alias = "py/object")]
+    py_object: String,
+    keys: Vec<String>,
+    perm: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Acls {
+    #[serde(alias = "py/object")]
+    py_object: String,
+    rules: Vec<AclRule>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Version {
+    #[serde(alias = "py/object")]
+    py_object: String,
+    i: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Property {
+    value: serde_json::Value,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Props {
+    map: HashMap<String, Property>,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Entity {
-    pub key: EntityKey,
+    #[serde(alias = "py/object")]
+    py_object: String,
+    pub key: String,
+    version: Version,
+    parent: Option<EntityRef>,
+    creator: Option<EntityRef>,
+    identity: Identity,
+    #[serde(alias = "klass")]
+    class: EntityClass,
+    acls: Acls,
+    props: Props,
+    scopes: HashMap<String, serde_json::Value>,
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct EntityRef {
-    pub key: EntityKey,
+impl Entity {
+    pub fn scope<T: Scope + DeserializeOwned>(&self) -> Result<Box<T>> {
+        let key = <T as Scope>::scope_key();
+
+        if !self.scopes.contains_key(key) {
+            return Err(anyhow!("unable to create scope immutably"));
+        }
+
+        let data = &self.scopes[key];
+
+        debug!(%data, "parsing");
+
+        // The call to serde_json::from_value requires owned data and we have a
+        // reference to somebody else's. Presumuably so that we don't couple the
+        // lifetime of the returned object to the lifetime of the data being
+        // referenced? What's the right solution here?
+        // Should the 'un-parsed' Scope also owned the parsed data?
+        let owned_value = data.clone();
+        Ok(serde_json::from_value(owned_value)?)
+    }
 }
 
 pub trait DomainEvent {}
 
-pub trait Scope {}
+pub trait Scope {
+    fn scope_key() -> &'static str
+    where
+        Self: Sized;
+}
 
 #[derive(Debug)]
 pub struct DomainResult<T> {
     pub events: Vec<T>,
-}
-
-pub struct Session {
-    storage: Box<dyn EntityStorage>,
-    entities: HashMap<EntityKey, Entity>,
-}
-
-impl Session {
-    pub fn evaluate_and_perform(&self, text: &str) -> Result<()> {
-        debug!("session-do '{}'", text);
-
-        let action = eval::evaluate(text)?;
-        let _performed = action.perform()?;
-
-        Ok(())
-    }
-
-    pub fn close(&self) {
-        info!("session-close");
-    }
-
-    pub fn hydrate_user_session() {}
-}
-
-impl Drop for Session {
-    fn drop(&mut self) {
-        info!("session-drop");
-    }
-}
-
-pub struct Domain {
-    // storage: Box<dyn EntityStorage>,
-}
-
-use crate::storage;
-
-impl Domain {
-    pub fn new() -> Self {
-        info!("domain-new");
-
-        Domain {
-            // TODO Consider making this a factory.
-            // storage: Box::new(sqlite::SqliteStorage::new("world.sqlite3")),
-        }
-    }
-
-    pub fn open_session(&self) -> Result<Session> {
-        info!("session-open");
-
-        // TODO Consider using factory in Domain.
-        let storage = Box::new(storage::sqlite::SqliteStorage::new("world.sqlite3"));
-
-        let world = storage.load(&WORLD_KEY)?;
-
-        // TODO get user
-        // TODO get Area
-        // TODO discover
-        // TODO hydrate
-
-        Ok(Session {
-            storage: storage,
-            entities: HashMap::new(),
-        })
-    }
 }
