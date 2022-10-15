@@ -3,29 +3,66 @@ use crate::kernel::*;
 use crate::plugins::users::model::Usernames;
 use crate::storage::EntityStorage;
 use anyhow::Result;
-use std::collections::HashMap;
+use elsa::FrozenMap;
 use tracing::{debug, info};
 
 pub struct Session {
     storage: Box<dyn EntityStorage>,
-    entities: HashMap<EntityKey, Entity>,
+    entities: FrozenMap<EntityKey, Box<Entity>>,
 }
 
 impl Session {
-    pub fn evaluate_and_perform(&self, text: &str) -> Result<()> {
-        debug!("session-do '{}'", text);
+    pub fn new(storage: Box<dyn EntityStorage>) -> Self {
+        info!("session-new");
+
+        Self {
+            storage: storage,
+            entities: FrozenMap::new(),
+        }
+    }
+
+    pub fn load_entity_by_key(&self, key: &EntityKey) -> Result<&Entity> {
+        if let Some(e) = self.entities.get(key) {
+            debug!(%key, "loading local entity");
+            return Ok(e);
+        }
+
+        debug!(%key, "loading entity");
+
+        let loaded = self.storage.load(key)?;
+
+        let inserted = self.entities.insert(key.clone(), Box::new(loaded));
+
+        Ok(inserted)
+    }
+
+    pub fn evaluate_and_perform(&self, user_name: &str, text: &str) -> Result<()> {
+        debug!(%user_name, "session-do '{}'", text);
+
+        let world = self.load_entity_by_key(&WORLD_KEY)?;
+
+        let usernames = world.scope::<Usernames>()?;
+
+        let user_key = &usernames.users[user_name];
+
+        let user = self.load_entity_by_key(user_key)?;
 
         let action = eval::evaluate(text)?;
-        let _performed = action.perform()?;
 
+        let performed = action.perform((&world, &user))?;
+
+        info!(%user_name, "done {:?}", performed);
+
+        Ok(())
+    }
+
+    pub fn hydrate_user_session(&self) -> Result<()> {
         Ok(())
     }
 
     pub fn close(&self) {
         info!("session-close");
     }
-
-    pub fn hydrate_user_session() {}
 }
 
 impl Drop for Session {
@@ -35,7 +72,7 @@ impl Drop for Session {
 }
 
 pub struct Domain {
-    // storage: Box<dyn EntityStorage>,
+    // storage_factory: Box<dyn EntityStorageFactory>,
 }
 
 use crate::storage;
@@ -44,10 +81,7 @@ impl Domain {
     pub fn new() -> Self {
         info!("domain-new");
 
-        Domain {
-            // TODO Consider making this a factory.
-            // storage: Box::new(sqlite::SqliteStorage::new("world.sqlite3")),
-        }
+        Domain {}
     }
 
     pub fn open_session(&self) -> Result<Session> {
@@ -56,26 +90,13 @@ impl Domain {
         // TODO Consider using factory in Domain.
         let storage = Box::new(storage::sqlite::SqliteStorage::new("world.sqlite3"));
 
-        let world = storage.load(&WORLD_KEY)?;
-
-        let usernames = world.scope::<Usernames>()?;
-
-        info!("usernames: {:?}", usernames);
-
-        let user_key = &usernames.users["jlewallen"];
-
-        let user = storage.load(user_key)?;
-
-        info!("user: {:?}", user);
+        let session = Session::new(storage);
 
         // TODO get user
         // TODO get Area
         // TODO discover
         // TODO hydrate
 
-        Ok(Session {
-            storage: storage,
-            entities: HashMap::new(),
-        })
+        Ok(session)
     }
 }

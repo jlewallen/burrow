@@ -31,16 +31,16 @@ pub mod looking {
 
     pub mod actions {
         use super::*;
-        use crate::kernel::Action;
+        use crate::kernel::*;
         use anyhow::Result;
         use tracing::info;
 
         struct LookAction {}
         impl Action for LookAction {
-            fn perform(&self) -> Result<()> {
+            fn perform(&self, args: ActionArgs) -> Result<Reply> {
                 info!("look!");
 
-                Ok(())
+                Ok(Reply {})
             }
         }
 
@@ -71,7 +71,7 @@ pub mod looking {
 }
 
 pub mod carrying {
-    use crate::kernel::{Action, EvaluationError};
+    use crate::kernel::*;
     use crate::library::{noun, spaces, Item};
     use nom::{
         branch::alt, bytes::complete::tag, combinator::map, sequence::separated_pair, IResult,
@@ -163,7 +163,7 @@ pub mod carrying {
 
     pub mod actions {
         use super::*;
-        use crate::kernel::Action;
+        // use crate::kernel::*;
         use anyhow::Result;
         use tracing::info;
 
@@ -171,10 +171,10 @@ pub mod carrying {
             sentence: Sentence,
         }
         impl Action for HoldAction {
-            fn perform(&self) -> Result<()> {
+            fn perform(&self, args: ActionArgs) -> Result<Reply> {
                 info!("hold {:?}!", self.sentence);
 
-                Ok(())
+                Ok(Reply {})
             }
         }
 
@@ -182,10 +182,10 @@ pub mod carrying {
             sentence: Sentence,
         }
         impl Action for DropAction {
-            fn perform(&self) -> Result<()> {
+            fn perform(&self, args: ActionArgs) -> Result<Reply> {
                 info!("drop {:?}!", self.sentence);
 
-                Ok(())
+                Ok(Reply {})
             }
         }
 
@@ -305,16 +305,16 @@ pub mod moving {
 
     pub mod actions {
         use super::*;
-        use crate::kernel::Action;
+        use crate::kernel::*;
         use anyhow::Result;
         use tracing::info;
 
         struct GoAction {}
         impl Action for GoAction {
-            fn perform(&self) -> Result<()> {
+            fn perform(&self, args: ActionArgs) -> Result<Reply> {
                 info!("go!");
 
-                Ok(())
+                Ok(Reply {})
             }
         }
 

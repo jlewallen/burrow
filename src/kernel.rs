@@ -1,15 +1,20 @@
-use anyhow::{anyhow, Error, Result};
+use anyhow::{anyhow, Result};
 use once_cell::sync::Lazy;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use thiserror::Error;
-use tracing::{debug, info};
+use tracing::debug;
 
 pub static WORLD_KEY: Lazy<EntityKey> = Lazy::new(|| "world".to_string());
 
+pub type ActionArgs<'a> = (&'a Entity, &'a Entity);
+
+#[derive(Debug)]
+pub struct Reply {}
+
 pub trait Action {
-    fn perform(&self) -> Result<()>;
+    fn perform(&self, args: ActionArgs) -> Result<Reply>;
 }
 
 #[derive(Error, Debug)]
@@ -20,7 +25,7 @@ pub enum EvaluationError {
 
 pub type EntityKey = String;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EntityRef {
     #[serde(alias = "py/object")]
     py_object: String,
@@ -31,7 +36,7 @@ pub struct EntityRef {
     name: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Identity {
     #[serde(alias = "py/object")]
     py_object: String,
@@ -40,20 +45,20 @@ pub struct Identity {
     signature: Option<String>, // TODO Why does this happen?
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Kind {
     #[serde(alias = "py/object")]
     py_object: String,
     identity: Identity,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EntityClass {
     #[serde(alias = "py/type")]
     py_type: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AclRule {
     #[serde(alias = "py/object")]
     py_object: String,
@@ -61,31 +66,31 @@ pub struct AclRule {
     perm: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Acls {
     #[serde(alias = "py/object")]
     py_object: String,
     rules: Vec<AclRule>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Version {
     #[serde(alias = "py/object")]
     py_object: String,
     i: u32,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Property {
     value: serde_json::Value,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Props {
     map: HashMap<String, Property>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Entity {
     #[serde(alias = "py/object")]
     py_object: String,

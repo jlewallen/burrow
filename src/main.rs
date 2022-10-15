@@ -53,7 +53,7 @@ fn main() -> Result<()> {
             let session = domain.open_session()?;
 
             for text in &["look", "hold rake", "drop"] {
-                session.evaluate_and_perform(text)?;
+                session.evaluate_and_perform("jlewallen", text)?;
             }
 
             Ok(())

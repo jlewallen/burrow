@@ -25,6 +25,7 @@ pub mod sqlite {
     }
 
     #[derive(Debug)]
+    #[allow(dead_code)]
     struct PersistedEntity {
         key: String,
         gid: u32,
