@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use axum::{
     extract::Extension,
     http::StatusCode,
@@ -8,6 +8,7 @@ use axum::{
 };
 use axum_typed_websockets::{Message, WebSocket, WebSocketUpgrade};
 use clap::Args;
+// use futures::stream::{SplitSink, SplitStream};
 use futures::{sink::SinkExt, stream::StreamExt};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -27,15 +28,6 @@ use tracing::{debug, info};
 #[derive(Debug, Args)]
 pub struct Command {}
 
-struct ClientSession {
-    username: String,
-}
-
-struct AppState {
-    user_set: Mutex<HashSet<String>>,
-    tx: broadcast::Sender<String>,
-}
-
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 enum ServerMessage {
@@ -46,7 +38,7 @@ enum ServerMessage {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 enum ClientMessage {
-    Login { username: String, password: String },
+    Login { username: String },
     Evaluate(String),
 }
 
@@ -125,15 +117,15 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
     // By splitting we can send and receive at the same time.
     let (mut sender, mut receiver) = stream.split();
 
-    let mut username = String::new();
+    let mut session: Option<ClientSession> = None;
+
     while let Some(Ok(message)) = receiver.next().await {
         match message {
-            Message::Item(ClientMessage::Login {
-                username: given,
-                password: _,
-            }) => {
+            Message::Item(ClientMessage::Login { username: given }) => {
                 // If username that is sent by client is not taken, fill username string.
-                state.check_username(&mut username, &given);
+                if let Ok(started) = state.try_start_session(&given) {
+                    session = Some(started)
+                }
 
                 break;
             }
@@ -143,7 +135,7 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
         }
     }
 
-    if username.is_empty() {
+    if session.is_none() {
         let _ = sender
             .send(Message::Item(ServerMessage::Error(
                 "Sorry, there's a problem with your credentials.".to_string(),
@@ -153,9 +145,11 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
         return;
     }
 
+    let session = session.unwrap();
+
     // Send joined message to all subscribers.
     let mut rx = state.tx.subscribe();
-    let msg = format!("{} joined.", username);
+    let msg = format!("{} joined.", session.username);
     tracing::debug!("{}", msg);
     let _ = state.tx.send(msg);
 
@@ -175,7 +169,7 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
 
     // Pump messages from clients.
     let tx = state.tx.clone();
-    let name = username.clone();
+    let name = session.username.clone();
 
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(Message::Item(message))) = receiver.next().await {
@@ -196,26 +190,41 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
     };
 
     // Send user left message.
-    let msg = format!("{} left.", username);
+    let msg = format!("{} left.", session.username);
     tracing::debug!("{}", msg);
     let _ = state.tx.send(msg);
 
-    state.remove_user(&username);
+    state.remove_session(&session);
+}
+struct ClientSession {
+    username: String,
+}
+
+struct AppState {
+    user_set: Mutex<HashSet<String>>,
+    tx: broadcast::Sender<String>,
 }
 
 impl AppState {
-    fn check_username(&self, string: &mut String, name: &str) {
-        if !name.is_empty() {
-            let mut user_set = self.user_set.lock().unwrap();
-
-            if !user_set.contains(name) {
-                user_set.insert(name.to_owned());
-                string.push_str(name);
-            }
+    pub fn try_start_session(&self, name: &str) -> Result<ClientSession> {
+        if name.is_empty() {
+            return Err(anyhow!("username cannot be blank"));
         }
+
+        let mut user_set = self.user_set.lock().unwrap();
+
+        if user_set.contains(name) {
+            return Err(anyhow!("username already taken"));
+        }
+
+        user_set.insert(name.to_owned());
+
+        Ok(ClientSession {
+            username: name.to_string(),
+        })
     }
 
-    fn remove_user(&self, username: &str) {
-        self.user_set.lock().unwrap().remove(username);
+    fn remove_session(&self, session: &ClientSession) {
+        self.user_set.lock().unwrap().remove(&session.username);
     }
 }
