@@ -134,10 +134,10 @@ pub mod actions {
         maybe_item: Item,
     }
     impl Action for HoldAction {
-        fn perform(&self, (_world, _user, _area): ActionArgs) -> Result<Reply> {
+        fn perform(&self, (_world, _user, _area): ActionArgs) -> Result<Box<dyn Reply>> {
             info!("hold {:?}!", self.maybe_item);
 
-            Ok(Reply {})
+            Ok(Box::new(SimpleReply::Done))
         }
     }
 
@@ -146,10 +146,10 @@ pub mod actions {
         maybe_item: Option<Item>,
     }
     impl Action for DropAction {
-        fn perform(&self, (_world, _user, _area): ActionArgs) -> Result<Reply> {
+        fn perform(&self, (_world, _user, _area): ActionArgs) -> Result<Box<dyn Reply>> {
             info!("drop {:?}!", self.maybe_item);
 
-            Ok(Reply {})
+            Ok(Box::new(SimpleReply::Done))
         }
     }
 

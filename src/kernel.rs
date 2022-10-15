@@ -1,10 +1,12 @@
 use anyhow::Result;
+use markdown_gen::markdown;
 use once_cell::sync::Lazy;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
 use std::ops::Index;
+use std::string::FromUtf8Error;
 use thiserror::Error;
 use tracing::debug;
 
@@ -12,7 +14,16 @@ pub static WORLD_KEY: Lazy<EntityKey> = Lazy::new(|| "world".to_string());
 
 pub type ActionArgs<'a> = (&'a Entity, &'a Entity, &'a Entity);
 
+pub type Markdown = markdown::Markdown<Vec<u8>>;
+
+pub fn markdown_to_string(md: Markdown) -> Result<String, FromUtf8Error> {
+    String::from_utf8(md.into_inner())
+}
 pub trait DomainEvent {}
+
+pub trait Reply: std::fmt::Debug {
+    fn to_markdown(&self) -> Result<Markdown>;
+}
 
 pub type EntityKey = String;
 
@@ -23,11 +34,21 @@ pub trait Scope {
 }
 
 pub trait Action: std::fmt::Debug {
-    fn perform(&self, args: ActionArgs) -> Result<Reply>;
+    fn perform(&self, args: ActionArgs) -> Result<Box<dyn Reply>>;
 }
 
 #[derive(Debug)]
-pub struct Reply {}
+pub enum SimpleReply {
+    Done,
+}
+
+impl Reply for SimpleReply {
+    fn to_markdown(&self) -> Result<Markdown> {
+        let mut md = Markdown::new(Vec::new());
+        md.write("ok!")?;
+        Ok(md)
+    }
+}
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Item {

@@ -29,9 +29,21 @@ pub mod model {
     pub fn discover(_source: &Entity, _entity_keys: &mut Vec<EntityKey>) -> Result<()> {
         Ok(())
     }
+
+    #[derive(Debug)]
+    pub struct LookReply {}
+
+    impl Reply for LookReply {
+        fn to_markdown(&self) -> Result<Markdown> {
+            let mut md = Markdown::new(Vec::new());
+            md.write("")?;
+            Ok(md)
+        }
+    }
 }
 
 pub mod actions {
+    use super::model::*;
     use super::*;
     use anyhow::Result;
     use tracing::info;
@@ -39,10 +51,10 @@ pub mod actions {
     #[derive(Debug)]
     struct LookAction {}
     impl Action for LookAction {
-        fn perform(&self, (_world, _user, _area): ActionArgs) -> Result<Reply> {
+        fn perform(&self, (_world, _user, _area): ActionArgs) -> Result<Box<dyn Reply>> {
             info!("look!");
 
-            Ok(Reply {})
+            Ok(Box::new(LookReply {}))
         }
     }
 

@@ -2,7 +2,7 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use std::error::Error;
 use std::path::PathBuf;
-use tracing::{debug, info};
+use tracing::{debug, error, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 pub mod domain;
@@ -13,6 +13,8 @@ pub mod model;
 pub mod plugins;
 pub mod serve;
 pub mod storage;
+
+use kernel::markdown_to_string;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -55,7 +57,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             let session = domain.open_session()?;
 
             for text in &["look", "hold rake", "drop", "hold rake", "drop rake"] {
-                session.evaluate_and_perform("jlewallen", text)?;
+                match session.evaluate_and_perform("jlewallen", text) {
+                    Ok(reply) => info!("reply `{}`", markdown_to_string(reply.to_markdown()?)?),
+                    Err(e) => error!("oops {}", e),
+                }
             }
 
             Ok(())

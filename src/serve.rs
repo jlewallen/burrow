@@ -32,7 +32,7 @@ pub struct Command {}
 #[serde(rename_all = "camelCase")]
 enum ServerMessage {
     Error(String),
-    Raw(String),
+    Markdown(String),
 }
 
 #[derive(Debug, Deserialize)]
@@ -158,7 +158,7 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
         while let Ok(raw_msg) = rx.recv().await {
             // In any websocket error, break loop.
             if sender
-                .send(Message::Item(ServerMessage::Raw(raw_msg)))
+                .send(Message::Item(ServerMessage::Markdown(raw_msg)))
                 .await
                 .is_err()
             {

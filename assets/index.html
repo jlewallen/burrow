@@ -34,8 +34,14 @@
             websocket.onmessage = function(e) {
                 e.data.text().then((text) => {
                     const message = JSON.parse(text);
-                    console.log("received message: ", message);
-                    textarea.value += message.raw+"\r\n";
+                    if (message.raw) {
+                        console.log("received message: ", message);
+                        textarea.value += message.raw+"\r\n";
+                    }
+                    if (message.markdown) {
+                        console.log("received message: ", message);
+                        textarea.value += message.markdown+"\r\n";
+                    }
                 })
             }
 

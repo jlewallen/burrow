@@ -56,7 +56,7 @@ impl Session {
         Ok(inserted)
     }
 
-    pub fn evaluate_and_perform(&self, user_name: &str, text: &str) -> Result<()> {
+    pub fn evaluate_and_perform(&self, user_name: &str, text: &str) -> Result<Box<dyn Reply>> {
         debug!(%user_name, "session-do '{}'", text);
 
         let world = self.load_entity_by_key(&WORLD_KEY)?;
@@ -94,11 +94,11 @@ impl Session {
         eval::discover(area, &mut discovered_keys)?;
         info!(%user_name, "discovered {:?}", discovered_keys);
 
-        let performed = action.perform((&world, &user, &area))?;
+        let reply = action.perform((&world, &user, &area))?;
 
-        info!(%user_name, "done {:?}", performed);
+        info!(%user_name, "done {:?}", reply);
 
-        Ok(())
+        Ok(reply)
     }
 
     pub fn hydrate_user_session(&self) -> Result<()> {
