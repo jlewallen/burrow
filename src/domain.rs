@@ -62,6 +62,12 @@ impl Domain {
 
         info!("usernames: {:?}", usernames);
 
+        let user_key = &usernames.users["jlewallen"];
+
+        let user = storage.load(user_key)?;
+
+        info!("user: {:?}", user);
+
         // TODO get user
         // TODO get Area
         // TODO discover
