@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use once_cell::sync::Lazy;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -8,22 +8,53 @@ use tracing::debug;
 
 pub static WORLD_KEY: Lazy<EntityKey> = Lazy::new(|| "world".to_string());
 
-pub type ActionArgs<'a> = (&'a Entity, &'a Entity);
+pub type ActionArgs<'a> = (&'a Entity, &'a Entity, &'a Entity);
+
+pub trait DomainEvent {}
+
+pub type EntityKey = String;
+
+pub trait Scope {
+    fn scope_key() -> &'static str
+    where
+        Self: Sized;
+}
+
+pub trait Action: std::fmt::Debug {
+    fn perform(&self, args: ActionArgs) -> Result<Reply>;
+}
 
 #[derive(Debug)]
 pub struct Reply {}
 
-pub trait Action {
-    fn perform(&self, args: ActionArgs) -> Result<Reply>;
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum Item {
+    Named(String),
+}
+
+#[derive(Error, Debug)]
+pub enum DomainError {
+    #[error("no such scope: {:?}", .0)]
+    NoSuchScope(String),
+    #[error("parse failed")]
+    ParseFailed(#[source] serde_json::Error),
 }
 
 #[derive(Error, Debug)]
 pub enum EvaluationError {
-    #[error("unknown parsing human readable")]
-    ParseError,
+    #[error("parse failed")]
+    ParseFailed,
 }
 
-pub type EntityKey = String;
+impl Into<EvaluationError> for nom::Err<nom::error::Error<&str>> {
+    fn into(self) -> EvaluationError {
+        match self {
+            nom::Err::Incomplete(_) => EvaluationError::ParseFailed,
+            nom::Err::Error(_e) => EvaluationError::ParseFailed,
+            nom::Err::Failure(_e) => EvaluationError::ParseFailed,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EntityRef {
@@ -31,7 +62,7 @@ pub struct EntityRef {
     py_object: String,
     #[serde(alias = "py/ref")]
     py_ref: String,
-    key: EntityKey,
+    pub key: EntityKey,
     klass: String,
     name: String,
 }
@@ -90,6 +121,11 @@ pub struct Props {
     map: HashMap<String, Property>,
 }
 
+#[derive(Debug)]
+pub struct DomainResult<T> {
+    pub events: Vec<T>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Entity {
     #[serde(alias = "py/object")]
@@ -107,11 +143,15 @@ pub struct Entity {
 }
 
 impl Entity {
-    pub fn scope<T: Scope + DeserializeOwned>(&self) -> Result<Box<T>> {
+    pub fn has_scope<T: Scope + DeserializeOwned>(&self) -> bool {
+        self.scopes.contains_key(<T as Scope>::scope_key())
+    }
+
+    pub fn scope<T: Scope + DeserializeOwned>(&self) -> Result<Box<T>, DomainError> {
         let key = <T as Scope>::scope_key();
 
         if !self.scopes.contains_key(key) {
-            return Err(anyhow!("unable to create scope immutably"));
+            return Err(DomainError::NoSuchScope(key.to_string()));
         }
 
         let data = &self.scopes[key];
@@ -128,15 +168,8 @@ impl Entity {
     }
 }
 
-pub trait DomainEvent {}
-
-pub trait Scope {
-    fn scope_key() -> &'static str
-    where
-        Self: Sized;
-}
-
-#[derive(Debug)]
-pub struct DomainResult<T> {
-    pub events: Vec<T>,
+impl From<serde_json::Error> for DomainError {
+    fn from(source: serde_json::Error) -> Self {
+        DomainError::ParseFailed(source)
+    }
 }

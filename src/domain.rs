@@ -1,7 +1,9 @@
 use crate::eval;
 use crate::kernel::*;
+use crate::plugins::carrying::model::Containing;
+use crate::plugins::moving::model::Occupying;
 use crate::plugins::users::model::Usernames;
-use crate::storage::EntityStorage;
+use crate::storage::{EntityStorage, EntityStorageFactory};
 use anyhow::Result;
 use elsa::FrozenMap;
 use tracing::{debug, info};
@@ -19,6 +21,24 @@ impl Session {
             storage: storage,
             entities: FrozenMap::new(),
         }
+    }
+
+    pub fn load_entities_by_refs(&self, entity_refs: Vec<EntityRef>) -> Result<Vec<&Entity>> {
+        entity_refs
+            .into_iter()
+            .map(|re| -> Result<&Entity> { self.load_entity_by_ref(&re) })
+            .collect()
+    }
+
+    pub fn load_entity_by_ref(&self, entity_ref: &EntityRef) -> Result<&Entity> {
+        self.load_entity_by_key(&entity_ref.key)
+    }
+
+    pub fn load_entities_by_keys(&self, entity_keys: Vec<EntityKey>) -> Result<Vec<&Entity>> {
+        entity_keys
+            .into_iter()
+            .map(|key| -> Result<&Entity> { self.load_entity_by_key(&key) })
+            .collect()
     }
 
     pub fn load_entity_by_key(&self, key: &EntityKey) -> Result<&Entity> {
@@ -47,9 +67,34 @@ impl Session {
 
         let user = self.load_entity_by_key(user_key)?;
 
+        let occupying = user.scope::<Occupying>()?;
+
         let action = eval::evaluate(text)?;
 
-        let performed = action.perform((&world, &user))?;
+        info!(%user_name, "performing {:?}", action);
+
+        // info!(%user_name, "user {:?}", user);
+
+        let area = self.load_entity_by_ref(&occupying.area)?;
+
+        info!(%user_name, "area {:?}", area);
+
+        let containing = area.scope::<Containing>()?;
+        for here in self.load_entities_by_refs(containing.holding)? {
+            info!("here {:?}", here)
+        }
+
+        let carrying = user.scope::<Containing>()?;
+        for here in self.load_entities_by_refs(carrying.holding)? {
+            info!("here {:?}", here)
+        }
+
+        let mut discovered_keys: Vec<EntityKey> = vec![];
+        eval::discover(user, &mut discovered_keys)?;
+        eval::discover(area, &mut discovered_keys)?;
+        info!(%user_name, "discovered {:?}", discovered_keys);
+
+        let performed = action.perform((&world, &user, &area))?;
 
         info!(%user_name, "done {:?}", performed);
 
@@ -72,23 +117,23 @@ impl Drop for Session {
 }
 
 pub struct Domain {
-    // storage_factory: Box<dyn EntityStorageFactory>,
+    storage_factory: Box<dyn EntityStorageFactory>,
 }
 
-use crate::storage;
-
 impl Domain {
-    pub fn new() -> Self {
+    pub fn new(storage_factory: Box<dyn EntityStorageFactory>) -> Self {
         info!("domain-new");
 
-        Domain {}
+        Domain {
+            storage_factory: storage_factory,
+        }
     }
 
     pub fn open_session(&self) -> Result<Session> {
         info!("session-open");
 
         // TODO Consider using factory in Domain.
-        let storage = Box::new(storage::sqlite::SqliteStorage::new("world.sqlite3"));
+        let storage = self.storage_factory.create_storage()?;
 
         let session = Session::new(storage);
 

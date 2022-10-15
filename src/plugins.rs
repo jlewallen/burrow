@@ -1,5 +1,5 @@
 pub mod looking {
-    use crate::kernel::{Action, EvaluationError};
+    use crate::kernel::*;
     use anyhow::Result;
     use nom::{bytes::complete::tag, combinator::map, IResult};
 
@@ -19,25 +19,28 @@ pub mod looking {
     pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
         match parse(i).map(|(_, sentence)| actions::evaluate(&sentence)) {
             Ok(action) => Ok(action),
-            Err(_e) => Err(EvaluationError::ParseError), // TODO Weak
+            Err(_e) => Err(EvaluationError::ParseFailed),
         }
     }
 
     pub mod model {
-        use crate::kernel::EntityKey;
+        use crate::kernel::*;
+        use anyhow::Result;
 
-        pub fn discover(_entity_keys: &mut Vec<EntityKey>) {}
+        pub fn discover(_source: &Entity, _entity_keys: &mut Vec<EntityKey>) -> Result<()> {
+            Ok(())
+        }
     }
 
     pub mod actions {
         use super::*;
-        use crate::kernel::*;
         use anyhow::Result;
         use tracing::info;
 
+        #[derive(Debug)]
         struct LookAction {}
         impl Action for LookAction {
-            fn perform(&self, args: ActionArgs) -> Result<Reply> {
+            fn perform(&self, (_world, _user, _area): ActionArgs) -> Result<Reply> {
                 info!("look!");
 
                 Ok(Reply {})
@@ -72,7 +75,8 @@ pub mod looking {
 
 pub mod carrying {
     use crate::kernel::*;
-    use crate::library::{noun, spaces, Item};
+    use crate::library::{noun, spaces};
+    use anyhow::Result;
     use nom::{
         branch::alt, bytes::complete::tag, combinator::map, sequence::separated_pair, IResult,
     };
@@ -106,22 +110,37 @@ pub mod carrying {
     pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
         match parse(i).map(|(_, sentence)| actions::evaluate(&sentence)) {
             Ok(action) => Ok(action),
-            Err(_e) => Err(EvaluationError::ParseError), // TODO Weak
+            Err(_e) => Err(EvaluationError::ParseFailed),
         }
     }
 
     pub mod model {
         use crate::kernel::*;
+        use anyhow::Result;
         use serde::{Deserialize, Serialize};
+        use std::collections::HashMap;
 
         #[derive(Debug, Serialize, Deserialize)]
-        pub struct Carrying {
-            pub holding: Vec<EntityRef>,
+        pub struct Location {
+            pub container: Option<EntityRef>,
         }
 
-        impl Scope for Carrying {
+        impl Scope for Location {
             fn scope_key() -> &'static str {
-                "carrying"
+                "location"
+            }
+        }
+
+        #[derive(Debug, Serialize, Deserialize)]
+        pub struct Containing {
+            pub holding: Vec<EntityRef>,
+            pub capacity: Option<u32>,
+            pub produces: HashMap<String, String>,
+        }
+
+        impl Scope for Containing {
+            fn scope_key() -> &'static str {
+                "containing"
             }
         }
 
@@ -144,7 +163,7 @@ pub mod carrying {
 
         pub type CarryingResult = DomainResult<CarryingEvent>;
 
-        impl Carrying {
+        impl Containing {
             pub fn hold(&self, item: Entity) -> CarryingResult {
                 CarryingResult {
                     events: vec![CarryingEvent::ItemHeld(item)],
@@ -158,7 +177,12 @@ pub mod carrying {
             }
         }
 
-        pub fn discover(_entity_keys: &mut Vec<EntityKey>) {}
+        pub fn discover(source: &Entity, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
+            if let Ok(containing) = source.scope::<Containing>() {
+                entity_keys.extend(containing.holding.into_iter().map(|er| er.key))
+            }
+            Ok(())
+        }
     }
 
     pub mod actions {
@@ -167,23 +191,25 @@ pub mod carrying {
         use anyhow::Result;
         use tracing::info;
 
+        #[derive(Debug)]
         struct HoldAction {
-            sentence: Sentence,
+            maybe_item: Item,
         }
         impl Action for HoldAction {
-            fn perform(&self, args: ActionArgs) -> Result<Reply> {
-                info!("hold {:?}!", self.sentence);
+            fn perform(&self, (_world, _user, _area): ActionArgs) -> Result<Reply> {
+                info!("hold {:?}!", self.maybe_item);
 
                 Ok(Reply {})
             }
         }
 
+        #[derive(Debug)]
         struct DropAction {
-            sentence: Sentence,
+            maybe_item: Option<Item>,
         }
         impl Action for DropAction {
-            fn perform(&self, args: ActionArgs) -> Result<Reply> {
-                info!("drop {:?}!", self.sentence);
+            fn perform(&self, (_world, _user, _area): ActionArgs) -> Result<Reply> {
+                info!("drop {:?}!", self.maybe_item);
 
                 Ok(Reply {})
             }
@@ -191,12 +217,12 @@ pub mod carrying {
 
         pub fn evaluate(s: &Sentence) -> Box<dyn Action> {
             // TODO This could be improved.
-            match *s {
-                Sentence::Hold(ref _e) => Box::new(HoldAction {
-                    sentence: s.clone(),
+            match &*s {
+                Sentence::Hold(e) => Box::new(HoldAction {
+                    maybe_item: e.clone(),
                 }),
-                Sentence::Drop(ref _e) => Box::new(DropAction {
-                    sentence: s.clone(),
+                Sentence::Drop(e) => Box::new(DropAction {
+                    maybe_item: e.clone(),
                 }),
             }
         }
@@ -210,7 +236,7 @@ pub mod carrying {
         fn it_parses_hold_noun_correctly() {
             let (remaining, actual) = parse("hold rake").unwrap();
             assert_eq!(remaining, "");
-            assert_eq!(actual, Sentence::Hold(Item::Described("rake".to_owned())))
+            assert_eq!(actual, Sentence::Hold(Item::Named("rake".to_owned())))
         }
 
         #[test]
@@ -224,10 +250,7 @@ pub mod carrying {
         fn it_parses_drop_noun_correctly() {
             let (remaining, actual) = parse("drop rake").unwrap();
             assert_eq!(remaining, "");
-            assert_eq!(
-                actual,
-                Sentence::Drop(Some(Item::Described("rake".to_owned())))
-            )
+            assert_eq!(actual, Sentence::Drop(Some(Item::Named("rake".to_owned()))))
         }
 
         #[test]
@@ -239,8 +262,9 @@ pub mod carrying {
 }
 
 pub mod moving {
-    use crate::kernel::{Action, EvaluationError};
-    use crate::library::{noun, spaces, Item};
+    use crate::kernel::*;
+    use crate::library::{noun, spaces};
+    use anyhow::Result;
     use nom::{bytes::complete::tag, combinator::map, sequence::separated_pair, IResult};
 
     #[derive(Debug, Clone, Eq, PartialEq)]
@@ -261,22 +285,36 @@ pub mod moving {
     pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
         match parse(i).map(|(_, sentence)| actions::evaluate(&sentence)) {
             Ok(action) => Ok(action),
-            Err(_e) => Err(EvaluationError::ParseError), // TODO Weak
+            Err(_e) => Err(EvaluationError::ParseFailed),
         }
     }
 
     pub mod model {
         use crate::kernel::*;
+        use anyhow::Result;
         use serde::{Deserialize, Serialize};
 
         #[derive(Debug, Serialize, Deserialize)]
-        pub struct Location {
-            pub container: Option<EntityRef>,
+        pub struct Occupying {
+            pub area: EntityRef,
         }
 
-        impl Scope for Location {
+        impl Scope for Occupying {
             fn scope_key() -> &'static str {
-                "location"
+                "occupying"
+            }
+        }
+
+        #[derive(Debug, Serialize, Deserialize)]
+        pub struct Occupyable {
+            pub acls: Acls,
+            pub occupied: Vec<EntityRef>,
+            pub occupancy: u32,
+        }
+
+        impl Scope for Occupyable {
+            fn scope_key() -> &'static str {
+                "occupyable"
             }
         }
 
@@ -289,29 +327,24 @@ pub mod moving {
             }
         }
 
-        #[derive(Debug, Serialize, Deserialize)]
-        pub struct Here {
-            pub here: Vec<EntityRef>,
-        }
-
-        impl Scope for Here {
-            fn scope_key() -> &'static str {
-                "here"
+        pub fn discover(source: &Entity, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
+            if let Ok(occupyable) = source.scope::<Occupyable>() {
+                entity_keys.extend(occupyable.occupied.into_iter().map(|er| er.key));
             }
+            Ok(())
         }
-
-        pub fn discover(_entity_keys: &mut Vec<EntityKey>) {}
     }
 
     pub mod actions {
         use super::*;
-        use crate::kernel::*;
         use anyhow::Result;
         use tracing::info;
 
+        #[derive(Debug)]
         struct GoAction {}
+
         impl Action for GoAction {
-            fn perform(&self, args: ActionArgs) -> Result<Reply> {
+            fn perform(&self, (_world, _user, _area): ActionArgs) -> Result<Reply> {
                 info!("go!");
 
                 Ok(Reply {})
@@ -333,7 +366,7 @@ pub mod moving {
         fn it_parses_go_noun_correctly() {
             let (remaining, actual) = parse("go west").unwrap();
             assert_eq!(remaining, "");
-            assert_eq!(actual, Sentence::Go(Item::Described("west".to_owned())))
+            assert_eq!(actual, Sentence::Go(Item::Named("west".to_owned())))
         }
 
         #[test]

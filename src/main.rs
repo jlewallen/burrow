@@ -49,10 +49,11 @@ fn main() -> Result<()> {
     match &cli.command {
         Some(Commands::Serve(cmd)) => serve::execute_command(cmd),
         Some(Commands::Eval) => {
-            let domain = domain::Domain::new();
+            let storage_factory = storage::sqlite::Factory::new("world.sqlite3");
+            let domain = domain::Domain::new(storage_factory);
             let session = domain.open_session()?;
 
-            for text in &["look", "hold rake", "drop"] {
+            for text in &["look", "hold rake", "drop", "hold rake", "drop rake"] {
                 session.evaluate_and_perform("jlewallen", text)?;
             }
 

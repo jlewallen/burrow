@@ -7,6 +7,10 @@ pub trait EntityStorage {
     fn save(&self, key: &EntityKey, entity: &Entity) -> Result<()>;
 }
 
+pub trait EntityStorageFactory {
+    fn create_storage(&self) -> Result<Box<dyn EntityStorage>>;
+}
+
 pub mod sqlite {
     use super::*;
     use anyhow::anyhow;
@@ -69,6 +73,24 @@ pub mod sqlite {
 
         fn save(&self, _key: &EntityKey, _entity: &Entity) -> Result<()> {
             unimplemented!()
+        }
+    }
+
+    pub struct Factory {
+        path: String,
+    }
+
+    impl Factory {
+        pub fn new(path: &str) -> Box<Factory> {
+            Box::new(Factory {
+                path: path.to_string(),
+            })
+        }
+    }
+
+    impl EntityStorageFactory for Factory {
+        fn create_storage(&self) -> Result<Box<dyn EntityStorage>> {
+            Ok(Box::new(SqliteStorage::new(&self.path)))
         }
     }
 }
