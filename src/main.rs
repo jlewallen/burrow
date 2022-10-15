@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use std::error::Error;
 use std::path::PathBuf;
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -32,7 +33,7 @@ enum Commands {
     Eval,
 }
 
-fn main() -> Result<()> {
+fn main() -> Result<(), Box<dyn Error>> {
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             std::env::var("RUST_LOG").unwrap_or_else(|_| "rudder=debug,tower_http=debug".into()),
@@ -47,7 +48,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Some(Commands::Serve(cmd)) => serve::execute_command(cmd),
+        Some(Commands::Serve(cmd)) => Ok(serve::execute_command(cmd)?),
         Some(Commands::Eval) => {
             let storage_factory = storage::sqlite::Factory::new("world.sqlite3");
             let domain = domain::Domain::new(storage_factory);
