@@ -77,16 +77,16 @@ impl Session {
 
         let area = self.load_entity_by_ref(&occupying.area)?;
 
-        info!(%user_name, "area {:?}", area);
+        info!(%user_name, "area {}", area);
 
         let containing = area.scope::<Containing>()?;
         for here in self.load_entities_by_refs(containing.holding)? {
-            info!("here {:?}", here)
+            info!("here {}", here)
         }
 
         let carrying = user.scope::<Containing>()?;
         for here in self.load_entities_by_refs(carrying.holding)? {
-            info!("here {:?}", here)
+            info!("here {}", here)
         }
 
         let mut discovered_keys: Vec<EntityKey> = vec![];

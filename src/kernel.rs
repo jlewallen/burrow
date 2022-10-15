@@ -3,6 +3,8 @@ use once_cell::sync::Lazy;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt;
+use std::ops::Index;
 use thiserror::Error;
 use tracing::debug;
 
@@ -142,7 +144,34 @@ pub struct Entity {
     scopes: HashMap<String, serde_json::Value>,
 }
 
+impl fmt::Display for Entity {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct(&self.class.py_type)
+            .field("key", &self.key)
+            .field("name", &self.name())
+            .finish()
+    }
+}
+
 impl Entity {
+    fn property_named(&self, name: &str) -> Option<&Property> {
+        if self.props.map.contains_key(name) {
+            return Some(self.props.map.index(name));
+        }
+        None
+    }
+
+    pub fn name(&self) -> Option<String> {
+        if let Some(property) = self.property_named("name") {
+            match &property.value {
+                serde_json::Value::String(v) => Some(v.to_string()),
+                _ => None,
+            }
+        } else {
+            None
+        }
+    }
+
     pub fn has_scope<T: Scope + DeserializeOwned>(&self) -> bool {
         self.scopes.contains_key(<T as Scope>::scope_key())
     }
@@ -156,7 +185,7 @@ impl Entity {
 
         let data = &self.scopes[key];
 
-        debug!(%data, "parsing");
+        debug!(%data, "parse-scope");
 
         // The call to serde_json::from_value requires owned data and we have a
         // reference to somebody else's. Presumuably so that we don't couple the
