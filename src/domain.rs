@@ -61,13 +61,13 @@ impl Session {
 
         let world = self.load_entity_by_key(&WORLD_KEY)?;
 
-        let usernames = world.scope::<Usernames>()?;
+        let usernames: Box<Usernames> = world.try_into()?;
 
         let user_key = &usernames.users[user_name];
 
         let user = self.load_entity_by_key(user_key)?;
 
-        let occupying = user.scope::<Occupying>()?;
+        let occupying: Box<Occupying> = user.try_into()?;
 
         let action = eval::evaluate(text)?;
 
