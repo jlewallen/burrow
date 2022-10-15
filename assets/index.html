@@ -21,7 +21,7 @@
 
             websocket.onopen = function() {
                 console.log("connection opened");
-                websocket.send(username.value);
+                websocket.send(JSON.stringify({ login: { username: username.value, password: "password" }}));
             }
 
             const btn = this;
@@ -32,13 +32,16 @@
             }
 
             websocket.onmessage = function(e) {
-                console.log("received message: "+e.data);
-                textarea.value += e.data+"\r\n";
+                e.data.text().then((text) => {
+                    const message = JSON.parse(text);
+                    console.log("received message: ", message);
+                    textarea.value += message.raw+"\r\n";
+                })
             }
 
             input.onkeydown = function(e) {
                 if (e.key == "Enter") {
-                    websocket.send(input.value);
+                    websocket.send(JSON.stringify({ evaluate: input.value }));
                     input.value = "";
                 }
             }

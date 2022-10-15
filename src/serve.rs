@@ -1,16 +1,15 @@
 use anyhow::Result;
 use axum::{
-    extract::{
-        ws::{Message, WebSocket, WebSocketUpgrade},
-        Extension, TypedHeader,
-    },
+    extract::Extension,
     http::StatusCode,
     response::IntoResponse,
     routing::{get, get_service},
     Router,
 };
+use axum_typed_websockets::{Message, WebSocket, WebSocketUpgrade};
 use clap::Args;
 use futures::{sink::SinkExt, stream::StreamExt};
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashSet,
     net::SocketAddr,
@@ -28,9 +27,27 @@ use tracing::{debug, info};
 #[derive(Debug, Args)]
 pub struct Command {}
 
+struct ClientSession {
+    username: String,
+}
+
 struct AppState {
     user_set: Mutex<HashSet<String>>,
     tx: broadcast::Sender<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+enum ServerMessage {
+    Error(String),
+    Raw(String),
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+enum ClientMessage {
+    Login { username: String, password: String },
+    Evaluate(String),
 }
 
 #[tokio::main]
@@ -98,70 +115,77 @@ async fn shutdown_signal() {
 }
 
 async fn ws_handler(
-    ws: WebSocketUpgrade,
-    user_agent: Option<TypedHeader<headers::UserAgent>>,
+    ws: WebSocketUpgrade<ServerMessage, ClientMessage>,
     Extension(state): Extension<Arc<AppState>>,
 ) -> impl IntoResponse {
-    if let Some(TypedHeader(user_agent)) = user_agent {
-        info!("`{}` connected", user_agent.as_str());
-    }
-
     ws.on_upgrade(|socket| handle_socket(socket, state))
 }
 
-async fn handle_socket(stream: WebSocket, state: Arc<AppState>) {
+async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: Arc<AppState>) {
     // By splitting we can send and receive at the same time.
     let (mut sender, mut receiver) = stream.split();
 
-    // Username gets set in the receive loop, if it's valid.
     let mut username = String::new();
-    // Loop until a text message is found.
     while let Some(Ok(message)) = receiver.next().await {
-        if let Message::Text(name) = message {
-            // If username that is sent by client is not taken, fill username string.
-            check_username(&state, &mut username, &name);
+        match message {
+            Message::Item(ClientMessage::Login {
+                username: given,
+                password: _,
+            }) => {
+                // If username that is sent by client is not taken, fill username string.
+                state.check_username(&mut username, &given);
 
-            // If not empty we want to quit the loop else we want to quit function.
-            if !username.is_empty() {
                 break;
-            } else {
-                // Only send our client that username is taken.
-                let _ = sender
-                    .send(Message::Text(String::from("Username already taken.")))
-                    .await;
-
-                return;
+            }
+            _ => {
+                todo!()
             }
         }
     }
 
-    // Subscribe before sending joined message.
-    let mut rx = state.tx.subscribe();
+    if username.is_empty() {
+        let _ = sender
+            .send(Message::Item(ServerMessage::Error(
+                "Sorry, there's a problem with your credentials.".to_string(),
+            )))
+            .await;
+
+        return;
+    }
 
     // Send joined message to all subscribers.
+    let mut rx = state.tx.subscribe();
     let msg = format!("{} joined.", username);
     tracing::debug!("{}", msg);
     let _ = state.tx.send(msg);
 
-    // This task will receive broadcast messages and send text message to our client.
+    // Pump messages to clients.
     let mut send_task = tokio::spawn(async move {
-        while let Ok(msg) = rx.recv().await {
+        while let Ok(raw_msg) = rx.recv().await {
             // In any websocket error, break loop.
-            if sender.send(Message::Text(msg)).await.is_err() {
+            if sender
+                .send(Message::Item(ServerMessage::Raw(raw_msg)))
+                .await
+                .is_err()
+            {
                 break;
             }
         }
     });
 
-    // Clone things we want to pass to the receiving task.
+    // Pump messages from clients.
     let tx = state.tx.clone();
     let name = username.clone();
 
-    // This task will receive messages from client and send them to broadcast subscribers.
     let mut recv_task = tokio::spawn(async move {
-        while let Some(Ok(Message::Text(text))) = receiver.next().await {
-            // Add username before message.
-            let _ = tx.send(format!("{}: {}", name, text));
+        while let Some(Ok(Message::Item(message))) = receiver.next().await {
+            match message {
+                ClientMessage::Evaluate(text) => {
+                    // Add username before message.
+                    let _ = tx.send(format!("{}: {}", name, text));
+                }
+                _ => todo!(),
+            }
         }
     });
 
@@ -175,16 +199,23 @@ async fn handle_socket(stream: WebSocket, state: Arc<AppState>) {
     let msg = format!("{} left.", username);
     tracing::debug!("{}", msg);
     let _ = state.tx.send(msg);
-    // Remove username from map so new clients can take it.
-    state.user_set.lock().unwrap().remove(&username);
+
+    state.remove_user(&username);
 }
 
-fn check_username(state: &AppState, string: &mut String, name: &str) {
-    let mut user_set = state.user_set.lock().unwrap();
+impl AppState {
+    fn check_username(&self, string: &mut String, name: &str) {
+        if !name.is_empty() {
+            let mut user_set = self.user_set.lock().unwrap();
 
-    if !user_set.contains(name) {
-        user_set.insert(name.to_owned());
+            if !user_set.contains(name) {
+                user_set.insert(name.to_owned());
+                string.push_str(name);
+            }
+        }
+    }
 
-        string.push_str(name);
+    fn remove_user(&self, username: &str) {
+        self.user_set.lock().unwrap().remove(username);
     }
 }
