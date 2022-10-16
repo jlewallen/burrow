@@ -1,17 +1,14 @@
 use anyhow::Result;
 use markdown_gen::markdown;
 use once_cell::sync::Lazy;
-use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::fmt::Display;
-use std::ops::Index;
-use std::rc::Rc;
-use std::string::FromUtf8Error;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use std::{collections::HashMap, fmt::Display, ops::Index, rc::Rc, string::FromUtf8Error};
 use thiserror::Error;
 use tracing::{debug, span, Level};
 
 pub static WORLD_KEY: Lazy<EntityKey> = Lazy::new(|| "world".to_string());
+
+pub type EntityKey = String;
 
 pub type ActionArgs<'a> = (&'a Entity, &'a Entity, &'a Entity);
 
@@ -20,13 +17,30 @@ pub type Markdown = markdown::Markdown<Vec<u8>>;
 pub fn markdown_to_string(md: Markdown) -> Result<String, FromUtf8Error> {
     String::from_utf8(md.into_inner())
 }
-pub trait DomainEvent {}
+
+type BoxedScope<T> = Box<T>;
+
+pub trait DomainEvent: std::fmt::Debug {}
 
 pub trait Reply: std::fmt::Debug {
     fn to_markdown(&self) -> Result<Markdown>;
 }
 
-pub type EntityKey = String;
+pub trait InfrastructureFactory: std::fmt::Debug {
+    fn new_infrastructure(&self) -> Result<Rc<dyn DomainInfrastructure>>;
+}
+
+pub trait DomainInfrastructure: std::fmt::Debug {
+    fn ensure_loaded(&self, entity_ref: &DynamicEntityRef) -> Result<DynamicEntityRef>;
+}
+
+pub trait PrepareWithInfrastructure {
+    fn prepare_with(&mut self, infra: &dyn DomainInfrastructure) -> Result<()>;
+}
+
+pub trait Action: std::fmt::Debug {
+    fn perform(&self, args: ActionArgs) -> Result<Box<dyn Reply>>;
+}
 
 pub trait Scope: PrepareWithInfrastructure + DeserializeOwned {
     fn scope_key() -> &'static str
@@ -34,10 +48,34 @@ pub trait Scope: PrepareWithInfrastructure + DeserializeOwned {
         Self: Sized;
 }
 
-type BoxedScope<T> = Box<T>;
+pub trait PrepareEntityByKey {
+    fn prepare_entity_by_key<T: Fn(&mut Entity) -> Result<()>>(
+        &self,
+        key: &EntityKey,
+        prepare: T,
+    ) -> Result<&Entity>;
+}
 
-pub trait Action: std::fmt::Debug {
-    fn perform(&self, args: ActionArgs) -> Result<Box<dyn Reply>>;
+pub trait LoadEntityByKey {
+    fn load_entity_by_key(&self, key: &EntityKey) -> Result<&Entity>;
+
+    fn load_entity_by_ref(&self, entity_ref: &EntityRef) -> Result<&Entity> {
+        self.load_entity_by_key(&entity_ref.key)
+    }
+
+    fn load_entities_by_refs(&self, entity_refs: Vec<EntityRef>) -> Result<Vec<&Entity>> {
+        entity_refs
+            .into_iter()
+            .map(|re| -> Result<&Entity> { self.load_entity_by_ref(&re) })
+            .collect()
+    }
+
+    fn load_entities_by_keys(&self, entity_keys: Vec<EntityKey>) -> Result<Vec<&Entity>> {
+        entity_keys
+            .into_iter()
+            .map(|key| -> Result<&Entity> { self.load_entity_by_key(&key) })
+            .collect()
+    }
 }
 
 #[derive(Debug)]
@@ -56,6 +94,9 @@ impl Reply for SimpleReply {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Item {
     Named(String),
+    // ImplicitlyUnheld(String),
+    // ImplicitlyHeld(String),
+    // ImplicitlyNavigable(String),
 }
 
 #[derive(Error, Debug)]
@@ -70,15 +111,27 @@ pub enum DomainError {
     Anyhow(#[source] anyhow::Error),
 }
 
+impl From<serde_json::Error> for DomainError {
+    fn from(source: serde_json::Error) -> Self {
+        DomainError::ParseFailed(source)
+    }
+}
+
+impl From<anyhow::Error> for DomainError {
+    fn from(source: anyhow::Error) -> Self {
+        DomainError::Anyhow(source)
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum EvaluationError {
     #[error("parse failed")]
     ParseFailed,
 }
 
-impl Into<EvaluationError> for nom::Err<nom::error::Error<&str>> {
-    fn into(self) -> EvaluationError {
-        match self {
+impl From<nom::Err<nom::error::Error<&str>>> for EvaluationError {
+    fn from(source: nom::Err<nom::error::Error<&str>>) -> EvaluationError {
+        match source {
             nom::Err::Incomplete(_) => EvaluationError::ParseFailed,
             nom::Err::Error(_e) => EvaluationError::ParseFailed,
             nom::Err::Failure(_e) => EvaluationError::ParseFailed,
@@ -89,12 +142,12 @@ impl Into<EvaluationError> for nom::Err<nom::error::Error<&str>> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EntityRef {
     #[serde(alias = "py/object")]
-    pub py_object: String,
+    py_object: String,
     #[serde(alias = "py/ref")]
-    pub py_ref: String,
-    pub key: EntityKey,
-    pub klass: String,
-    pub name: String,
+    py_ref: String,
+    key: EntityKey,
+    klass: String,
+    name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -103,7 +156,7 @@ pub struct Identity {
     py_object: String,
     private: String,
     public: String,
-    signature: Option<String>, // TODO Why does this happen?
+    signature: Option<String>, // TODO Why does this happen in the model?
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -214,13 +267,8 @@ impl Entity {
     pub fn scope<T: Scope>(&self) -> Result<BoxedScope<T>, DomainError> {
         let scope_key = <T as Scope>::scope_key();
 
-        let _load_scope_span = span!(
-            Level::INFO,
-            "loading_scope",
-            key = self.key,
-            scope = scope_key
-        )
-        .entered();
+        let _load_scope_span =
+            span!(Level::INFO, "scope", key = self.key, scope = scope_key).entered();
 
         if !self.scopes.contains_key(scope_key) {
             return Err(DomainError::NoSuchScope(
@@ -247,18 +295,6 @@ impl Entity {
 
         // Ok, great!
         Ok(scope)
-    }
-}
-
-impl From<serde_json::Error> for DomainError {
-    fn from(source: serde_json::Error) -> Self {
-        DomainError::ParseFailed(source)
-    }
-}
-
-impl From<anyhow::Error> for DomainError {
-    fn from(e: anyhow::Error) -> Self {
-        DomainError::Anyhow(e)
     }
 }
 
@@ -330,18 +366,6 @@ impl From<DynamicEntityRef> for EntityRef {
     }
 }
 
-pub trait DomainInfrastructure: std::fmt::Debug {
-    fn ensure_loaded(&self, entity_ref: &DynamicEntityRef) -> Result<DynamicEntityRef>;
-}
-
-pub trait InfrastructureFactory: std::fmt::Debug {
-    fn new_infrastructure(&self) -> Result<Rc<dyn DomainInfrastructure>>;
-}
-
-pub trait PrepareWithInfrastructure {
-    fn prepare_with(&mut self, infra: &dyn DomainInfrastructure) -> Result<()>;
-}
-
 impl From<&Entity> for EntityRef {
     fn from(e: &Entity) -> Self {
         EntityRef {
@@ -360,34 +384,4 @@ pub struct PersistedEntity {
     pub gid: u32,
     pub version: u32,
     pub serialized: String,
-}
-
-pub trait PrepareEntityByKey {
-    fn prepare_entity_by_key<T: Fn(&mut Entity) -> Result<()>>(
-        &self,
-        key: &EntityKey,
-        prepare: T,
-    ) -> Result<&Entity>;
-}
-
-pub trait LoadEntityByKey {
-    fn load_entity_by_key(&self, key: &EntityKey) -> Result<&Entity>;
-
-    fn load_entity_by_ref(&self, entity_ref: &EntityRef) -> Result<&Entity> {
-        self.load_entity_by_key(&entity_ref.key)
-    }
-
-    fn load_entities_by_refs(&self, entity_refs: Vec<EntityRef>) -> Result<Vec<&Entity>> {
-        entity_refs
-            .into_iter()
-            .map(|re| -> Result<&Entity> { self.load_entity_by_ref(&re) })
-            .collect()
-    }
-
-    fn load_entities_by_keys(&self, entity_keys: Vec<EntityKey>) -> Result<Vec<&Entity>> {
-        entity_keys
-            .into_iter()
-            .map(|key| -> Result<&Entity> { self.load_entity_by_key(&key) })
-            .collect()
-    }
 }

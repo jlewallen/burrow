@@ -126,7 +126,7 @@ impl PrepareEntityByKey for Entities {
             return Ok(e);
         }
 
-        let _loading_span = span!(Level::INFO, "loading_entity", key = key).entered();
+        let _loading_span = span!(Level::INFO, "entity", key = key).entered();
 
         debug!("loading-entity");
 
