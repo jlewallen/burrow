@@ -28,7 +28,7 @@ pub trait Reply: std::fmt::Debug {
 
 pub type EntityKey = String;
 
-pub trait Scope {
+pub trait Scope: PrepareWithInfrastructure {
     fn scope_key() -> &'static str
     where
         Self: Sized;
@@ -66,6 +66,8 @@ pub enum DomainError {
     ParseFailed(#[source] serde_json::Error),
     #[error("dangling entity")]
     DanglingEntity,
+    #[error("anyhow")]
+    Anyhow(#[source] anyhow::Error),
 }
 
 #[derive(Error, Debug)]
@@ -209,9 +211,7 @@ impl Entity {
         self.scopes.contains_key(<T as Scope>::scope_key())
     }
 
-    pub fn scope<T: Scope + DeserializeOwned + LoadReferences>(
-        &self,
-    ) -> Result<BoxedScope<T>, DomainError> {
+    pub fn scope<T: Scope + DeserializeOwned>(&self) -> Result<BoxedScope<T>, DomainError> {
         let scope_key = <T as Scope>::scope_key();
 
         let _load_scope_span = span!(
@@ -243,7 +243,7 @@ impl Entity {
 
         let _prepare_span = span!(Level::INFO, "prepare").entered();
 
-        let _ = scope.load_refs(self.session.as_ref().unwrap().as_ref());
+        scope.prepare_with(self.session.as_ref().unwrap().as_ref())?;
 
         // Ok, great!
         Ok(scope)
@@ -253,6 +253,12 @@ impl Entity {
 impl From<serde_json::Error> for DomainError {
     fn from(source: serde_json::Error) -> Self {
         DomainError::ParseFailed(source)
+    }
+}
+
+impl From<anyhow::Error> for DomainError {
+    fn from(e: anyhow::Error) -> Self {
+        DomainError::Anyhow(e)
     }
 }
 
@@ -332,8 +338,8 @@ pub trait InfrastructureFactory: std::fmt::Debug {
     fn new_infrastructure(&self) -> Result<Rc<dyn DomainInfrastructure>>;
 }
 
-pub trait LoadReferences {
-    fn load_refs(&mut self, session: &dyn DomainInfrastructure) -> Result<()>;
+pub trait PrepareWithInfrastructure {
+    fn prepare_with(&mut self, infra: &dyn DomainInfrastructure) -> Result<()>;
 }
 
 impl From<&Entity> for EntityRef {

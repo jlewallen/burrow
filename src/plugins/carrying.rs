@@ -63,8 +63,8 @@ pub mod model {
         }
     }
 
-    impl LoadReferences for Location {
-        fn load_refs(&mut self, infra: &dyn DomainInfrastructure) -> Result<()> {
+    impl PrepareWithInfrastructure for Location {
+        fn prepare_with(&mut self, infra: &dyn DomainInfrastructure) -> Result<()> {
             self.container = match &self.container {
                 Some(e) => Some(infra.ensure_loaded(&e)?),
                 None => None,
@@ -72,16 +72,6 @@ pub mod model {
             Ok(())
         }
     }
-
-    /*
-    impl TryFrom<&Entity> for Box<Location> {
-        type Error = DomainError;
-
-        fn try_from(value: &Entity) -> Result<Self, Self::Error> {
-            value.scope::<Location>()
-        }
-    }
-    */
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Containing {
@@ -96,8 +86,8 @@ pub mod model {
         }
     }
 
-    impl LoadReferences for Containing {
-        fn load_refs(&mut self, infra: &dyn DomainInfrastructure) -> Result<()> {
+    impl PrepareWithInfrastructure for Containing {
+        fn prepare_with(&mut self, infra: &dyn DomainInfrastructure) -> Result<()> {
             self.holding = self
                 .holding
                 .iter()
@@ -106,16 +96,6 @@ pub mod model {
             Ok(())
         }
     }
-
-    /*
-    impl TryFrom<&Entity> for Box<Containing> {
-        type Error = DomainError;
-
-        fn try_from(value: &Entity) -> Result<Self, Self::Error> {
-            Ok(value.scope::<Containing>()?)
-        }
-    }
-    */
 
     impl Containing {
         pub fn hold(&self, item: Entity) -> CarryingResult {
@@ -140,6 +120,11 @@ pub mod model {
         }
     }
 
+    impl PrepareWithInfrastructure for Carryable {
+        fn prepare_with(&mut self, _infra: &dyn DomainInfrastructure) -> Result<()> {
+            Ok(())
+        }
+    }
     pub fn discover(source: &Entity, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
         if let Ok(containing) = source.scope::<Containing>() {
             entity_keys.extend(

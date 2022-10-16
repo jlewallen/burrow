@@ -41,22 +41,12 @@ pub mod model {
         }
     }
 
-    impl LoadReferences for Occupying {
-        fn load_refs(&mut self, infra: &dyn DomainInfrastructure) -> Result<()> {
+    impl PrepareWithInfrastructure for Occupying {
+        fn prepare_with(&mut self, infra: &dyn DomainInfrastructure) -> Result<()> {
             self.area = infra.ensure_loaded(&self.area)?;
             Ok(())
         }
     }
-
-    /*
-    impl TryFrom<&Entity> for Box<Occupying> {
-        type Error = DomainError;
-
-        fn try_from(value: &Entity) -> Result<Self, Self::Error> {
-            Ok(value.scope::<Occupying>()?)
-        }
-    }
-    */
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Occupyable {
@@ -71,8 +61,8 @@ pub mod model {
         }
     }
 
-    impl LoadReferences for Occupyable {
-        fn load_refs(&mut self, infra: &dyn DomainInfrastructure) -> Result<()> {
+    impl PrepareWithInfrastructure for Occupyable {
+        fn prepare_with(&mut self, infra: &dyn DomainInfrastructure) -> Result<()> {
             self.occupied = self
                 .occupied
                 .iter()
@@ -81,16 +71,6 @@ pub mod model {
             Ok(())
         }
     }
-
-    /*
-    impl TryFrom<&Entity> for Box<Occupyable> {
-        type Error = DomainError;
-
-        fn try_from(value: &Entity) -> Result<Self, Self::Error> {
-            Ok(value.scope::<Occupyable>()?)
-        }
-    }
-    */
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Exit {
@@ -103,22 +83,12 @@ pub mod model {
         }
     }
 
-    impl LoadReferences for Exit {
-        fn load_refs(&mut self, session: &dyn DomainInfrastructure) -> Result<()> {
-            self.area = session.ensure_loaded(&self.area)?;
+    impl PrepareWithInfrastructure for Exit {
+        fn prepare_with(&mut self, infra: &dyn DomainInfrastructure) -> Result<()> {
+            self.area = infra.ensure_loaded(&self.area)?;
             Ok(())
         }
     }
-
-    /*
-    impl TryFrom<&Entity> for Box<Exit> {
-        type Error = DomainError;
-
-        fn try_from(value: &Entity) -> Result<Self, Self::Error> {
-            Ok(value.scope::<Exit>()?)
-        }
-    }
-    */
 
     pub fn discover(source: &Entity, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
         if let Ok(occupyable) = source.scope::<Occupyable>() {
