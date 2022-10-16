@@ -22,6 +22,11 @@ type BoxedScope<T> = Box<T>;
 
 pub trait DomainEvent: std::fmt::Debug {}
 
+#[derive(Debug)]
+pub struct DomainResult {
+    pub events: Vec<Box<dyn DomainEvent>>,
+}
+
 pub trait Reply: std::fmt::Debug {
     fn to_markdown(&self) -> Result<Markdown>;
 }
@@ -31,7 +36,7 @@ pub trait InfrastructureFactory: std::fmt::Debug {
 }
 
 pub trait DomainInfrastructure: std::fmt::Debug {
-    fn ensure_loaded(&self, entity_ref: &DynamicEntityRef) -> Result<DynamicEntityRef>;
+    fn ensure_entity(&self, entity_ref: &DynamicEntityRef) -> Result<DynamicEntityRef>;
 }
 
 pub trait PrepareWithInfrastructure {
@@ -204,11 +209,6 @@ pub struct Property {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Props {
     map: HashMap<String, Property>,
-}
-
-#[derive(Debug)]
-pub struct DomainResult<T> {
-    pub events: Vec<T>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

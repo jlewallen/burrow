@@ -42,7 +42,7 @@ pub mod model {
     use serde::{Deserialize, Serialize};
     use std::collections::HashMap;
 
-    pub type CarryingResult = DomainResult<CarryingEvent>;
+    pub type CarryingResult = DomainResult;
 
     #[derive(Debug)]
     pub enum CarryingEvent {
@@ -66,7 +66,7 @@ pub mod model {
     impl PrepareWithInfrastructure for Location {
         fn prepare_with(&mut self, infra: &dyn DomainInfrastructure) -> Result<()> {
             self.container = match &self.container {
-                Some(e) => Some(infra.ensure_loaded(&e)?),
+                Some(e) => Some(infra.ensure_entity(&e)?),
                 None => None,
             };
             Ok(())
@@ -91,7 +91,7 @@ pub mod model {
             self.holding = self
                 .holding
                 .iter()
-                .map(|r| infra.ensure_loaded(&r).unwrap())
+                .map(|r| infra.ensure_entity(&r).unwrap())
                 .collect();
             Ok(())
         }
@@ -100,13 +100,13 @@ pub mod model {
     impl Containing {
         pub fn hold(&self, item: Entity) -> CarryingResult {
             CarryingResult {
-                events: vec![CarryingEvent::ItemHeld(item)],
+                events: vec![Box::new(CarryingEvent::ItemHeld(item))],
             }
         }
 
         pub fn drop(&self, item: Entity) -> CarryingResult {
             CarryingResult {
-                events: vec![CarryingEvent::ItemDropped(item)],
+                events: vec![Box::new(CarryingEvent::ItemDropped(item))],
             }
         }
     }

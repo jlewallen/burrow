@@ -205,7 +205,7 @@ impl Infrastructure {
 }
 
 impl DomainInfrastructure for Infrastructure {
-    fn ensure_loaded(&self, entity_ref: &DynamicEntityRef) -> Result<DynamicEntityRef> {
+    fn ensure_entity(&self, entity_ref: &DynamicEntityRef) -> Result<DynamicEntityRef> {
         match entity_ref {
             DynamicEntityRef::RefOnly {
                 py_object: _,

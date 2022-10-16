@@ -43,7 +43,7 @@ pub mod model {
 
     impl PrepareWithInfrastructure for Occupying {
         fn prepare_with(&mut self, infra: &dyn DomainInfrastructure) -> Result<()> {
-            self.area = infra.ensure_loaded(&self.area)?;
+            self.area = infra.ensure_entity(&self.area)?;
             Ok(())
         }
     }
@@ -66,7 +66,7 @@ pub mod model {
             self.occupied = self
                 .occupied
                 .iter()
-                .map(|r| infra.ensure_loaded(&r).unwrap())
+                .map(|r| infra.ensure_entity(&r).unwrap())
                 .collect();
             Ok(())
         }
@@ -85,7 +85,7 @@ pub mod model {
 
     impl PrepareWithInfrastructure for Exit {
         fn prepare_with(&mut self, infra: &dyn DomainInfrastructure) -> Result<()> {
-            self.area = infra.ensure_loaded(&self.area)?;
+            self.area = infra.ensure_entity(&self.area)?;
             Ok(())
         }
     }
