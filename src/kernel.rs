@@ -28,7 +28,7 @@ pub trait Reply: std::fmt::Debug {
 
 pub type EntityKey = String;
 
-pub trait Scope: PrepareWithInfrastructure {
+pub trait Scope: PrepareWithInfrastructure + DeserializeOwned {
     fn scope_key() -> &'static str
     where
         Self: Sized;
@@ -207,11 +207,11 @@ impl Entity {
         }
     }
 
-    pub fn has_scope<T: Scope + DeserializeOwned>(&self) -> bool {
+    pub fn has_scope<T: Scope>(&self) -> bool {
         self.scopes.contains_key(<T as Scope>::scope_key())
     }
 
-    pub fn scope<T: Scope + DeserializeOwned>(&self) -> Result<BoxedScope<T>, DomainError> {
+    pub fn scope<T: Scope>(&self) -> Result<BoxedScope<T>, DomainError> {
         let scope_key = <T as Scope>::scope_key();
 
         let _load_scope_span = span!(
