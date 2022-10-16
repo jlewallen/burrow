@@ -67,7 +67,7 @@ impl Session {
 
         let user = self.load_entity_by_key(user_key)?;
 
-        let occupying: Box<Occupying> = user.try_into()?;
+        let occupying: Box<Occupying<EntityRef>> = user.try_into()?;
 
         let action = eval::evaluate(text)?;
 

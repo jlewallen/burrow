@@ -28,45 +28,45 @@ pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
 pub mod model {
     use crate::kernel::*;
     use anyhow::Result;
-    use serde::{Deserialize, Serialize};
+    use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
     #[derive(Debug, Serialize, Deserialize)]
-    pub struct Occupying {
-        pub area: EntityRef,
+    pub struct Occupying<T: HasEntityKey> {
+        pub area: T,
     }
 
-    impl Scope for Occupying {
+    impl<T: HasEntityKey> Scope for Occupying<T> {
         fn scope_key() -> &'static str {
             "occupying"
         }
     }
 
-    impl TryFrom<&Entity> for Box<Occupying> {
+    impl<T: HasEntityKey + DeserializeOwned> TryFrom<&Entity> for Box<Occupying<T>> {
         type Error = DomainError;
 
         fn try_from(value: &Entity) -> Result<Self, Self::Error> {
-            value.scope::<Occupying>()
+            Ok(value.scope::<Occupying<T>>()?)
         }
     }
 
     #[derive(Debug, Serialize, Deserialize)]
-    pub struct Occupyable {
+    pub struct Occupyable<T: HasEntityKey = EntityRef> {
         pub acls: Acls,
-        pub occupied: Vec<EntityRef>,
+        pub occupied: Vec<T>,
         pub occupancy: u32,
     }
 
-    impl Scope for Occupyable {
+    impl<T: HasEntityKey> Scope for Occupyable<T> {
         fn scope_key() -> &'static str {
             "occupyable"
         }
     }
 
-    impl TryFrom<&Entity> for Box<Occupyable> {
+    impl<T: HasEntityKey + DeserializeOwned> TryFrom<&Entity> for Box<Occupyable<T>> {
         type Error = DomainError;
 
         fn try_from(value: &Entity) -> Result<Self, Self::Error> {
-            value.scope::<Occupyable>()
+            Ok(value.scope::<Occupyable<T>>()?)
         }
     }
 

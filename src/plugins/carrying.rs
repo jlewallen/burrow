@@ -39,7 +39,7 @@ pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
 pub mod model {
     use crate::kernel::*;
     use anyhow::Result;
-    use serde::{Deserialize, Serialize};
+    use serde::{de::DeserializeOwned, Deserialize, Serialize};
     use std::collections::HashMap;
 
     #[derive(Debug, Serialize, Deserialize)]
@@ -62,23 +62,23 @@ pub mod model {
     }
 
     #[derive(Debug, Serialize, Deserialize)]
-    pub struct Containing {
-        pub holding: Vec<EntityRef>,
+    pub struct Containing<T: HasEntityKey = EntityRef> {
+        pub holding: Vec<T>,
         pub capacity: Option<u32>,
         pub produces: HashMap<String, String>,
     }
 
-    impl Scope for Containing {
+    impl<T: HasEntityKey> Scope for Containing<T> {
         fn scope_key() -> &'static str {
             "containing"
         }
     }
 
-    impl TryFrom<&Entity> for Box<Containing> {
+    impl<'a, T: HasEntityKey + DeserializeOwned> TryFrom<&Entity> for Box<Containing<T>> {
         type Error = DomainError;
 
         fn try_from(value: &Entity) -> Result<Self, Self::Error> {
-            value.scope::<Containing>()
+            Ok(value.scope::<Containing<T>>()?)
         }
     }
 
@@ -101,7 +101,7 @@ pub mod model {
 
     pub type CarryingResult = DomainResult<CarryingEvent>;
 
-    impl Containing {
+    impl<T: HasEntityKey> Containing<T> {
         pub fn hold(&self, item: Entity) -> CarryingResult {
             CarryingResult {
                 events: vec![CarryingEvent::ItemHeld(item)],

@@ -223,3 +223,9 @@ impl From<serde_json::Error> for DomainError {
         DomainError::ParseFailed(source)
     }
 }
+
+pub trait HasEntityKey {}
+
+impl HasEntityKey for Entity {}
+
+impl HasEntityKey for EntityRef {}
