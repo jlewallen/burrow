@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::ops::Index;
 use std::string::FromUtf8Error;
+use std::sync::Arc;
 use thiserror::Error;
 use tracing::debug;
 
@@ -32,6 +33,8 @@ pub trait Scope {
     where
         Self: Sized;
 }
+
+type BoxedScope<T> = Box<T>;
 
 pub trait Action: std::fmt::Debug {
     fn perform(&self, args: ActionArgs) -> Result<Box<dyn Reply>>;
@@ -82,12 +85,12 @@ impl Into<EvaluationError> for nom::Err<nom::error::Error<&str>> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EntityRef {
     #[serde(alias = "py/object")]
-    py_object: String,
+    pub py_object: String,
     #[serde(alias = "py/ref")]
-    py_ref: String,
+    pub py_ref: String,
     pub key: EntityKey,
-    klass: String,
-    name: String,
+    pub klass: String,
+    pub name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -163,6 +166,9 @@ pub struct Entity {
     acls: Acls,
     props: Props,
     scopes: HashMap<String, serde_json::Value>,
+    // very private
+    #[serde(skip)]
+    session: Option<Arc<dyn DomainInfrastructure>>,
 }
 
 impl fmt::Display for Entity {
@@ -173,8 +179,6 @@ impl fmt::Display for Entity {
             .finish()
     }
 }
-
-type BoxedScope<T> = Box<T>;
 
 impl Entity {
     fn property_named(&self, name: &str) -> Option<&Property> {
@@ -223,5 +227,76 @@ impl Entity {
 impl From<serde_json::Error> for DomainError {
     fn from(source: serde_json::Error) -> Self {
         DomainError::ParseFailed(source)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum DynamicEntityRef {
+    RefOnly {
+        #[serde(alias = "py/object")]
+        py_object: String,
+        #[serde(alias = "py/ref")]
+        py_ref: String,
+        key: String,
+        klass: String,
+        name: String,
+    },
+    Entity(Box<Entity>),
+}
+
+impl DynamicEntityRef {
+    pub fn key(&self) -> &String {
+        match self {
+            DynamicEntityRef::RefOnly {
+                py_object: _,
+                py_ref: _,
+                key,
+                klass: _,
+                name: _,
+            } => key,
+            DynamicEntityRef::Entity(e) => &e.key,
+        }
+    }
+}
+
+impl From<DynamicEntityRef> for EntityRef {
+    fn from(value: DynamicEntityRef) -> Self {
+        match value {
+            DynamicEntityRef::RefOnly {
+                py_object,
+                py_ref,
+                key,
+                klass,
+                name,
+            } => EntityRef {
+                py_object,
+                py_ref,
+                key,
+                klass,
+                name,
+            },
+            DynamicEntityRef::Entity(e) => e.as_ref().into(),
+        }
+    }
+}
+
+pub trait DomainInfrastructure: std::fmt::Debug {
+    fn ensure_loaded(&self, entity_ref: &DynamicEntityRef) -> Result<DynamicEntityRef>;
+}
+
+pub trait LoadReferences {
+    fn load_refs(&mut self, session: &dyn DomainInfrastructure) -> Result<()>;
+}
+
+impl From<&Entity> for EntityRef {
+    fn from(e: &Entity) -> Self {
+        EntityRef {
+            py_object: "todo!".to_string(),
+            py_ref: "todo!".to_string(),
+            key: e.key.to_string(),
+            klass: "todo!".to_string(),
+            name: e.name().unwrap_or_default(),
+        }
     }
 }

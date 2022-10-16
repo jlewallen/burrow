@@ -13,6 +13,15 @@ pub struct Session {
     entities: FrozenMap<EntityKey, Box<Entity>>,
 }
 
+impl std::fmt::Debug for Session {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Session")
+            // .field("storage", &self.storage)
+            // .field("entities", &self.entities)
+            .finish()
+    }
+}
+
 impl Session {
     pub fn new(storage: Box<dyn EntityStorage>) -> Self {
         info!("session-new");
@@ -67,7 +76,13 @@ impl Session {
 
         let user = self.load_entity_by_key(user_key)?;
 
-        let occupying: Box<Occupying> = user.try_into()?;
+        let mut occupying: Box<Occupying> = user.scope::<Occupying>()?;
+
+        occupying.load_refs(self)?;
+
+        let area = self.load_entity_by_ref(&occupying.area.into())?;
+
+        info!(%user_name, "area {}", area);
 
         let action = eval::evaluate(text)?;
 
@@ -75,24 +90,22 @@ impl Session {
 
         // info!(%user_name, "user {:?}", user);
 
-        let area = self.load_entity_by_ref(&occupying.area)?;
+        if false {
+            let containing = area.scope::<Containing>()?;
+            for here in self.load_entities_by_refs(containing.holding)? {
+                info!("here {}", here)
+            }
 
-        info!(%user_name, "area {}", area);
+            let carrying = user.scope::<Containing>()?;
+            for here in self.load_entities_by_refs(carrying.holding)? {
+                info!("here {}", here)
+            }
 
-        let containing = area.scope::<Containing>()?;
-        for here in self.load_entities_by_refs(containing.holding)? {
-            info!("here {}", here)
+            let mut discovered_keys: Vec<EntityKey> = vec![];
+            eval::discover(user, &mut discovered_keys)?;
+            eval::discover(area, &mut discovered_keys)?;
+            info!(%user_name, "discovered {:?}", discovered_keys);
         }
-
-        let carrying = user.scope::<Containing>()?;
-        for here in self.load_entities_by_refs(carrying.holding)? {
-            info!("here {}", here)
-        }
-
-        let mut discovered_keys: Vec<EntityKey> = vec![];
-        eval::discover(user, &mut discovered_keys)?;
-        eval::discover(area, &mut discovered_keys)?;
-        info!(%user_name, "discovered {:?}", discovered_keys);
 
         let reply = action.perform((&world, &user, &area))?;
 
@@ -113,6 +126,23 @@ impl Session {
 impl Drop for Session {
     fn drop(&mut self) {
         info!("session-drop");
+    }
+}
+
+impl DomainInfrastructure for Session {
+    fn ensure_loaded(&self, entity_ref: &DynamicEntityRef) -> Result<DynamicEntityRef> {
+        match entity_ref {
+            DynamicEntityRef::RefOnly {
+                py_object: _,
+                py_ref: _,
+                key,
+                klass: _,
+                name: _,
+            } => Ok(DynamicEntityRef::Entity(Box::new(
+                self.load_entity_by_key(&key)?.clone(),
+            ))),
+            DynamicEntityRef::Entity(_) => Ok(entity_ref.clone()),
+        }
     }
 }
 

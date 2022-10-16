@@ -32,7 +32,7 @@ pub mod model {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Occupying {
-        pub area: EntityRef,
+        pub area: DynamicEntityRef,
     }
 
     impl Scope for Occupying {
@@ -41,6 +41,14 @@ pub mod model {
         }
     }
 
+    impl LoadReferences for Occupying {
+        fn load_refs(&mut self, session: &dyn DomainInfrastructure) -> Result<()> {
+            self.area = session.ensure_loaded(&self.area)?;
+            Ok(())
+        }
+    }
+
+    /*
     impl TryFrom<&Entity> for Box<Occupying> {
         type Error = DomainError;
 
@@ -48,11 +56,12 @@ pub mod model {
             Ok(value.scope::<Occupying>()?)
         }
     }
+    */
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Occupyable {
         pub acls: Acls,
-        pub occupied: Vec<EntityRef>,
+        pub occupied: Vec<DynamicEntityRef>,
         pub occupancy: u32,
     }
 
@@ -62,6 +71,18 @@ pub mod model {
         }
     }
 
+    impl LoadReferences for Occupyable {
+        fn load_refs(&mut self, session: &dyn DomainInfrastructure) -> Result<()> {
+            self.occupied = self
+                .occupied
+                .iter()
+                .map(|r| session.ensure_loaded(&r).unwrap())
+                .collect();
+            Ok(())
+        }
+    }
+
+    /*
     impl TryFrom<&Entity> for Box<Occupyable> {
         type Error = DomainError;
 
@@ -69,10 +90,11 @@ pub mod model {
             Ok(value.scope::<Occupyable>()?)
         }
     }
+    */
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Exit {
-        pub area: EntityRef,
+        pub area: DynamicEntityRef,
     }
 
     impl Scope for Exit {
@@ -81,6 +103,14 @@ pub mod model {
         }
     }
 
+    impl LoadReferences for Exit {
+        fn load_refs(&mut self, session: &dyn DomainInfrastructure) -> Result<()> {
+            self.area = session.ensure_loaded(&self.area)?;
+            Ok(())
+        }
+    }
+
+    /*
     impl TryFrom<&Entity> for Box<Exit> {
         type Error = DomainError;
 
@@ -88,10 +118,16 @@ pub mod model {
             Ok(value.scope::<Exit>()?)
         }
     }
+    */
 
     pub fn discover(source: &Entity, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
         if let Ok(occupyable) = source.scope::<Occupyable>() {
-            entity_keys.extend(occupyable.occupied.into_iter().map(|er| er.key));
+            entity_keys.extend(
+                occupyable
+                    .occupied
+                    .into_iter()
+                    .map(|er| er.key().to_owned()),
+            );
         }
         Ok(())
     }

@@ -80,6 +80,15 @@ pub mod model {
 
     impl AreaObservation {
         pub fn new(user: &Entity, area: &Entity) -> Self {
+            if let Ok(_occupyable) = area.scope::<Occupyable>() {
+                // info!("occupyable {}", occupyable)
+            }
+
+            if let Ok(_containing) = area.scope::<Containing>() {
+                // info!("containing {}", containing)
+            }
+
+            /*
             let living: Vec<Entity> =
                 if let Ok(_occupyable) = <&Entity as TryInto<Box<Occupyable>>>::try_into(user) {
                     vec![]
@@ -92,12 +101,12 @@ pub mod model {
                 } else {
                     vec![]
                 };
-
+            */
             AreaObservation {
                 area: area.clone(),
                 person: user.clone(),
-                living: living,
-                items: items,
+                living: vec![],
+                items: vec![],
                 holding: vec![],
                 routes: vec![],
             }
