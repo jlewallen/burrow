@@ -26,8 +26,9 @@ pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
 }
 
 pub mod model {
-    use crate::kernel::*;
+    use crate::{domain::HasSession, kernel::*};
     use anyhow::Result;
+    use once_cell::sync::Lazy;
     use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
     #[derive(Debug, Serialize, Deserialize)]
@@ -46,6 +47,16 @@ pub mod model {
 
         fn try_from(value: &Entity) -> Result<Self, Self::Error> {
             Ok(value.scope::<Occupying<T>>()?)
+        }
+    }
+
+    impl TryFrom<Occupying<EntityRef>> for Occupying<Lazy<Entity>> {
+        type Error = anyhow::Error;
+
+        fn try_from(value: Occupying<EntityRef>) -> Result<Self, Self::Error> {
+            Ok(Occupying {
+                area: Lazy::new(|| todo!()),
+            })
         }
     }
 
@@ -70,12 +81,48 @@ pub mod model {
         }
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
-    pub struct Exit {}
+    impl<'a> TryFrom<HasSession<'a, Occupyable<EntityRef>>> for Occupyable<Lazy<&Entity>> {
+        type Error = anyhow::Error;
 
-    impl Scope for Exit {
+        fn try_from(value: HasSession<'a, Occupyable<EntityRef>>) -> Result<Self, Self::Error> {
+            Ok(Occupyable {
+                acls: value.value.acls,
+                occupancy: value.value.occupancy,
+                occupied: value
+                    .value
+                    .occupied
+                    .into_iter()
+                    .map(|r| -> Lazy<&Entity> {
+                        /*
+                        Lazy::new(|| -> &Entity {
+                            return value.session.load_entity_by_ref(&r).unwrap();
+                        })
+                        */
+                        todo!();
+                    })
+                    .collect(),
+            })
+        }
+    }
+
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct Exit<T: HasEntityKey = EntityRef> {
+        pub area: T,
+    }
+
+    impl<T: HasEntityKey> Scope for Exit<T> {
         fn scope_key() -> &'static str {
             "exit"
+        }
+    }
+
+    impl<'a> TryFrom<HasSession<'a, Exit<EntityRef>>> for Exit<Lazy<&Entity>> {
+        type Error = anyhow::Error;
+
+        fn try_from(value: HasSession<'a, Exit<EntityRef>>) -> Result<Self, Self::Error> {
+            Ok(Exit {
+                area: value.session.load_entity_by_ref_lazy(&value.value.area),
+            })
         }
     }
 

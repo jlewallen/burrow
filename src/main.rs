@@ -5,6 +5,9 @@ use std::path::PathBuf;
 use tracing::{debug, error, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+#[macro_use]
+extern crate once_cell;
+
 pub mod domain;
 pub mod eval;
 pub mod kernel;

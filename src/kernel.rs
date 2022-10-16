@@ -174,6 +174,8 @@ impl fmt::Display for Entity {
     }
 }
 
+type BoxedScope<T /* Scope + DeserializeOwned*/> = Box<T>;
+
 impl Entity {
     fn property_named(&self, name: &str) -> Option<&Property> {
         if self.props.map.contains_key(name) {
@@ -197,7 +199,7 @@ impl Entity {
         self.scopes.contains_key(<T as Scope>::scope_key())
     }
 
-    pub fn scope<T: Scope + DeserializeOwned>(&self) -> Result<Box<T>, DomainError> {
+    pub fn scope<T: Scope + DeserializeOwned>(&self) -> Result<BoxedScope<T>, DomainError> {
         let key = <T as Scope>::scope_key();
 
         if !self.scopes.contains_key(key) {
@@ -229,3 +231,7 @@ pub trait HasEntityKey {}
 impl HasEntityKey for Entity {}
 
 impl HasEntityKey for EntityRef {}
+
+impl HasEntityKey for Lazy<Entity> {}
+
+impl HasEntityKey for Lazy<&Entity> {}

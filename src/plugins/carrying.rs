@@ -39,6 +39,7 @@ pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
 pub mod model {
     use crate::kernel::*;
     use anyhow::Result;
+    use once_cell::sync::Lazy;
     use serde::{de::DeserializeOwned, Deserialize, Serialize};
     use std::collections::HashMap;
 
@@ -79,6 +80,22 @@ pub mod model {
 
         fn try_from(value: &Entity) -> Result<Self, Self::Error> {
             Ok(value.scope::<Containing<T>>()?)
+        }
+    }
+
+    impl TryFrom<Containing<EntityRef>> for Containing<Lazy<Entity>> {
+        type Error = anyhow::Error;
+
+        fn try_from(value: Containing<EntityRef>) -> Result<Self, Self::Error> {
+            Ok(Containing {
+                capacity: value.capacity,
+                produces: value.produces,
+                holding: value
+                    .holding
+                    .into_iter()
+                    .map(|r| -> Lazy<Entity> { Lazy::new(|| todo!()) })
+                    .collect(),
+            })
         }
     }
 
