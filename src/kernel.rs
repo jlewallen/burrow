@@ -101,7 +101,7 @@ pub enum Item {
 
 #[derive(Error, Debug)]
 pub enum DomainError {
-    #[error("no such scope: {:?}", .0)]
+    #[error("no such scope '{:?}' on entity '{:?}'", .0, .1)]
     NoSuchScope(EntityKey, String),
     #[error("parse failed")]
     ParseFailed(#[source] serde_json::Error),
