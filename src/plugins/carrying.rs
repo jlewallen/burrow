@@ -39,9 +39,18 @@ pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
 pub mod model {
     use crate::kernel::*;
     use anyhow::Result;
-    use once_cell::sync::Lazy;
-    use serde::{de::DeserializeOwned, Deserialize, Serialize};
+    use serde::{Deserialize, Serialize};
     use std::collections::HashMap;
+
+    pub type CarryingResult = DomainResult<CarryingEvent>;
+
+    #[derive(Debug)]
+    pub enum CarryingEvent {
+        ItemHeld(Entity),
+        ItemDropped(Entity),
+    }
+
+    impl DomainEvent for CarryingEvent {}
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Location {
@@ -63,62 +72,27 @@ pub mod model {
     }
 
     #[derive(Debug, Serialize, Deserialize)]
-    pub struct Containing<T: HasEntityKey = EntityRef> {
-        pub holding: Vec<T>,
+    pub struct Containing {
+        pub holding: Vec<EntityRef>,
         pub capacity: Option<u32>,
         pub produces: HashMap<String, String>,
     }
 
-    impl<T: HasEntityKey> Scope for Containing<T> {
+    impl Scope for Containing {
         fn scope_key() -> &'static str {
             "containing"
         }
     }
 
-    impl<'a, T: HasEntityKey + DeserializeOwned> TryFrom<&Entity> for Box<Containing<T>> {
+    impl TryFrom<&Entity> for Box<Containing> {
         type Error = DomainError;
 
         fn try_from(value: &Entity) -> Result<Self, Self::Error> {
-            Ok(value.scope::<Containing<T>>()?)
+            Ok(value.scope::<Containing>()?)
         }
     }
 
-    impl TryFrom<Containing<EntityRef>> for Containing<Lazy<Entity>> {
-        type Error = anyhow::Error;
-
-        fn try_from(value: Containing<EntityRef>) -> Result<Self, Self::Error> {
-            Ok(Containing {
-                capacity: value.capacity,
-                produces: value.produces,
-                holding: value
-                    .holding
-                    .into_iter()
-                    .map(|r| -> Lazy<Entity> { Lazy::new(|| todo!()) })
-                    .collect(),
-            })
-        }
-    }
-
-    #[derive(Debug, Serialize, Deserialize)]
-    struct Carryable {}
-
-    impl Scope for Carryable {
-        fn scope_key() -> &'static str {
-            "carryable"
-        }
-    }
-
-    #[derive(Debug)]
-    pub enum CarryingEvent {
-        ItemHeld(Entity),
-        ItemDropped(Entity),
-    }
-
-    impl DomainEvent for CarryingEvent {}
-
-    pub type CarryingResult = DomainResult<CarryingEvent>;
-
-    impl<T: HasEntityKey> Containing<T> {
+    impl Containing {
         pub fn hold(&self, item: Entity) -> CarryingResult {
             CarryingResult {
                 events: vec![CarryingEvent::ItemHeld(item)],
@@ -129,6 +103,15 @@ pub mod model {
             CarryingResult {
                 events: vec![CarryingEvent::ItemDropped(item)],
             }
+        }
+    }
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct Carryable {}
+
+    impl Scope for Carryable {
+        fn scope_key() -> &'static str {
+            "carryable"
         }
     }
 

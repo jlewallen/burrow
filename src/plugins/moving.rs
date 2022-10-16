@@ -26,103 +26,58 @@ pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
 }
 
 pub mod model {
-    use crate::{domain::HasSession, kernel::*};
+    use crate::kernel::*;
     use anyhow::Result;
-    use once_cell::sync::Lazy;
-    use serde::{de::DeserializeOwned, Deserialize, Serialize};
+    use serde::{Deserialize, Serialize};
 
     #[derive(Debug, Serialize, Deserialize)]
-    pub struct Occupying<T: HasEntityKey> {
-        pub area: T,
+    pub struct Occupying {
+        pub area: EntityRef,
     }
 
-    impl<T: HasEntityKey> Scope for Occupying<T> {
+    impl Scope for Occupying {
         fn scope_key() -> &'static str {
             "occupying"
         }
     }
 
-    impl<T: HasEntityKey + DeserializeOwned> TryFrom<&Entity> for Box<Occupying<T>> {
+    impl TryFrom<&Entity> for Box<Occupying> {
         type Error = DomainError;
 
         fn try_from(value: &Entity) -> Result<Self, Self::Error> {
-            Ok(value.scope::<Occupying<T>>()?)
-        }
-    }
-
-    impl TryFrom<Occupying<EntityRef>> for Occupying<Lazy<Entity>> {
-        type Error = anyhow::Error;
-
-        fn try_from(value: Occupying<EntityRef>) -> Result<Self, Self::Error> {
-            Ok(Occupying {
-                area: Lazy::new(|| todo!()),
-            })
+            Ok(value.scope::<Occupying>()?)
         }
     }
 
     #[derive(Debug, Serialize, Deserialize)]
-    pub struct Occupyable<T: HasEntityKey = EntityRef> {
+    pub struct Occupyable {
         pub acls: Acls,
-        pub occupied: Vec<T>,
+        pub occupied: Vec<EntityRef>,
         pub occupancy: u32,
     }
 
-    impl<T: HasEntityKey> Scope for Occupyable<T> {
+    impl Scope for Occupyable {
         fn scope_key() -> &'static str {
             "occupyable"
         }
     }
 
-    impl<T: HasEntityKey + DeserializeOwned> TryFrom<&Entity> for Box<Occupyable<T>> {
+    impl TryFrom<&Entity> for Box<Occupyable> {
         type Error = DomainError;
 
         fn try_from(value: &Entity) -> Result<Self, Self::Error> {
-            Ok(value.scope::<Occupyable<T>>()?)
-        }
-    }
-
-    impl<'a> TryFrom<HasSession<'a, Occupyable<EntityRef>>> for Occupyable<Lazy<&Entity>> {
-        type Error = anyhow::Error;
-
-        fn try_from(value: HasSession<'a, Occupyable<EntityRef>>) -> Result<Self, Self::Error> {
-            Ok(Occupyable {
-                acls: value.value.acls,
-                occupancy: value.value.occupancy,
-                occupied: value
-                    .value
-                    .occupied
-                    .into_iter()
-                    .map(|r| -> Lazy<&Entity> {
-                        /*
-                        Lazy::new(|| -> &Entity {
-                            return value.session.load_entity_by_ref(&r).unwrap();
-                        })
-                        */
-                        todo!();
-                    })
-                    .collect(),
-            })
+            Ok(value.scope::<Occupyable>()?)
         }
     }
 
     #[derive(Debug, Serialize, Deserialize)]
-    pub struct Exit<T: HasEntityKey = EntityRef> {
-        pub area: T,
+    pub struct Exit {
+        pub area: EntityRef,
     }
 
-    impl<T: HasEntityKey> Scope for Exit<T> {
+    impl Scope for Exit {
         fn scope_key() -> &'static str {
             "exit"
-        }
-    }
-
-    impl<'a> TryFrom<HasSession<'a, Exit<EntityRef>>> for Exit<Lazy<&Entity>> {
-        type Error = anyhow::Error;
-
-        fn try_from(value: HasSession<'a, Exit<EntityRef>>) -> Result<Self, Self::Error> {
-            Ok(Exit {
-                area: value.session.load_entity_by_ref_lazy(&value.value.area),
-            })
         }
     }
 
@@ -130,7 +85,7 @@ pub mod model {
         type Error = DomainError;
 
         fn try_from(value: &Entity) -> Result<Self, Self::Error> {
-            value.scope::<Exit>()
+            Ok(value.scope::<Exit>()?)
         }
     }
 

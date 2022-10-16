@@ -81,13 +81,13 @@ pub mod model {
     impl AreaObservation {
         pub fn new(user: &Entity, area: &Entity) -> Self {
             let living: Vec<Entity> =
-                if let Ok(occupyable) = <&Entity as TryInto<Box<Occupyable>>>::try_into(user) {
+                if let Ok(_occupyable) = <&Entity as TryInto<Box<Occupyable>>>::try_into(user) {
                     vec![]
                 } else {
                     vec![]
                 };
             let items: Vec<Entity> =
-                if let Ok(containing) = <&Entity as TryInto<Box<Containing>>>::try_into(user) {
+                if let Ok(_containing) = <&Entity as TryInto<Box<Containing>>>::try_into(user) {
                     vec![] // containing.holding.to_vec()
                 } else {
                     vec![]

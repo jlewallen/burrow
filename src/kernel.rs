@@ -174,7 +174,7 @@ impl fmt::Display for Entity {
     }
 }
 
-type BoxedScope<T /* Scope + DeserializeOwned*/> = Box<T>;
+type BoxedScope<T> = Box<T>;
 
 impl Entity {
     fn property_named(&self, name: &str) -> Option<&Property> {
@@ -225,13 +225,3 @@ impl From<serde_json::Error> for DomainError {
         DomainError::ParseFailed(source)
     }
 }
-
-pub trait HasEntityKey {}
-
-impl HasEntityKey for Entity {}
-
-impl HasEntityKey for EntityRef {}
-
-impl HasEntityKey for Lazy<Entity> {}
-
-impl HasEntityKey for Lazy<&Entity> {}

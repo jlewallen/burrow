@@ -13,13 +13,6 @@ pub struct Session {
     entities: FrozenMap<EntityKey, Box<Entity>>,
 }
 
-pub struct HasSession<'a, T> {
-    pub session: &'a Session,
-    pub value: T,
-}
-
-use once_cell::sync::Lazy;
-
 impl Session {
     pub fn new(storage: Box<dyn EntityStorage>) -> Self {
         info!("session-new");
@@ -28,17 +21,6 @@ impl Session {
             storage: storage,
             entities: FrozenMap::new(),
         }
-    }
-
-    pub fn with<'a, T>(&'a self, value: T) -> HasSession<T> {
-        HasSession {
-            session: self,
-            value: value,
-        }
-    }
-
-    pub fn load_entity_by_ref_lazy(&self, entity_ref: &EntityRef) -> Lazy<&Entity> {
-        todo!()
     }
 
     pub fn load_entities_by_refs(&self, entity_refs: Vec<EntityRef>) -> Result<Vec<&Entity>> {
@@ -85,7 +67,7 @@ impl Session {
 
         let user = self.load_entity_by_key(user_key)?;
 
-        let occupying: Box<Occupying<EntityRef>> = user.try_into()?;
+        let occupying: Box<Occupying> = user.try_into()?;
 
         let action = eval::evaluate(text)?;
 
