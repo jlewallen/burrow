@@ -109,6 +109,8 @@ pub enum DomainError {
     DanglingEntity,
     #[error("anyhow")]
     Anyhow(#[source] anyhow::Error),
+    #[error("no infrastructure")]
+    NoInfrastructure,
 }
 
 impl From<serde_json::Error> for DomainError {
@@ -225,7 +227,7 @@ pub struct Entity {
     scopes: HashMap<String, serde_json::Value>,
 
     #[serde(skip)] // Very private
-    session: Option<Rc<dyn DomainInfrastructure>>,
+    infra: Option<Rc<dyn DomainInfrastructure>>,
 }
 
 impl Display for Entity {
@@ -238,8 +240,8 @@ impl Display for Entity {
 }
 
 impl Entity {
-    pub fn set_session(&mut self, session: Rc<dyn DomainInfrastructure>) {
-        self.session = Some(session);
+    pub fn set_infra(&mut self, infra: Rc<dyn DomainInfrastructure>) {
+        self.infra = Some(infra);
     }
 
     fn property_named(&self, name: &str) -> Option<&Property> {
@@ -268,7 +270,7 @@ impl Entity {
         let scope_key = <T as Scope>::scope_key();
 
         let _load_scope_span =
-            span!(Level::INFO, "scope", key = self.key, scope = scope_key).entered();
+            span!(Level::DEBUG, "scope", key = self.key, scope = scope_key).entered();
 
         if !self.scopes.contains_key(scope_key) {
             return Err(DomainError::NoSuchScope(
@@ -289,9 +291,13 @@ impl Entity {
         let owned_value = data.clone();
         let mut scope: Box<T> = serde_json::from_value(owned_value)?;
 
-        let _prepare_span = span!(Level::INFO, "prepare").entered();
+        let _prepare_span = span!(Level::DEBUG, "prepare").entered();
 
-        scope.prepare_with(self.session.as_ref().unwrap().as_ref())?;
+        if let Some(infra) = &self.infra {
+            scope.prepare_with(infra.as_ref())?;
+        } else {
+            return Err(DomainError::NoInfrastructure);
+        }
 
         // Ok, great!
         Ok(scope)

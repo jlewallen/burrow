@@ -122,22 +122,22 @@ impl PrepareEntityByKey for Entities {
         prepare: T,
     ) -> Result<&Entity> {
         if let Some(e) = self.entities.get(key) {
-            debug!(%key, "loading local entity");
+            debug!(%key, "existing");
             return Ok(e);
         }
 
         let _loading_span = span!(Level::INFO, "entity", key = key).entered();
 
-        debug!("loading-entity");
+        info!("loading");
 
         let persisted = self.storage.load(key)?;
 
         let mut loaded: Entity = serde_json::from_str(&persisted.serialized)?;
-        info!("parsed");
+        debug!("parsed");
 
         if let Some(factory) = &self.infrastructure_factory {
-            info!("new-infrastructure");
-            loaded.set_session(factory.new_infrastructure()?);
+            debug!("new-infrastructure");
+            loaded.set_infra(factory.new_infrastructure()?);
         }
 
         let _ = prepare(&mut loaded)?;
@@ -187,7 +187,7 @@ impl LoadEntityByKey for ProvidedEntities {
     fn load_entity_by_key(&self, key: &EntityKey) -> Result<&Entity> {
         self.entities.prepare_entity_by_key(key, |e| {
             info!("prepare");
-            e.set_session(Rc::new(Infrastructure::new(self.clone())));
+            e.set_infra(Rc::new(Infrastructure::new(self.clone())));
             Ok(())
         })
     }
