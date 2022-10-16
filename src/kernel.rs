@@ -61,7 +61,7 @@ pub enum Item {
 #[derive(Error, Debug)]
 pub enum DomainError {
     #[error("no such scope: {:?}", .0)]
-    NoSuchScope(String),
+    NoSuchScope(EntityKey, String),
     #[error("parse failed")]
     ParseFailed(#[source] serde_json::Error),
     #[error("dangling entity")]
@@ -212,17 +212,24 @@ impl Entity {
     pub fn scope<T: Scope + DeserializeOwned + LoadReferences>(
         &self,
     ) -> Result<BoxedScope<T>, DomainError> {
-        let key = <T as Scope>::scope_key();
+        let scope_key = <T as Scope>::scope_key();
 
-        let load_scope_span = span!(Level::INFO, "loading_scope", key = key);
+        let _load_scope_span = span!(
+            Level::INFO,
+            "loading_scope",
+            key = self.key,
+            scope = scope_key
+        )
+        .entered();
 
-        let _enter = load_scope_span.enter();
-
-        if !self.scopes.contains_key(key) {
-            return Err(DomainError::NoSuchScope(key.to_string()));
+        if !self.scopes.contains_key(scope_key) {
+            return Err(DomainError::NoSuchScope(
+                self.key.clone(),
+                scope_key.to_string(),
+            ));
         }
 
-        let data = &self.scopes[key];
+        let data = &self.scopes[scope_key];
 
         debug!("parsing");
 
@@ -233,6 +240,8 @@ impl Entity {
         // Should the 'un-parsed' Scope also owned the parsed data?
         let owned_value = data.clone();
         let mut scope: Box<T> = serde_json::from_value(owned_value)?;
+
+        let _prepare_span = span!(Level::INFO, "prepare").entered();
 
         let _ = scope.load_refs(self.session.as_ref().unwrap().as_ref());
 

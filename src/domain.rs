@@ -15,20 +15,21 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new(storage: Box<dyn EntityStorage>) -> Self {
+    pub fn new(
+        storage: Box<dyn EntityStorage>,
+        infrastructure_factory: Option<Box<dyn InfrastructureFactory>>,
+    ) -> Self {
         info!("session-new");
 
         Self {
             entities: ProvidedEntities {
-                entities: Entities::new(storage, None),
+                entities: Entities::new(storage, infrastructure_factory),
             },
         }
     }
 
     pub fn evaluate_and_perform(&self, user_name: &str, text: &str) -> Result<Box<dyn Reply>> {
-        let doing_span = span!(Level::INFO, "session-do", user = user_name);
-
-        let _enter = doing_span.enter();
+        let _doing_span = span!(Level::INFO, "session-do", user = user_name).entered();
 
         debug!("'{}'", text);
 
@@ -50,15 +51,17 @@ impl Session {
 
         info!(%user_name, "area {}", area);
 
-        if false {
+        if true {
+            let _test_span = span!(Level::INFO, "test").entered();
+
             let containing = area.scope::<Containing>()?;
             for here in containing.holding {
-                info!("here {:?}", here)
+                info!("here {:?}", here.key())
             }
 
             let carrying = user.scope::<Containing>()?;
             for here in carrying.holding {
-                info!("here {:?}", here)
+                info!("here {:?}", here.key())
             }
 
             let mut discovered_keys: Vec<EntityKey> = vec![];
@@ -123,9 +126,7 @@ impl PrepareEntityByKey for Entities {
             return Ok(e);
         }
 
-        let loading_span = span!(Level::INFO, "loading_entity", key = key);
-
-        let _enter = loading_span.enter();
+        let _loading_span = span!(Level::INFO, "loading_entity", key = key).entered();
 
         debug!("loading-entity");
 
@@ -166,7 +167,7 @@ impl Domain {
         // TODO Consider using factory in Domain.
         let storage = self.storage_factory.create_storage()?;
 
-        let session = Session::new(storage);
+        let session = Session::new(storage, None);
 
         // TODO get user
         // TODO get Area
@@ -213,15 +214,9 @@ impl DomainInfrastructure for Infrastructure {
                 klass: _,
                 name: _,
             } => Ok(DynamicEntityRef::Entity(Box::new(
-                self.load_entity_by_key(&key)?.clone(), // TODO Meh
+                self.entities.load_entity_by_key(&key)?.clone(), // TODO Meh
             ))),
             DynamicEntityRef::Entity(_) => Ok(entity_ref.clone()),
         }
-    }
-}
-
-impl LoadEntityByKey for Infrastructure {
-    fn load_entity_by_key(&self, key: &EntityKey) -> Result<&Entity> {
-        self.entities.load_entity_by_key(key)
     }
 }
