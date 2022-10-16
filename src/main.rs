@@ -57,12 +57,26 @@ fn main() -> Result<(), Box<dyn Error>> {
         Some(Commands::Eval) => {
             let storage_factory = storage::sqlite::Factory::new("world.sqlite3");
             let domain = domain::Domain::new(storage_factory);
-            let session = domain.open_session()?;
 
-            for text in &["look", "hold rake", "drop", "hold rake", "drop rake"] {
-                match session.evaluate_and_perform("jlewallen", text) {
-                    Ok(reply) => info!("reply `{}`", markdown_to_string(reply.to_markdown()?)?),
-                    Err(e) => error!("oops {}", e),
+            {
+                let session = domain.open_session()?;
+
+                for text in &["look", "hold rake", "drop", "hold rake", "drop rake"] {
+                    match session.evaluate_and_perform("jlewallen", text) {
+                        Ok(reply) => info!("reply `{}`", markdown_to_string(reply.to_markdown()?)?),
+                        Err(e) => error!("oops {}", e),
+                    }
+                }
+            }
+
+            {
+                let session = domain.open_session()?;
+
+                for text in &["look"] {
+                    match session.evaluate_and_perform("jlewallen", text) {
+                        Ok(reply) => info!("reply `{}`", markdown_to_string(reply.to_markdown()?)?),
+                        Err(e) => error!("oops {}", e),
+                    }
                 }
             }
 

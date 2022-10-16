@@ -54,7 +54,7 @@ pub mod model {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Location {
-        pub container: Option<EntityRef>,
+        pub container: Option<DynamicEntityRef>,
     }
 
     impl Scope for Location {
@@ -63,6 +63,17 @@ pub mod model {
         }
     }
 
+    impl LoadReferences for Location {
+        fn load_refs(&mut self, infra: &dyn DomainInfrastructure) -> Result<()> {
+            self.container = match &self.container {
+                Some(e) => Some(infra.ensure_loaded(&e)?),
+                None => None,
+            };
+            Ok(())
+        }
+    }
+
+    /*
     impl TryFrom<&Entity> for Box<Location> {
         type Error = DomainError;
 
@@ -70,10 +81,11 @@ pub mod model {
             value.scope::<Location>()
         }
     }
+    */
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Containing {
-        pub holding: Vec<EntityRef>,
+        pub holding: Vec<DynamicEntityRef>,
         pub capacity: Option<u32>,
         pub produces: HashMap<String, String>,
     }
@@ -84,6 +96,18 @@ pub mod model {
         }
     }
 
+    impl LoadReferences for Containing {
+        fn load_refs(&mut self, infra: &dyn DomainInfrastructure) -> Result<()> {
+            self.holding = self
+                .holding
+                .iter()
+                .map(|r| infra.ensure_loaded(&r).unwrap())
+                .collect();
+            Ok(())
+        }
+    }
+
+    /*
     impl TryFrom<&Entity> for Box<Containing> {
         type Error = DomainError;
 
@@ -91,6 +115,7 @@ pub mod model {
             Ok(value.scope::<Containing>()?)
         }
     }
+    */
 
     impl Containing {
         pub fn hold(&self, item: Entity) -> CarryingResult {
@@ -117,7 +142,12 @@ pub mod model {
 
     pub fn discover(source: &Entity, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
         if let Ok(containing) = source.scope::<Containing>() {
-            entity_keys.extend(containing.holding.into_iter().map(|er| er.key))
+            entity_keys.extend(
+                containing
+                    .holding
+                    .into_iter()
+                    .map(|er| er.key().to_string()),
+            )
         }
         Ok(())
     }

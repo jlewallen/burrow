@@ -42,8 +42,8 @@ pub mod model {
     }
 
     impl LoadReferences for Occupying {
-        fn load_refs(&mut self, session: &dyn DomainInfrastructure) -> Result<()> {
-            self.area = session.ensure_loaded(&self.area)?;
+        fn load_refs(&mut self, infra: &dyn DomainInfrastructure) -> Result<()> {
+            self.area = infra.ensure_loaded(&self.area)?;
             Ok(())
         }
     }
@@ -72,11 +72,11 @@ pub mod model {
     }
 
     impl LoadReferences for Occupyable {
-        fn load_refs(&mut self, session: &dyn DomainInfrastructure) -> Result<()> {
+        fn load_refs(&mut self, infra: &dyn DomainInfrastructure) -> Result<()> {
             self.occupied = self
                 .occupied
                 .iter()
-                .map(|r| session.ensure_loaded(&r).unwrap())
+                .map(|r| infra.ensure_loaded(&r).unwrap())
                 .collect();
             Ok(())
         }

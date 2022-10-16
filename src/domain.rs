@@ -6,20 +6,12 @@ use crate::plugins::users::model::Usernames;
 use crate::storage::{EntityStorage, EntityStorageFactory};
 use anyhow::Result;
 use elsa::FrozenMap;
-use tracing::{debug, info};
+use std::{fmt::Debug, rc::Rc};
+use tracing::{debug, info, span, Level};
 
+#[derive(Debug)]
 pub struct Session {
-    storage: Box<dyn EntityStorage>,
-    entities: FrozenMap<EntityKey, Box<Entity>>,
-}
-
-impl std::fmt::Debug for Session {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Session")
-            // .field("storage", &self.storage)
-            // .field("entities", &self.entities)
-            .finish()
-    }
+    entities: ProvidedEntities,
 }
 
 impl Session {
@@ -27,83 +19,51 @@ impl Session {
         info!("session-new");
 
         Self {
-            storage: storage,
-            entities: FrozenMap::new(),
+            entities: ProvidedEntities {
+                entities: Entities::new(storage, None),
+            },
         }
-    }
-
-    pub fn load_entities_by_refs(&self, entity_refs: Vec<EntityRef>) -> Result<Vec<&Entity>> {
-        entity_refs
-            .into_iter()
-            .map(|re| -> Result<&Entity> { self.load_entity_by_ref(&re) })
-            .collect()
-    }
-
-    pub fn load_entity_by_ref(&self, entity_ref: &EntityRef) -> Result<&Entity> {
-        self.load_entity_by_key(&entity_ref.key)
-    }
-
-    pub fn load_entities_by_keys(&self, entity_keys: Vec<EntityKey>) -> Result<Vec<&Entity>> {
-        entity_keys
-            .into_iter()
-            .map(|key| -> Result<&Entity> { self.load_entity_by_key(&key) })
-            .collect()
-    }
-
-    pub fn load_entity_by_key(&self, key: &EntityKey) -> Result<&Entity> {
-        if let Some(e) = self.entities.get(key) {
-            debug!(%key, "loading local entity");
-            return Ok(e);
-        }
-
-        debug!(%key, "loading entity");
-
-        let loaded = self.storage.load(key)?;
-
-        let inserted = self.entities.insert(key.clone(), Box::new(loaded));
-
-        Ok(inserted)
     }
 
     pub fn evaluate_and_perform(&self, user_name: &str, text: &str) -> Result<Box<dyn Reply>> {
-        debug!(%user_name, "session-do '{}'", text);
+        let doing_span = span!(Level::INFO, "session-do", user = user_name);
 
-        let world = self.load_entity_by_key(&WORLD_KEY)?;
+        let _enter = doing_span.enter();
 
-        let usernames: Box<Usernames> = world.try_into()?;
-
-        let user_key = &usernames.users[user_name];
-
-        let user = self.load_entity_by_key(user_key)?;
-
-        let mut occupying: Box<Occupying> = user.scope::<Occupying>()?;
-
-        occupying.load_refs(self)?;
-
-        let area = self.load_entity_by_ref(&occupying.area.into())?;
-
-        info!(%user_name, "area {}", area);
+        debug!("'{}'", text);
 
         let action = eval::evaluate(text)?;
 
-        info!(%user_name, "performing {:?}", action);
+        info!("performing {:?}", action);
 
-        // info!(%user_name, "user {:?}", user);
+        let world = self.entities.load_entity_by_key(&WORLD_KEY)?;
+
+        let usernames: Box<Usernames> = world.scope::<Usernames>()?;
+
+        let user_key = &usernames.users[user_name];
+
+        let user = self.entities.load_entity_by_key(user_key)?;
+
+        let occupying: Box<Occupying> = user.scope::<Occupying>()?;
+
+        let area: Box<Entity> = occupying.area.try_into()?;
+
+        info!(%user_name, "area {}", area);
 
         if false {
             let containing = area.scope::<Containing>()?;
-            for here in self.load_entities_by_refs(containing.holding)? {
-                info!("here {}", here)
+            for here in containing.holding {
+                info!("here {:?}", here)
             }
 
             let carrying = user.scope::<Containing>()?;
-            for here in self.load_entities_by_refs(carrying.holding)? {
-                info!("here {}", here)
+            for here in carrying.holding {
+                info!("here {:?}", here)
             }
 
             let mut discovered_keys: Vec<EntityKey> = vec![];
             eval::discover(user, &mut discovered_keys)?;
-            eval::discover(area, &mut discovered_keys)?;
+            eval::discover(area.as_ref(), &mut discovered_keys)?;
             info!(%user_name, "discovered {:?}", discovered_keys);
         }
 
@@ -117,10 +77,6 @@ impl Session {
     pub fn hydrate_user_session(&self) -> Result<()> {
         Ok(())
     }
-
-    pub fn close(&self) {
-        info!("session-close");
-    }
 }
 
 impl Drop for Session {
@@ -129,20 +85,65 @@ impl Drop for Session {
     }
 }
 
-impl DomainInfrastructure for Session {
-    fn ensure_loaded(&self, entity_ref: &DynamicEntityRef) -> Result<DynamicEntityRef> {
-        match entity_ref {
-            DynamicEntityRef::RefOnly {
-                py_object: _,
-                py_ref: _,
-                key,
-                klass: _,
-                name: _,
-            } => Ok(DynamicEntityRef::Entity(Box::new(
-                self.load_entity_by_key(&key)?.clone(),
-            ))),
-            DynamicEntityRef::Entity(_) => Ok(entity_ref.clone()),
+struct Entities {
+    storage: Box<dyn EntityStorage>,
+    entities: FrozenMap<EntityKey, Box<Entity>>,
+    infrastructure_factory: Option<Box<dyn InfrastructureFactory>>,
+}
+
+impl Debug for Entities {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Entities").finish()
+    }
+}
+
+impl Entities {
+    pub fn new(
+        storage: Box<dyn EntityStorage>,
+        infrastructure_structure: Option<Box<dyn InfrastructureFactory>>,
+    ) -> Rc<Self> {
+        debug!("entities-new");
+
+        Rc::new(Self {
+            storage: storage,
+            entities: FrozenMap::new(),
+            infrastructure_factory: infrastructure_structure,
+        })
+    }
+}
+
+impl PrepareEntityByKey for Entities {
+    fn prepare_entity_by_key<T: Fn(&mut Entity) -> Result<()>>(
+        &self,
+        key: &EntityKey,
+        prepare: T,
+    ) -> Result<&Entity> {
+        if let Some(e) = self.entities.get(key) {
+            debug!(%key, "loading local entity");
+            return Ok(e);
         }
+
+        let loading_span = span!(Level::INFO, "loading_entity", key = key);
+
+        let _enter = loading_span.enter();
+
+        debug!("loading-entity");
+
+        let persisted = self.storage.load(key)?;
+
+        let mut loaded: Entity = serde_json::from_str(&persisted.serialized)?;
+        info!("parsed");
+
+        if let Some(factory) = &self.infrastructure_factory {
+            info!("new-infrastructure");
+            loaded.set_session(factory.new_infrastructure()?);
+        }
+
+        let _ = prepare(&mut loaded)?;
+
+        let inserted = self.entities.insert(key.clone(), Box::new(loaded));
+
+        Ok(inserted)
     }
 }
 
@@ -173,5 +174,54 @@ impl Domain {
         // TODO hydrate
 
         Ok(session)
+    }
+}
+
+#[derive(Debug, Clone)]
+struct ProvidedEntities {
+    entities: Rc<Entities>,
+}
+
+impl LoadEntityByKey for ProvidedEntities {
+    fn load_entity_by_key(&self, key: &EntityKey) -> Result<&Entity> {
+        self.entities.prepare_entity_by_key(key, |e| {
+            info!("prepare");
+            e.set_session(Rc::new(Infrastructure::new(self.clone())));
+            Ok(())
+        })
+    }
+}
+
+#[derive(Debug)]
+pub struct Infrastructure {
+    entities: ProvidedEntities,
+}
+
+impl Infrastructure {
+    fn new(entities: ProvidedEntities) -> Self {
+        Self { entities: entities }
+    }
+}
+
+impl DomainInfrastructure for Infrastructure {
+    fn ensure_loaded(&self, entity_ref: &DynamicEntityRef) -> Result<DynamicEntityRef> {
+        match entity_ref {
+            DynamicEntityRef::RefOnly {
+                py_object: _,
+                py_ref: _,
+                key,
+                klass: _,
+                name: _,
+            } => Ok(DynamicEntityRef::Entity(Box::new(
+                self.load_entity_by_key(&key)?.clone(), // TODO Meh
+            ))),
+            DynamicEntityRef::Entity(_) => Ok(entity_ref.clone()),
+        }
+    }
+}
+
+impl LoadEntityByKey for Infrastructure {
+    fn load_entity_by_key(&self, key: &EntityKey) -> Result<&Entity> {
+        self.entities.load_entity_by_key(key)
     }
 }

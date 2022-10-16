@@ -4,12 +4,12 @@ use once_cell::sync::Lazy;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fmt;
+use std::fmt::Display;
 use std::ops::Index;
+use std::rc::Rc;
 use std::string::FromUtf8Error;
-use std::sync::Arc;
 use thiserror::Error;
-use tracing::debug;
+use tracing::{debug, span, Level};
 
 pub static WORLD_KEY: Lazy<EntityKey> = Lazy::new(|| "world".to_string());
 
@@ -64,6 +64,8 @@ pub enum DomainError {
     NoSuchScope(String),
     #[error("parse failed")]
     ParseFailed(#[source] serde_json::Error),
+    #[error("dangling entity")]
+    DanglingEntity,
 }
 
 #[derive(Error, Debug)]
@@ -166,13 +168,13 @@ pub struct Entity {
     acls: Acls,
     props: Props,
     scopes: HashMap<String, serde_json::Value>,
-    // very private
-    #[serde(skip)]
-    session: Option<Arc<dyn DomainInfrastructure>>,
+
+    #[serde(skip)] // Very private
+    session: Option<Rc<dyn DomainInfrastructure>>,
 }
 
-impl fmt::Display for Entity {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+impl Display for Entity {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
         fmt.debug_struct(&self.class.py_type)
             .field("key", &self.key)
             .field("name", &self.name())
@@ -181,6 +183,10 @@ impl fmt::Display for Entity {
 }
 
 impl Entity {
+    pub fn set_session(&mut self, session: Rc<dyn DomainInfrastructure>) {
+        self.session = Some(session);
+    }
+
     fn property_named(&self, name: &str) -> Option<&Property> {
         if self.props.map.contains_key(name) {
             return Some(self.props.map.index(name));
@@ -203,8 +209,14 @@ impl Entity {
         self.scopes.contains_key(<T as Scope>::scope_key())
     }
 
-    pub fn scope<T: Scope + DeserializeOwned>(&self) -> Result<BoxedScope<T>, DomainError> {
+    pub fn scope<T: Scope + DeserializeOwned + LoadReferences>(
+        &self,
+    ) -> Result<BoxedScope<T>, DomainError> {
         let key = <T as Scope>::scope_key();
+
+        let load_scope_span = span!(Level::INFO, "loading_scope", key = key);
+
+        let _enter = load_scope_span.enter();
 
         if !self.scopes.contains_key(key) {
             return Err(DomainError::NoSuchScope(key.to_string()));
@@ -212,7 +224,7 @@ impl Entity {
 
         let data = &self.scopes[key];
 
-        debug!(%data, "parse-scope");
+        debug!("parsing");
 
         // The call to serde_json::from_value requires owned data and we have a
         // reference to somebody else's. Presumuably so that we don't couple the
@@ -220,7 +232,12 @@ impl Entity {
         // referenced? What's the right solution here?
         // Should the 'un-parsed' Scope also owned the parsed data?
         let owned_value = data.clone();
-        Ok(serde_json::from_value(owned_value)?)
+        let mut scope: Box<T> = serde_json::from_value(owned_value)?;
+
+        let _ = scope.load_refs(self.session.as_ref().unwrap().as_ref());
+
+        // Ok, great!
+        Ok(scope)
     }
 }
 
@@ -260,6 +277,23 @@ impl DynamicEntityRef {
     }
 }
 
+impl TryFrom<DynamicEntityRef> for Box<Entity> {
+    type Error = DomainError;
+
+    fn try_from(value: DynamicEntityRef) -> Result<Self, Self::Error> {
+        match value {
+            DynamicEntityRef::RefOnly {
+                py_object: _,
+                py_ref: _,
+                key: _,
+                klass: _,
+                name: _,
+            } => Err(DomainError::DanglingEntity),
+            DynamicEntityRef::Entity(e) => Ok(e),
+        }
+    }
+}
+
 impl From<DynamicEntityRef> for EntityRef {
     fn from(value: DynamicEntityRef) -> Self {
         match value {
@@ -285,6 +319,10 @@ pub trait DomainInfrastructure: std::fmt::Debug {
     fn ensure_loaded(&self, entity_ref: &DynamicEntityRef) -> Result<DynamicEntityRef>;
 }
 
+pub trait InfrastructureFactory: std::fmt::Debug {
+    fn new_infrastructure(&self) -> Result<Rc<dyn DomainInfrastructure>>;
+}
+
 pub trait LoadReferences {
     fn load_refs(&mut self, session: &dyn DomainInfrastructure) -> Result<()>;
 }
@@ -298,5 +336,43 @@ impl From<&Entity> for EntityRef {
             klass: "todo!".to_string(),
             name: e.name().unwrap_or_default(),
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct PersistedEntity {
+    pub key: String,
+    pub gid: u32,
+    pub version: u32,
+    pub serialized: String,
+}
+
+pub trait PrepareEntityByKey {
+    fn prepare_entity_by_key<T: Fn(&mut Entity) -> Result<()>>(
+        &self,
+        key: &EntityKey,
+        prepare: T,
+    ) -> Result<&Entity>;
+}
+
+pub trait LoadEntityByKey {
+    fn load_entity_by_key(&self, key: &EntityKey) -> Result<&Entity>;
+
+    fn load_entity_by_ref(&self, entity_ref: &EntityRef) -> Result<&Entity> {
+        self.load_entity_by_key(&entity_ref.key)
+    }
+
+    fn load_entities_by_refs(&self, entity_refs: Vec<EntityRef>) -> Result<Vec<&Entity>> {
+        entity_refs
+            .into_iter()
+            .map(|re| -> Result<&Entity> { self.load_entity_by_ref(&re) })
+            .collect()
+    }
+
+    fn load_entities_by_keys(&self, entity_keys: Vec<EntityKey>) -> Result<Vec<&Entity>> {
+        entity_keys
+            .into_iter()
+            .map(|key| -> Result<&Entity> { self.load_entity_by_key(&key) })
+            .collect()
     }
 }

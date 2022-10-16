@@ -1,10 +1,10 @@
-use crate::kernel::*;
+use crate::kernel::{EntityKey, PersistedEntity};
 use anyhow::Result;
-use tracing::{debug, info};
+use tracing::debug;
 
 pub trait EntityStorage {
-    fn load(&self, key: &EntityKey) -> Result<Entity>;
-    fn save(&self, key: &EntityKey, entity: &Entity) -> Result<()>;
+    fn load(&self, key: &EntityKey) -> Result<PersistedEntity>;
+    fn save(&self, key: &EntityKey, entity: &PersistedEntity) -> Result<()>;
 }
 
 pub trait EntityStorageFactory {
@@ -28,27 +28,8 @@ pub mod sqlite {
         }
     }
 
-    #[derive(Debug)]
-    #[allow(dead_code)]
-    struct PersistedEntity {
-        key: String,
-        gid: u32,
-        version: u32,
-        serialized: String,
-    }
-
-    impl PersistedEntity {
-        fn to_entity(&self) -> Result<Entity> {
-            let entity: Entity = serde_json::from_str(&self.serialized)?;
-
-            info!(%entity.key, "parsed");
-
-            return Ok(entity);
-        }
-    }
-
     impl EntityStorage for SqliteStorage {
-        fn load(&self, key: &EntityKey) -> Result<Entity> {
+        fn load(&self, key: &EntityKey) -> Result<PersistedEntity> {
             let conn = Connection::open(&self.path)?;
 
             let mut stmt =
@@ -66,12 +47,12 @@ pub mod sqlite {
             })?;
 
             match entities.next() {
-                Some(p) => p?.to_entity(),
+                Some(p) => Ok(p?),
                 _ => Err(anyhow!("entity with key {} not found", key)),
             }
         }
 
-        fn save(&self, _key: &EntityKey, _entity: &Entity) -> Result<()> {
+        fn save(&self, _key: &EntityKey, _entity: &PersistedEntity) -> Result<()> {
             unimplemented!()
         }
     }
