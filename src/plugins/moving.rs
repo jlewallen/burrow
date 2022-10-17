@@ -26,7 +26,7 @@ pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
 }
 
 pub mod model {
-    use std::rc::Rc;
+    use std::rc::Weak;
 
     use crate::kernel::*;
     use anyhow::Result;
@@ -44,8 +44,8 @@ pub mod model {
     }
 
     impl PrepareWithInfrastructure for Occupying {
-        fn prepare_with(&mut self, infra: &Rc<dyn DomainInfrastructure>) -> Result<()> {
-            self.area = infra.ensure_entity(&self.area)?;
+        fn prepare_with(&mut self, infra: &Weak<dyn DomainInfrastructure>) -> Result<()> {
+            self.area = infra.upgrade().unwrap().ensure_entity(&self.area)?;
             Ok(())
         }
     }
@@ -64,11 +64,11 @@ pub mod model {
     }
 
     impl PrepareWithInfrastructure for Occupyable {
-        fn prepare_with(&mut self, infra: &Rc<dyn DomainInfrastructure>) -> Result<()> {
+        fn prepare_with(&mut self, infra: &Weak<dyn DomainInfrastructure>) -> Result<()> {
             self.occupied = self
                 .occupied
                 .iter()
-                .map(|r| infra.ensure_entity(&r).unwrap())
+                .map(|r| infra.upgrade().unwrap().ensure_entity(&r).unwrap())
                 .collect();
             Ok(())
         }
@@ -86,8 +86,8 @@ pub mod model {
     }
 
     impl PrepareWithInfrastructure for Exit {
-        fn prepare_with(&mut self, infra: &Rc<dyn DomainInfrastructure>) -> Result<()> {
-            self.area = infra.ensure_entity(&self.area)?;
+        fn prepare_with(&mut self, infra: &Weak<dyn DomainInfrastructure>) -> Result<()> {
+            self.area = infra.upgrade().unwrap().ensure_entity(&self.area)?;
             Ok(())
         }
     }

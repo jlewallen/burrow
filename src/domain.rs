@@ -12,7 +12,7 @@ use tracing::{debug, info, span, Level};
 
 #[derive(Debug)]
 pub struct Session {
-    infra: Rc<dyn DomainInfrastructure>,
+    infra: Rc<Infrastructure>,
 }
 
 impl Session {
@@ -87,7 +87,7 @@ impl Drop for Session {
 struct Entities {
     storage: Box<dyn EntityStorage>,
     entities: FrozenMap<EntityKey, Box<Entity>>,
-    infra: Option<Rc<dyn DomainInfrastructure>>,
+    infra: Weak<dyn DomainInfrastructure>,
 }
 
 impl Debug for Entities {
@@ -97,18 +97,14 @@ impl Debug for Entities {
 }
 
 impl PrepareWithInfrastructure for Entities {
-    fn prepare_with(&mut self, infra: &Rc<dyn DomainInfrastructure>) -> Result<()> {
-        self.infra = Some(infra.clone());
-        todo!();
+    fn prepare_with(&mut self, infra: &Weak<dyn DomainInfrastructure>) -> Result<()> {
+        self.infra = Weak::clone(infra);
         Ok(())
     }
 }
 
 impl Entities {
-    pub fn new(
-        storage: Box<dyn EntityStorage>,
-        infra: Option<Rc<dyn DomainInfrastructure>>,
-    ) -> Rc<Self> {
+    pub fn new(storage: Box<dyn EntityStorage>, infra: Weak<dyn DomainInfrastructure>) -> Rc<Self> {
         debug!("entities-new");
 
         Rc::new(Self {
@@ -139,11 +135,7 @@ impl PrepareEntityByKey for Entities {
         let mut loaded: Entity = serde_json::from_str(&persisted.serialized)?;
 
         debug!("infrastructure");
-        if let Some(infra) = &self.infra {
-            loaded.prepare_with(&infra)?;
-        } else {
-            return Err(DomainError::NoInfrastructure);
-        }
+        let _ = loaded.prepare_with(&self.infra)?;
 
         let _ = prepare(&mut loaded)?;
 
@@ -169,15 +161,9 @@ impl Domain {
     pub fn open_session(&self) -> Result<Session> {
         info!("session-open");
 
-        // TODO Consider using factory in Domain.
         let storage = self.storage_factory.create_storage()?;
 
         let session = Session::new(storage)?;
-
-        // TODO get user
-        // TODO get Area
-        // TODO discover
-        // TODO hydrate
 
         Ok(session)
     }
@@ -186,31 +172,16 @@ impl Domain {
 #[derive(Debug)]
 pub struct Infrastructure {
     entities: Rc<Entities>,
-    self_service_rc: Weak<dyn DomainInfrastructure>,
 }
 
 impl Infrastructure {
     fn new(storage: Box<dyn EntityStorage>) -> Rc<Self> {
-        Rc::new_cyclic(|me| -> Infrastructure {
-            let entities = Entities::new(storage, None);
+        Rc::new_cyclic(|me: &Weak<Infrastructure>| {
+            let infra = Weak::clone(&me) as Weak<dyn DomainInfrastructure>;
+            let entities = Entities::new(storage, infra);
             // Create the actual struct here.
-            Infrastructure {
-                entities: entities,
-                self_service_rc: Weak::clone(me),
-            }
+            Infrastructure { entities: entities }
         })
-
-        /*
-        Self {
-            entities: entities,
-            self_service_rc: None,
-        }
-        */
-    }
-
-    fn prepare_with(&mut self, infra: &Rc<dyn DomainInfrastructure>) -> Result<()> {
-        // self.self_service_rc = Weak::clone(infra);
-        Ok(())
     }
 }
 
@@ -234,11 +205,5 @@ impl DomainInfrastructure for Infrastructure {
             ))),
             DynamicEntityRef::Entity(_) => Ok(entity_ref.clone()),
         }
-    }
-}
-
-impl PrepareWithInfrastructure for Infrastructure {
-    fn prepare_with(&mut self, infra: &Rc<dyn DomainInfrastructure>) -> Result<()> {
-        todo!()
     }
 }

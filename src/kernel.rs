@@ -2,7 +2,7 @@ use anyhow::Result;
 use markdown_gen::markdown;
 use once_cell::sync::Lazy;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Display, ops::Index, rc::Rc, string::FromUtf8Error};
+use std::{collections::HashMap, fmt::Display, ops::Index, rc::Weak, string::FromUtf8Error};
 use thiserror::Error;
 use tracing::{debug, span, Level};
 
@@ -35,9 +35,7 @@ pub trait Reply: std::fmt::Debug + erased_serde::Serialize {
     fn to_markdown(&self) -> Result<Markdown>;
 }
 
-pub trait DomainInfrastructure:
-    std::fmt::Debug + LoadEntityByKey + PrepareWithInfrastructure
-{
+pub trait DomainInfrastructure: std::fmt::Debug + LoadEntityByKey {
     fn ensure_entity(&self, entity_ref: &DynamicEntityRef) -> Result<DynamicEntityRef>;
 
     fn ensure_optional_entity(
@@ -52,7 +50,7 @@ pub trait DomainInfrastructure:
 }
 
 pub trait PrepareWithInfrastructure {
-    fn prepare_with(&mut self, infra: &Rc<dyn DomainInfrastructure>) -> Result<()>;
+    fn prepare_with(&mut self, infra: &Weak<dyn DomainInfrastructure>) -> Result<()>;
 }
 
 pub trait Action: std::fmt::Debug {
@@ -246,7 +244,7 @@ pub struct Entity {
     scopes: HashMap<String, serde_json::Value>,
 
     #[serde(skip)] // Very private
-    infra: Option<Rc<dyn DomainInfrastructure>>,
+    infra: Option<Weak<dyn DomainInfrastructure>>,
 }
 
 impl Display for Entity {
@@ -259,10 +257,16 @@ impl Display for Entity {
 }
 
 impl PrepareWithInfrastructure for Entity {
-    fn prepare_with(&mut self, infra: &Rc<dyn DomainInfrastructure>) -> Result<()> {
-        self.parent = infra.ensure_optional_entity(&self.parent)?;
-        self.creator = infra.ensure_optional_entity(&self.creator)?;
-        self.infra = Some(infra.clone());
+    fn prepare_with(&mut self, infra: &Weak<dyn DomainInfrastructure>) -> Result<()> {
+        self.parent = infra
+            .upgrade()
+            .unwrap()
+            .ensure_optional_entity(&self.parent)?;
+        self.creator = infra
+            .upgrade()
+            .unwrap()
+            .ensure_optional_entity(&self.creator)?;
+        self.infra = Some(Weak::clone(infra));
         // todo!();
         Ok(())
     }
@@ -327,9 +331,8 @@ impl Entity {
         let _prepare_span = span!(Level::DEBUG, "prepare").entered();
 
         if let Some(infra) = &self.infra {
-            scope.prepare_with(infra)?;
+            let _ = scope.prepare_with(infra)?;
         } else {
-            panic!("ok");
             return Err(DomainError::NoInfrastructure);
         }
 
