@@ -26,4 +26,5 @@ headers = "0.3"
 axum = { version = "0.5.16", features = ["ws", "headers", "json"] }
 axum-typed-websockets = "0.4.0"
 markdown-gen = "1.2.1"
+erased-serde = "0.3.23"
 # axum = { git = "https://github.com/tokio-rs/axum", branch = "main", features = ["ws", "headers", "json"]  }

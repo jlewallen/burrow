@@ -27,6 +27,7 @@ pub mod model {
         kernel::*, plugins::carrying::model::Containing, plugins::moving::model::Occupyable,
     };
     use anyhow::Result;
+    use serde::Serialize;
 
     pub fn discover(_source: &Entity, _entity_keys: &mut Vec<EntityKey>) -> Result<()> {
         Ok(())
@@ -68,7 +69,7 @@ pub mod model {
         }
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Serialize)]
     pub struct AreaObservation {
         pub area: Entity,
         pub person: Entity,

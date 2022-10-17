@@ -27,7 +27,7 @@ pub struct DomainResult {
     pub events: Vec<Box<dyn DomainEvent>>,
 }
 
-pub trait Reply: std::fmt::Debug {
+pub trait Reply: std::fmt::Debug + erased_serde::Serialize {
     fn to_markdown(&self) -> Result<Markdown>;
 }
 
@@ -93,7 +93,7 @@ pub trait LoadEntityByKey {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub enum SimpleReply {
     Done,
 }
