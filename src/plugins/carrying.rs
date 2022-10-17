@@ -65,10 +65,7 @@ pub mod model {
 
     impl PrepareWithInfrastructure for Location {
         fn prepare_with(&mut self, infra: &dyn DomainInfrastructure) -> Result<()> {
-            self.container = match &self.container {
-                Some(e) => Some(infra.ensure_entity(&e)?),
-                None => None,
-            };
+            self.container = infra.ensure_optional_entity(&self.container)?;
             Ok(())
         }
     }

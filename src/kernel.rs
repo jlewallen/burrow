@@ -37,6 +37,16 @@ pub trait InfrastructureFactory: std::fmt::Debug {
 
 pub trait DomainInfrastructure: std::fmt::Debug {
     fn ensure_entity(&self, entity_ref: &DynamicEntityRef) -> Result<DynamicEntityRef>;
+
+    fn ensure_optional_entity(
+        &self,
+        entity_ref: &Option<DynamicEntityRef>,
+    ) -> Result<Option<DynamicEntityRef>> {
+        match entity_ref {
+            Some(e) => Ok(Some(self.ensure_entity(&e)?)),
+            None => Ok(None),
+        }
+    }
 }
 
 pub trait PrepareWithInfrastructure {
