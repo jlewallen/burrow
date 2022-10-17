@@ -17,13 +17,13 @@ pub struct Session {
 impl Session {
     pub fn new(
         storage: Box<dyn EntityStorage>,
-        infrastructure_factory: Option<Box<dyn InfrastructureFactory>>,
+        infra: Option<Rc<dyn DomainInfrastructure>>,
     ) -> Self {
         info!("session-new");
 
         Self {
             entities: ProvidedEntities {
-                entities: Entities::new(storage, infrastructure_factory),
+                entities: Entities::new(storage, infra),
             },
         }
     }
@@ -91,7 +91,7 @@ impl Drop for Session {
 struct Entities {
     storage: Box<dyn EntityStorage>,
     entities: FrozenMap<EntityKey, Box<Entity>>,
-    infrastructure_factory: Option<Box<dyn InfrastructureFactory>>,
+    infra: Option<Rc<dyn DomainInfrastructure>>,
 }
 
 impl Debug for Entities {
@@ -103,14 +103,14 @@ impl Debug for Entities {
 impl Entities {
     pub fn new(
         storage: Box<dyn EntityStorage>,
-        infrastructure_structure: Option<Box<dyn InfrastructureFactory>>,
+        infra: Option<Rc<dyn DomainInfrastructure>>,
     ) -> Rc<Self> {
         debug!("entities-new");
 
         Rc::new(Self {
             storage: storage,
             entities: FrozenMap::new(),
-            infrastructure_factory: infrastructure_structure,
+            infra: infra,
         })
     }
 }
@@ -135,9 +135,9 @@ impl PrepareEntityByKey for Entities {
         let mut loaded: Entity = serde_json::from_str(&persisted.serialized)?;
         debug!("parsed");
 
-        if let Some(factory) = &self.infrastructure_factory {
-            debug!("new-infrastructure");
-            loaded.set_infra(factory.new_infrastructure()?);
+        if let Some(infra) = &self.infra {
+            debug!("infrastructure");
+            loaded.prepare_with(&infra)?;
         }
 
         let _ = prepare(&mut loaded)?;
@@ -186,8 +186,8 @@ struct ProvidedEntities {
 impl LoadEntityByKey for ProvidedEntities {
     fn load_entity_by_key(&self, key: &EntityKey) -> Result<&Entity> {
         self.entities.prepare_entity_by_key(key, |e| {
-            info!("prepare");
-            e.set_infra(Rc::new(Infrastructure::new(self.clone())));
+            info!("old-prepare");
+            // e.set_infra(Rc::new(Infrastructure::new(self.clone())));
             Ok(())
         })
     }

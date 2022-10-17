@@ -35,10 +35,6 @@ pub trait Reply: std::fmt::Debug + erased_serde::Serialize {
     fn to_markdown(&self) -> Result<Markdown>;
 }
 
-pub trait InfrastructureFactory: std::fmt::Debug {
-    fn new_infrastructure(&self) -> Result<Rc<dyn DomainInfrastructure>>;
-}
-
 pub trait DomainInfrastructure: std::fmt::Debug {
     fn ensure_entity(&self, entity_ref: &DynamicEntityRef) -> Result<DynamicEntityRef>;
 
@@ -54,7 +50,7 @@ pub trait DomainInfrastructure: std::fmt::Debug {
 }
 
 pub trait PrepareWithInfrastructure {
-    fn prepare_with(&mut self, infra: &dyn DomainInfrastructure) -> Result<()>;
+    fn prepare_with(&mut self, infra: &Rc<dyn DomainInfrastructure>) -> Result<()>;
 }
 
 pub trait Action: std::fmt::Debug {
@@ -232,8 +228,8 @@ pub struct Entity {
     py_object: String,
     pub key: String,
     version: Version,
-    parent: Option<EntityRef>,
-    creator: Option<EntityRef>,
+    parent: Option<DynamicEntityRef>,
+    creator: Option<DynamicEntityRef>,
     identity: Identity,
     #[serde(alias = "klass")]
     class: EntityClass,
@@ -254,11 +250,17 @@ impl Display for Entity {
     }
 }
 
-impl Entity {
-    pub fn set_infra(&mut self, infra: Rc<dyn DomainInfrastructure>) {
-        self.infra = Some(infra);
+impl PrepareWithInfrastructure for Entity {
+    fn prepare_with(&mut self, infra: &Rc<dyn DomainInfrastructure>) -> Result<()> {
+        self.parent = infra.ensure_optional_entity(&self.parent)?;
+        self.creator = infra.ensure_optional_entity(&self.creator)?;
+        self.infra = Some(infra.clone());
+        // todo!();
+        Ok(())
     }
+}
 
+impl Entity {
     fn property_named(&self, name: &str) -> Option<&Property> {
         if self.props.map.contains_key(name) {
             return Some(self.props.map.index(name));
@@ -317,8 +319,9 @@ impl Entity {
         let _prepare_span = span!(Level::DEBUG, "prepare").entered();
 
         if let Some(infra) = &self.infra {
-            scope.prepare_with(infra.as_ref())?;
+            scope.prepare_with(infra)?;
         } else {
+            // panic!("ok");
             return Err(DomainError::NoInfrastructure);
         }
 

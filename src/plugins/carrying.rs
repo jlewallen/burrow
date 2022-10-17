@@ -40,7 +40,7 @@ pub mod model {
     use crate::kernel::*;
     use anyhow::Result;
     use serde::{Deserialize, Serialize};
-    use std::collections::HashMap;
+    use std::{collections::HashMap, rc::Rc};
 
     pub type CarryingResult = DomainResult;
 
@@ -64,7 +64,7 @@ pub mod model {
     }
 
     impl PrepareWithInfrastructure for Location {
-        fn prepare_with(&mut self, infra: &dyn DomainInfrastructure) -> Result<()> {
+        fn prepare_with(&mut self, infra: &Rc<dyn DomainInfrastructure>) -> Result<()> {
             self.container = infra.ensure_optional_entity(&self.container)?;
             Ok(())
         }
@@ -84,7 +84,7 @@ pub mod model {
     }
 
     impl PrepareWithInfrastructure for Containing {
-        fn prepare_with(&mut self, infra: &dyn DomainInfrastructure) -> Result<()> {
+        fn prepare_with(&mut self, infra: &Rc<dyn DomainInfrastructure>) -> Result<()> {
             self.holding = self
                 .holding
                 .iter()
@@ -118,7 +118,7 @@ pub mod model {
     }
 
     impl PrepareWithInfrastructure for Carryable {
-        fn prepare_with(&mut self, _infra: &dyn DomainInfrastructure) -> Result<()> {
+        fn prepare_with(&mut self, _infra: &Rc<dyn DomainInfrastructure>) -> Result<()> {
             Ok(())
         }
     }

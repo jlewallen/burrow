@@ -26,6 +26,8 @@ pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
 }
 
 pub mod model {
+    use std::rc::Rc;
+
     use crate::kernel::*;
     use anyhow::Result;
     use serde::{Deserialize, Serialize};
@@ -42,7 +44,7 @@ pub mod model {
     }
 
     impl PrepareWithInfrastructure for Occupying {
-        fn prepare_with(&mut self, infra: &dyn DomainInfrastructure) -> Result<()> {
+        fn prepare_with(&mut self, infra: &Rc<dyn DomainInfrastructure>) -> Result<()> {
             self.area = infra.ensure_entity(&self.area)?;
             Ok(())
         }
@@ -62,7 +64,7 @@ pub mod model {
     }
 
     impl PrepareWithInfrastructure for Occupyable {
-        fn prepare_with(&mut self, infra: &dyn DomainInfrastructure) -> Result<()> {
+        fn prepare_with(&mut self, infra: &Rc<dyn DomainInfrastructure>) -> Result<()> {
             self.occupied = self
                 .occupied
                 .iter()
@@ -84,7 +86,7 @@ pub mod model {
     }
 
     impl PrepareWithInfrastructure for Exit {
-        fn prepare_with(&mut self, infra: &dyn DomainInfrastructure) -> Result<()> {
+        fn prepare_with(&mut self, infra: &Rc<dyn DomainInfrastructure>) -> Result<()> {
             self.area = infra.ensure_entity(&self.area)?;
             Ok(())
         }

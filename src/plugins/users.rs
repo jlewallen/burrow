@@ -2,7 +2,7 @@ pub mod model {
     use crate::kernel::*;
     use anyhow::Result;
     use serde::{Deserialize, Serialize};
-    use std::collections::HashMap;
+    use std::{collections::HashMap, rc::Rc};
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Usernames {
@@ -10,7 +10,7 @@ pub mod model {
     }
 
     impl PrepareWithInfrastructure for Usernames {
-        fn prepare_with(&mut self, _infra: &dyn DomainInfrastructure) -> Result<()> {
+        fn prepare_with(&mut self, _infra: &Rc<dyn DomainInfrastructure>) -> Result<()> {
             Ok(())
         }
     }
