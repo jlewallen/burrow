@@ -35,7 +35,7 @@ pub trait Reply: std::fmt::Debug + erased_serde::Serialize {
     fn to_markdown(&self) -> Result<Markdown>;
 }
 
-pub trait DomainInfrastructure: std::fmt::Debug + LoadEntityByKey {
+pub trait Infrastructure: std::fmt::Debug + LoadEntityByKey {
     fn ensure_entity(&self, entity_ref: &DynamicEntityRef) -> Result<DynamicEntityRef>;
 
     fn ensure_optional_entity(
@@ -50,7 +50,7 @@ pub trait DomainInfrastructure: std::fmt::Debug + LoadEntityByKey {
 }
 
 pub trait PrepareWithInfrastructure {
-    fn prepare_with(&mut self, infra: &Weak<dyn DomainInfrastructure>) -> Result<()>;
+    fn prepare_with(&mut self, infra: &Weak<dyn Infrastructure>) -> Result<()>;
 }
 
 pub trait Action: std::fmt::Debug {
@@ -244,7 +244,7 @@ pub struct Entity {
     scopes: HashMap<String, serde_json::Value>,
 
     #[serde(skip)] // Very private
-    infra: Option<Weak<dyn DomainInfrastructure>>,
+    infra: Option<Weak<dyn Infrastructure>>,
 }
 
 impl Display for Entity {
@@ -257,7 +257,7 @@ impl Display for Entity {
 }
 
 impl PrepareWithInfrastructure for Entity {
-    fn prepare_with(&mut self, infra: &Weak<dyn DomainInfrastructure>) -> Result<()> {
+    fn prepare_with(&mut self, infra: &Weak<dyn Infrastructure>) -> Result<()> {
         self.infra = Some(Weak::clone(infra));
         let infra = infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
         self.parent = infra.ensure_optional_entity(&self.parent)?;

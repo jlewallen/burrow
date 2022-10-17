@@ -10,7 +10,7 @@ pub mod model {
     }
 
     impl PrepareWithInfrastructure for Usernames {
-        fn prepare_with(&mut self, _infra: &Weak<dyn DomainInfrastructure>) -> Result<()> {
+        fn prepare_with(&mut self, _infra: &Weak<dyn Infrastructure>) -> Result<()> {
             Ok(())
         }
     }

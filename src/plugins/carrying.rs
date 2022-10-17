@@ -64,7 +64,7 @@ pub mod model {
     }
 
     impl PrepareWithInfrastructure for Location {
-        fn prepare_with(&mut self, infra: &Weak<dyn DomainInfrastructure>) -> Result<()> {
+        fn prepare_with(&mut self, infra: &Weak<dyn Infrastructure>) -> Result<()> {
             let infra = infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
             self.container = infra.ensure_optional_entity(&self.container)?;
             Ok(())
@@ -85,7 +85,7 @@ pub mod model {
     }
 
     impl PrepareWithInfrastructure for Containing {
-        fn prepare_with(&mut self, infra: &Weak<dyn DomainInfrastructure>) -> Result<()> {
+        fn prepare_with(&mut self, infra: &Weak<dyn Infrastructure>) -> Result<()> {
             let infra = infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
             self.holding = self
                 .holding
@@ -120,7 +120,7 @@ pub mod model {
     }
 
     impl PrepareWithInfrastructure for Carryable {
-        fn prepare_with(&mut self, _infra: &Weak<dyn DomainInfrastructure>) -> Result<()> {
+        fn prepare_with(&mut self, _infra: &Weak<dyn Infrastructure>) -> Result<()> {
             Ok(())
         }
     }

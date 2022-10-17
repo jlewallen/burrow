@@ -12,7 +12,7 @@ use tracing::{debug, info, span, Level};
 
 #[derive(Debug)]
 pub struct Session {
-    infra: Rc<Infrastructure>,
+    infra: Rc<DomainInfrastructure>,
 }
 
 impl Session {
@@ -20,7 +20,7 @@ impl Session {
         info!("session-new");
 
         Ok(Self {
-            infra: Infrastructure::new(storage),
+            infra: DomainInfrastructure::new(storage),
         })
     }
 
@@ -87,7 +87,7 @@ impl Drop for Session {
 struct Entities {
     storage: Box<dyn EntityStorage>,
     entities: FrozenMap<EntityKey, Box<Entity>>,
-    infra: Weak<dyn DomainInfrastructure>,
+    infra: Weak<dyn Infrastructure>,
 }
 
 impl Debug for Entities {
@@ -97,7 +97,7 @@ impl Debug for Entities {
 }
 
 impl Entities {
-    pub fn new(storage: Box<dyn EntityStorage>, infra: Weak<dyn DomainInfrastructure>) -> Rc<Self> {
+    pub fn new(storage: Box<dyn EntityStorage>, infra: Weak<dyn Infrastructure>) -> Rc<Self> {
         debug!("entities-new");
 
         Rc::new(Self {
@@ -146,9 +146,7 @@ impl Domain {
     pub fn new(storage_factory: Box<dyn EntityStorageFactory>) -> Self {
         info!("domain-new");
 
-        Domain {
-            storage_factory,
-        }
+        Domain { storage_factory }
     }
 
     pub fn open_session(&self) -> Result<Session> {
@@ -161,28 +159,28 @@ impl Domain {
 }
 
 #[derive(Debug)]
-pub struct Infrastructure {
+pub struct DomainInfrastructure {
     entities: Rc<Entities>,
 }
 
-impl Infrastructure {
+impl DomainInfrastructure {
     fn new(storage: Box<dyn EntityStorage>) -> Rc<Self> {
-        Rc::new_cyclic(|me: &Weak<Infrastructure>| {
+        Rc::new_cyclic(|me: &Weak<DomainInfrastructure>| {
             // How acceptable is this kind of thing?
-            let infra = Weak::clone(me) as Weak<dyn DomainInfrastructure>;
+            let infra = Weak::clone(me) as Weak<dyn Infrastructure>;
             let entities = Entities::new(storage, infra);
-            Infrastructure { entities }
+            DomainInfrastructure { entities }
         })
     }
 }
 
-impl LoadEntityByKey for Infrastructure {
+impl LoadEntityByKey for DomainInfrastructure {
     fn load_entity_by_key(&self, key: &EntityKey) -> Result<&Entity, DomainError> {
         self.entities.prepare_entity_by_key(key, |_e| Ok(()))
     }
 }
 
-impl DomainInfrastructure for Infrastructure {
+impl Infrastructure for DomainInfrastructure {
     fn ensure_entity(&self, entity_ref: &DynamicEntityRef) -> Result<DynamicEntityRef> {
         match entity_ref {
             DynamicEntityRef::RefOnly {
