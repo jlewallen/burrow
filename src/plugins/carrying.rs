@@ -65,10 +65,8 @@ pub mod model {
 
     impl PrepareWithInfrastructure for Location {
         fn prepare_with(&mut self, infra: &Weak<dyn DomainInfrastructure>) -> Result<()> {
-            self.container = infra
-                .upgrade()
-                .unwrap()
-                .ensure_optional_entity(&self.container)?;
+            let infra = infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
+            self.container = infra.ensure_optional_entity(&self.container)?;
             Ok(())
         }
     }
@@ -88,10 +86,11 @@ pub mod model {
 
     impl PrepareWithInfrastructure for Containing {
         fn prepare_with(&mut self, infra: &Weak<dyn DomainInfrastructure>) -> Result<()> {
+            let infra = infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
             self.holding = self
                 .holding
                 .iter()
-                .map(|r| infra.upgrade().unwrap().ensure_entity(&r).unwrap())
+                .map(|r| infra.ensure_entity(&r).unwrap())
                 .collect();
             Ok(())
         }

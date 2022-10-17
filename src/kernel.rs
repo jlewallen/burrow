@@ -258,16 +258,10 @@ impl Display for Entity {
 
 impl PrepareWithInfrastructure for Entity {
     fn prepare_with(&mut self, infra: &Weak<dyn DomainInfrastructure>) -> Result<()> {
-        self.parent = infra
-            .upgrade()
-            .unwrap()
-            .ensure_optional_entity(&self.parent)?;
-        self.creator = infra
-            .upgrade()
-            .unwrap()
-            .ensure_optional_entity(&self.creator)?;
         self.infra = Some(Weak::clone(infra));
-        // todo!();
+        let infra = infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
+        self.parent = infra.ensure_optional_entity(&self.parent)?;
+        self.creator = infra.ensure_optional_entity(&self.creator)?;
         Ok(())
     }
 }

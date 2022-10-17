@@ -96,13 +96,6 @@ impl Debug for Entities {
     }
 }
 
-impl PrepareWithInfrastructure for Entities {
-    fn prepare_with(&mut self, infra: &Weak<dyn DomainInfrastructure>) -> Result<()> {
-        self.infra = Weak::clone(infra);
-        Ok(())
-    }
-}
-
 impl Entities {
     pub fn new(storage: Box<dyn EntityStorage>, infra: Weak<dyn DomainInfrastructure>) -> Rc<Self> {
         debug!("entities-new");
@@ -163,9 +156,7 @@ impl Domain {
 
         let storage = self.storage_factory.create_storage()?;
 
-        let session = Session::new(storage)?;
-
-        Ok(session)
+        Ok(Session::new(storage)?)
     }
 }
 
@@ -177,9 +168,9 @@ pub struct Infrastructure {
 impl Infrastructure {
     fn new(storage: Box<dyn EntityStorage>) -> Rc<Self> {
         Rc::new_cyclic(|me: &Weak<Infrastructure>| {
+            // How acceptable is this kind of thing?
             let infra = Weak::clone(&me) as Weak<dyn DomainInfrastructure>;
             let entities = Entities::new(storage, infra);
-            // Create the actual struct here.
             Infrastructure { entities: entities }
         })
     }

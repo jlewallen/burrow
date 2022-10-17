@@ -45,7 +45,8 @@ pub mod model {
 
     impl PrepareWithInfrastructure for Occupying {
         fn prepare_with(&mut self, infra: &Weak<dyn DomainInfrastructure>) -> Result<()> {
-            self.area = infra.upgrade().unwrap().ensure_entity(&self.area)?;
+            let infra = infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
+            self.area = infra.ensure_entity(&self.area)?;
             Ok(())
         }
     }
@@ -65,10 +66,11 @@ pub mod model {
 
     impl PrepareWithInfrastructure for Occupyable {
         fn prepare_with(&mut self, infra: &Weak<dyn DomainInfrastructure>) -> Result<()> {
+            let infra = infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
             self.occupied = self
                 .occupied
                 .iter()
-                .map(|r| infra.upgrade().unwrap().ensure_entity(&r).unwrap())
+                .map(|r| infra.ensure_entity(&r).unwrap())
                 .collect();
             Ok(())
         }
@@ -87,7 +89,8 @@ pub mod model {
 
     impl PrepareWithInfrastructure for Exit {
         fn prepare_with(&mut self, infra: &Weak<dyn DomainInfrastructure>) -> Result<()> {
-            self.area = infra.upgrade().unwrap().ensure_entity(&self.area)?;
+            let infra = infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
+            self.area = infra.ensure_entity(&self.area)?;
             Ok(())
         }
     }
