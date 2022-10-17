@@ -35,7 +35,9 @@ pub trait Reply: std::fmt::Debug + erased_serde::Serialize {
     fn to_markdown(&self) -> Result<Markdown>;
 }
 
-pub trait DomainInfrastructure: std::fmt::Debug {
+pub trait DomainInfrastructure:
+    std::fmt::Debug + LoadEntityByKey + PrepareWithInfrastructure
+{
     fn ensure_entity(&self, entity_ref: &DynamicEntityRef) -> Result<DynamicEntityRef>;
 
     fn ensure_optional_entity(
@@ -68,27 +70,33 @@ pub trait PrepareEntityByKey {
         &self,
         key: &EntityKey,
         prepare: T,
-    ) -> Result<&Entity>;
+    ) -> Result<&Entity, DomainError>;
 }
 
 pub trait LoadEntityByKey {
-    fn load_entity_by_key(&self, key: &EntityKey) -> Result<&Entity>;
+    fn load_entity_by_key(&self, key: &EntityKey) -> Result<&Entity, DomainError>;
 
-    fn load_entity_by_ref(&self, entity_ref: &EntityRef) -> Result<&Entity> {
+    fn load_entity_by_ref(&self, entity_ref: &EntityRef) -> Result<&Entity, DomainError> {
         self.load_entity_by_key(&entity_ref.key)
     }
 
-    fn load_entities_by_refs(&self, entity_refs: Vec<EntityRef>) -> Result<Vec<&Entity>> {
+    fn load_entities_by_refs(
+        &self,
+        entity_refs: Vec<EntityRef>,
+    ) -> Result<Vec<&Entity>, DomainError> {
         entity_refs
             .into_iter()
-            .map(|re| -> Result<&Entity> { self.load_entity_by_ref(&re) })
+            .map(|re| -> Result<&Entity, DomainError> { self.load_entity_by_ref(&re) })
             .collect()
     }
 
-    fn load_entities_by_keys(&self, entity_keys: Vec<EntityKey>) -> Result<Vec<&Entity>> {
+    fn load_entities_by_keys(
+        &self,
+        entity_keys: Vec<EntityKey>,
+    ) -> Result<Vec<&Entity>, DomainError> {
         entity_keys
             .into_iter()
-            .map(|key| -> Result<&Entity> { self.load_entity_by_key(&key) })
+            .map(|key| -> Result<&Entity, DomainError> { self.load_entity_by_key(&key) })
             .collect()
     }
 }
@@ -321,7 +329,7 @@ impl Entity {
         if let Some(infra) = &self.infra {
             scope.prepare_with(infra)?;
         } else {
-            // panic!("ok");
+            panic!("ok");
             return Err(DomainError::NoInfrastructure);
         }
 

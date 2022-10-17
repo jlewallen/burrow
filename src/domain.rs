@@ -6,26 +6,22 @@ use crate::plugins::users::model::Usernames;
 use crate::storage::{EntityStorage, EntityStorageFactory};
 use anyhow::Result;
 use elsa::FrozenMap;
+use std::rc::Weak;
 use std::{fmt::Debug, rc::Rc};
 use tracing::{debug, info, span, Level};
 
 #[derive(Debug)]
 pub struct Session {
-    entities: ProvidedEntities,
+    infra: Rc<dyn DomainInfrastructure>,
 }
 
 impl Session {
-    pub fn new(
-        storage: Box<dyn EntityStorage>,
-        infra: Option<Rc<dyn DomainInfrastructure>>,
-    ) -> Self {
+    pub fn new(storage: Box<dyn EntityStorage>) -> Result<Self> {
         info!("session-new");
 
-        Self {
-            entities: ProvidedEntities {
-                entities: Entities::new(storage, infra),
-            },
-        }
+        Ok(Self {
+            infra: Infrastructure::new(storage),
+        })
     }
 
     pub fn evaluate_and_perform(&self, user_name: &str, text: &str) -> Result<Box<dyn Reply>> {
@@ -37,13 +33,13 @@ impl Session {
 
         info!("performing {:?}", action);
 
-        let world = self.entities.load_entity_by_key(&WORLD_KEY)?;
+        let world = self.infra.load_entity_by_key(&WORLD_KEY)?;
 
         let usernames: Box<Usernames> = world.scope::<Usernames>()?;
 
         let user_key = &usernames.users[user_name];
 
-        let user = self.entities.load_entity_by_key(user_key)?;
+        let user = self.infra.load_entity_by_key(user_key)?;
 
         let occupying: Box<Occupying> = user.scope::<Occupying>()?;
 
@@ -100,6 +96,14 @@ impl Debug for Entities {
     }
 }
 
+impl PrepareWithInfrastructure for Entities {
+    fn prepare_with(&mut self, infra: &Rc<dyn DomainInfrastructure>) -> Result<()> {
+        self.infra = Some(infra.clone());
+        todo!();
+        Ok(())
+    }
+}
+
 impl Entities {
     pub fn new(
         storage: Box<dyn EntityStorage>,
@@ -120,7 +124,7 @@ impl PrepareEntityByKey for Entities {
         &self,
         key: &EntityKey,
         prepare: T,
-    ) -> Result<&Entity> {
+    ) -> Result<&Entity, DomainError> {
         if let Some(e) = self.entities.get(key) {
             debug!(%key, "existing");
             return Ok(e);
@@ -129,15 +133,16 @@ impl PrepareEntityByKey for Entities {
         let _loading_span = span!(Level::INFO, "entity", key = key).entered();
 
         info!("loading");
-
         let persisted = self.storage.load(key)?;
 
+        debug!("parsing");
         let mut loaded: Entity = serde_json::from_str(&persisted.serialized)?;
-        debug!("parsed");
 
+        debug!("infrastructure");
         if let Some(infra) = &self.infra {
-            debug!("infrastructure");
             loaded.prepare_with(&infra)?;
+        } else {
+            return Err(DomainError::NoInfrastructure);
         }
 
         let _ = prepare(&mut loaded)?;
@@ -167,7 +172,7 @@ impl Domain {
         // TODO Consider using factory in Domain.
         let storage = self.storage_factory.create_storage()?;
 
-        let session = Session::new(storage, None);
+        let session = Session::new(storage)?;
 
         // TODO get user
         // TODO get Area
@@ -178,29 +183,40 @@ impl Domain {
     }
 }
 
-#[derive(Debug, Clone)]
-struct ProvidedEntities {
-    entities: Rc<Entities>,
-}
-
-impl LoadEntityByKey for ProvidedEntities {
-    fn load_entity_by_key(&self, key: &EntityKey) -> Result<&Entity> {
-        self.entities.prepare_entity_by_key(key, |e| {
-            info!("old-prepare");
-            // e.set_infra(Rc::new(Infrastructure::new(self.clone())));
-            Ok(())
-        })
-    }
-}
-
 #[derive(Debug)]
 pub struct Infrastructure {
-    entities: ProvidedEntities,
+    entities: Rc<Entities>,
+    self_service_rc: Weak<dyn DomainInfrastructure>,
 }
 
 impl Infrastructure {
-    fn new(entities: ProvidedEntities) -> Self {
-        Self { entities: entities }
+    fn new(storage: Box<dyn EntityStorage>) -> Rc<Self> {
+        Rc::new_cyclic(|me| -> Infrastructure {
+            let entities = Entities::new(storage, None);
+            // Create the actual struct here.
+            Infrastructure {
+                entities: entities,
+                self_service_rc: Weak::clone(me),
+            }
+        })
+
+        /*
+        Self {
+            entities: entities,
+            self_service_rc: None,
+        }
+        */
+    }
+
+    fn prepare_with(&mut self, infra: &Rc<dyn DomainInfrastructure>) -> Result<()> {
+        // self.self_service_rc = Weak::clone(infra);
+        Ok(())
+    }
+}
+
+impl LoadEntityByKey for Infrastructure {
+    fn load_entity_by_key(&self, key: &EntityKey) -> Result<&Entity, DomainError> {
+        self.entities.prepare_entity_by_key(key, |_e| Ok(()))
     }
 }
 
@@ -214,9 +230,15 @@ impl DomainInfrastructure for Infrastructure {
                 class: _,
                 name: _,
             } => Ok(DynamicEntityRef::Entity(Box::new(
-                self.entities.load_entity_by_key(&key)?.clone(), // TODO Meh
+                self.load_entity_by_key(&key)?.clone(), // TODO Meh
             ))),
             DynamicEntityRef::Entity(_) => Ok(entity_ref.clone()),
         }
+    }
+}
+
+impl PrepareWithInfrastructure for Infrastructure {
+    fn prepare_with(&mut self, infra: &Rc<dyn DomainInfrastructure>) -> Result<()> {
+        todo!()
     }
 }
