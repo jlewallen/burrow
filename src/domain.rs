@@ -211,7 +211,7 @@ impl DomainInfrastructure for Infrastructure {
                 py_object: _,
                 py_ref: _,
                 key,
-                klass: _,
+                class: _,
                 name: _,
             } => Ok(DynamicEntityRef::Entity(Box::new(
                 self.entities.load_entity_by_key(&key)?.clone(), // TODO Meh

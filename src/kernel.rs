@@ -163,7 +163,8 @@ pub struct EntityRef {
     #[serde(alias = "py/ref")]
     py_ref: String,
     key: EntityKey,
-    klass: String,
+    #[serde(alias = "klass")]
+    class: String,
     name: String,
 }
 
@@ -323,7 +324,8 @@ pub enum DynamicEntityRef {
         #[serde(alias = "py/ref")]
         py_ref: String,
         key: String,
-        klass: String,
+        #[serde(alias = "klass")]
+        class: String,
         name: String,
     },
     Entity(Box<Entity>),
@@ -336,7 +338,7 @@ impl DynamicEntityRef {
                 py_object: _,
                 py_ref: _,
                 key,
-                klass: _,
+                class: _,
                 name: _,
             } => key,
             DynamicEntityRef::Entity(e) => &e.key,
@@ -353,7 +355,7 @@ impl TryFrom<DynamicEntityRef> for Box<Entity> {
                 py_object: _,
                 py_ref: _,
                 key: _,
-                klass: _,
+                class: _,
                 name: _,
             } => Err(DomainError::DanglingEntity),
             DynamicEntityRef::Entity(e) => Ok(e),
@@ -368,13 +370,13 @@ impl From<DynamicEntityRef> for EntityRef {
                 py_object,
                 py_ref,
                 key,
-                klass,
+                class,
                 name,
             } => EntityRef {
                 py_object,
                 py_ref,
                 key,
-                klass,
+                class,
                 name,
             },
             DynamicEntityRef::Entity(e) => e.as_ref().into(),
@@ -388,7 +390,7 @@ impl From<&Entity> for EntityRef {
             py_object: "todo!".to_string(),
             py_ref: "todo!".to_string(),
             key: e.key.to_string(),
-            klass: "todo!".to_string(),
+            class: "todo!".to_string(),
             name: e.name().unwrap_or_default(),
         }
     }
