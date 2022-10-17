@@ -5,9 +5,6 @@ use std::path::PathBuf;
 use tracing::{debug, error, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-// #[macro_use]
-// extern crate once_cell;
-
 pub mod domain;
 pub mod eval;
 pub mod kernel;
@@ -39,11 +36,17 @@ enum Commands {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let create_tracing_subscriber = || {
+        // use tracing_tree::HierarchicalLayer;
+        // HierarchicalLayer::new(2)
+        tracing_subscriber::fmt::layer()
+    };
+
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             std::env::var("RUST_LOG").unwrap_or_else(|_| "rudder=info,tower_http=debug".into()),
         ))
-        .with(tracing_subscriber::fmt::layer())
+        .with(create_tracing_subscriber())
         .init();
 
     info!("initialized, ready");
