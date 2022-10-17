@@ -66,7 +66,7 @@ impl Session {
             info!(%user_name, "discovered {:?}", discovered_keys);
         }
 
-        let reply = action.perform((&world, &user, &area))?;
+        let reply = action.perform((world, user, &area))?;
 
         info!(%user_name, "done {:?}", reply);
 
@@ -101,9 +101,9 @@ impl Entities {
         debug!("entities-new");
 
         Rc::new(Self {
-            storage: storage,
+            storage,
             entities: FrozenMap::new(),
-            infra: infra,
+            infra,
         })
     }
 }
@@ -128,9 +128,9 @@ impl PrepareEntityByKey for Entities {
         let mut loaded: Entity = serde_json::from_str(&persisted.serialized)?;
 
         debug!("infrastructure");
-        let _ = loaded.prepare_with(&self.infra)?;
+        loaded.prepare_with(&self.infra)?;
 
-        let _ = prepare(&mut loaded)?;
+        prepare(&mut loaded)?;
 
         let inserted = self.entities.insert(key.clone(), Box::new(loaded));
 
@@ -147,7 +147,7 @@ impl Domain {
         info!("domain-new");
 
         Domain {
-            storage_factory: storage_factory,
+            storage_factory,
         }
     }
 
@@ -156,7 +156,7 @@ impl Domain {
 
         let storage = self.storage_factory.create_storage()?;
 
-        Ok(Session::new(storage)?)
+        Session::new(storage)
     }
 }
 
@@ -169,9 +169,9 @@ impl Infrastructure {
     fn new(storage: Box<dyn EntityStorage>) -> Rc<Self> {
         Rc::new_cyclic(|me: &Weak<Infrastructure>| {
             // How acceptable is this kind of thing?
-            let infra = Weak::clone(&me) as Weak<dyn DomainInfrastructure>;
+            let infra = Weak::clone(me) as Weak<dyn DomainInfrastructure>;
             let entities = Entities::new(storage, infra);
-            Infrastructure { entities: entities }
+            Infrastructure { entities }
         })
     }
 }
@@ -192,7 +192,7 @@ impl DomainInfrastructure for Infrastructure {
                 class: _,
                 name: _,
             } => Ok(DynamicEntityRef::Entity(Box::new(
-                self.load_entity_by_key(&key)?.clone(), // TODO Meh
+                self.load_entity_by_key(key)?.clone(), // TODO Meh
             ))),
             DynamicEntityRef::Entity(_) => Ok(entity_ref.clone()),
         }

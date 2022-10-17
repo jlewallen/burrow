@@ -90,7 +90,7 @@ pub mod model {
             self.holding = self
                 .holding
                 .iter()
-                .map(|r| infra.ensure_entity(&r).unwrap())
+                .map(|r| infra.ensure_entity(r).unwrap())
                 .collect();
             Ok(())
         }
@@ -169,7 +169,7 @@ pub mod actions {
 
     pub fn evaluate(s: &Sentence) -> Box<dyn Action> {
         // TODO This could be improved.
-        match &*s {
+        match s {
             Sentence::Hold(e) => Box::new(HoldAction {
                 maybe_item: e.clone(),
             }),

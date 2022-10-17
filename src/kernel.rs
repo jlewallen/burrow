@@ -43,7 +43,7 @@ pub trait DomainInfrastructure: std::fmt::Debug + LoadEntityByKey {
         entity_ref: &Option<DynamicEntityRef>,
     ) -> Result<Option<DynamicEntityRef>> {
         match entity_ref {
-            Some(e) => Ok(Some(self.ensure_entity(&e)?)),
+            Some(e) => Ok(Some(self.ensure_entity(e)?)),
             None => Ok(None),
         }
     }
@@ -325,7 +325,7 @@ impl Entity {
         let _prepare_span = span!(Level::DEBUG, "prepare").entered();
 
         if let Some(infra) = &self.infra {
-            let _ = scope.prepare_with(infra)?;
+            scope.prepare_with(infra)?;
         } else {
             return Err(DomainError::NoInfrastructure);
         }

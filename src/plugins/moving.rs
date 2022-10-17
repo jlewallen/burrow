@@ -70,7 +70,7 @@ pub mod model {
             self.occupied = self
                 .occupied
                 .iter()
-                .map(|r| infra.ensure_entity(&r).unwrap())
+                .map(|r| infra.ensure_entity(r).unwrap())
                 .collect();
             Ok(())
         }

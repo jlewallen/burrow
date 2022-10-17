@@ -73,11 +73,13 @@ pub async fn execute_command(_cmd: &Command) -> Result<()> {
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     debug!("listening on {}", addr);
 
-    Ok(axum::Server::bind(&addr)
+    axum::Server::bind(&addr)
         .serve(app.into_make_service())
         .with_graceful_shutdown(shutdown_signal())
         .await
-        .expect("hyper error")) // TODO Gross
+        .expect("hyper error"); // TODO Gross
+
+    Ok(())
 }
 
 async fn shutdown_signal() {
