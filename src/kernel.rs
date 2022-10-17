@@ -8,6 +8,10 @@ use tracing::{debug, span, Level};
 
 pub static WORLD_KEY: Lazy<EntityKey> = Lazy::new(|| "world".to_string());
 
+pub static NAME_PROPERTY: &str = "name";
+
+pub static DESC_PROPERTY: &str = "desc";
+
 pub type EntityKey = String;
 
 pub type ActionArgs<'a> = (&'a Entity, &'a Entity, &'a Entity);
@@ -262,8 +266,8 @@ impl Entity {
         None
     }
 
-    pub fn name(&self) -> Option<String> {
-        if let Some(property) = self.property_named("name") {
+    fn string_property(&self, name: &str) -> Option<String> {
+        if let Some(property) = self.property_named(name) {
             match &property.value {
                 serde_json::Value::String(v) => Some(v.to_string()),
                 _ => None,
@@ -271,6 +275,14 @@ impl Entity {
         } else {
             None
         }
+    }
+
+    pub fn name(&self) -> Option<String> {
+        self.string_property(NAME_PROPERTY)
+    }
+
+    pub fn desc(&self) -> Option<String> {
+        self.string_property(DESC_PROPERTY)
     }
 
     pub fn has_scope<T: Scope>(&self) -> bool {
