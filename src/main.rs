@@ -12,8 +12,6 @@ pub mod plugins;
 pub mod serve;
 pub mod storage;
 
-use kernel::markdown_to_string;
-
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
@@ -56,6 +54,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     match &cli.command {
         Some(Commands::Serve(cmd)) => Ok(serve::execute_command(cmd)?),
         Some(Commands::Eval) => {
+            // use kernel::markdown_to_string;
+
             let storage_factory = storage::sqlite::Factory::new("world.sqlite3");
             let domain = domain::Domain::new(storage_factory);
 
@@ -64,7 +64,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 for text in &["look", "hold rake", "drop", "hold rake", "drop rake"] {
                     let reply = session.evaluate_and_perform("jlewallen", text)?;
-                    info!("reply `{}`", markdown_to_string(reply.to_markdown()?)?);
+                    // info!("reply `{}`", markdown_to_string(reply.to_markdown()?)?);
+                    info!("reply `{}`", reply.to_json()?);
                 }
             }
 
@@ -73,7 +74,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 for text in &["look"] {
                     let reply = session.evaluate_and_perform("jlewallen", text)?;
-                    info!("reply `{}`", markdown_to_string(reply.to_markdown()?)?);
+                    // info!("reply `{}`", markdown_to_string(reply.to_markdown()?)?);
+                    info!("reply `{}`", reply.to_json()?);
                 }
             }
 

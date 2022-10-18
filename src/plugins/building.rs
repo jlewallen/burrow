@@ -32,6 +32,7 @@ pub mod model {
     }
 
     #[derive(Debug, Serialize)]
+    #[serde(rename_all = "camelCase")]
     struct EditorReply {}
 
     impl Reply for EditorReply {
@@ -39,6 +40,12 @@ pub mod model {
             let mut md = Markdown::new(Vec::new());
             md.write("")?;
             Ok(md)
+        }
+    }
+
+    impl ToJson for EditorReply {
+        fn to_json(&self) -> Result<String> {
+            Ok(serde_json::to_string(self)?)
         }
     }
 }

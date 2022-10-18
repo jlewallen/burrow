@@ -5,7 +5,7 @@ use crate::plugins::{
 use crate::storage::{EntityStorage, EntityStorageFactory};
 use anyhow::Result;
 use std::{fmt::Debug, rc::Rc};
-use tracing::{debug, info, span, Level};
+use tracing::{debug, event, info, span, Level};
 
 use super::eval;
 use super::internal::DomainInfrastructure;
@@ -68,7 +68,7 @@ impl Session {
 
         let reply = action.perform((world, user, &area))?;
 
-        info!("done {:?}", reply);
+        event!(Level::INFO, "done");
 
         Ok(reply)
     }

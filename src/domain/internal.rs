@@ -94,7 +94,8 @@ impl Infrastructure for DomainInfrastructure {
                 class: _,
                 name: _,
             } => Ok(DynamicEntityRef::Entity(Box::new(
-                self.load_entity_by_key(key)?.clone(), // TODO Meh
+                // TODO This clone will become a problem.
+                self.load_entity_by_key(key)?.clone(),
             ))),
             DynamicEntityRef::Entity(_) => Ok(entity_ref.clone()),
         }

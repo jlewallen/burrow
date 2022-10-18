@@ -108,6 +108,7 @@ pub mod model {
     }
 
     #[derive(Debug, Serialize)]
+    #[serde(rename_all = "camelCase")]
     pub struct AreaObservation {
         pub area: ObservedEntity,
         pub person: ObservedEntity,
@@ -115,6 +116,12 @@ pub mod model {
         pub items: Vec<ObservedEntity>,
         pub carrying: Vec<ObservedEntity>,
         pub routes: Vec<ObservedEntity>,
+    }
+
+    impl ToJson for AreaObservation {
+        fn to_json(&self) -> Result<String> {
+            Ok(serde_json::to_string(self)?)
+        }
     }
 
     impl AreaObservation {
