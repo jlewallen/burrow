@@ -105,6 +105,8 @@ pub mod model {
 
     pub static DESC_PROPERTY: &str = "desc";
 
+    pub static GID_PROPERTY: &str = "gid";
+
     #[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
     pub struct EntityKey(String);
 
@@ -203,6 +205,37 @@ pub mod model {
         map: HashMap<String, Property>,
     }
 
+    impl Props {
+        fn property_named(&self, name: &str) -> Option<&Property> {
+            if self.map.contains_key(name) {
+                return Some(self.map.index(name));
+            }
+            None
+        }
+
+        fn string_property(&self, name: &str) -> Option<String> {
+            if let Some(property) = self.property_named(name) {
+                match &property.value {
+                    serde_json::Value::String(v) => Some(v.to_string()),
+                    _ => None,
+                }
+            } else {
+                None
+            }
+        }
+
+        fn i64_property(&self, name: &str) -> Option<i64> {
+            if let Some(property) = self.property_named(name) {
+                match &property.value {
+                    serde_json::Value::Number(v) => v.as_i64(),
+                    _ => None,
+                }
+            } else {
+                None
+            }
+        }
+    }
+
     #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct Entity {
         #[serde(alias = "py/object")]
@@ -227,6 +260,7 @@ pub mod model {
             fmt.debug_struct(&self.class.py_type)
                 .field("key", &self.key)
                 .field("name", &self.name())
+                .field("gid", &self.gid())
                 .finish()
         }
     }
@@ -242,30 +276,16 @@ pub mod model {
     }
 
     impl Entity {
-        fn property_named(&self, name: &str) -> Option<&Property> {
-            if self.props.map.contains_key(name) {
-                return Some(self.props.map.index(name));
-            }
-            None
-        }
-
-        fn string_property(&self, name: &str) -> Option<String> {
-            if let Some(property) = self.property_named(name) {
-                match &property.value {
-                    serde_json::Value::String(v) => Some(v.to_string()),
-                    _ => None,
-                }
-            } else {
-                None
-            }
-        }
-
         pub fn name(&self) -> Option<String> {
-            self.string_property(NAME_PROPERTY)
+            self.props.string_property(NAME_PROPERTY)
         }
 
         pub fn desc(&self) -> Option<String> {
-            self.string_property(DESC_PROPERTY)
+            self.props.string_property(DESC_PROPERTY)
+        }
+
+        pub fn gid(&self) -> Option<i64> {
+            self.props.i64_property(GID_PROPERTY)
         }
 
         pub fn has_scope<T: Scope>(&self) -> bool {
