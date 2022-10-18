@@ -27,18 +27,6 @@ impl Display for EntityKey {
     }
 }
 
-/*
-use std::ops::Deref;
-
-impl Deref for EntityKey {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-*/
-
 pub type ActionArgs<'a> = (&'a Entity, &'a Entity, &'a Entity);
 
 pub type Markdown = markdown::Markdown<Vec<u8>>;
