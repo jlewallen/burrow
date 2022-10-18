@@ -6,7 +6,6 @@ use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 pub mod domain;
-pub mod eval;
 pub mod kernel;
 pub mod library;
 pub mod plugins;

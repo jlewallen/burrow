@@ -1,7 +1,7 @@
-use crate::kernel::EvaluationError;
-use crate::kernel::{Action, Entity, EntityKey};
-use crate::plugins;
 use anyhow::Result;
+
+use crate::kernel::{Action, Entity, EntityKey, EvaluationError};
+use crate::plugins;
 
 pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
     plugins::looking::evaluate(i)
