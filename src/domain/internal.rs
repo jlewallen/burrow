@@ -32,7 +32,7 @@ impl Entities {
     }
 }
 
-impl PrepareEntityByKey for Entities {
+impl PrepareEntities for Entities {
     fn prepare_entity_by_key<T: Fn(&mut Entity) -> Result<()>>(
         &self,
         key: &EntityKey,
@@ -78,7 +78,7 @@ impl DomainInfrastructure {
     }
 }
 
-impl LoadEntityByKey for DomainInfrastructure {
+impl LoadEntities for DomainInfrastructure {
     fn load_entity_by_key(&self, key: &EntityKey) -> Result<&Entity, DomainError> {
         self.entities.prepare_entity_by_key(key, |_e| Ok(()))
     }
