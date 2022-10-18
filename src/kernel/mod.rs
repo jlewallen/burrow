@@ -8,7 +8,7 @@ use std::{
     rc::Weak,
 };
 use thiserror::Error;
-use tracing::{debug, span, Level};
+use tracing::{/*debug,*/ span, Level};
 
 pub mod replies;
 
@@ -94,6 +94,8 @@ pub mod scopes {
 }
 
 pub mod model {
+    use tracing::trace;
+
     use super::infra::*;
     use super::*;
 
@@ -290,7 +292,7 @@ pub mod model {
 
             let data = &self.scopes[scope_key];
 
-            debug!("parsing");
+            trace!("parsing");
 
             // The call to serde_json::from_value requires owned data and we have a
             // reference to somebody else's. Presumuably so that we don't couple the

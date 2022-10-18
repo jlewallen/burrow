@@ -45,7 +45,7 @@ impl Session {
 
         let area: Box<Entity> = occupying.area.try_into()?;
 
-        info!(%user_name, "area {}", area);
+        info!("area {}", area);
 
         if true {
             let _test_span = span!(Level::INFO, "test").entered();
@@ -63,12 +63,12 @@ impl Session {
             let mut discovered_keys: Vec<EntityKey> = vec![];
             eval::discover(user, &mut discovered_keys)?;
             eval::discover(area.as_ref(), &mut discovered_keys)?;
-            info!(%user_name, "discovered {:?}", discovered_keys);
+            info!("discovered {:?}", discovered_keys);
         }
 
         let reply = action.perform((world, user, &area))?;
 
-        info!(%user_name, "done {:?}", reply);
+        info!("done {:?}", reply);
 
         Ok(reply)
     }

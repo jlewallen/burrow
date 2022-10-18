@@ -6,7 +6,7 @@ use std::{
     fmt::Debug,
     rc::{Rc, Weak},
 };
-use tracing::{debug, info, span, Level};
+use tracing::{debug, info, span, trace, Level};
 
 struct Entities {
     storage: Box<dyn EntityStorage>,
@@ -48,10 +48,10 @@ impl PrepareEntities for Entities {
         info!("loading");
         let persisted = self.storage.load(key)?;
 
-        debug!("parsing");
+        trace!("parsing");
         let mut loaded: Entity = serde_json::from_str(&persisted.serialized)?;
 
-        debug!("infrastructure");
+        trace!("infrastructure");
         loaded.prepare_with(&self.infra)?;
 
         prepare(&mut loaded)?;
