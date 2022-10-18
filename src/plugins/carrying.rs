@@ -159,7 +159,7 @@ pub mod actions {
     }
 
     pub fn evaluate(s: &Sentence) -> Box<dyn Action> {
-        // TODO This could be improved.
+        // TODO Look into this clone, perhaps other ways of cleaning this up.
         match s {
             Sentence::Hold(e) => Box::new(HoldAction {
                 maybe_item: e.clone(),
@@ -199,6 +199,6 @@ mod tests {
     #[test]
     fn it_errors_on_unknown_text() {
         let output = parse("hello");
-        assert!(output.is_err()); // TODO Weak
+        assert!(output.is_err()); // TODO Weak assertion.
     }
 }

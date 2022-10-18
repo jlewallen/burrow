@@ -89,6 +89,6 @@ mod tests {
     #[test]
     fn it_errors_on_unknown_text() {
         let output = parse("hello");
-        assert!(output.is_err()); // TODO Weak
+        assert!(output.is_err()); // TODO Weak assertion.
     }
 }

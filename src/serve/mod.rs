@@ -77,7 +77,7 @@ pub async fn execute_command(_cmd: &Command) -> Result<()> {
         .serve(app.into_make_service())
         .with_graceful_shutdown(shutdown_signal())
         .await
-        .expect("hyper error"); // TODO Gross
+        .expect("hyper error"); // TODO How do we bubble this error up?
 
     Ok(())
 }

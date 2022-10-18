@@ -51,6 +51,15 @@ pub mod model {
     }
 
     #[derive(Debug, Serialize)]
+    pub struct ObservedRoute {}
+
+    impl From<&Entity> for ObservedRoute {
+        fn from(_value: &Entity) -> Self {
+            todo!()
+        }
+    }
+
+    #[derive(Debug, Serialize)]
     pub struct ObservedEntity {
         pub key: EntityKey,
         pub name: Option<String>,
@@ -77,6 +86,8 @@ pub mod model {
         }
     }
 
+    // TODO This seems unnececssary, how can I help the compiler deduce the
+    // proper chain of TryFrom/From to get here?
     impl TryFrom<DynamicEntityRef> for ObservedEntity {
         type Error = DomainError;
 
@@ -95,15 +106,6 @@ pub mod model {
                     desc: e.desc(),
                 }),
             }
-        }
-    }
-
-    #[derive(Debug, Serialize)]
-    pub struct ObservedRoute {}
-
-    impl From<&Entity> for ObservedRoute {
-        fn from(_value: &Entity) -> Self {
-            todo!()
         }
     }
 
@@ -212,6 +214,6 @@ mod tests {
     #[test]
     fn it_errors_on_unknown_text() {
         let output = parse("hello");
-        assert!(output.is_err()); // TODO Weak
+        assert!(output.is_err()); // TODO Weak assertion.
     }
 }
