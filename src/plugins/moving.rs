@@ -97,12 +97,8 @@ pub mod model {
 
     pub fn discover(source: &Entity, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
         if let Ok(occupyable) = source.scope::<Occupyable>() {
-            entity_keys.extend(
-                occupyable
-                    .occupied
-                    .into_iter()
-                    .map(|er| er.key().to_owned()),
-            );
+            // Pretty sure this clone should be unnecessary.
+            entity_keys.extend(occupyable.occupied.into_iter().map(|er| er.key().clone()));
         }
         Ok(())
     }

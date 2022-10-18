@@ -119,7 +119,7 @@ impl PrepareEntityByKey for Entities {
             return Ok(e);
         }
 
-        let _loading_span = span!(Level::INFO, "entity", key = key).entered();
+        let _loading_span = span!(Level::INFO, "entity", key = key.key_to_string()).entered();
 
         info!("loading");
         let persisted = self.storage.load(key)?;

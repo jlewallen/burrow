@@ -6,13 +6,38 @@ use std::{collections::HashMap, fmt::Display, ops::Index, rc::Weak, string::From
 use thiserror::Error;
 use tracing::{debug, span, Level};
 
-pub static WORLD_KEY: Lazy<EntityKey> = Lazy::new(|| "world".to_string());
+pub static WORLD_KEY: Lazy<EntityKey> = Lazy::new(|| EntityKey("world".to_string()));
 
 pub static NAME_PROPERTY: &str = "name";
 
 pub static DESC_PROPERTY: &str = "desc";
 
-pub type EntityKey = String;
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
+pub struct EntityKey(String);
+
+impl EntityKey {
+    pub fn key_to_string(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Display for EntityKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+/*
+use std::ops::Deref;
+
+impl Deref for EntityKey {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+*/
 
 pub type ActionArgs<'a> = (&'a Entity, &'a Entity, &'a Entity);
 
@@ -232,7 +257,7 @@ pub struct Props {
 pub struct Entity {
     #[serde(alias = "py/object")]
     py_object: String,
-    pub key: String,
+    pub key: EntityKey,
     version: Version,
     parent: Option<DynamicEntityRef>,
     creator: Option<DynamicEntityRef>,
@@ -300,8 +325,13 @@ impl Entity {
     pub fn scope<T: Scope>(&self) -> Result<BoxedScope<T>, DomainError> {
         let scope_key = <T as Scope>::scope_key();
 
-        let _load_scope_span =
-            span!(Level::DEBUG, "scope", key = self.key, scope = scope_key).entered();
+        let _load_scope_span = span!(
+            Level::DEBUG,
+            "scope",
+            key = self.key.key_to_string(),
+            scope = scope_key
+        )
+        .entered();
 
         if !self.scopes.contains_key(scope_key) {
             return Err(DomainError::NoSuchScope(
@@ -343,7 +373,7 @@ pub enum DynamicEntityRef {
         py_object: String,
         #[serde(alias = "py/ref")]
         py_ref: String,
-        key: String,
+        key: EntityKey,
         #[serde(alias = "klass")]
         class: String,
         name: String,
@@ -352,7 +382,7 @@ pub enum DynamicEntityRef {
 }
 
 impl DynamicEntityRef {
-    pub fn key(&self) -> &String {
+    pub fn key(&self) -> &EntityKey {
         match self {
             DynamicEntityRef::RefOnly {
                 py_object: _,
@@ -409,7 +439,7 @@ impl From<&Entity> for EntityRef {
         EntityRef {
             py_object: "todo!".to_string(),
             py_ref: "todo!".to_string(),
-            key: e.key.to_string(),
+            key: e.key.clone(),
             class: "todo!".to_string(),
             name: e.name().unwrap_or_default(),
         }

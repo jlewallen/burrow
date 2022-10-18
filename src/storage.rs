@@ -45,7 +45,7 @@ pub mod sqlite {
 
             debug!(%key, "querying");
 
-            let mut entities = stmt.query_map([key], |row| {
+            let mut entities = stmt.query_map([key.key_to_string()], |row| {
                 Ok(PersistedEntity {
                     key: row.get(0)?,
                     gid: row.get(1)?,

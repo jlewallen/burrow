@@ -6,7 +6,7 @@ pub mod model {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Usernames {
-        pub users: HashMap<String, String>,
+        pub users: HashMap<String, EntityKey>,
     }
 
     impl PrepareWithInfrastructure for Usernames {

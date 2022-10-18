@@ -125,13 +125,9 @@ pub mod model {
         }
     }
     pub fn discover(source: &Entity, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
+        // Pretty sure this clone should be unnecessary.
         if let Ok(containing) = source.scope::<Containing>() {
-            entity_keys.extend(
-                containing
-                    .holding
-                    .into_iter()
-                    .map(|er| er.key().to_string()),
-            )
+            entity_keys.extend(containing.holding.iter().map(|er| er.key().clone()))
         }
         Ok(())
     }
