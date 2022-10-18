@@ -2,14 +2,13 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use std::error::Error;
 use std::path::PathBuf;
-use tracing::{debug, error, info};
+use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 pub mod domain;
 pub mod eval;
 pub mod kernel;
 pub mod library;
-pub mod model;
 pub mod plugins;
 pub mod serve;
 pub mod storage;
@@ -65,10 +64,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let session = domain.open_session()?;
 
                 for text in &["look", "hold rake", "drop", "hold rake", "drop rake"] {
-                    match session.evaluate_and_perform("jlewallen", text) {
-                        Ok(reply) => info!("reply `{}`", markdown_to_string(reply.to_markdown()?)?),
-                        Err(e) => error!("oops {}", e),
-                    }
+                    let reply = session.evaluate_and_perform("jlewallen", text)?;
+                    info!("reply `{}`", markdown_to_string(reply.to_markdown()?)?);
                 }
             }
 
@@ -76,10 +73,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let session = domain.open_session()?;
 
                 for text in &["look"] {
-                    match session.evaluate_and_perform("jlewallen", text) {
-                        Ok(reply) => info!("reply `{}`", markdown_to_string(reply.to_markdown()?)?),
-                        Err(e) => error!("oops {}", e),
-                    }
+                    let reply = session.evaluate_and_perform("jlewallen", text)?;
+                    info!("reply `{}`", markdown_to_string(reply.to_markdown()?)?);
                 }
             }
 

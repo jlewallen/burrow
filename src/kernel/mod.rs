@@ -153,7 +153,7 @@ pub enum DomainError {
     ParseFailed(#[source] serde_json::Error),
     #[error("dangling entity")]
     DanglingEntity,
-    #[error("anyhow")]
+    #[error("anyhow error")]
     Anyhow(#[source] anyhow::Error),
     #[error("no infrastructure")]
     NoInfrastructure,
