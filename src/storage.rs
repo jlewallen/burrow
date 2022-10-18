@@ -43,7 +43,7 @@ pub mod sqlite {
             let mut stmt =
                 conn.prepare("SELECT key, gid, version, serialized FROM entities WHERE key = ?;")?;
 
-            debug!(%key, "querying");
+            debug!("querying");
 
             let mut entities = stmt.query_map([key.key_to_string()], |row| {
                 Ok(PersistedEntity {

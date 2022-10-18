@@ -19,10 +19,7 @@ pub fn parse(i: &str) -> IResult<&str, Sentence> {
 }
 
 pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
-    match parse(i).map(|(_, sentence)| actions::evaluate(&sentence)) {
-        Ok(action) => Ok(action),
-        Err(_e) => Err(EvaluationError::ParseFailed),
-    }
+    Ok(parse(i).map(|(_, sentence)| actions::evaluate(&sentence))?)
 }
 
 pub mod model {
