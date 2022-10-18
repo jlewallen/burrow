@@ -135,8 +135,6 @@ pub mod model {
 
 pub mod actions {
     use super::*;
-    // use crate::kernel::*;
-    use anyhow::Result;
     use tracing::info;
 
     #[derive(Debug)]
@@ -144,7 +142,7 @@ pub mod actions {
         maybe_item: Item,
     }
     impl Action for HoldAction {
-        fn perform(&self, (_world, _user, _area): ActionArgs) -> Result<Box<dyn Reply>> {
+        fn perform(&self, (_world, _user, _area): ActionArgs) -> ReplyResult {
             info!("hold {:?}!", self.maybe_item);
 
             Ok(Box::new(SimpleReply::Done))
@@ -156,7 +154,7 @@ pub mod actions {
         maybe_item: Option<Item>,
     }
     impl Action for DropAction {
-        fn perform(&self, (_world, _user, _area): ActionArgs) -> Result<Box<dyn Reply>> {
+        fn perform(&self, (_world, _user, _area): ActionArgs) -> ReplyResult {
             info!("drop {:?}!", self.maybe_item);
 
             Ok(Box::new(SimpleReply::Done))

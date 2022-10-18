@@ -45,7 +45,7 @@ pub mod scopes {
     use super::*;
 
     pub trait Action: std::fmt::Debug {
-        fn perform(&self, args: ActionArgs) -> Result<Box<dyn Reply>>;
+        fn perform(&self, args: ActionArgs) -> ReplyResult;
     }
 
     pub trait Scope: PrepareWithInfrastructure + DeserializeOwned {

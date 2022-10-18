@@ -3,6 +3,8 @@ use markdown_gen::markdown;
 use serde::Serialize;
 use std::string::FromUtf8Error;
 
+pub type ReplyResult = Result<Box<dyn Reply>>;
+
 pub type Markdown = markdown::Markdown<Vec<u8>>;
 
 pub fn markdown_to_string(md: Markdown) -> Result<String, FromUtf8Error> {

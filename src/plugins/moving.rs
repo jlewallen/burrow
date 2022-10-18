@@ -26,11 +26,10 @@ pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
 }
 
 pub mod model {
-    use std::rc::Weak;
-
     use crate::kernel::*;
     use anyhow::Result;
     use serde::{Deserialize, Serialize};
+    use std::rc::Weak;
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Occupying {
@@ -137,14 +136,13 @@ pub mod model {
 
 pub mod actions {
     use super::*;
-    use anyhow::Result;
     use tracing::info;
 
     #[derive(Debug)]
     struct GoAction {}
 
     impl Action for GoAction {
-        fn perform(&self, (_world, _user, _area): ActionArgs) -> Result<Box<dyn Reply>> {
+        fn perform(&self, (_world, _user, _area): ActionArgs) -> ReplyResult {
             info!("go!");
 
             Ok(Box::new(SimpleReply::Done))

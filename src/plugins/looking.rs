@@ -175,13 +175,12 @@ pub mod model {
 pub mod actions {
     use super::model::*;
     use super::*;
-    use anyhow::Result;
     use tracing::info;
 
     #[derive(Debug)]
     struct LookAction {}
     impl Action for LookAction {
-        fn perform(&self, (_world, user, area): ActionArgs) -> Result<Box<dyn Reply>> {
+        fn perform(&self, (_world, user, area): ActionArgs) -> ReplyResult {
             info!("look!");
 
             Ok(Box::new(AreaObservation::new(user, area)?))
