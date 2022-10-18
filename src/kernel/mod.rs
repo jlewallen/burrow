@@ -1,10 +1,13 @@
 use anyhow::Result;
-use markdown_gen::markdown;
 use once_cell::sync::Lazy;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Display, ops::Index, rc::Weak, string::FromUtf8Error};
+use std::{collections::HashMap, fmt::Display, ops::Index, rc::Weak};
 use thiserror::Error;
 use tracing::{debug, span, Level};
+
+pub mod replies;
+
+pub use replies::*;
 
 pub static WORLD_KEY: Lazy<EntityKey> = Lazy::new(|| EntityKey("world".to_string()));
 
@@ -29,23 +32,11 @@ impl Display for EntityKey {
 
 pub type ActionArgs<'a> = (&'a Entity, &'a Entity, &'a Entity);
 
-pub type Markdown = markdown::Markdown<Vec<u8>>;
-
-pub fn markdown_to_string(md: Markdown) -> Result<String, FromUtf8Error> {
-    String::from_utf8(md.into_inner())
-}
-
-type BoxedScope<T> = Box<T>;
-
 pub trait DomainEvent: std::fmt::Debug {}
 
 #[derive(Debug)]
 pub struct DomainResult {
     pub events: Vec<Box<dyn DomainEvent>>,
-}
-
-pub trait Reply: std::fmt::Debug + erased_serde::Serialize {
-    fn to_markdown(&self) -> Result<Markdown>;
 }
 
 pub trait Infrastructure: std::fmt::Debug + LoadEntityByKey {
@@ -109,19 +100,6 @@ pub trait LoadEntityByKey {
             .into_iter()
             .map(|key| -> Result<&Entity, DomainError> { self.load_entity_by_key(&key) })
             .collect()
-    }
-}
-
-#[derive(Debug, Serialize)]
-pub enum SimpleReply {
-    Done,
-}
-
-impl Reply for SimpleReply {
-    fn to_markdown(&self) -> Result<Markdown> {
-        let mut md = Markdown::new(Vec::new());
-        md.write("ok!")?;
-        Ok(md)
     }
 }
 
@@ -310,7 +288,7 @@ impl Entity {
         self.scopes.contains_key(<T as Scope>::scope_key())
     }
 
-    pub fn scope<T: Scope>(&self) -> Result<BoxedScope<T>, DomainError> {
+    pub fn scope<T: Scope>(&self) -> Result<Box<T>, DomainError> {
         let scope_key = <T as Scope>::scope_key();
 
         let _load_scope_span = span!(
