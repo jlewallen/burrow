@@ -415,11 +415,3 @@ impl From<&Entity> for EntityRef {
         }
     }
 }
-
-#[derive(Debug)]
-pub struct PersistedEntity {
-    pub key: String,
-    pub gid: u32,
-    pub version: u32,
-    pub serialized: String,
-}

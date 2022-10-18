@@ -1,4 +1,4 @@
-use crate::kernel::{EntityKey, PersistedEntity};
+use crate::kernel::EntityKey;
 use anyhow::Result;
 use tracing::debug;
 
@@ -9,6 +9,14 @@ pub trait EntityStorage {
 
 pub trait EntityStorageFactory {
     fn create_storage(&self) -> Result<Box<dyn EntityStorage>>;
+}
+
+#[derive(Debug)]
+pub struct PersistedEntity {
+    pub key: String,
+    pub gid: u32,
+    pub version: u32,
+    pub serialized: String,
 }
 
 pub mod sqlite {
