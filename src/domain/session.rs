@@ -47,7 +47,7 @@ impl Session {
 
         info!("area {}", area);
 
-        if true {
+        if false {
             let _test_span = span!(Level::INFO, "test").entered();
 
             let containing = area.scope::<Containing>()?;
