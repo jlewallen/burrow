@@ -95,10 +95,41 @@ pub mod model {
         }
     }
 
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct AreaRoute {
+        pub area: DynamicEntityRef,
+    }
+
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct Movement {
+        pub routes: Vec<AreaRoute>,
+    }
+
+    impl Scope for Movement {
+        fn scope_key() -> &'static str {
+            "movement"
+        }
+    }
+
+    impl PrepareWithInfrastructure for Movement {
+        fn prepare_with(&mut self, infra: &Weak<dyn Infrastructure>) -> Result<()> {
+            let infra = infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
+            for route in self.routes.iter_mut() {
+                route.area = infra.ensure_entity(&route.area)?;
+            }
+            Ok(())
+        }
+    }
+
     pub fn discover(source: &Entity, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
         if let Ok(occupyable) = source.scope::<Occupyable>() {
             // Pretty sure this clone should be unnecessary.
-            entity_keys.extend(occupyable.occupied.into_iter().map(|er| er.key().clone()));
+            entity_keys.extend(occupyable.occupied.iter().map(|er| er.key().clone()));
+        }
+        if let Ok(movement) = source.scope::<Movement>() {
+            for route in movement.routes {
+                entity_keys.push(route.area.into());
+            }
         }
         Ok(())
     }

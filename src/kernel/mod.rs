@@ -382,6 +382,21 @@ pub mod model {
         }
     }
 
+    impl From<DynamicEntityRef> for EntityKey {
+        fn from(value: DynamicEntityRef) -> Self {
+            match value {
+                DynamicEntityRef::RefOnly {
+                    py_object: _,
+                    py_ref: _,
+                    key,
+                    class: _,
+                    name: _,
+                } => key.clone(),
+                DynamicEntityRef::Entity(e) => e.key.clone(),
+            }
+        }
+    }
+
     impl From<&Entity> for EntityRef {
         fn from(e: &Entity) -> Self {
             EntityRef {

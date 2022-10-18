@@ -24,7 +24,9 @@ pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
 
 pub mod model {
     use crate::{
-        kernel::*, plugins::carrying::model::Containing, plugins::moving::model::Occupyable,
+        kernel::*,
+        plugins::carrying::model::Containing,
+        plugins::moving::model::{Movement, Occupyable},
     };
     use anyhow::Result;
     use serde::Serialize;
@@ -33,37 +35,76 @@ pub mod model {
         Ok(())
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Serialize)]
     pub struct ObservedArea {}
 
-    impl From<&Entity> for Option<ObservedArea> {
+    impl From<&Entity> for ObservedArea {
         fn from(_value: &Entity) -> Self {
             todo!()
         }
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Serialize)]
     pub struct ObservedPerson {}
 
-    impl From<&Entity> for Option<ObservedPerson> {
+    impl From<&Entity> for ObservedPerson {
         fn from(_value: &Entity) -> Self {
             todo!()
         }
     }
 
-    #[derive(Debug)]
-    pub struct ObservedEntity {}
+    #[derive(Debug, Serialize)]
+    pub struct ObservedEntity {
+        pub key: EntityKey,
+        pub name: Option<String>,
+        pub desc: Option<String>,
+    }
 
-    impl From<&Entity> for Option<ObservedEntity> {
-        fn from(_value: &Entity) -> Self {
-            todo!()
+    impl From<Box<Entity>> for ObservedEntity {
+        fn from(value: Box<Entity>) -> Self {
+            Self {
+                key: value.key.clone(),
+                name: value.name(),
+                desc: value.desc(),
+            }
         }
     }
 
-    #[derive(Debug)]
+    impl From<&Entity> for ObservedEntity {
+        fn from(value: &Entity) -> Self {
+            Self {
+                key: value.key.clone(),
+                name: value.name(),
+                desc: value.desc(),
+            }
+        }
+    }
+
+    impl TryFrom<DynamicEntityRef> for ObservedEntity {
+        type Error = DomainError;
+
+        fn try_from(value: DynamicEntityRef) -> Result<Self, Self::Error> {
+            match value {
+                DynamicEntityRef::RefOnly {
+                    py_object: _,
+                    py_ref: _,
+                    key: _,
+                    class: _,
+                    name: _,
+                } => Err(DomainError::DanglingEntity),
+                DynamicEntityRef::Entity(e) => Ok(Self {
+                    key: e.key.clone(),
+                    name: e.name(),
+                    desc: e.desc(),
+                }),
+            }
+        }
+    }
+
+    #[derive(Debug, Serialize)]
     pub struct ObservedRoute {}
 
-    impl From<&Entity> for Option<ObservedRoute> {
+    impl From<&Entity> for ObservedRoute {
         fn from(_value: &Entity) -> Self {
             todo!()
         }
@@ -71,78 +112,54 @@ pub mod model {
 
     #[derive(Debug, Serialize)]
     pub struct AreaObservation {
-        pub area: Entity,
-        pub person: Entity,
-        pub living: Vec<Entity>,
-        pub items: Vec<Entity>,
-        pub holding: Vec<Entity>,
-        pub routes: Vec<Entity>,
+        pub area: ObservedEntity,
+        pub person: ObservedEntity,
+        pub living: Vec<ObservedEntity>,
+        pub items: Vec<ObservedEntity>,
+        pub carrying: Vec<ObservedEntity>,
+        pub routes: Vec<ObservedEntity>,
     }
 
     impl AreaObservation {
-        pub fn new(user: &Entity, area: &Entity) -> Self {
-            if let Ok(_occupyable) = area.scope::<Occupyable>() {
-                // info!("occupyable {}", occupyable)
+        pub fn new(user: &Entity, area: &Entity) -> Result<Self> {
+            // I feel like there's a lot of unnecessary copying going on here.
+
+            let mut living: Vec<ObservedEntity> = vec![];
+            if let Ok(occupyable) = area.scope::<Occupyable>() {
+                for entity in occupyable.occupied {
+                    living.push(entity.try_into()?);
+                }
             }
 
-            if let Ok(_containing) = area.scope::<Containing>() {
-                // info!("containing {}", containing)
+            let mut items = vec![];
+            if let Ok(containing) = area.scope::<Containing>() {
+                for entity in containing.holding {
+                    items.push(entity.try_into()?);
+                }
             }
 
-            /*
-            let living: Vec<Entity> =
-                if let Ok(_occupyable) = <&Entity as TryInto<Box<Occupyable>>>::try_into(user) {
-                    vec![]
-                } else {
-                    vec![]
-                };
-            let items: Vec<Entity> =
-                if let Ok(_containing) = <&Entity as TryInto<Box<Containing>>>::try_into(user) {
-                    vec![] // containing.holding.to_vec()
-                } else {
-                    vec![]
-                };
-            */
-            AreaObservation {
-                area: area.clone(),
-                person: user.clone(),
-                living: vec![],
-                items: vec![],
-                holding: vec![],
-                routes: vec![],
+            let mut carrying = vec![];
+            if let Ok(containing) = user.scope::<Containing>() {
+                for entity in containing.holding {
+                    carrying.push(entity.try_into()?);
+                }
             }
-            /*
-            class AreaObservation(Observation):
-                area: Entity
-                person: Entity
-                living: List[ObservedLiving]
-                items: List[ObservedEntity]
-                holding: List[ObservedEntity]
-                routes: List[movement.AreaRoute]
 
-                @staticmethod
-                async def create(area: Entity, person: Entity) -> "AreaObservation":
-                    occupied = area.make(occupyable.Occupyable).occupied
+            let mut routes = vec![];
+            if let Ok(movement) = user.scope::<Movement>() {
+                for route in movement.routes {
+                    routes.push(route.area.try_into()?);
+                }
+            };
 
-                    living: List[ObservedLiving] = flatten(
-                        [await observe_entity(e) for e in occupied if e != person]
-                    )
-
-                    items: List[ObservedEntity] = flatten(
-                        [
-                            await observe_entity(e)
-                            for e in area.make(carryable.Containing).holding
-                            if not e.make(mechanics.Visibility).visible.hard_to_see
-                            or person.make(mechanics.Visibility).can_see(e.identity)
-                        ]
-                    )
-
-                    routes: List[movement.AreaRoute] = area.make(movement.Movement).available_routes
-
-                    holding = flatten([await observe_entity(e) for e in tools.get_holding(person)])
-
-                    return AreaObservation(area, person, living, items, holding, routes)
-            */
+            Ok(AreaObservation {
+                area: area.into(),
+                person: user.into(),
+                living: living,
+                items: items,
+                carrying: carrying,
+                routes: routes,
+            })
         }
     }
 
@@ -167,7 +184,7 @@ pub mod actions {
         fn perform(&self, (_world, user, area): ActionArgs) -> Result<Box<dyn Reply>> {
             info!("look!");
 
-            Ok(Box::new(AreaObservation::new(user, area)))
+            Ok(Box::new(AreaObservation::new(user, area)?))
         }
     }
 
