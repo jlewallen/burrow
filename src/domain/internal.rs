@@ -9,8 +9,8 @@ use std::{
 use tracing::{debug, info, span, trace, Level};
 
 struct Entities {
-    storage: Box<dyn EntityStorage>,
     entities: FrozenMap<EntityKey, Box<Entity>>,
+    storage: Box<dyn EntityStorage>,
     infra: Weak<dyn Infrastructure>,
 }
 
@@ -22,11 +22,11 @@ impl Debug for Entities {
 
 impl Entities {
     pub fn new(storage: Box<dyn EntityStorage>, infra: Weak<dyn Infrastructure>) -> Rc<Self> {
-        debug!("entities-new");
+        trace!("entities-new");
 
         Rc::new(Self {
-            storage,
             entities: FrozenMap::new(),
+            storage,
             infra,
         })
     }
