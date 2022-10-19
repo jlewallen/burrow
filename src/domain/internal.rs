@@ -1,6 +1,6 @@
 use crate::storage::EntityStorage;
 use crate::{kernel::*, plugins::carrying::model::Containing};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use std::{
     cell::RefCell,
     collections::HashMap,
@@ -56,7 +56,11 @@ impl PrepareEntities for Entities {
         let mut loaded: Entity = serde_json::from_str(&persisted.serialized)?;
 
         trace!("infrastructure");
-        loaded.prepare_with(&self.infra)?;
+        if let Some(infra) = self.infra.upgrade() {
+            loaded.supply(&infra)?;
+        } else {
+            return Err(anyhow!("no infrastructure"));
+        }
 
         prepare(&mut loaded)?;
 

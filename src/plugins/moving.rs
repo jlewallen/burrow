@@ -26,7 +26,6 @@ pub mod model {
     use crate::kernel::*;
     use anyhow::Result;
     use serde::{Deserialize, Serialize};
-    use std::rc::Weak;
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Occupying {
@@ -39,9 +38,8 @@ pub mod model {
         }
     }
 
-    impl PrepareWithInfrastructure for Occupying {
-        fn prepare_with(&mut self, infra: &Weak<dyn Infrastructure>) -> Result<()> {
-            let infra = infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
+    impl Needs<std::rc::Rc<dyn Infrastructure>> for Occupying {
+        fn supply(&mut self, infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
             self.area = infra.ensure_entity(&self.area)?;
             Ok(())
         }
@@ -60,9 +58,8 @@ pub mod model {
         }
     }
 
-    impl PrepareWithInfrastructure for Occupyable {
-        fn prepare_with(&mut self, infra: &Weak<dyn Infrastructure>) -> Result<()> {
-            let infra = infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
+    impl Needs<std::rc::Rc<dyn Infrastructure>> for Occupyable {
+        fn supply(&mut self, infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
             self.occupied = self
                 .occupied
                 .iter()
@@ -83,9 +80,8 @@ pub mod model {
         }
     }
 
-    impl PrepareWithInfrastructure for Exit {
-        fn prepare_with(&mut self, infra: &Weak<dyn Infrastructure>) -> Result<()> {
-            let infra = infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
+    impl Needs<std::rc::Rc<dyn Infrastructure>> for Exit {
+        fn supply(&mut self, infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
             self.area = infra.ensure_entity(&self.area)?;
             Ok(())
         }
@@ -107,9 +103,8 @@ pub mod model {
         }
     }
 
-    impl PrepareWithInfrastructure for Movement {
-        fn prepare_with(&mut self, infra: &Weak<dyn Infrastructure>) -> Result<()> {
-            let infra = infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
+    impl Needs<std::rc::Rc<dyn Infrastructure>> for Movement {
+        fn supply(&mut self, infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
             for route in self.routes.iter_mut() {
                 route.area = infra.ensure_entity(&route.area)?;
             }

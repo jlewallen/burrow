@@ -29,6 +29,6 @@ pub trait Infrastructure: Debug + LoadEntities {
     }
 }
 
-pub trait PrepareWithInfrastructure {
-    fn prepare_with(&mut self, infra: &Weak<dyn Infrastructure>) -> Result<()>;
+pub trait Needs<T: Debug> {
+    fn supply(&mut self, resource: &T) -> Result<()>;
 }

@@ -173,10 +173,9 @@ impl Display for Entity {
     }
 }
 
-impl PrepareWithInfrastructure for Entity {
-    fn prepare_with(&mut self, infra: &Weak<dyn Infrastructure>) -> Result<()> {
-        self.infra = Some(Weak::clone(infra));
-        let infra = infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
+impl Needs<std::rc::Rc<dyn Infrastructure>> for Entity {
+    fn supply(&mut self, infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
+        self.infra = Some(Rc::downgrade(infra));
         self.parent = infra.ensure_optional_entity(&self.parent)?;
         self.creator = infra.ensure_optional_entity(&self.creator)?;
         Ok(())
@@ -238,7 +237,11 @@ impl Entity {
         let _prepare_span = span!(Level::DEBUG, "prepare").entered();
 
         if let Some(infra) = &self.infra {
-            scope.prepare_with(infra)?;
+            if let Some(infra) = infra.upgrade() {
+                scope.supply(&infra)?;
+            } else {
+                return Err(DomainError::NoInfrastructure);
+            }
         } else {
             return Err(DomainError::NoInfrastructure);
         }

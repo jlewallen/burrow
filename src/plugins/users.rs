@@ -2,15 +2,15 @@ pub mod model {
     use crate::kernel::*;
     use anyhow::Result;
     use serde::{Deserialize, Serialize};
-    use std::{collections::HashMap, rc::Weak};
+    use std::collections::HashMap;
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Usernames {
         pub users: HashMap<String, EntityKey>,
     }
 
-    impl PrepareWithInfrastructure for Usernames {
-        fn prepare_with(&mut self, _infra: &Weak<dyn Infrastructure>) -> Result<()> {
+    impl Needs<std::rc::Rc<dyn Infrastructure>> for Usernames {
+        fn supply(&mut self, _infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
             Ok(())
         }
     }

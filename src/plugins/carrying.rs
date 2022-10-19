@@ -37,7 +37,7 @@ pub mod model {
     use crate::kernel::*;
     use anyhow::Result;
     use serde::{Deserialize, Serialize};
-    use std::{collections::HashMap, rc::Weak};
+    use std::collections::HashMap;
     use tracing::info;
 
     pub type CarryingResult = DomainResult;
@@ -61,9 +61,8 @@ pub mod model {
         }
     }
 
-    impl PrepareWithInfrastructure for Location {
-        fn prepare_with(&mut self, infra: &Weak<dyn Infrastructure>) -> Result<()> {
-            let infra = infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
+    impl Needs<std::rc::Rc<dyn Infrastructure>> for Location {
+        fn supply(&mut self, infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
             self.container = infra.ensure_optional_entity(&self.container)?;
             Ok(())
         }
@@ -82,9 +81,8 @@ pub mod model {
         }
     }
 
-    impl PrepareWithInfrastructure for Containing {
-        fn prepare_with(&mut self, infra: &Weak<dyn Infrastructure>) -> Result<()> {
-            let infra = infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
+    impl Needs<std::rc::Rc<dyn Infrastructure>> for Containing {
+        fn supply(&mut self, infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
             self.holding = self
                 .holding
                 .iter()
@@ -125,8 +123,8 @@ pub mod model {
         }
     }
 
-    impl PrepareWithInfrastructure for Carryable {
-        fn prepare_with(&mut self, _infra: &Weak<dyn Infrastructure>) -> Result<()> {
+    impl Needs<std::rc::Rc<dyn Infrastructure>> for Carryable {
+        fn supply(&mut self, _infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
             Ok(())
         }
     }

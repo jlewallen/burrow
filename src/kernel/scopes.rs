@@ -9,7 +9,7 @@ pub trait Action: Debug {
     fn perform(&self, args: ActionArgs) -> ReplyResult;
 }
 
-pub trait Scope: Debug + PrepareWithInfrastructure + DeserializeOwned {
+pub trait Scope: Debug + Needs<Rc<dyn Infrastructure>> + DeserializeOwned {
     fn scope_key() -> &'static str
     where
         Self: Sized;
