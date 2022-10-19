@@ -160,7 +160,7 @@ pub mod actions {
                     info!("holding {:?}!", holding);
                     let mut user = user.borrow_mut();
                     let mut containing = user.open::<Containing>()?;
-                    let _ = containing.s_mut().hold(holding);
+                    let _ = containing.hold(holding);
                     containing.save()?;
 
                     Ok(Box::new(SimpleReply::Done))
@@ -193,7 +193,7 @@ pub mod actions {
                             // wrapping struct and also knows the EntityKey
                             // that it points at.
                             info!("dropping {:?}!", dropping.borrow().key);
-                            let _ = containing.s_mut().stop_carrying(dropping);
+                            let _ = containing.stop_carrying(dropping);
                             containing.save()?;
 
                             Ok(Box::new(SimpleReply::Done))

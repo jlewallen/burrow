@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use tracing::{info, trace};
@@ -282,14 +282,6 @@ impl<'me, T: Scope> OpenScope<'me, T> {
         }
     }
 
-    pub fn s(&self) -> &T {
-        self.target.as_ref()
-    }
-
-    pub fn s_mut(&mut self) -> &mut T {
-        self.target.as_mut()
-    }
-
     pub fn save(&mut self) -> Result<()> {
         self.owner.replace_scope(self.target.as_ref())?;
         Ok(())
@@ -303,6 +295,20 @@ impl<'me, T: Scope> Drop for OpenScope<'me, T> {
         // changes. Not being able to bubble an error up makes doing anything
         // elaborate in here a bad idea.
         trace!("scope-dropped {:?}", self.target);
+    }
+}
+
+impl<'me, T: Scope> Deref for OpenScope<'me, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.target.as_ref()
+    }
+}
+
+impl<'me, T: Scope> DerefMut for OpenScope<'me, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.target.as_mut()
     }
 }
 
