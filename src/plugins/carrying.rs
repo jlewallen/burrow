@@ -94,13 +94,15 @@ pub mod model {
     }
 
     impl Containing {
-        pub fn hold(&self, item: EntityPtr) -> CarryingResult {
+        pub fn hold(&mut self, item: EntityPtr) -> CarryingResult {
+            self.holding.push(item.clone().into());
+
             CarryingResult {
                 events: vec![Box::new(CarryingEvent::ItemHeld(item))],
             }
         }
 
-        pub fn drop(&self, item: EntityPtr) -> CarryingResult {
+        pub fn stop_carrying(&mut self, item: EntityPtr) -> CarryingResult {
             CarryingResult {
                 events: vec![Box::new(CarryingEvent::ItemDropped(item))],
             }
@@ -151,9 +153,10 @@ pub mod actions {
             match holding {
                 Some(holding) => {
                     info!("holding {:?}!", holding);
-                    let containing = user.borrow().scope::<Containing>()?;
-
-                    containing.hold(holding);
+                    {
+                        let mut containing = user.borrow_mut().scope::<Containing>()?;
+                        containing.hold(holding);
+                    }
 
                     Ok(Box::new(SimpleReply::Done))
                 }
@@ -168,10 +171,30 @@ pub mod actions {
     }
 
     impl Action for DropAction {
-        fn perform(&self, (_world, _user, _area, _infra): ActionArgs) -> ReplyResult {
+        fn perform(&self, args: ActionArgs) -> ReplyResult {
             info!("drop {:?}!", self.maybe_item);
 
-            Ok(Box::new(SimpleReply::Done))
+            let (_, user, _, infra) = args.clone();
+
+            match &self.maybe_item {
+                Some(item) => {
+                    let dropping = infra.find_item(args, &item)?;
+
+                    match dropping {
+                        Some(dropping) => {
+                            {
+                                let mut containing = user.borrow_mut().scope::<Containing>()?;
+                                info!("dropping {:?}!", dropping);
+                                containing.stop_carrying(dropping);
+                            }
+
+                            Ok(Box::new(SimpleReply::Done))
+                        }
+                        None => Ok(Box::new(SimpleReply::NotFound)),
+                    }
+                }
+                None => Ok(Box::new(SimpleReply::NotFound)),
+            }
         }
     }
 

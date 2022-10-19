@@ -3,13 +3,14 @@ use crate::{kernel::*, plugins::carrying::model::Containing};
 use anyhow::Result;
 use std::{
     cell::RefCell,
+    collections::HashMap,
     fmt::Debug,
     rc::{Rc, Weak},
 };
 use tracing::{debug, info, span, trace, Level};
 
 struct Entities {
-    entities: RefCell<Vec<Rc<RefCell<Entity>>>>,
+    entities: RefCell<HashMap<EntityKey, Rc<RefCell<Entity>>>>,
     storage: Box<dyn EntityStorage>,
     infra: Weak<dyn Infrastructure>,
 }
@@ -25,7 +26,7 @@ impl Entities {
         trace!("entities-new");
 
         Rc::new(Self {
-            entities: RefCell::new(Vec::new()),
+            entities: RefCell::new(HashMap::new()),
             storage,
             infra,
         })
@@ -40,11 +41,9 @@ impl PrepareEntities for Entities {
     ) -> Result<EntityPtr> {
         {
             let check_existing = self.entities.borrow();
-            for row in check_existing.iter() {
-                if row.borrow().key == *key {
-                    debug!(%key, "existing");
-                    return Ok(Rc::clone(row));
-                }
+            if let Some(e) = check_existing.get(key) {
+                debug!(%key, "existing");
+                return Ok(Rc::clone(e));
             }
         }
 
@@ -63,9 +62,9 @@ impl PrepareEntities for Entities {
 
         let cell = Rc::new(RefCell::new(loaded));
 
-        let mut add_new = self.entities.borrow_mut();
+        let mut cache = self.entities.borrow_mut();
 
-        add_new.push(Rc::clone(&cell));
+        cache.insert(key.clone(), Rc::clone(&cell));
 
         Ok(cell)
     }

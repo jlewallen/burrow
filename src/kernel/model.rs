@@ -314,6 +314,12 @@ impl DynamicEntityRef {
     }
 }
 
+impl From<EntityPtr> for DynamicEntityRef {
+    fn from(entity: EntityPtr) -> Self {
+        DynamicEntityRef::Entity(ReferencedEntity::new(entity))
+    }
+}
+
 impl TryFrom<DynamicEntityRef> for Rc<RefCell<Entity>> {
     type Error = DomainError;
 

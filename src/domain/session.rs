@@ -36,17 +36,20 @@ impl Session {
 
         let world = self.infra.load_entity_by_key(&WORLD_KEY)?;
 
-        let usernames: Box<Usernames> = world.borrow().scope::<Usernames>()?;
+        let usernames: Box<Usernames> = { world.borrow().scope::<Usernames>()? };
 
         let user_key = &usernames.users[user_name];
 
         let user = self.infra.load_entity_by_key(user_key)?;
 
-        let occupying: Box<Occupying> = user.borrow().scope::<Occupying>()?;
+        let area: Rc<RefCell<Entity>> = {
+            let occupying: Box<Occupying> = user.borrow().scope::<Occupying>()?;
+            occupying.area.try_into()?
+        };
 
-        let area: Rc<RefCell<Entity>> = occupying.area.try_into()?;
-
-        info!("area {}", area.borrow());
+        {
+            info!("area {}", area.borrow());
+        }
 
         if self.discoverying {
             let _discovery_span = span!(Level::DEBUG, "disco").entered();
