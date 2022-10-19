@@ -222,15 +222,12 @@ impl Entity {
             ));
         }
 
-        let data = &self.scopes[scope_key];
-
-        trace!("parsing");
-
         // The call to serde_json::from_value requires owned data and we have a
         // reference to somebody else's. Presumuably so that we don't couple the
         // lifetime of the returned object to the lifetime of the data being
         // referenced? What's the right solution here?
         // Should the 'un-parsed' Scope also owned the parsed data?
+        let data = &self.scopes[scope_key];
         let owned_value = data.clone();
         let mut scope: Box<T> = serde_json::from_value(owned_value)?;
 
@@ -246,14 +243,13 @@ impl Entity {
             return Err(DomainError::NoInfrastructure);
         }
 
-        // Ok, great!
         Ok(scope)
     }
 
     pub fn replace_scope<T: Scope>(&mut self, _scope: &T) -> Result<()> {
         let scope_key = <T as Scope>::scope_key();
 
-        let _load_scope_span = span!(
+        let _span = span!(
             Level::DEBUG,
             "scope",
             key = self.key.key_to_string(),
