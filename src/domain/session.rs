@@ -34,6 +34,8 @@ impl Session {
 
         info!("performing {:?}", action);
 
+        let preparing = span!(Level::DEBUG, "prep").entered();
+
         let world = self.infra.load_entity_by_key(&WORLD_KEY)?;
 
         let usernames: Box<Usernames> = { world.borrow().scope::<Usernames>()? };
@@ -51,6 +53,8 @@ impl Session {
             info!("area {}", area.borrow());
         }
 
+        preparing.exit();
+
         if self.discoverying {
             let _discovery_span = span!(Level::DEBUG, "disco").entered();
             let mut discovered_keys: Vec<EntityKey> = vec![];
@@ -59,7 +63,11 @@ impl Session {
             info!("discovered {:?}", discovered_keys);
         }
 
+        let action_span = span!(Level::INFO, "action").entered();
+
         let reply = action.perform((world, user, area, self.infra.clone()))?;
+
+        action_span.exit();
 
         event!(Level::INFO, "done");
 

@@ -172,6 +172,10 @@ impl Infrastructure for DomainInfrastructure {
     }
 
     fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<EntityPtr>> {
+        let _loading_span = span!(Level::INFO, "finding", i = format!("{:?}", item)).entered();
+
+        info!("finding");
+
         match item {
             Item::Named(name) => {
                 let haystack = EntityRelationshipSet::new_from_action(args).expand()?;
