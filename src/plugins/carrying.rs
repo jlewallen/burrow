@@ -161,8 +161,8 @@ pub mod actions {
                 Some(holding) => {
                     info!("holding {:?}!", holding);
                     {
-                        let mut containing = user.borrow_mut().scope::<Containing>()?;
-                        containing.hold(holding);
+                        let mut containing = user.borrow_mut().open::<Containing>()?;
+                        containing.s_mut().hold(holding);
                     }
 
                     Ok(Box::new(SimpleReply::Done))

@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::ops::Deref;
 use std::rc::Rc;
 
-use tracing::trace;
+use tracing::{info, trace};
 
 use super::infra::*;
 use super::*;
@@ -183,6 +183,26 @@ impl PrepareWithInfrastructure for Entity {
     }
 }
 
+pub struct OpenScope<T> {
+    scope: Box<T>,
+}
+
+impl<T> OpenScope<T> {
+    pub fn s(&self) -> &T {
+        self.scope.as_ref()
+    }
+
+    pub fn s_mut(&mut self) -> &mut T {
+        self.scope.as_mut()
+    }
+}
+
+impl<T> Drop for OpenScope<T> {
+    fn drop(&mut self) {
+        info!("scope-dropped");
+    }
+}
+
 impl Entity {
     pub fn name(&self) -> Option<String> {
         self.props.string_property(NAME_PROPERTY)
@@ -198,6 +218,12 @@ impl Entity {
 
     pub fn has_scope<T: Scope>(&self) -> bool {
         self.scopes.contains_key(<T as Scope>::scope_key())
+    }
+
+    pub fn open<T: Scope>(&self) -> Result<OpenScope<T>, DomainError> {
+        Ok(OpenScope {
+            scope: self.scope::<T>()?,
+        })
     }
 
     pub fn scope<T: Scope>(&self) -> Result<Box<T>, DomainError> {

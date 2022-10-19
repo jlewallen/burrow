@@ -119,6 +119,7 @@ impl EntityRelationshipSet {
     fn expand(&self) -> Result<Self> {
         let mut expanded = self.entities.clone();
 
+        // https://github.com/ferrous-systems/elements-of-rust#tuple-structs-and-enum-tuple-variants-as-functions
         for entity in &self.entities {
             match entity {
                 EntityRelationship::World(_world) => {}
@@ -180,6 +181,7 @@ impl Infrastructure for DomainInfrastructure {
             Item::Named(name) => {
                 let haystack = EntityRelationshipSet::new_from_action(args).expand()?;
 
+                // https://github.com/ferrous-systems/elements-of-rust#tuple-structs-and-enum-tuple-variants-as-functions
                 for entity in &haystack.entities {
                     match entity {
                         EntityRelationship::Holding(e) => {
