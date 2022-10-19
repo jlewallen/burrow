@@ -20,6 +20,8 @@ pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
 }
 
 pub mod model {
+    use std::{cell::RefCell, rc::Rc};
+
     use crate::{
         kernel::*,
         plugins::carrying::model::Containing,
@@ -93,18 +95,17 @@ pub mod model {
 
         fn try_from(value: DynamicEntityRef) -> Result<Self, Self::Error> {
             match value {
-                DynamicEntityRef::RefOnly {
-                    py_object: _,
-                    py_ref: _,
-                    key: _,
-                    class: _,
-                    name: _,
-                } => Err(DomainError::DanglingEntity),
-                DynamicEntityRef::Entity(e) => Ok(Self {
-                    key: e.key.clone(),
-                    name: e.name(),
-                    desc: e.desc(),
-                }),
+                DynamicEntityRef::Entity(re) => {
+                    let e: Rc<RefCell<Entity>> = re.try_into()?;
+                    let e = e.borrow();
+
+                    Ok(Self {
+                        key: e.key.clone(),
+                        name: e.name(),
+                        desc: e.desc(),
+                    })
+                }
+                _ => Err(DomainError::DanglingEntity),
             }
         }
     }

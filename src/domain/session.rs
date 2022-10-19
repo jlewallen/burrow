@@ -2,6 +2,7 @@ use crate::kernel::*;
 use crate::plugins::{moving::model::Occupying, users::model::Usernames};
 use crate::storage::{EntityStorage, EntityStorageFactory};
 use anyhow::Result;
+use std::cell::RefCell;
 use std::{fmt::Debug, rc::Rc};
 use tracing::{debug, event, info, span, Level};
 
@@ -32,20 +33,23 @@ impl Session {
         info!("performing {:?}", action);
 
         let world = self.infra.load_entity_by_key(&WORLD_KEY)?;
+        let world = world.borrow();
 
         let usernames: Box<Usernames> = world.scope::<Usernames>()?;
 
         let user_key = &usernames.users[user_name];
 
         let user = self.infra.load_entity_by_key(user_key)?;
+        let user = user.borrow();
 
         let occupying: Box<Occupying> = user.scope::<Occupying>()?;
 
-        let area: Box<Entity> = occupying.area.try_into()?;
+        let area_cell: Rc<RefCell<Entity>> = occupying.area.try_into()?;
+        let area = area_cell.borrow();
 
         info!("area {}", area);
 
-        let reply = action.perform((world, user, &area, self.infra.as_ref()))?;
+        let reply = action.perform((&world, &user, &area, self.infra.as_ref()))?;
 
         event!(Level::INFO, "done");
 

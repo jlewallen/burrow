@@ -1,15 +1,15 @@
 use crate::kernel::*;
 use crate::storage::EntityStorage;
 use anyhow::Result;
-use elsa::FrozenMap;
 use std::{
+    cell::RefCell,
     fmt::Debug,
     rc::{Rc, Weak},
 };
 use tracing::{debug, info, span, trace, Level};
 
 struct Entities {
-    entities: FrozenMap<EntityKey, Box<Entity>>,
+    entities: RefCell<Vec<Rc<RefCell<Entity>>>>,
     storage: Box<dyn EntityStorage>,
     infra: Weak<dyn Infrastructure>,
 }
@@ -25,7 +25,7 @@ impl Entities {
         trace!("entities-new");
 
         Rc::new(Self {
-            entities: FrozenMap::new(),
+            entities: RefCell::new(Vec::new()),
             storage,
             infra,
         })
@@ -37,10 +37,15 @@ impl PrepareEntities for Entities {
         &self,
         key: &EntityKey,
         prepare: T,
-    ) -> Result<&Entity, DomainError> {
-        if let Some(e) = self.entities.get(key) {
-            debug!(%key, "existing");
-            return Ok(e);
+    ) -> Result<Rc<RefCell<Entity>>, DomainError> {
+        {
+            let check_existing = self.entities.borrow();
+            for row in check_existing.iter() {
+                if row.borrow().key == *key {
+                    debug!(%key, "existing");
+                    return Ok(Rc::clone(row));
+                }
+            }
         }
 
         let _loading_span = span!(Level::INFO, "entity", key = key.key_to_string()).entered();
@@ -56,9 +61,13 @@ impl PrepareEntities for Entities {
 
         prepare(&mut loaded)?;
 
-        let inserted = self.entities.insert(key.clone(), Box::new(loaded));
+        let cell = Rc::new(RefCell::new(loaded));
 
-        Ok(inserted)
+        let mut add_new = self.entities.borrow_mut();
+
+        add_new.push(Rc::clone(&cell));
+
+        Ok(cell)
     }
 }
 
@@ -79,7 +88,7 @@ impl DomainInfrastructure {
 }
 
 impl LoadEntities for DomainInfrastructure {
-    fn load_entity_by_key(&self, key: &EntityKey) -> Result<&Entity, DomainError> {
+    fn load_entity_by_key(&self, key: &EntityKey) -> Result<Rc<RefCell<Entity>>, DomainError> {
         self.entities.prepare_entity_by_key(key, |_e| Ok(()))
     }
 }
@@ -93,10 +102,9 @@ impl Infrastructure for DomainInfrastructure {
                 key,
                 class: _,
                 name: _,
-            } => Ok(DynamicEntityRef::Entity(ReferencedEntity::new(Box::new(
-                // TODO This clone will become a problem.
-                self.load_entity_by_key(key)?.clone(),
-            )))),
+            } => Ok(DynamicEntityRef::Entity(ReferencedEntity::new(
+                self.load_entity_by_key(key)?,
+            ))),
             DynamicEntityRef::Entity(_) => Ok(entity_ref.clone()),
         }
     }

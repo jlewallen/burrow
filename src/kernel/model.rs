@@ -1,4 +1,6 @@
+use std::cell::RefCell;
 use std::ops::Deref;
+use std::rc::Rc;
 
 use tracing::trace;
 
@@ -250,29 +252,31 @@ pub struct ReferencedEntity {
     class: String,
     name: String,
     #[serde(skip)]
-    entity: Option<Box<Entity>>,
-}
-
-impl Deref for ReferencedEntity {
-    type Target = Entity;
-
-    fn deref(&self) -> &Self::Target {
-        if let Some(e) = &self.entity {
-            return e;
-        }
-        panic!("deref of empty ReferencedEntity")
-    }
+    entity: Weak<RefCell<Entity>>,
 }
 
 impl ReferencedEntity {
-    pub fn new(entity: Box<Entity>) -> Self {
+    pub fn new(entity: Rc<RefCell<Entity>>) -> Self {
+        let shared_entity = entity.borrow();
+
         Self {
             py_object: "py/object".to_string(),
             py_ref: "py/ref".to_string(),
-            key: entity.key.clone(),
-            class: entity.class.py_type.clone(),
-            name: entity.name().unwrap_or("".to_string()),
-            entity: Some(entity),
+            key: shared_entity.key.clone(),
+            class: shared_entity.class.py_type.clone(),
+            name: shared_entity.name().unwrap_or("".to_string()),
+            entity: Rc::downgrade(&entity),
+        }
+    }
+}
+
+impl TryFrom<ReferencedEntity> for Rc<RefCell<Entity>> {
+    type Error = DomainError;
+
+    fn try_from(value: ReferencedEntity) -> Result<Self, Self::Error> {
+        match value.entity.upgrade() {
+            Some(e) => Ok(e),
+            None => Err(DomainError::DanglingEntity),
         }
     }
 }
@@ -308,7 +312,7 @@ impl DynamicEntityRef {
     }
 }
 
-impl TryFrom<DynamicEntityRef> for Box<Entity> {
+impl TryFrom<DynamicEntityRef> for Rc<RefCell<Entity>> {
     type Error = DomainError;
 
     fn try_from(value: DynamicEntityRef) -> Result<Self, Self::Error> {
@@ -320,7 +324,7 @@ impl TryFrom<DynamicEntityRef> for Box<Entity> {
                 class: _,
                 name: _,
             } => Err(DomainError::DanglingEntity),
-            DynamicEntityRef::Entity(e) => Ok(e.entity.unwrap()),
+            DynamicEntityRef::Entity(e) => e.entity.upgrade().ok_or(DomainError::DanglingEntity),
         }
     }
 }
@@ -341,7 +345,12 @@ impl From<DynamicEntityRef> for EntityRef {
                 class,
                 name,
             },
-            DynamicEntityRef::Entity(e) => e.entity.unwrap().as_ref().into(),
+            DynamicEntityRef::Entity(e) => {
+                if let Some(e) = e.entity.upgrade() {
+                    return e.borrow().deref().into();
+                }
+                panic!("empty dynamic reference ");
+            }
         }
     }
 }

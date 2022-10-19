@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use super::infra::*;
 use super::model::*;
 use super::*;
@@ -19,13 +22,16 @@ pub trait PrepareEntities {
         &self,
         key: &EntityKey,
         prepare: T,
-    ) -> Result<&Entity, DomainError>;
+    ) -> Result<Rc<RefCell<Entity>>, DomainError>;
 }
 
 pub trait LoadEntities {
-    fn load_entity_by_key(&self, key: &EntityKey) -> Result<&Entity, DomainError>;
+    fn load_entity_by_key(&self, key: &EntityKey) -> Result<Rc<RefCell<Entity>>, DomainError>;
 
-    fn load_entity_by_ref(&self, entity_ref: &EntityRef) -> Result<&Entity, DomainError> {
+    fn load_entity_by_ref(
+        &self,
+        entity_ref: &EntityRef,
+    ) -> Result<Rc<RefCell<Entity>>, DomainError> {
         self.load_entity_by_key(&entity_ref.key)
     }
 
