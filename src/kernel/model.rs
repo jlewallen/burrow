@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use tracing::trace;
 
 use super::infra::*;
@@ -238,6 +240,44 @@ impl Entity {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReferencedEntity {
+    #[serde(alias = "py/object")]
+    py_object: String,
+    #[serde(alias = "py/ref")]
+    py_ref: String,
+    key: EntityKey,
+    #[serde(alias = "klass")]
+    class: String,
+    name: String,
+    #[serde(skip)]
+    entity: Option<Box<Entity>>,
+}
+
+impl Deref for ReferencedEntity {
+    type Target = Entity;
+
+    fn deref(&self) -> &Self::Target {
+        if let Some(e) = &self.entity {
+            return e;
+        }
+        panic!("deref of empty ReferencedEntity")
+    }
+}
+
+impl ReferencedEntity {
+    pub fn new(entity: Box<Entity>) -> Self {
+        Self {
+            py_object: "py/object".to_string(),
+            py_ref: "py/ref".to_string(),
+            key: entity.key.clone(),
+            class: entity.class.py_type.clone(),
+            name: entity.name().unwrap_or("".to_string()),
+            entity: Some(entity),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum DynamicEntityRef {
     RefOnly {
@@ -250,7 +290,7 @@ pub enum DynamicEntityRef {
         class: String,
         name: String,
     },
-    Entity(Box<Entity>),
+    Entity(ReferencedEntity),
 }
 
 impl DynamicEntityRef {
@@ -280,7 +320,7 @@ impl TryFrom<DynamicEntityRef> for Box<Entity> {
                 class: _,
                 name: _,
             } => Err(DomainError::DanglingEntity),
-            DynamicEntityRef::Entity(e) => Ok(e),
+            DynamicEntityRef::Entity(e) => Ok(e.entity.unwrap()),
         }
     }
 }
@@ -301,7 +341,7 @@ impl From<DynamicEntityRef> for EntityRef {
                 class,
                 name,
             },
-            DynamicEntityRef::Entity(e) => e.as_ref().into(),
+            DynamicEntityRef::Entity(e) => e.entity.unwrap().as_ref().into(),
         }
     }
 }
