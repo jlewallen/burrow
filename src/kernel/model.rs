@@ -183,26 +183,6 @@ impl PrepareWithInfrastructure for Entity {
     }
 }
 
-pub struct OpenScope<T> {
-    scope: Box<T>,
-}
-
-impl<T> OpenScope<T> {
-    pub fn s(&self) -> &T {
-        self.scope.as_ref()
-    }
-
-    pub fn s_mut(&mut self) -> &mut T {
-        self.scope.as_mut()
-    }
-}
-
-impl<T> Drop for OpenScope<T> {
-    fn drop(&mut self) {
-        info!("scope-dropped");
-    }
-}
-
 impl Entity {
     pub fn name(&self) -> Option<String> {
         self.props.string_property(NAME_PROPERTY)
@@ -220,10 +200,9 @@ impl Entity {
         self.scopes.contains_key(<T as Scope>::scope_key())
     }
 
-    pub fn open<T: Scope>(&self) -> Result<OpenScope<T>, DomainError> {
-        Ok(OpenScope {
-            scope: self.scope::<T>()?,
-        })
+    pub fn open<T: Scope>(&mut self) -> Result<OpenScope<T>, DomainError> {
+        let scope = self.scope::<T>()?;
+        Ok(OpenScope::new(self, scope))
     }
 
     pub fn scope<T: Scope>(&self) -> Result<Box<T>, DomainError> {
@@ -266,6 +245,61 @@ impl Entity {
 
         // Ok, great!
         Ok(scope)
+    }
+
+    pub fn replace_scope<T: Scope>(&mut self, _scope: &T) -> Result<()> {
+        let scope_key = <T as Scope>::scope_key();
+
+        let _load_scope_span = span!(
+            Level::DEBUG,
+            "scope",
+            key = self.key.key_to_string(),
+            scope = scope_key
+        )
+        .entered();
+
+        info!("scope-replace");
+
+        Ok(())
+    }
+}
+
+pub struct OpenScope<'me, T: Scope> {
+    owner: &'me mut Entity,
+    target: Box<T>,
+}
+
+impl<'me, T: Scope> OpenScope<'me, T> {
+    pub fn new(owner: &'me mut Entity, target: Box<T>) -> Self {
+        trace!("scope-open {:?}", target);
+
+        Self {
+            owner: owner,
+            target: target,
+        }
+    }
+
+    pub fn s(&self) -> &T {
+        self.target.as_ref()
+    }
+
+    pub fn s_mut(&mut self) -> &mut T {
+        self.target.as_mut()
+    }
+
+    pub fn save(&mut self) -> Result<()> {
+        self.owner.replace_scope(self.target.as_ref())?;
+        Ok(())
+    }
+}
+
+impl<'me, T: Scope> Drop for OpenScope<'me, T> {
+    fn drop(&mut self) {
+        // TODO Check for unsaved changes to this scope and possibly warn the
+        // user, this would require them to intentionally discard  any unsaved
+        // changes. Not being able to bubble an error up makes doing anything
+        // elaborate in here a bad idea.
+        trace!("scope-dropped {:?}", self.target);
     }
 }
 

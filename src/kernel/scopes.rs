@@ -1,15 +1,15 @@
 use super::infra::*;
 use super::model::*;
 use super::*;
-use std::rc::Rc;
+use std::{fmt::Debug, rc::Rc};
 
 pub type ActionArgs = (EntityPtr, EntityPtr, EntityPtr, Rc<dyn Infrastructure>);
 
-pub trait Action: std::fmt::Debug {
+pub trait Action: Debug {
     fn perform(&self, args: ActionArgs) -> ReplyResult;
 }
 
-pub trait Scope: PrepareWithInfrastructure + DeserializeOwned {
+pub trait Scope: Debug + PrepareWithInfrastructure + DeserializeOwned {
     fn scope_key() -> &'static str
     where
         Self: Sized;

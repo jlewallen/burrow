@@ -161,8 +161,10 @@ pub mod actions {
                 Some(holding) => {
                     info!("holding {:?}!", holding);
                     {
-                        let mut containing = user.borrow_mut().open::<Containing>()?;
-                        containing.s_mut().hold(holding);
+                        let mut user = user.borrow_mut();
+                        let mut containing = user.open::<Containing>()?;
+                        let _ = containing.s_mut().hold(holding);
+                        containing.save()?
                     }
 
                     Ok(Box::new(SimpleReply::Done))
@@ -190,12 +192,14 @@ pub mod actions {
                     match dropping {
                         Some(dropping) => {
                             {
-                                let mut containing = user.borrow_mut().scope::<Containing>()?;
+                                let mut user = user.borrow_mut();
+                                let mut containing = user.open::<Containing>()?;
                                 // TODO Maybe the EntityPtr type becomes a
                                 // wrapping struct and also knows the EntityKey
                                 // that it points at.
                                 info!("dropping {:?}!", dropping.borrow().key);
-                                let _ = containing.stop_carrying(dropping);
+                                let _ = containing.s_mut().stop_carrying(dropping);
+                                containing.save()?
                             }
 
                             Ok(Box::new(SimpleReply::Done))
