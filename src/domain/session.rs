@@ -1,7 +1,5 @@
 use crate::kernel::*;
-use crate::plugins::{
-    carrying::model::Containing, moving::model::Occupying, users::model::Usernames,
-};
+use crate::plugins::{moving::model::Occupying, users::model::Usernames};
 use crate::storage::{EntityStorage, EntityStorageFactory};
 use anyhow::Result;
 use std::{fmt::Debug, rc::Rc};
@@ -46,25 +44,6 @@ impl Session {
         let area: Box<Entity> = occupying.area.try_into()?;
 
         info!("area {}", area);
-
-        if false {
-            let _test_span = span!(Level::INFO, "test").entered();
-
-            let containing = area.scope::<Containing>()?;
-            for here in containing.holding {
-                info!("here {:?}", here.key())
-            }
-
-            let carrying = user.scope::<Containing>()?;
-            for here in carrying.holding {
-                info!("here {:?}", here.key())
-            }
-
-            let mut discovered_keys: Vec<EntityKey> = vec![];
-            eval::discover(user, &mut discovered_keys)?;
-            eval::discover(area.as_ref(), &mut discovered_keys)?;
-            info!("discovered {:?}", discovered_keys);
-        }
 
         let reply = action.perform((world, user, &area, self.infra.as_ref()))?;
 
