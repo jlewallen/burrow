@@ -34,40 +34,35 @@ impl Session {
 
         info!("performing {:?}", action);
 
-        let preparing = span!(Level::DEBUG, "L").entered();
+        let (world, user, area) = {
+            let _span = span!(Level::DEBUG, "L").entered();
 
-        let world = self.infra.load_entity_by_key(&WORLD_KEY)?;
+            let world = self.infra.load_entity_by_key(&WORLD_KEY)?;
+            let usernames: Box<Usernames> = { world.borrow().scope::<Usernames>()? };
+            let user_key = &usernames.users[user_name];
+            let user = self.infra.load_entity_by_key(user_key)?;
+            let area: Rc<RefCell<Entity>> = {
+                let occupying: Box<Occupying> = user.borrow().scope::<Occupying>()?;
+                occupying.area.try_into()?
+            };
 
-        let usernames: Box<Usernames> = { world.borrow().scope::<Usernames>()? };
+            info!("area {}", area.borrow());
 
-        let user_key = &usernames.users[user_name];
-
-        let user = self.infra.load_entity_by_key(user_key)?;
-
-        let area: Rc<RefCell<Entity>> = {
-            let occupying: Box<Occupying> = user.borrow().scope::<Occupying>()?;
-            occupying.area.try_into()?
+            (world, user, area)
         };
 
-        {
-            info!("area {}", area.borrow());
-        }
-
-        preparing.exit();
-
         if self.discoverying {
-            let _discovery_span = span!(Level::DEBUG, "D").entered();
+            let _span = span!(Level::DEBUG, "D").entered();
             let mut discovered_keys: Vec<EntityKey> = vec![];
             eval::discover(&user.borrow(), &mut discovered_keys)?;
             eval::discover(&area.borrow(), &mut discovered_keys)?;
             info!("discovered {:?}", discovered_keys);
         }
 
-        let action_span = span!(Level::INFO, "A").entered();
-
-        let reply = action.perform((world, user, area, self.infra.clone()))?;
-
-        action_span.exit();
+        let reply = {
+            let _span = span!(Level::INFO, "A").entered();
+            action.perform((world, user, area, self.infra.clone()))?
+        };
 
         event!(Level::INFO, "done");
 
