@@ -35,31 +35,28 @@ impl Session {
         info!("performing {:?}", action);
 
         let world = self.infra.load_entity_by_key(&WORLD_KEY)?;
-        let world = world.borrow();
 
-        let usernames: Box<Usernames> = world.scope::<Usernames>()?;
+        let usernames: Box<Usernames> = world.borrow().scope::<Usernames>()?;
 
         let user_key = &usernames.users[user_name];
 
         let user = self.infra.load_entity_by_key(user_key)?;
-        let user = user.borrow();
 
-        let occupying: Box<Occupying> = user.scope::<Occupying>()?;
+        let occupying: Box<Occupying> = user.borrow().scope::<Occupying>()?;
 
-        let area_cell: Rc<RefCell<Entity>> = occupying.area.try_into()?;
-        let area = area_cell.borrow();
+        let area: Rc<RefCell<Entity>> = occupying.area.try_into()?;
 
-        info!("area {}", area);
+        info!("area {}", area.borrow());
 
         if self.discoverying {
             let _discovery_span = span!(Level::DEBUG, "disco").entered();
             let mut discovered_keys: Vec<EntityKey> = vec![];
-            eval::discover(&user, &mut discovered_keys)?;
-            eval::discover(&area, &mut discovered_keys)?;
+            eval::discover(&user.borrow(), &mut discovered_keys)?;
+            eval::discover(&area.borrow(), &mut discovered_keys)?;
             info!("discovered {:?}", discovered_keys);
         }
 
-        let reply = action.perform((&world, &user, &area, self.infra.as_ref()))?;
+        let reply = action.perform((world, user, area, self.infra.clone()))?;
 
         event!(Level::INFO, "done");
 

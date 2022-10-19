@@ -15,6 +15,8 @@ pub static DESC_PROPERTY: &str = "desc";
 
 pub static GID_PROPERTY: &str = "gid";
 
+pub type EntityPtr = Rc<RefCell<Entity>>;
+
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct EntityKey(String);
 

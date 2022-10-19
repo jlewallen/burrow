@@ -37,7 +37,7 @@ impl PrepareEntities for Entities {
         &self,
         key: &EntityKey,
         prepare: T,
-    ) -> Result<Rc<RefCell<Entity>>, DomainError> {
+    ) -> Result<EntityPtr> {
         {
             let check_existing = self.entities.borrow();
             for row in check_existing.iter() {
@@ -88,7 +88,7 @@ impl DomainInfrastructure {
 }
 
 impl LoadEntities for DomainInfrastructure {
-    fn load_entity_by_key(&self, key: &EntityKey) -> Result<Rc<RefCell<Entity>>, DomainError> {
+    fn load_entity_by_key(&self, key: &EntityKey) -> Result<EntityPtr> {
         self.entities.prepare_entity_by_key(key, |_e| Ok(()))
     }
 }

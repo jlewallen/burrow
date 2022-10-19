@@ -20,7 +20,7 @@ pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
 }
 
 pub mod model {
-    use std::{cell::RefCell, rc::Rc};
+    use std::{cell::RefCell, ops::Deref, rc::Rc};
 
     use crate::{
         kernel::*,
@@ -128,40 +128,40 @@ pub mod model {
     }
 
     impl AreaObservation {
-        pub fn new(user: &Entity, area: &Entity) -> Result<Self> {
+        pub fn new(user: EntityPtr, area: EntityPtr) -> Result<Self> {
             // I feel like there's a lot of unnecessary copying going on here.
 
             let mut living: Vec<ObservedEntity> = vec![];
-            if let Ok(occupyable) = area.scope::<Occupyable>() {
+            if let Ok(occupyable) = area.borrow().scope::<Occupyable>() {
                 for entity in occupyable.occupied {
                     living.push(entity.try_into()?);
                 }
             }
 
             let mut items = vec![];
-            if let Ok(containing) = area.scope::<Containing>() {
+            if let Ok(containing) = area.borrow().scope::<Containing>() {
                 for entity in containing.holding {
                     items.push(entity.try_into()?);
                 }
             }
 
             let mut carrying = vec![];
-            if let Ok(containing) = user.scope::<Containing>() {
+            if let Ok(containing) = user.borrow().scope::<Containing>() {
                 for entity in containing.holding {
                     carrying.push(entity.try_into()?);
                 }
             }
 
             let mut routes = vec![];
-            if let Ok(movement) = user.scope::<Movement>() {
+            if let Ok(movement) = user.borrow().scope::<Movement>() {
                 for route in movement.routes {
                     routes.push(route.area.try_into()?);
                 }
             };
 
             Ok(AreaObservation {
-                area: area.into(),
-                person: user.into(),
+                area: area.borrow().deref().into(),
+                person: user.borrow().deref().into(),
                 living: living,
                 items: items,
                 carrying: carrying,
