@@ -12,6 +12,7 @@ use super::internal::DomainInfrastructure;
 #[derive(Debug)]
 pub struct Session {
     infra: Rc<DomainInfrastructure>,
+    discoverying: bool,
 }
 
 impl Session {
@@ -20,6 +21,7 @@ impl Session {
 
         Ok(Self {
             infra: DomainInfrastructure::new(storage),
+            discoverying: true,
         })
     }
 
@@ -48,6 +50,14 @@ impl Session {
         let area = area_cell.borrow();
 
         info!("area {}", area);
+
+        if self.discoverying {
+            let _discovery_span = span!(Level::DEBUG, "disco").entered();
+            let mut discovered_keys: Vec<EntityKey> = vec![];
+            eval::discover(&user, &mut discovered_keys)?;
+            eval::discover(&area, &mut discovered_keys)?;
+            info!("discovered {:?}", discovered_keys);
+        }
 
         let reply = action.perform((&world, &user, &area, self.infra.as_ref()))?;
 
