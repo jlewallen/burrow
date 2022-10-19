@@ -186,7 +186,7 @@ pub mod actions {
     #[derive(Debug)]
     struct LookAction {}
     impl Action for LookAction {
-        fn perform(&self, (_world, user, area): ActionArgs) -> ReplyResult {
+        fn perform(&self, (_world, user, area, _infra): ActionArgs) -> ReplyResult {
             info!("look!");
 
             Ok(Box::new(AreaObservation::new(user, area)?))

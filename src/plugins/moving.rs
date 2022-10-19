@@ -139,7 +139,7 @@ pub mod actions {
     struct GoAction {}
 
     impl Action for GoAction {
-        fn perform(&self, (_world, _user, _area): ActionArgs) -> ReplyResult {
+        fn perform(&self, (_world, _user, _area, _infra): ActionArgs) -> ReplyResult {
             info!("go!");
 
             Ok(Box::new(SimpleReply::Done))

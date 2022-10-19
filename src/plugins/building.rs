@@ -59,7 +59,7 @@ pub mod actions {
         maybe_item: Item,
     }
     impl Action for EditAction {
-        fn perform(&self, (_world, _user, _area): ActionArgs) -> ReplyResult {
+        fn perform(&self, (_world, _user, _area, _infra): ActionArgs) -> ReplyResult {
             info!("edit {:?}!", self.maybe_item);
 
             Ok(Box::new(SimpleReply::Done))

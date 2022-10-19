@@ -2,6 +2,8 @@ use super::infra::*;
 use super::model::*;
 use super::*;
 
+pub type ActionArgs<'a> = (&'a Entity, &'a Entity, &'a Entity, &'a dyn Infrastructure);
+
 pub trait Action: std::fmt::Debug {
     fn perform(&self, args: ActionArgs) -> ReplyResult;
 }

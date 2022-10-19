@@ -66,7 +66,7 @@ impl Session {
             info!("discovered {:?}", discovered_keys);
         }
 
-        let reply = action.perform((world, user, &area))?;
+        let reply = action.perform((world, user, &area, self.infra.as_ref()))?;
 
         event!(Level::INFO, "done");
 

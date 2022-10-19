@@ -26,8 +26,6 @@ impl Display for EntityKey {
     }
 }
 
-pub type ActionArgs<'a> = (&'a Entity, &'a Entity, &'a Entity);
-
 pub trait DomainEvent: Debug {}
 
 #[derive(Debug)]
