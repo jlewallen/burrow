@@ -128,16 +128,18 @@ impl EntityRelationshipSet {
             match entity {
                 EntityRelationship::World(_world) => {}
                 EntityRelationship::User(user) => {
-                    if let Ok(containing) = user.borrow().scope::<Containing>() {
-                        for entity in containing.holding {
-                            expanded.push(EntityRelationship::Holding(entity.try_into()?));
+                    let user = user.borrow();
+                    if let Ok(containing) = user.scope::<Containing>() {
+                        for entity in &containing.holding {
+                            expanded.push(EntityRelationship::Holding(entity.into_entity()?));
                         }
                     }
                 }
                 EntityRelationship::Area(area) => {
-                    if let Ok(containing) = area.borrow().scope::<Containing>() {
-                        for entity in containing.holding {
-                            expanded.push(EntityRelationship::Ground(entity.try_into()?));
+                    let area = area.borrow();
+                    if let Ok(containing) = area.scope::<Containing>() {
+                        for entity in &containing.holding {
+                            expanded.push(EntityRelationship::Ground(entity.into_entity()?));
                         }
                     }
                 }

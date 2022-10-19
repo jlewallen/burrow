@@ -2,7 +2,6 @@ use crate::kernel::*;
 use crate::plugins::{moving::model::Occupying, users::model::Usernames};
 use crate::storage::{EntityStorage, EntityStorageFactory};
 use anyhow::Result;
-use std::cell::RefCell;
 use std::{fmt::Debug, rc::Rc};
 use tracing::{debug, event, info, span, Level};
 
@@ -38,12 +37,16 @@ impl Session {
             let _span = span!(Level::DEBUG, "L").entered();
 
             let world = self.infra.load_entity_by_key(&WORLD_KEY)?;
-            let usernames: Box<Usernames> = { world.borrow().scope::<Usernames>()? };
+            let usernames: OpenScope<Usernames> = {
+                let world = world.borrow();
+                world.scope::<Usernames>()?
+            };
             let user_key = &usernames.users[user_name];
             let user = self.infra.load_entity_by_key(user_key)?;
-            let area: Rc<RefCell<Entity>> = {
-                let occupying: Box<Occupying> = user.borrow().scope::<Occupying>()?;
-                occupying.area.try_into()?
+            let area: EntityPtr = {
+                let user = user.borrow();
+                let occupying: OpenScope<Occupying> = user.scope::<Occupying>()?;
+                occupying.area.into_entity()?
             };
 
             info!("area {}", area.borrow());

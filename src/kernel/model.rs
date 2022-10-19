@@ -199,12 +199,17 @@ impl Entity {
         self.scopes.contains_key(<T as Scope>::scope_key())
     }
 
-    pub fn open<T: Scope>(&mut self) -> Result<OpenScope<T>, DomainError> {
-        let scope = self.scope::<T>()?;
-        Ok(OpenScope::new(self, scope))
+    pub fn scope_mut<T: Scope>(&mut self) -> Result<OpenScopeMut<T>, DomainError> {
+        let scope = self.load_scope::<T>()?;
+        Ok(OpenScopeMut::new(self, scope))
     }
 
-    pub fn scope<T: Scope>(&self) -> Result<Box<T>, DomainError> {
+    pub fn scope<T: Scope>(&self) -> Result<OpenScope<T>, DomainError> {
+        let scope = self.load_scope::<T>()?;
+        Ok(OpenScope::new(scope))
+    }
+
+    fn load_scope<T: Scope>(&self) -> Result<Box<T>, DomainError> {
         let scope_key = <T as Scope>::scope_key();
 
         let _load_scope_span = span!(
@@ -263,12 +268,32 @@ impl Entity {
     }
 }
 
-pub struct OpenScope<'me, T: Scope> {
+pub struct OpenScope<T: Scope> {
+    target: Box<T>,
+}
+
+impl<T: Scope> OpenScope<T> {
+    pub fn new(target: Box<T>) -> Self {
+        trace!("scope-open {:?}", target);
+
+        Self { target: target }
+    }
+}
+
+impl<T: Scope> Deref for OpenScope<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.target.as_ref()
+    }
+}
+
+pub struct OpenScopeMut<'me, T: Scope> {
     owner: &'me mut Entity,
     target: Box<T>,
 }
 
-impl<'me, T: Scope> OpenScope<'me, T> {
+impl<'me, T: Scope> OpenScopeMut<'me, T> {
     pub fn new(owner: &'me mut Entity, target: Box<T>) -> Self {
         trace!("scope-open {:?}", target);
 
@@ -284,7 +309,7 @@ impl<'me, T: Scope> OpenScope<'me, T> {
     }
 }
 
-impl<'me, T: Scope> Drop for OpenScope<'me, T> {
+impl<'me, T: Scope> Drop for OpenScopeMut<'me, T> {
     fn drop(&mut self) {
         // TODO Check for unsaved changes to this scope and possibly warn the
         // user, this would require them to intentionally discard  any unsaved
@@ -294,7 +319,7 @@ impl<'me, T: Scope> Drop for OpenScope<'me, T> {
     }
 }
 
-impl<'me, T: Scope> Deref for OpenScope<'me, T> {
+impl<'me, T: Scope> Deref for OpenScopeMut<'me, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -302,7 +327,7 @@ impl<'me, T: Scope> Deref for OpenScope<'me, T> {
     }
 }
 
-impl<'me, T: Scope> DerefMut for OpenScope<'me, T> {
+impl<'me, T: Scope> DerefMut for OpenScopeMut<'me, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.target.as_mut()
     }
@@ -335,8 +360,17 @@ impl ReferencedEntity {
             entity: Rc::downgrade(&entity),
         }
     }
+
+    pub fn into_entity(&self) -> Result<EntityPtr, DomainError> {
+        if let Some(e) = self.entity.upgrade() {
+            Ok(e)
+        } else {
+            Err(DomainError::DanglingEntity)
+        }
+    }
 }
 
+/*
 impl TryFrom<ReferencedEntity> for Rc<RefCell<Entity>> {
     type Error = DomainError;
 
@@ -347,6 +381,7 @@ impl TryFrom<ReferencedEntity> for Rc<RefCell<Entity>> {
         }
     }
 }
+*/
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -377,6 +412,19 @@ impl DynamicEntityRef {
             DynamicEntityRef::Entity(e) => &e.key,
         }
     }
+
+    pub fn into_entity(&self) -> Result<EntityPtr, DomainError> {
+        match self {
+            DynamicEntityRef::RefOnly {
+                py_object: _,
+                py_ref: _,
+                key: _,
+                class: _,
+                name: _,
+            } => Err(DomainError::DanglingEntity),
+            DynamicEntityRef::Entity(e) => e.into_entity(),
+        }
+    }
 }
 
 impl From<EntityPtr> for DynamicEntityRef {
@@ -385,10 +433,11 @@ impl From<EntityPtr> for DynamicEntityRef {
     }
 }
 
-impl TryFrom<DynamicEntityRef> for Rc<RefCell<Entity>> {
+/*
+impl TryFrom<&DynamicEntityRef> for EntityPtr {
     type Error = DomainError;
 
-    fn try_from(value: DynamicEntityRef) -> Result<Self, Self::Error> {
+    fn try_from(value: &DynamicEntityRef) -> Result<Self, Self::Error> {
         match value {
             DynamicEntityRef::RefOnly {
                 py_object: _,
@@ -454,6 +503,7 @@ impl From<&Entity> for EntityRef {
         }
     }
 }
+*/
 
 #[derive(Error, Debug)]
 pub enum DomainError {

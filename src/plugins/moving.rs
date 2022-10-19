@@ -118,8 +118,8 @@ pub mod model {
             entity_keys.extend(occupyable.occupied.iter().map(|er| er.key().clone()));
         }
         if let Ok(movement) = source.scope::<Movement>() {
-            for route in movement.routes {
-                entity_keys.push(route.area.into());
+            for route in &movement.routes {
+                entity_keys.push(route.area.key().clone());
             }
         }
         Ok(())

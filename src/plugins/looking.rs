@@ -90,13 +90,13 @@ pub mod model {
 
     // TODO This seems unnececssary, how can I help the compiler deduce the
     // proper chain of TryFrom/From to get here?
-    impl TryFrom<DynamicEntityRef> for ObservedEntity {
+    impl TryFrom<&DynamicEntityRef> for ObservedEntity {
         type Error = DomainError;
 
-        fn try_from(value: DynamicEntityRef) -> Result<Self, Self::Error> {
+        fn try_from(value: &DynamicEntityRef) -> Result<Self, Self::Error> {
             match value {
                 DynamicEntityRef::Entity(re) => {
-                    let e: Rc<RefCell<Entity>> = re.try_into()?;
+                    let e: Rc<RefCell<Entity>> = re.into_entity()?;
                     let e = e.borrow();
 
                     Ok(Self {
@@ -133,29 +133,29 @@ pub mod model {
 
             let mut living: Vec<ObservedEntity> = vec![];
             if let Ok(occupyable) = area.borrow().scope::<Occupyable>() {
-                for entity in occupyable.occupied {
+                for entity in &occupyable.occupied {
                     living.push(entity.try_into()?);
                 }
             }
 
             let mut items = vec![];
             if let Ok(containing) = area.borrow().scope::<Containing>() {
-                for entity in containing.holding {
+                for entity in &containing.holding {
                     items.push(entity.try_into()?);
                 }
             }
 
             let mut carrying = vec![];
             if let Ok(containing) = user.borrow().scope::<Containing>() {
-                for entity in containing.holding {
+                for entity in &containing.holding {
                     carrying.push(entity.try_into()?);
                 }
             }
 
             let mut routes = vec![];
             if let Ok(movement) = user.borrow().scope::<Movement>() {
-                for route in movement.routes {
-                    routes.push(route.area.try_into()?);
+                for route in &movement.routes {
+                    routes.push((&route.area).try_into()?);
                 }
             };
 
