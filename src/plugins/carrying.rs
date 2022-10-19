@@ -38,6 +38,7 @@ pub mod model {
     use anyhow::Result;
     use serde::{Deserialize, Serialize};
     use std::{collections::HashMap, rc::Weak};
+    use tracing::info;
 
     pub type CarryingResult = DomainResult;
 
@@ -103,6 +104,12 @@ pub mod model {
         }
 
         pub fn stop_carrying(&mut self, item: EntityPtr) -> CarryingResult {
+            let before = self.holding.len();
+
+            self.holding.retain(|i| *i.key() != item.borrow().key);
+
+            info!("contained {} and now {}", before, self.holding.len());
+
             CarryingResult {
                 events: vec![Box::new(CarryingEvent::ItemDropped(item))],
             }
@@ -124,8 +131,8 @@ pub mod model {
         }
     }
     pub fn discover(source: &Entity, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
-        // TODO Pretty sure this clone should be unnecessary, can we clone into from an iterator?
         if let Ok(containing) = source.scope::<Containing>() {
+            // TODO Pretty sure this clone should be unnecessary, can we clone into from an iterator?
             entity_keys.extend(containing.holding.iter().map(|er| er.key().clone()))
         }
         Ok(())
@@ -184,8 +191,11 @@ pub mod actions {
                         Some(dropping) => {
                             {
                                 let mut containing = user.borrow_mut().scope::<Containing>()?;
-                                info!("dropping {:?}!", dropping);
-                                containing.stop_carrying(dropping);
+                                // TODO Maybe the EntityPtr type becomes a
+                                // wrapping struct and also knows the EntityKey
+                                // that it points at.
+                                info!("dropping {:?}!", dropping.borrow().key);
+                                let _ = containing.stop_carrying(dropping);
                             }
 
                             Ok(Box::new(SimpleReply::Done))

@@ -1,6 +1,5 @@
-use std::{cell::RefCell, rc::Rc};
-
 use super::*;
+use std::{cell::RefCell, rc::Rc};
 
 pub trait Infrastructure: Debug + LoadEntities {
     fn ensure_entity(&self, entity_ref: &DynamicEntityRef) -> Result<DynamicEntityRef>;

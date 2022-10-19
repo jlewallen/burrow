@@ -34,7 +34,7 @@ impl Session {
 
         info!("performing {:?}", action);
 
-        let preparing = span!(Level::DEBUG, "prep").entered();
+        let preparing = span!(Level::DEBUG, "L").entered();
 
         let world = self.infra.load_entity_by_key(&WORLD_KEY)?;
 
@@ -56,14 +56,14 @@ impl Session {
         preparing.exit();
 
         if self.discoverying {
-            let _discovery_span = span!(Level::DEBUG, "disco").entered();
+            let _discovery_span = span!(Level::DEBUG, "D").entered();
             let mut discovered_keys: Vec<EntityKey> = vec![];
             eval::discover(&user.borrow(), &mut discovered_keys)?;
             eval::discover(&area.borrow(), &mut discovered_keys)?;
             info!("discovered {:?}", discovered_keys);
         }
 
-        let action_span = span!(Level::INFO, "action").entered();
+        let action_span = span!(Level::INFO, "A").entered();
 
         let reply = action.perform((world, user, area, self.infra.clone()))?;
 
