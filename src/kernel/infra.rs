@@ -1,7 +1,23 @@
+use std::{cell::RefCell, rc::Rc};
+
 use super::*;
 
 pub trait Infrastructure: Debug + LoadEntities {
     fn ensure_entity(&self, entity_ref: &DynamicEntityRef) -> Result<DynamicEntityRef>;
+
+    fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<Rc<RefCell<Entity>>>>;
+
+    fn find_optional_item(
+        &self,
+        args: ActionArgs,
+        item: Option<Item>,
+    ) -> Result<Option<Rc<RefCell<Entity>>>> {
+        if let Some(item) = item {
+            self.find_item(args, &item)
+        } else {
+            Ok(None)
+        }
+    }
 
     fn ensure_optional_entity(
         &self,

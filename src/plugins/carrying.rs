@@ -43,8 +43,8 @@ pub mod model {
 
     #[derive(Debug)]
     pub enum CarryingEvent {
-        ItemHeld(Entity),
-        ItemDropped(Entity),
+        ItemHeld(EntityPtr),
+        ItemDropped(EntityPtr),
     }
 
     impl DomainEvent for CarryingEvent {}
@@ -94,13 +94,13 @@ pub mod model {
     }
 
     impl Containing {
-        pub fn hold(&self, item: Entity) -> CarryingResult {
+        pub fn hold(&self, item: EntityPtr) -> CarryingResult {
             CarryingResult {
                 events: vec![Box::new(CarryingEvent::ItemHeld(item))],
             }
         }
 
-        pub fn drop(&self, item: Entity) -> CarryingResult {
+        pub fn drop(&self, item: EntityPtr) -> CarryingResult {
             CarryingResult {
                 events: vec![Box::new(CarryingEvent::ItemDropped(item))],
             }
@@ -122,7 +122,7 @@ pub mod model {
         }
     }
     pub fn discover(source: &Entity, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
-        // Pretty sure this clone should be unnecessary.
+        // TODO Pretty sure this clone should be unnecessary, can we clone into from an iterator?
         if let Ok(containing) = source.scope::<Containing>() {
             entity_keys.extend(containing.holding.iter().map(|er| er.key().clone()))
         }
@@ -131,19 +131,34 @@ pub mod model {
 }
 
 pub mod actions {
+    use crate::plugins::carrying::model::Containing;
+
     use super::*;
     use tracing::info;
 
     #[derive(Debug)]
     struct HoldAction {
-        maybe_item: Item,
+        item: Item,
     }
 
     impl Action for HoldAction {
-        fn perform(&self, (_world, _user, _area, _infra): ActionArgs) -> ReplyResult {
-            info!("hold {:?}!", self.maybe_item);
+        fn perform(&self, args: ActionArgs) -> ReplyResult {
+            info!("hold {:?}!", self.item);
 
-            Ok(Box::new(SimpleReply::Done))
+            let (_, user, _, infra) = args.clone();
+            let holding = infra.find_item(args, &self.item)?;
+
+            match holding {
+                Some(holding) => {
+                    info!("holding {:?}!", holding);
+                    let containing = user.borrow().scope::<Containing>()?;
+
+                    containing.hold(holding);
+
+                    Ok(Box::new(SimpleReply::Done))
+                }
+                None => Ok(Box::new(SimpleReply::NotFound)),
+            }
         }
     }
 
@@ -163,9 +178,7 @@ pub mod actions {
     pub fn evaluate(s: &Sentence) -> Box<dyn Action> {
         // TODO Look into this clone, perhaps other ways of cleaning this up.
         match s {
-            Sentence::Hold(e) => Box::new(HoldAction {
-                maybe_item: e.clone(),
-            }),
+            Sentence::Hold(e) => Box::new(HoldAction { item: e.clone() }),
             Sentence::Drop(e) => Box::new(DropAction {
                 maybe_item: e.clone(),
             }),

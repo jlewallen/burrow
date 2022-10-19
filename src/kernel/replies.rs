@@ -23,6 +23,7 @@ pub trait Reply: ToJson {
 #[serde(rename_all = "camelCase")]
 pub enum SimpleReply {
     Done,
+    NotFound,
 }
 
 impl Reply for SimpleReply {

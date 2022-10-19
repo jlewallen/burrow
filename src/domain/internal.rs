@@ -1,5 +1,5 @@
-use crate::kernel::*;
 use crate::storage::EntityStorage;
+use crate::{kernel::*, plugins::carrying::model::Containing};
 use anyhow::Result;
 use std::{
     cell::RefCell,
@@ -93,6 +93,69 @@ impl LoadEntities for DomainInfrastructure {
     }
 }
 
+#[derive(Debug, Clone)]
+enum EntityRelationship {
+    World(EntityPtr),
+    User(EntityPtr),
+    Area(EntityPtr),
+    Holding(EntityPtr),
+    Ground(EntityPtr),
+}
+
+pub struct EntityRelationshipSet {
+    entities: Vec<EntityRelationship>,
+}
+
+impl EntityRelationshipSet {
+    fn new_from_action((world, user, area, _infra): ActionArgs) -> Self {
+        Self {
+            entities: vec![
+                EntityRelationship::World(world),
+                EntityRelationship::User(user),
+                EntityRelationship::Area(area),
+            ],
+        }
+    }
+
+    fn expand(&self) -> Result<Self> {
+        let mut expanded = self.entities.clone();
+
+        for entity in &self.entities {
+            match entity {
+                EntityRelationship::World(_world) => {}
+                EntityRelationship::User(user) => {
+                    if let Ok(containing) = user.borrow().scope::<Containing>() {
+                        for entity in containing.holding {
+                            expanded.push(EntityRelationship::Holding(entity.try_into()?));
+                        }
+                    }
+                }
+                EntityRelationship::Area(area) => {
+                    if let Ok(containing) = area.borrow().scope::<Containing>() {
+                        for entity in containing.holding {
+                            expanded.push(EntityRelationship::Ground(entity.try_into()?));
+                        }
+                    }
+                }
+                EntityRelationship::Holding(_holding) => {}
+                EntityRelationship::Ground(_ground) => {}
+            }
+        }
+
+        Ok(Self { entities: expanded })
+    }
+}
+
+/// Determines if an entity matches a user's description of that entity, given
+/// no other context at all.
+fn matches_description(entity: &Entity, desc: &str) -> bool {
+    if let Some(name) = entity.name() {
+        name.contains(desc)
+    } else {
+        false
+    }
+}
+
 impl Infrastructure for DomainInfrastructure {
     fn ensure_entity(&self, entity_ref: &DynamicEntityRef) -> Result<DynamicEntityRef> {
         match entity_ref {
@@ -106,6 +169,32 @@ impl Infrastructure for DomainInfrastructure {
                 self.load_entity_by_key(key)?,
             ))),
             DynamicEntityRef::Entity(_) => Ok(entity_ref.clone()),
+        }
+    }
+
+    fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<EntityPtr>> {
+        match item {
+            Item::Named(name) => {
+                let haystack = EntityRelationshipSet::new_from_action(args).expand()?;
+
+                for entity in &haystack.entities {
+                    match entity {
+                        EntityRelationship::Holding(e) => {
+                            if matches_description(&e.borrow(), name) {
+                                return Ok(Some(e.clone()));
+                            }
+                        }
+                        EntityRelationship::Ground(e) => {
+                            if matches_description(&e.borrow(), name) {
+                                return Ok(Some(e.clone()));
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+
+                Ok(None)
+            }
         }
     }
 }
