@@ -1,3 +1,4 @@
+use nanoid::nanoid;
 use std::cell::RefCell;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
@@ -23,6 +24,12 @@ pub struct EntityKey(String);
 impl EntityKey {
     pub fn key_to_string(&self) -> &str {
         &self.0
+    }
+}
+
+impl Default for EntityKey {
+    fn default() -> Self {
+        Self(nanoid!())
     }
 }
 
@@ -68,6 +75,17 @@ pub struct Identity {
     signature: Option<String>, // TODO Why does this happen in the model?
 }
 
+impl Default for Identity {
+    fn default() -> Self {
+        Self {
+            py_object: Default::default(),
+            private: Default::default(),
+            public: Default::default(),
+            signature: Default::default(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Kind {
     #[serde(alias = "py/object")]
@@ -79,6 +97,14 @@ pub struct Kind {
 pub struct EntityClass {
     #[serde(alias = "py/type")]
     py_type: String,
+}
+
+impl Default for EntityClass {
+    fn default() -> Self {
+        Self {
+            py_type: Default::default(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -96,11 +122,29 @@ pub struct Acls {
     rules: Vec<AclRule>,
 }
 
+impl Default for Acls {
+    fn default() -> Self {
+        Self {
+            py_object: Default::default(),
+            rules: Default::default(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Version {
     #[serde(alias = "py/object")]
     py_object: String,
     i: u32,
+}
+
+impl Default for Version {
+    fn default() -> Self {
+        Self {
+            py_object: Default::default(),
+            i: Default::default(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -111,6 +155,14 @@ pub struct Property {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Props {
     map: HashMap<String, Property>,
+}
+
+impl Default for Props {
+    fn default() -> Self {
+        Self {
+            map: Default::default(),
+        }
+    }
 }
 
 impl Props {
@@ -161,6 +213,24 @@ pub struct Entity {
 
     #[serde(skip)] // Very private
     infra: Option<Weak<dyn Infrastructure>>,
+}
+
+impl Default for Entity {
+    fn default() -> Self {
+        Self {
+            py_object: Default::default(),
+            key: Default::default(),
+            version: Default::default(),
+            parent: Default::default(),
+            creator: Default::default(),
+            identity: Default::default(),
+            class: Default::default(),
+            acls: Default::default(),
+            props: Default::default(),
+            scopes: Default::default(),
+            infra: Default::default(),
+        }
+    }
 }
 
 impl Display for Entity {
@@ -251,7 +321,7 @@ impl Entity {
         Ok(scope)
     }
 
-    pub fn replace_scope<T: Scope>(&mut self, _scope: &T) -> Result<()> {
+    fn replace_scope<T: Scope>(&mut self, _scope: &T) -> Result<()> {
         let scope_key = <T as Scope>::scope_key();
 
         let _span = span!(
