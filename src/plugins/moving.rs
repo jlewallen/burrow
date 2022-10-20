@@ -29,7 +29,7 @@ pub mod model {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Occupying {
-        pub area: DynamicEntityRef,
+        pub area: LazyLoadedEntity,
     }
 
     impl Scope for Occupying {
@@ -48,7 +48,7 @@ pub mod model {
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Occupyable {
         pub acls: Acls,
-        pub occupied: Vec<DynamicEntityRef>,
+        pub occupied: Vec<LazyLoadedEntity>,
         pub occupancy: u32,
     }
 
@@ -71,7 +71,7 @@ pub mod model {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Exit {
-        pub area: DynamicEntityRef,
+        pub area: LazyLoadedEntity,
     }
 
     impl Scope for Exit {
@@ -89,7 +89,7 @@ pub mod model {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct AreaRoute {
-        pub area: DynamicEntityRef,
+        pub area: LazyLoadedEntity,
     }
 
     #[derive(Debug, Serialize, Deserialize)]
@@ -115,11 +115,11 @@ pub mod model {
     pub fn discover(source: &Entity, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
         if let Ok(occupyable) = source.scope::<Occupyable>() {
             // Pretty sure this clone should be unnecessary.
-            entity_keys.extend(occupyable.occupied.iter().map(|er| er.key().clone()));
+            entity_keys.extend(occupyable.occupied.iter().map(|er| er.key.clone()));
         }
         if let Ok(movement) = source.scope::<Movement>() {
             for route in &movement.routes {
-                entity_keys.push(route.area.key().clone());
+                entity_keys.push(route.area.key.clone());
             }
         }
         Ok(())

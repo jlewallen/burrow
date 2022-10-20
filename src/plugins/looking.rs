@@ -20,7 +20,7 @@ pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
 }
 
 pub mod model {
-    use std::{cell::RefCell, ops::Deref, rc::Rc};
+    use std::ops::Deref;
 
     use crate::{
         kernel::*,
@@ -90,23 +90,18 @@ pub mod model {
 
     // TODO This seems unnececssary, how can I help the compiler deduce the
     // proper chain of TryFrom/From to get here?
-    impl TryFrom<&DynamicEntityRef> for ObservedEntity {
+    impl TryFrom<&LazyLoadedEntity> for ObservedEntity {
         type Error = DomainError;
 
-        fn try_from(value: &DynamicEntityRef) -> Result<Self, Self::Error> {
-            match value {
-                DynamicEntityRef::Entity(re) => {
-                    let e: Rc<RefCell<Entity>> = re.into_entity()?;
-                    let e = e.borrow();
+        fn try_from(value: &LazyLoadedEntity) -> Result<Self, Self::Error> {
+            let entity = value.into_entity()?;
+            let e = entity.borrow();
 
-                    Ok(Self {
-                        key: e.key.clone(),
-                        name: e.name(),
-                        desc: e.desc(),
-                    })
-                }
-                _ => Err(DomainError::DanglingEntity),
-            }
+            Ok(Self {
+                key: e.key.clone(),
+                name: e.name(),
+                desc: e.desc(),
+            })
         }
     }
 

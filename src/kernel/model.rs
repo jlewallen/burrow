@@ -206,8 +206,8 @@ pub struct Entity {
     py_object: String,
     pub key: EntityKey,
     version: Version,
-    parent: Option<DynamicEntityRef>,
-    creator: Option<DynamicEntityRef>,
+    parent: Option<LazyLoadedEntity>,
+    creator: Option<LazyLoadedEntity>,
     identity: Identity,
     #[serde(alias = "klass")]
     class: EntityClass,
@@ -408,176 +408,50 @@ impl<'me, T: Scope> DerefMut for OpenScopeMut<'me, T> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ReferencedEntity {
+pub struct LazyLoadedEntity {
     #[serde(alias = "py/object")]
     py_object: String,
     #[serde(alias = "py/ref")]
     py_ref: String,
-    key: EntityKey,
+    pub key: EntityKey,
     #[serde(alias = "klass")]
     class: String,
     name: String,
+
     #[serde(skip)]
-    entity: Weak<RefCell<Entity>>,
+    entity: Option<Weak<RefCell<Entity>>>,
 }
 
-impl ReferencedEntity {
-    pub fn new(entity: Rc<RefCell<Entity>>) -> Self {
+impl LazyLoadedEntity {
+    pub fn new_with_entity(entity: EntityPtr) -> Self {
         let shared_entity = entity.borrow();
-
         Self {
             py_object: "py/object".to_string(),
             py_ref: "py/ref".to_string(),
             key: shared_entity.key.clone(),
             class: shared_entity.class.py_type.clone(),
             name: shared_entity.name().unwrap_or("".to_string()),
-            entity: Rc::downgrade(&entity),
+            entity: Some(Rc::downgrade(&entity)),
         }
+    }
+
+    pub fn has_entity(&self) -> bool {
+        self.entity.is_some()
     }
 
     pub fn into_entity(&self) -> Result<EntityPtr, DomainError> {
-        if let Some(e) = self.entity.upgrade() {
-            Ok(e)
-        } else {
-            Err(DomainError::DanglingEntity)
-        }
-    }
-}
-
-/*
-impl TryFrom<ReferencedEntity> for Rc<RefCell<Entity>> {
-    type Error = DomainError;
-
-    fn try_from(value: ReferencedEntity) -> Result<Self, Self::Error> {
-        match value.entity.upgrade() {
-            Some(e) => Ok(e),
+        match &self.entity {
+            Some(e) => e.upgrade().ok_or(DomainError::DanglingEntity),
             None => Err(DomainError::DanglingEntity),
         }
     }
 }
-*/
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum DynamicEntityRef {
-    RefOnly {
-        #[serde(alias = "py/object")]
-        py_object: String,
-        #[serde(alias = "py/ref")]
-        py_ref: String,
-        key: EntityKey,
-        #[serde(alias = "klass")]
-        class: String,
-        name: String,
-    },
-    Entity(ReferencedEntity),
-}
-
-impl DynamicEntityRef {
-    pub fn key(&self) -> &EntityKey {
-        match self {
-            DynamicEntityRef::RefOnly {
-                py_object: _,
-                py_ref: _,
-                key,
-                class: _,
-                name: _,
-            } => key,
-            DynamicEntityRef::Entity(e) => &e.key,
-        }
-    }
-
-    pub fn into_entity(&self) -> Result<EntityPtr, DomainError> {
-        match self {
-            DynamicEntityRef::RefOnly {
-                py_object: _,
-                py_ref: _,
-                key: _,
-                class: _,
-                name: _,
-            } => Err(DomainError::DanglingEntity),
-            DynamicEntityRef::Entity(e) => e.into_entity(),
-        }
-    }
-}
-
-impl From<EntityPtr> for DynamicEntityRef {
+impl From<EntityPtr> for LazyLoadedEntity {
     fn from(entity: EntityPtr) -> Self {
-        DynamicEntityRef::Entity(ReferencedEntity::new(entity))
+        LazyLoadedEntity::new_with_entity(entity)
     }
 }
-
-/*
-impl TryFrom<&DynamicEntityRef> for EntityPtr {
-    type Error = DomainError;
-
-    fn try_from(value: &DynamicEntityRef) -> Result<Self, Self::Error> {
-        match value {
-            DynamicEntityRef::RefOnly {
-                py_object: _,
-                py_ref: _,
-                key: _,
-                class: _,
-                name: _,
-            } => Err(DomainError::DanglingEntity),
-            DynamicEntityRef::Entity(e) => e.entity.upgrade().ok_or(DomainError::DanglingEntity),
-        }
-    }
-}
-
-impl From<DynamicEntityRef> for EntityRef {
-    fn from(value: DynamicEntityRef) -> Self {
-        match value {
-            DynamicEntityRef::RefOnly {
-                py_object,
-                py_ref,
-                key,
-                class,
-                name,
-            } => EntityRef {
-                py_object,
-                py_ref,
-                key,
-                class,
-                name,
-            },
-            DynamicEntityRef::Entity(e) => {
-                if let Some(e) = e.entity.upgrade() {
-                    return e.borrow().deref().into();
-                }
-                panic!("empty dynamic reference ");
-            }
-        }
-    }
-}
-
-impl From<DynamicEntityRef> for EntityKey {
-    fn from(value: DynamicEntityRef) -> Self {
-        match value {
-            DynamicEntityRef::RefOnly {
-                py_object: _,
-                py_ref: _,
-                key,
-                class: _,
-                name: _,
-            } => key.clone(),
-            DynamicEntityRef::Entity(e) => e.key.clone(),
-        }
-    }
-}
-
-impl From<&Entity> for EntityRef {
-    fn from(e: &Entity) -> Self {
-        EntityRef {
-            py_object: "todo!".to_string(),
-            py_ref: "todo!".to_string(),
-            key: e.key.clone(),
-            class: "todo!".to_string(),
-            name: e.name().unwrap_or_default(),
-        }
-    }
-}
-*/
 
 #[derive(Error, Debug)]
 pub enum DomainError {

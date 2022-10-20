@@ -163,18 +163,12 @@ fn matches_description(entity: &Entity, desc: &str) -> bool {
 }
 
 impl Infrastructure for DomainInfrastructure {
-    fn ensure_entity(&self, entity_ref: &DynamicEntityRef) -> Result<DynamicEntityRef> {
-        match entity_ref {
-            DynamicEntityRef::RefOnly {
-                py_object: _,
-                py_ref: _,
-                key,
-                class: _,
-                name: _,
-            } => Ok(DynamicEntityRef::Entity(ReferencedEntity::new(
-                self.load_entity_by_key(key)?,
-            ))),
-            DynamicEntityRef::Entity(_) => Ok(entity_ref.clone()),
+    fn ensure_entity(&self, entity_ref: &LazyLoadedEntity) -> Result<LazyLoadedEntity> {
+        if entity_ref.has_entity() {
+            Ok(entity_ref.clone())
+        } else {
+            let entity = self.load_entity_by_key(&entity_ref.key)?;
+            Ok(LazyLoadedEntity::new_with_entity(entity))
         }
     }
 

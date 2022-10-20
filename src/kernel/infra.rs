@@ -2,12 +2,12 @@ use super::*;
 use std::{cell::RefCell, rc::Rc};
 
 pub trait Infrastructure: Debug + LoadEntities {
-    fn ensure_entity(&self, entity_ref: &DynamicEntityRef) -> Result<DynamicEntityRef>;
+    fn ensure_entity(&self, entity_ref: &LazyLoadedEntity) -> Result<LazyLoadedEntity>;
 
     fn ensure_optional_entity(
         &self,
-        entity_ref: &Option<DynamicEntityRef>,
-    ) -> Result<Option<DynamicEntityRef>> {
+        entity_ref: &Option<LazyLoadedEntity>,
+    ) -> Result<Option<LazyLoadedEntity>> {
         match entity_ref {
             Some(e) => Ok(Some(self.ensure_entity(e)?)),
             None => Ok(None),

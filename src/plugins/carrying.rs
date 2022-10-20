@@ -52,7 +52,7 @@ pub mod model {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Location {
-        pub container: Option<DynamicEntityRef>,
+        pub container: Option<LazyLoadedEntity>,
     }
 
     impl Scope for Location {
@@ -70,7 +70,7 @@ pub mod model {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Containing {
-        pub holding: Vec<DynamicEntityRef>,
+        pub holding: Vec<LazyLoadedEntity>,
         pub capacity: Option<u32>,
         pub produces: HashMap<String, String>,
     }
@@ -104,7 +104,7 @@ pub mod model {
         pub fn stop_carrying(&mut self, item: EntityPtr) -> CarryingResult {
             let before = self.holding.len();
 
-            self.holding.retain(|i| *i.key() != item.borrow().key);
+            self.holding.retain(|i| i.key != item.borrow().key);
 
             info!("contained {} and now {}", before, self.holding.len());
 
@@ -131,7 +131,7 @@ pub mod model {
     pub fn discover(source: &Entity, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
         if let Ok(containing) = source.scope::<Containing>() {
             // TODO Pretty sure this clone should be unnecessary, can we clone into from an iterator?
-            entity_keys.extend(containing.holding.iter().map(|er| er.key().clone()))
+            entity_keys.extend(containing.holding.iter().map(|er| er.key.clone()))
         }
         Ok(())
     }
