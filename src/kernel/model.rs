@@ -22,6 +22,10 @@ pub type EntityPtr = Rc<RefCell<Entity>>;
 pub struct EntityKey(String);
 
 impl EntityKey {
+    pub fn new(s: &str) -> EntityKey {
+        EntityKey(s.to_string())
+    }
+
     pub fn key_to_string(&self) -> &str {
         &self.0
     }
@@ -142,7 +146,7 @@ impl Default for Version {
     fn default() -> Self {
         Self {
             py_object: Default::default(),
-            i: Default::default(),
+            i: 1,
         }
     }
 }
