@@ -59,6 +59,10 @@ pub mod actions {
         maybe_item: Item,
     }
     impl Action for EditAction {
+        fn is_read_only() -> bool {
+            true
+        }
+
         fn perform(&self, (_world, _user, _area, _infra): ActionArgs) -> ReplyResult {
             info!("edit {:?}!", self.maybe_item);
 

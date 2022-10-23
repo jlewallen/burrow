@@ -182,6 +182,10 @@ pub mod actions {
     #[derive(Debug)]
     struct LookAction {}
     impl Action for LookAction {
+        fn is_read_only() -> bool {
+            true
+        }
+
         fn perform(&self, (_world, user, area, _infra): ActionArgs) -> ReplyResult {
             info!("look!");
 

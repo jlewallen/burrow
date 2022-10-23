@@ -149,6 +149,10 @@ pub mod actions {
     }
 
     impl Action for HoldAction {
+        fn is_read_only() -> bool {
+            false
+        }
+
         fn perform(&self, args: ActionArgs) -> ReplyResult {
             info!("hold {:?}!", self.item);
 
@@ -176,6 +180,10 @@ pub mod actions {
     }
 
     impl Action for DropAction {
+        fn is_read_only() -> bool {
+            false
+        }
+
         fn perform(&self, args: ActionArgs) -> ReplyResult {
             info!("drop {:?}!", self.maybe_item);
 

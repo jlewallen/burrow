@@ -134,6 +134,10 @@ pub mod actions {
     struct GoAction {}
 
     impl Action for GoAction {
+        fn is_read_only() -> bool {
+            false
+        }
+
         fn perform(&self, (_world, _user, _area, _infra): ActionArgs) -> ReplyResult {
             info!("go!");
 

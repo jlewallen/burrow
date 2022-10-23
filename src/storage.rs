@@ -51,6 +51,12 @@ pub mod sqlite {
 
             Ok(SqliteStorage { conn: conn })
         }
+
+        /*
+        pub fn transanction<T: FnOnce() -> Result<T>>(&self, work: T) -> Result<T> {
+            work()
+        }
+        */
     }
 
     impl EntityStorage for SqliteStorage {
@@ -115,10 +121,10 @@ pub mod sqlite {
     }
 
     impl Factory {
-        pub fn new(path: &str) -> Box<Factory> {
-            Box::new(Factory {
+        pub fn new(path: &str) -> Result<Box<Factory>> {
+            Ok(Box::new(Factory {
                 path: path.to_string(),
-            })
+            }))
         }
     }
 
