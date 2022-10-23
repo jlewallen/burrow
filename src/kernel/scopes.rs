@@ -7,6 +7,10 @@ pub type ActionArgs = (EntityPtr, EntityPtr, EntityPtr, Rc<dyn Infrastructure>);
 
 pub trait Action: Debug {
     fn perform(&self, args: ActionArgs) -> ReplyResult;
+
+    fn is_read_only() -> bool
+    where
+        Self: Sized;
 }
 
 pub trait Scope: Debug + Needs<Rc<dyn Infrastructure>> + DeserializeOwned {

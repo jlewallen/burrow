@@ -56,7 +56,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Some(Commands::Eval) => {
             // use kernel::markdown_to_string;
 
-            let storage_factory = storage::sqlite::Factory::new("world.sqlite3");
+            let storage_factory = storage::sqlite::Factory::new("world.sqlite3")?;
             let domain = domain::Domain::new(storage_factory);
 
             {
