@@ -67,6 +67,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                     // info!("reply `{}`", markdown_to_string(reply.to_markdown()?)?);
                     info!("reply `{}`", reply.to_json()?);
                 }
+
+                session.close()?
             }
 
             {
@@ -77,6 +79,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                     // info!("reply `{}`", markdown_to_string(reply.to_markdown()?)?);
                     info!("reply `{}`", reply.to_json()?);
                 }
+
+                session.close()?
             }
 
             Ok(())

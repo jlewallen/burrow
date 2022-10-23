@@ -11,7 +11,7 @@ use tracing::{debug, info, span, trace, Level};
 
 struct Entities {
     entities: RefCell<HashMap<EntityKey, Rc<RefCell<Entity>>>>,
-    storage: Box<dyn EntityStorage>,
+    storage: Rc<dyn EntityStorage>,
     infra: Weak<dyn Infrastructure>,
 }
 
@@ -22,7 +22,7 @@ impl Debug for Entities {
 }
 
 impl Entities {
-    pub fn new(storage: Box<dyn EntityStorage>, infra: Weak<dyn Infrastructure>) -> Rc<Self> {
+    pub fn new(storage: Rc<dyn EntityStorage>, infra: Weak<dyn Infrastructure>) -> Rc<Self> {
         trace!("entities-new");
 
         Rc::new(Self {
@@ -80,7 +80,7 @@ pub struct DomainInfrastructure {
 }
 
 impl DomainInfrastructure {
-    pub fn new(storage: Box<dyn EntityStorage>) -> Rc<Self> {
+    pub fn new(storage: Rc<dyn EntityStorage>) -> Rc<Self> {
         Rc::new_cyclic(|me: &Weak<DomainInfrastructure>| {
             // How acceptable is this kind of thing?
             let infra = Weak::clone(me) as Weak<dyn Infrastructure>;

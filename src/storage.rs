@@ -1,14 +1,18 @@
 use crate::kernel::EntityKey;
 use anyhow::Result;
+use std::rc::Rc;
 use tracing::debug;
 
 pub trait EntityStorage {
     fn load(&self, key: &EntityKey) -> Result<PersistedEntity>;
     fn save(&self, entity: &PersistedEntity) -> Result<()>;
+    fn begin(&self) -> Result<()>;
+    fn rollback(&self) -> Result<()>;
+    fn commit(&self) -> Result<()>;
 }
 
 pub trait EntityStorageFactory {
-    fn create_storage(&self) -> Result<Box<dyn EntityStorage>>;
+    fn create_storage(&self) -> Result<Rc<dyn EntityStorage>>;
 }
 
 #[derive(Debug)]
@@ -23,6 +27,7 @@ pub mod sqlite {
     use super::*;
     use anyhow::anyhow;
     use rusqlite::Connection;
+    use tracing::info;
 
     pub struct SqliteStorage {
         conn: Connection,
@@ -51,12 +56,6 @@ pub mod sqlite {
 
             Ok(SqliteStorage { conn: conn })
         }
-
-        /*
-        pub fn transanction<T: FnOnce() -> Result<T>>(&self, work: T) -> Result<T> {
-            work()
-        }
-        */
     }
 
     impl EntityStorage for SqliteStorage {
@@ -114,6 +113,30 @@ pub mod sqlite {
                 Ok(())
             }
         }
+
+        fn begin(&self) -> Result<()> {
+            info!("tx:begin");
+
+            self.conn.execute("BEGIN TRANSACTION", [])?;
+
+            Ok(())
+        }
+
+        fn rollback(&self) -> Result<()> {
+            info!("tx:rollback");
+
+            self.conn.execute("ROLLBACK TRANSACTION", [])?;
+
+            Ok(())
+        }
+
+        fn commit(&self) -> Result<()> {
+            info!("tx:commit");
+
+            self.conn.execute("COMMIT TRANSACTION", [])?;
+
+            Ok(())
+        }
     }
 
     pub struct Factory {
@@ -129,8 +152,8 @@ pub mod sqlite {
     }
 
     impl EntityStorageFactory for Factory {
-        fn create_storage(&self) -> Result<Box<dyn EntityStorage>> {
-            Ok(Box::new(SqliteStorage::new(&self.path)?))
+        fn create_storage(&self) -> Result<Rc<dyn EntityStorage>> {
+            Ok(Rc::new(SqliteStorage::new(&self.path)?))
         }
     }
 
