@@ -162,14 +162,16 @@ pub mod sqlite {
         use super::*;
         use anyhow::Result;
 
-        fn get_storage() -> Result<Box<dyn EntityStorage>> {
-            let s = Factory::new(":memory:");
+        fn get_storage() -> Result<Rc<dyn EntityStorage>> {
+            let s = Factory::new(":memory:")?;
+
             Ok(s.create_storage()?)
         }
 
         #[test]
         fn it_queries_for_entity_by_missing_key() -> Result<()> {
             let s = get_storage()?;
+
             match s.load(&EntityKey::new("world")) {
                 Ok(_) => Err(anyhow!("unexpected")),
                 Err(_e) => {
@@ -229,6 +231,50 @@ pub mod sqlite {
             let p2 = s.load(&EntityKey::new("world"))?;
 
             assert_eq!(2, p2.version);
+
+            Ok(())
+        }
+
+        #[test]
+        fn it_inserts_a_new_entity_in_a_rolled_back_transaction_inserts_nothing() -> Result<()> {
+            let s = get_storage()?;
+
+            s.begin()?;
+
+            s.save(&PersistedEntity {
+                key: "world".to_string(),
+                gid: 1,
+                version: 1,
+                serialized: "{}".to_string(),
+            })?;
+
+            s.rollback()?;
+
+            match s.load(&EntityKey::new("world")) {
+                Ok(_) => Err(anyhow!("unexpected")),
+                Err(_e) => {
+                    // assert_eq!(e, anyhow!(""));
+                    Ok(())
+                }
+            }
+        }
+
+        #[test]
+        fn it_inserts_a_new_entity_in_a_committed_transaction() -> Result<()> {
+            let s = get_storage()?;
+
+            s.begin()?;
+
+            s.save(&PersistedEntity {
+                key: "world".to_string(),
+                gid: 1,
+                version: 1,
+                serialized: "{}".to_string(),
+            })?;
+
+            s.commit()?;
+
+            s.load(&EntityKey::new("world"))?;
 
             Ok(())
         }
