@@ -9,8 +9,14 @@ use std::{
 };
 use tracing::{debug, info, span, trace, Level};
 
-struct EntityMap {
-    entities: RefCell<HashMap<EntityKey, Rc<RefCell<Entity>>>>,
+pub struct LoadedEntity {
+    pub key: EntityKey,
+    pub entity: EntityPtr,
+    pub serialized: String,
+}
+
+pub struct EntityMap {
+    entities: RefCell<HashMap<EntityKey, LoadedEntity>>,
 }
 
 impl EntityMap {
@@ -24,16 +30,26 @@ impl EntityMap {
         let check_existing = self.entities.borrow();
         if let Some(e) = check_existing.get(key) {
             debug!(%key, "existing");
-            return Ok(Some(Rc::clone(e)));
+            return Ok(Some(Rc::clone(&e.entity)));
         }
 
         Ok(None)
     }
 
-    pub fn add_entity(&self, key: &EntityKey, cell: &EntityPtr) -> Result<()> {
+    pub fn add_entity(&self, key: &EntityKey, loaded: LoadedEntity) -> Result<()> {
         let mut cache = self.entities.borrow_mut();
 
-        cache.insert(key.clone(), Rc::clone(&cell));
+        cache.insert(key.clone(), loaded);
+
+        Ok(())
+    }
+
+    pub fn foreach_entity<T: Fn(&LoadedEntity) -> Result<()>>(&self, each: T) -> Result<()> {
+        let cache = self.entities.borrow();
+
+        for (_key, entity) in cache.iter() {
+            each(entity)?;
+        }
 
         Ok(())
     }
@@ -52,11 +68,15 @@ impl Debug for Entities {
 }
 
 impl Entities {
-    pub fn new(storage: Rc<dyn EntityStorage>, infra: Weak<dyn Infrastructure>) -> Rc<Self> {
+    pub fn new(
+        entities: Rc<EntityMap>,
+        storage: Rc<dyn EntityStorage>,
+        infra: Weak<dyn Infrastructure>,
+    ) -> Rc<Self> {
         trace!("entities-new");
 
         Rc::new(Self {
-            entities: EntityMap::new(),
+            entities: entities,
             storage,
             infra,
         })
@@ -86,7 +106,14 @@ impl PrepareEntities for Entities {
 
         let cell = Rc::new(RefCell::new(loaded));
 
-        self.entities.add_entity(key, &cell)?;
+        self.entities.add_entity(
+            key,
+            LoadedEntity {
+                key: key.clone(),
+                entity: Rc::clone(&cell),
+                serialized: persisted.serialized,
+            },
+        )?;
 
         Ok(cell)
     }
@@ -98,11 +125,11 @@ pub struct DomainInfrastructure {
 }
 
 impl DomainInfrastructure {
-    pub fn new(storage: Rc<dyn EntityStorage>) -> Rc<Self> {
+    pub fn new(storage: Rc<dyn EntityStorage>, entity_map: Rc<EntityMap>) -> Rc<Self> {
         Rc::new_cyclic(|me: &Weak<DomainInfrastructure>| {
             // How acceptable is this kind of thing?
             let infra = Weak::clone(me) as Weak<dyn Infrastructure>;
-            let entities = Entities::new(storage, infra);
+            let entities = Entities::new(entity_map, storage, infra);
             DomainInfrastructure { entities }
         })
     }

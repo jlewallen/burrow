@@ -9,11 +9,12 @@ use std::{
 use tracing::{debug, event, info, span, trace, warn, Level};
 
 use super::eval;
-use super::internal::DomainInfrastructure;
+use super::internal::{DomainInfrastructure, EntityMap};
 
 pub struct Session {
     infra: Rc<DomainInfrastructure>,
     storage: Rc<dyn EntityStorage>,
+    entity_map: Rc<EntityMap>,
     open: AtomicBool,
     discoverying: bool,
 }
@@ -22,9 +23,12 @@ impl Session {
     pub fn new(storage: Rc<dyn EntityStorage>) -> Result<Self> {
         info!("session-new");
 
+        let entity_map = EntityMap::new();
+
         Ok(Self {
-            infra: DomainInfrastructure::new(Rc::clone(&storage)),
+            infra: DomainInfrastructure::new(Rc::clone(&storage), Rc::clone(&entity_map)),
             storage: storage,
+            entity_map: entity_map,
             open: AtomicBool::new(true),
             discoverying: true,
         })
@@ -98,6 +102,31 @@ impl Session {
     }
 
     pub fn close(&self) -> Result<()> {
+        // use serde_json;
+        use treediff::diff;
+        use treediff::tools::Recorder;
+
+        self.entity_map.foreach_entity(|l| {
+            let entity = l.entity.borrow();
+
+            let serialized = serde_json::to_string(&*entity)?;
+            let v1: serde_json::Value = l.serialized.parse()?;
+            let v2: serde_json::Value = serialized.parse()?;
+
+            let mut d = Recorder::default();
+            diff(&v1, &v2, &mut d);
+
+            info!("foreach: {:?} {:?}", entity.key, d.calls.len());
+
+            info!("foreach: {:?}", serialized);
+
+            for each in d.calls {
+                info!("each: {:?}", each)
+            }
+
+            Ok(())
+        })?;
+
         self.storage.commit()?;
 
         self.open.store(false, Ordering::Relaxed);

@@ -60,19 +60,19 @@ pub enum Item {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EntityRef {
-    #[serde(alias = "py/object")]
+    #[serde(rename = "py/object")]
     py_object: String,
-    #[serde(alias = "py/ref")]
+    #[serde(rename = "py/ref")]
     py_ref: String,
     pub key: EntityKey,
-    #[serde(alias = "klass")]
+    #[serde(rename = "klass")]
     class: String,
     name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Identity {
-    #[serde(alias = "py/object")]
+    #[serde(rename = "py/object")]
     py_object: String,
     private: String,
     public: String,
@@ -92,14 +92,14 @@ impl Default for Identity {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Kind {
-    #[serde(alias = "py/object")]
+    #[serde(rename = "py/object")]
     py_object: String,
     identity: Identity,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EntityClass {
-    #[serde(alias = "py/type")]
+    #[serde(rename = "py/type")]
     py_type: String,
 }
 
@@ -113,7 +113,7 @@ impl Default for EntityClass {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AclRule {
-    #[serde(alias = "py/object")]
+    #[serde(rename = "py/object")]
     py_object: String,
     keys: Vec<String>,
     perm: String,
@@ -121,7 +121,7 @@ pub struct AclRule {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Acls {
-    #[serde(alias = "py/object")]
+    #[serde(rename = "py/object")]
     py_object: String,
     rules: Vec<AclRule>,
 }
@@ -137,7 +137,7 @@ impl Default for Acls {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Version {
-    #[serde(alias = "py/object")]
+    #[serde(rename = "py/object")]
     py_object: String,
     i: u32,
 }
@@ -153,17 +153,23 @@ impl Default for Version {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Property {
+    #[serde(rename = "py/object")]
+    py_object: String,
+    acls: Acls,
     value: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Props {
+    #[serde(rename = "py/object")]
+    py_object: String,
     map: HashMap<String, Property>,
 }
 
 impl Default for Props {
     fn default() -> Self {
         Self {
+            py_object: "model.properties.Common".to_string(), // #python-class
             map: Default::default(),
         }
     }
@@ -202,14 +208,14 @@ impl Props {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Entity {
-    #[serde(alias = "py/object")]
+    #[serde(rename = "py/object")]
     py_object: String,
     pub key: EntityKey,
     version: Version,
     parent: Option<LazyLoadedEntity>,
     creator: Option<LazyLoadedEntity>,
     identity: Identity,
-    #[serde(alias = "klass")]
+    #[serde(rename = "klass")]
     class: EntityClass,
     acls: Acls,
     props: Props,
@@ -409,12 +415,12 @@ impl<'me, T: Scope> DerefMut for OpenScopeMut<'me, T> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LazyLoadedEntity {
-    #[serde(alias = "py/object")]
+    #[serde(rename = "py/object")]
     py_object: String,
-    #[serde(alias = "py/ref")]
+    #[serde(rename = "py/ref")]
     py_ref: String,
     pub key: EntityKey,
-    #[serde(alias = "klass")]
+    #[serde(rename = "klass")]
     class: String,
     name: String,
 
@@ -426,8 +432,8 @@ impl LazyLoadedEntity {
     pub fn new_with_entity(entity: EntityPtr) -> Self {
         let shared_entity = entity.borrow();
         Self {
-            py_object: "py/object".to_string(),
-            py_ref: "py/ref".to_string(),
+            py_object: "model.entity.EntityRef".to_string(), // #python-class
+            py_ref: "model.entity.Entity".to_string(),       // #python-class
             key: shared_entity.key.clone(),
             class: shared_entity.class.py_type.clone(),
             name: shared_entity.name().unwrap_or("".to_string()),
