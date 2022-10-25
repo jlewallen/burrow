@@ -9,8 +9,38 @@ use std::{
 };
 use tracing::{debug, info, span, trace, Level};
 
-struct Entities {
+struct EntityMap {
     entities: RefCell<HashMap<EntityKey, Rc<RefCell<Entity>>>>,
+}
+
+impl EntityMap {
+    pub fn new() -> Rc<Self> {
+        Rc::new(Self {
+            entities: RefCell::new(HashMap::new()),
+        })
+    }
+
+    pub fn lookup_entity(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
+        let check_existing = self.entities.borrow();
+        if let Some(e) = check_existing.get(key) {
+            debug!(%key, "existing");
+            return Ok(Some(Rc::clone(e)));
+        }
+
+        Ok(None)
+    }
+
+    pub fn add_entity(&self, key: &EntityKey, cell: &EntityPtr) -> Result<()> {
+        let mut cache = self.entities.borrow_mut();
+
+        cache.insert(key.clone(), Rc::clone(&cell));
+
+        Ok(())
+    }
+}
+
+struct Entities {
+    entities: Rc<EntityMap>,
     storage: Rc<dyn EntityStorage>,
     infra: Weak<dyn Infrastructure>,
 }
@@ -26,7 +56,7 @@ impl Entities {
         trace!("entities-new");
 
         Rc::new(Self {
-            entities: RefCell::new(HashMap::new()),
+            entities: EntityMap::new(),
             storage,
             infra,
         })
@@ -34,17 +64,9 @@ impl Entities {
 }
 
 impl PrepareEntities for Entities {
-    fn prepare_entity_by_key<T: Fn(&mut Entity) -> Result<()>>(
-        &self,
-        key: &EntityKey,
-        prepare: T,
-    ) -> Result<EntityPtr> {
-        {
-            let check_existing = self.entities.borrow();
-            if let Some(e) = check_existing.get(key) {
-                debug!(%key, "existing");
-                return Ok(Rc::clone(e));
-            }
+    fn prepare_entity_by_key(&self, key: &EntityKey) -> Result<EntityPtr> {
+        if let Some(e) = self.entities.lookup_entity(key)? {
+            return Ok(e);
         }
 
         let _loading_span = span!(Level::INFO, "entity", key = key.key_to_string()).entered();
@@ -62,13 +84,9 @@ impl PrepareEntities for Entities {
             return Err(anyhow!("no infrastructure"));
         }
 
-        prepare(&mut loaded)?;
-
         let cell = Rc::new(RefCell::new(loaded));
 
-        let mut cache = self.entities.borrow_mut();
-
-        cache.insert(key.clone(), Rc::clone(&cell));
+        self.entities.add_entity(key, &cell)?;
 
         Ok(cell)
     }
@@ -92,7 +110,7 @@ impl DomainInfrastructure {
 
 impl LoadEntities for DomainInfrastructure {
     fn load_entity_by_key(&self, key: &EntityKey) -> Result<EntityPtr> {
-        self.entities.prepare_entity_by_key(key, |_e| Ok(()))
+        self.entities.prepare_entity_by_key(key)
     }
 }
 

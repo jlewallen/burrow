@@ -20,11 +20,7 @@ pub trait Scope: Debug + Needs<Rc<dyn Infrastructure>> + DeserializeOwned {
 }
 
 pub trait PrepareEntities {
-    fn prepare_entity_by_key<T: Fn(&mut Entity) -> Result<()>>(
-        &self,
-        key: &EntityKey,
-        prepare: T,
-    ) -> Result<EntityPtr>;
+    fn prepare_entity_by_key(&self, key: &EntityKey) -> Result<EntityPtr>;
 }
 
 pub trait LoadEntities {
