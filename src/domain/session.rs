@@ -2,8 +2,11 @@ use crate::kernel::*;
 use crate::plugins::{moving::model::Occupying, users::model::Usernames};
 use crate::storage::{EntityStorage, EntityStorageFactory};
 use anyhow::Result;
-use std::rc::Rc;
-use tracing::{debug, event, info, span, Level};
+use std::{
+    rc::Rc,
+    sync::atomic::{AtomicBool, Ordering},
+};
+use tracing::{debug, event, info, span, trace, warn, Level};
 
 use super::eval;
 use super::internal::DomainInfrastructure;
@@ -11,6 +14,7 @@ use super::internal::DomainInfrastructure;
 pub struct Session {
     infra: Rc<DomainInfrastructure>,
     storage: Rc<dyn EntityStorage>,
+    open: AtomicBool,
     discoverying: bool,
 }
 
@@ -21,11 +25,16 @@ impl Session {
         Ok(Self {
             infra: DomainInfrastructure::new(Rc::clone(&storage)),
             storage: storage,
+            open: AtomicBool::new(true),
             discoverying: true,
         })
     }
 
     pub fn evaluate_and_perform(&self, user_name: &str, text: &str) -> Result<Box<dyn Reply>> {
+        if !self.open.load(Ordering::Relaxed) {
+            return Err(DomainError::SessionClosed.into());
+        }
+
         let check = {
             let _doing_span = span!(Level::INFO, "session-do", user = user_name).entered();
 
@@ -80,6 +89,9 @@ impl Session {
                 if let Err(_rollback_err) = self.storage.rollback() {
                     panic!("error rolling back");
                 }
+
+                self.open.store(false, Ordering::Relaxed);
+
                 Err(original_err)
             }
         }
@@ -88,13 +100,19 @@ impl Session {
     pub fn close(&self) -> Result<()> {
         self.storage.commit()?;
 
+        self.open.store(false, Ordering::Relaxed);
+
         Ok(())
     }
 }
 
 impl Drop for Session {
     fn drop(&mut self) {
-        info!("session-drop");
+        if self.open.load(Ordering::Relaxed) {
+            warn!("session-drop: open session!");
+        } else {
+            trace!("session-drop");
+        }
     }
 }
 

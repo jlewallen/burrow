@@ -465,6 +465,8 @@ pub enum DomainError {
     Anyhow(#[source] anyhow::Error),
     #[error("no infrastructure")]
     NoInfrastructure,
+    #[error("session closed")]
+    SessionClosed,
 }
 
 impl From<serde_json::Error> for DomainError {

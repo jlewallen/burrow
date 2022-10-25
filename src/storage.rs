@@ -172,13 +172,9 @@ pub mod sqlite {
         fn it_queries_for_entity_by_missing_key() -> Result<()> {
             let s = get_storage()?;
 
-            match s.load(&EntityKey::new("world")) {
-                Ok(_) => Err(anyhow!("unexpected")),
-                Err(_e) => {
-                    // assert_eq!(e, anyhow!(""));
-                    Ok(())
-                }
-            }
+            assert!(s.load(&EntityKey::new("world")).is_err());
+
+            Ok(())
         }
 
         #[test]
@@ -250,13 +246,9 @@ pub mod sqlite {
 
             s.rollback()?;
 
-            match s.load(&EntityKey::new("world")) {
-                Ok(_) => Err(anyhow!("unexpected")),
-                Err(_e) => {
-                    // assert_eq!(e, anyhow!(""));
-                    Ok(())
-                }
-            }
+            assert!(s.load(&EntityKey::new("world")).is_err());
+
+            Ok(())
         }
 
         #[test]
