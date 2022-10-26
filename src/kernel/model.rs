@@ -159,6 +159,16 @@ pub struct Property {
     value: serde_json::Value,
 }
 
+impl Property {
+    pub fn new(value: serde_json::Value) -> Self {
+        Self {
+            py_object: "".to_string(),
+            acls: Default::default(),
+            value: value,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Props {
     #[serde(rename = "py/object")]
@@ -203,6 +213,10 @@ impl Props {
         } else {
             None
         }
+    }
+
+    fn set_property(&mut self, name: &str, value: serde_json::Value) {
+        self.map.insert(name.to_string(), Property::new(value));
     }
 }
 
@@ -263,8 +277,19 @@ impl Needs<std::rc::Rc<dyn Infrastructure>> for Entity {
 }
 
 impl Entity {
+    pub fn new() -> EntityPtr {
+        Rc::new(RefCell::new(Self::default()))
+    }
+
     pub fn name(&self) -> Option<String> {
         self.props.string_property(NAME_PROPERTY)
+    }
+
+    pub fn set_name(&mut self, value: &str) -> Result<()> {
+        let value: serde_json::Value = value.into();
+        self.props.set_property(NAME_PROPERTY, value);
+
+        Ok(())
     }
 
     pub fn desc(&self) -> Option<String> {
@@ -319,7 +344,7 @@ impl Entity {
             if let Some(infra) = infra.upgrade() {
                 scope.supply(&infra)?;
             } else {
-                return Err(DomainError::NoInfrastructure);
+                return Err(DomainError::ExpiredInfrastructure);
             }
         } else {
             return Err(DomainError::NoInfrastructure);
@@ -342,6 +367,8 @@ impl Entity {
         let value = scope.serialize()?;
 
         info!("scope-replace");
+
+        // info!("scope-replace {}", value.to_string());
 
         self.scopes.insert(scope_key.to_string(), value);
 
@@ -386,6 +413,7 @@ impl<'me, T: Scope> OpenScopeMut<'me, T> {
 
     pub fn save(&mut self) -> Result<()> {
         self.owner.replace_scope(self.target.as_ref())?;
+
         Ok(())
     }
 }
@@ -485,6 +513,8 @@ pub enum DomainError {
     Anyhow(#[source] anyhow::Error),
     #[error("no infrastructure")]
     NoInfrastructure,
+    #[error("expired infrastructure")]
+    ExpiredInfrastructure,
     #[error("session closed")]
     SessionClosed,
 }
