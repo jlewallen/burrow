@@ -13,6 +13,8 @@ pub struct LoadedEntity {
     pub key: EntityKey,
     pub entity: EntityPtr,
     pub serialized: String,
+    pub version: u64,
+    pub gid: u64,
 }
 
 pub struct EntityMap {
@@ -112,6 +114,8 @@ impl PrepareEntities for Entities {
                 key: key.clone(),
                 entity: Rc::clone(&cell),
                 serialized: persisted.serialized,
+                gid: persisted.gid,
+                version: persisted.version + 1,
             },
         )?;
 

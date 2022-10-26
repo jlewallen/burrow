@@ -1,6 +1,6 @@
 use crate::kernel::*;
 use crate::plugins::{moving::model::Occupying, users::model::Usernames};
-use crate::storage::{EntityStorage, EntityStorageFactory};
+use crate::storage::{EntityStorage, EntityStorageFactory, PersistedEntity};
 use anyhow::Result;
 use std::{
     rc::Rc,
@@ -102,26 +102,48 @@ impl Session {
     }
 
     pub fn close(&self) -> Result<()> {
-        // use serde_json;
         use treediff::diff;
+        use treediff::tools::ChangeType;
         use treediff::tools::Recorder;
 
         self.entity_map.foreach_entity(|l| {
             let entity = l.entity.borrow();
 
+            let _span = span!(Level::DEBUG, "saving", key = entity.key.to_string()).entered();
+
             let serialized = serde_json::to_string(&*entity)?;
             let v1: serde_json::Value = l.serialized.parse()?;
             let v2: serde_json::Value = serialized.parse()?;
 
+            trace!("foreach: {:?}", serialized);
+
             let mut d = Recorder::default();
+
             diff(&v1, &v2, &mut d);
 
-            info!("foreach: {:?} {:?}", entity.key, d.calls.len());
+            let modifications = d
+                .calls
+                .iter()
+                .filter(|c| match c {
+                    ChangeType::Modified(_, _, _) => true,
+                    _ => false,
+                })
+                .count();
 
-            info!("foreach: {:?}", serialized);
+            if modifications > 0 {
+                for each in d.calls {
+                    match each {
+                        ChangeType::Unchanged(_, _) => {}
+                        _ => debug!("modified: {:?}", each),
+                    }
+                }
 
-            for each in d.calls {
-                info!("each: {:?}", each)
+                self.storage.save(&PersistedEntity {
+                    key: entity.key.to_string(),
+                    gid: l.gid,
+                    version: l.version,
+                    serialized,
+                })?;
             }
 
             Ok(())
