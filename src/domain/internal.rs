@@ -9,6 +9,17 @@ use std::{
 };
 use tracing::{debug, info, span, trace, Level};
 
+/// Determines if an entity matches a user's description of that entity, given
+/// no other context at all.
+fn matches_description(entity: &Entity, desc: &str) -> bool {
+    if let Some(name) = entity.name() {
+        // TODO We can do this more efficiently.
+        name.to_lowercase().contains(&desc.to_lowercase())
+    } else {
+        false
+    }
+}
+
 pub struct LoadedEntity {
     pub key: EntityKey,
     pub entity: EntityPtr,
@@ -147,6 +158,52 @@ impl LoadEntities for DomainInfrastructure {
     }
 }
 
+impl Infrastructure for DomainInfrastructure {
+    fn ensure_entity(&self, entity_ref: &LazyLoadedEntity) -> Result<LazyLoadedEntity> {
+        if entity_ref.has_entity() {
+            Ok(entity_ref.clone())
+        } else {
+            let entity = self.load_entity_by_key(&entity_ref.key)?;
+            Ok(LazyLoadedEntity::new_with_entity(entity))
+        }
+    }
+
+    fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<EntityPtr>> {
+        let _loading_span = span!(Level::INFO, "finding", i = format!("{:?}", item)).entered();
+
+        info!("finding");
+
+        match item {
+            Item::Named(name) => {
+                let haystack = EntityRelationshipSet::new_from_action(args).expand()?;
+
+                // https://github.com/ferrous-systems/elements-of-rust#tuple-structs-and-enum-tuple-variants-as-functions
+                for entity in &haystack.entities {
+                    match entity {
+                        EntityRelationship::Holding(e) => {
+                            if matches_description(&e.borrow(), name) {
+                                return Ok(Some(e.clone()));
+                            }
+                        }
+                        EntityRelationship::Ground(e) => {
+                            if matches_description(&e.borrow(), name) {
+                                return Ok(Some(e.clone()));
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+
+                Ok(None)
+            }
+        }
+    }
+
+    fn add_entity(&self, entity: &EntityPtr) -> Result<()> {
+        self.entities.add_entity(entity)
+    }
+}
+
 #[derive(Debug, Clone)]
 enum EntityRelationship {
     World(EntityPtr),
@@ -200,57 +257,5 @@ impl EntityRelationshipSet {
         }
 
         Ok(Self { entities: expanded })
-    }
-}
-
-/// Determines if an entity matches a user's description of that entity, given
-/// no other context at all.
-fn matches_description(entity: &Entity, desc: &str) -> bool {
-    if let Some(name) = entity.name() {
-        name.contains(desc)
-    } else {
-        false
-    }
-}
-
-impl Infrastructure for DomainInfrastructure {
-    fn ensure_entity(&self, entity_ref: &LazyLoadedEntity) -> Result<LazyLoadedEntity> {
-        if entity_ref.has_entity() {
-            Ok(entity_ref.clone())
-        } else {
-            let entity = self.load_entity_by_key(&entity_ref.key)?;
-            Ok(LazyLoadedEntity::new_with_entity(entity))
-        }
-    }
-
-    fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<EntityPtr>> {
-        let _loading_span = span!(Level::INFO, "finding", i = format!("{:?}", item)).entered();
-
-        info!("finding");
-
-        match item {
-            Item::Named(name) => {
-                let haystack = EntityRelationshipSet::new_from_action(args).expand()?;
-
-                // https://github.com/ferrous-systems/elements-of-rust#tuple-structs-and-enum-tuple-variants-as-functions
-                for entity in &haystack.entities {
-                    match entity {
-                        EntityRelationship::Holding(e) => {
-                            if matches_description(&e.borrow(), name) {
-                                return Ok(Some(e.clone()));
-                            }
-                        }
-                        EntityRelationship::Ground(e) => {
-                            if matches_description(&e.borrow(), name) {
-                                return Ok(Some(e.clone()));
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-
-                Ok(None)
-            }
-        }
     }
 }
