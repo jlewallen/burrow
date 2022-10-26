@@ -33,6 +33,10 @@ pub mod model {
     }
 
     impl Scope for Occupying {
+        fn serialize(&self) -> Result<serde_json::Value> {
+            Ok(serde_json::to_value(self)?)
+        }
+
         fn scope_key() -> &'static str {
             "occupying"
         }
@@ -53,6 +57,10 @@ pub mod model {
     }
 
     impl Scope for Occupyable {
+        fn serialize(&self) -> Result<serde_json::Value> {
+            Ok(serde_json::to_value(self)?)
+        }
+
         fn scope_key() -> &'static str {
             "occupyable"
         }
@@ -75,6 +83,10 @@ pub mod model {
     }
 
     impl Scope for Exit {
+        fn serialize(&self) -> Result<serde_json::Value> {
+            Ok(serde_json::to_value(self)?)
+        }
+
         fn scope_key() -> &'static str {
             "exit"
         }
@@ -98,6 +110,10 @@ pub mod model {
     }
 
     impl Scope for Movement {
+        fn serialize(&self) -> Result<serde_json::Value> {
+            Ok(serde_json::to_value(self)?)
+        }
+
         fn scope_key() -> &'static str {
             "movement"
         }

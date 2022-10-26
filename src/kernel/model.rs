@@ -331,7 +331,7 @@ impl Entity {
         Ok(scope)
     }
 
-    fn replace_scope<T: Scope>(&mut self, _scope: &T) -> Result<()> {
+    fn replace_scope<T: Scope>(&mut self, scope: &T) -> Result<()> {
         let scope_key = <T as Scope>::scope_key();
 
         let _span = span!(
@@ -342,7 +342,11 @@ impl Entity {
         )
         .entered();
 
+        let value = scope.serialize()?;
+
         info!("scope-replace");
+
+        self.scopes.insert(scope_key.to_string(), value);
 
         Ok(())
     }

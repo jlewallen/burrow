@@ -16,6 +16,10 @@ pub mod model {
     }
 
     impl Scope for Usernames {
+        fn serialize(&self) -> Result<serde_json::Value> {
+            Ok(serde_json::to_value(self)?)
+        }
+
         fn scope_key() -> &'static str {
             "usernames"
         }

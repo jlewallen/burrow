@@ -1,6 +1,7 @@
 use super::infra::*;
 use super::model::*;
 use super::*;
+use serde_json::Value;
 use std::{fmt::Debug, rc::Rc};
 
 pub type ActionArgs = (EntityPtr, EntityPtr, EntityPtr, Rc<dyn Infrastructure>);
@@ -17,6 +18,8 @@ pub trait Scope: Debug + Needs<Rc<dyn Infrastructure>> + DeserializeOwned {
     fn scope_key() -> &'static str
     where
         Self: Sized;
+
+    fn serialize(&self) -> Result<Value>;
 }
 
 pub trait PrepareEntities {

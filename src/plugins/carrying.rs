@@ -56,6 +56,10 @@ pub mod model {
     }
 
     impl Scope for Location {
+        fn serialize(&self) -> Result<serde_json::Value> {
+            Ok(serde_json::to_value(self)?)
+        }
+
         fn scope_key() -> &'static str {
             "location"
         }
@@ -76,6 +80,10 @@ pub mod model {
     }
 
     impl Scope for Containing {
+        fn serialize(&self) -> Result<serde_json::Value> {
+            Ok(serde_json::to_value(self)?)
+        }
+
         fn scope_key() -> &'static str {
             "containing"
         }
@@ -118,6 +126,10 @@ pub mod model {
     struct Carryable {}
 
     impl Scope for Carryable {
+        fn serialize(&self) -> Result<serde_json::Value> {
+            Ok(serde_json::to_value(self)?)
+        }
+
         fn scope_key() -> &'static str {
             "carryable"
         }

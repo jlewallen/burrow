@@ -8,7 +8,7 @@ use std::{
     rc::Weak,
 };
 use thiserror::Error;
-use tracing::{/*debug,*/ span, Level};
+use tracing::{span, Level};
 
 pub mod infra;
 pub mod model;
