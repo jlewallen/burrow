@@ -38,7 +38,6 @@ pub mod model {
     use anyhow::Result;
     use serde::{Deserialize, Serialize};
     use std::collections::HashMap;
-    use tracing::info;
 
     pub type CarryingResult = Result<DomainOutcome>;
 
@@ -356,7 +355,7 @@ pub mod actions {
             };
             let reply = action.perform((world, Rc::clone(&person), area, Rc::clone(&infra)))?;
 
-            info!("{:?}", reply);
+            info!("reply: {:?}", reply);
 
             assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
 

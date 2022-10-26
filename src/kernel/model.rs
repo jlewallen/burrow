@@ -2,8 +2,7 @@ use nanoid::nanoid;
 use std::cell::RefCell;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
-
-use tracing::{info, trace};
+use tracing::{debug, trace};
 
 use super::infra::*;
 use super::*;
@@ -367,7 +366,7 @@ impl Entity {
 
         let value = scope.serialize()?;
 
-        info!("scope-replace");
+        debug!("scope-replace");
 
         // info!("scope-replace {}", value.to_string());
 
