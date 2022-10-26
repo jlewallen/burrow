@@ -46,8 +46,9 @@ impl Display for EntityKey {
 pub trait DomainEvent: Debug {}
 
 #[derive(Debug)]
-pub struct DomainResult {
-    pub events: Vec<Box<dyn DomainEvent>>,
+pub enum DomainOutcome {
+    Ok(Vec<Box<dyn DomainEvent>>),
+    Nope,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]

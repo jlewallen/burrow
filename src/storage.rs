@@ -34,7 +34,7 @@ pub mod sqlite {
     }
 
     impl SqliteStorage {
-        pub fn new(path: &str) -> Result<Self> {
+        pub fn new(path: &str) -> Result<Rc<Self>> {
             let conn = if path == ":memory:" {
                 Connection::open_in_memory()?
             } else {
@@ -54,7 +54,7 @@ pub mod sqlite {
                 let _ = stmt.execute([])?;
             }
 
-            Ok(SqliteStorage { conn: conn })
+            Ok(Rc::new(SqliteStorage { conn: conn }))
         }
     }
 
@@ -157,7 +157,7 @@ pub mod sqlite {
 
     impl EntityStorageFactory for Factory {
         fn create_storage(&self) -> Result<Rc<dyn EntityStorage>> {
-            Ok(Rc::new(SqliteStorage::new(&self.path)?))
+            Ok(SqliteStorage::new(&self.path)?)
         }
     }
 

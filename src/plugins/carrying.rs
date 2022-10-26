@@ -40,7 +40,7 @@ pub mod model {
     use std::collections::HashMap;
     use tracing::info;
 
-    pub type CarryingResult = DomainResult;
+    pub type CarryingResult = Result<DomainOutcome>;
 
     #[derive(Debug)]
     pub enum CarryingEvent {
@@ -112,8 +112,8 @@ pub mod model {
             self.holding = self
                 .holding
                 .iter()
-                .map(|r| infra.ensure_entity(r).unwrap())
-                .collect();
+                .map(|r| infra.ensure_entity(r))
+                .collect::<Result<Vec<_>>>()?;
             Ok(())
         }
     }
@@ -122,21 +122,22 @@ pub mod model {
         pub fn hold(&mut self, item: EntityPtr) -> CarryingResult {
             self.holding.push(item.clone().into());
 
-            CarryingResult {
-                events: vec![Box::new(CarryingEvent::ItemHeld(item))],
-            }
+            Ok(DomainOutcome::Ok(vec![Box::new(CarryingEvent::ItemHeld(
+                item,
+            ))]))
         }
 
         pub fn stop_carrying(&mut self, item: EntityPtr) -> CarryingResult {
             let before = self.holding.len();
-
             self.holding.retain(|i| i.key != item.borrow().key);
-
-            info!("contained {} and now {}", before, self.holding.len());
-
-            CarryingResult {
-                events: vec![Box::new(CarryingEvent::ItemDropped(item))],
+            let after = self.holding.len();
+            if before == after {
+                return Ok(DomainOutcome::Nope);
             }
+
+            Ok(DomainOutcome::Ok(vec![Box::new(
+                CarryingEvent::ItemDropped(item),
+            )]))
         }
     }
 
@@ -174,6 +175,8 @@ pub mod model {
 }
 
 pub mod actions {
+    use std::rc::Rc;
+
     use crate::plugins::carrying::model::Containing;
 
     use super::*;
@@ -223,24 +226,37 @@ pub mod actions {
         fn perform(&self, args: ActionArgs) -> ReplyResult {
             info!("drop {:?}!", self.maybe_item);
 
-            let (_, user, _, infra) = args.clone();
+            let (_, user, area, infra) = args.clone();
 
             match &self.maybe_item {
                 Some(item) => {
-                    let dropping = infra.find_item(args, &item)?;
-
-                    match dropping {
+                    match infra.find_item(args, &item)? {
                         Some(dropping) => {
                             let mut user = user.borrow_mut();
-                            let mut containing = user.scope_mut::<Containing>()?;
-                            // TODO Maybe the EntityPtr type becomes a
-                            // wrapping struct and also knows the EntityKey
-                            // that it points at.
-                            info!("dropping {:?}!", dropping.borrow().key);
-                            let _ = containing.stop_carrying(dropping);
-                            containing.save()?;
+                            let mut pockets = user.scope_mut::<Containing>()?;
 
-                            Ok(Box::new(SimpleReply::Done))
+                            // TODO Maybe the EntityPtr type becomes a wrapping
+                            // struct and also knows the EntityKey that it
+                            // points at.
+                            info!("dropping {:?}!", dropping.borrow().key);
+
+                            // I actually wanted to return the things that were
+                            // actually dropped, felt cleaner. We don't need
+                            // that for functionality, right now, though.
+                            match pockets.stop_carrying(Rc::clone(&dropping))? {
+                                DomainOutcome::Ok(_) => {
+                                    let mut area = area.borrow_mut();
+                                    let mut ground = area.scope_mut::<Containing>()?;
+
+                                    ground.hold(dropping)?;
+
+                                    pockets.save()?;
+                                    ground.save()?;
+
+                                    Ok(Box::new(SimpleReply::Done))
+                                }
+                                DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
+                            }
                         }
                         None => Ok(Box::new(SimpleReply::NotFound)),
                     }
@@ -257,6 +273,94 @@ pub mod actions {
             Sentence::Drop(e) => Box::new(DropAction {
                 maybe_item: e.clone(),
             }),
+        }
+    }
+
+    pub struct Build {
+        entity: EntityPtr,
+    }
+
+    impl Build {
+        pub fn new(infra: &Rc<dyn Infrastructure>) -> Result<Self> {
+            let entity = Entity::new();
+
+            // TODO Would love to do this from `supply` except we only have
+            // &self there instead of Rc<dyn Infrastructure>
+            {
+                let mut entity = entity.borrow_mut();
+                entity.supply(infra)?;
+            }
+
+            infra.add_entity(&entity)?;
+
+            Ok(Self { entity: entity })
+        }
+
+        pub fn named(&self, name: &str) -> Result<&Self> {
+            let mut entity = self.entity.borrow_mut();
+
+            entity.set_name(name)?;
+
+            Ok(self)
+        }
+
+        pub fn holding(&self, item: &EntityPtr) -> Result<&Self> {
+            let mut entity = self.entity.borrow_mut();
+            let mut container = entity.scope_mut::<Containing>()?;
+
+            container.hold(Rc::clone(item))?;
+            container.save()?;
+
+            Ok(self)
+        }
+
+        pub fn into_entity(&self) -> EntityPtr {
+            Rc::clone(&self.entity)
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use crate::domain::new_infra;
+        use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+        fn get_infra() -> Result<Rc<dyn Infrastructure>> {
+            Ok(new_infra()?)
+        }
+
+        fn log_test() {
+            tracing_subscriber::registry()
+                .with(tracing_subscriber::EnvFilter::new(
+                    std::env::var("RUST_LOG")
+                        .unwrap_or_else(|_| "rudder=info,tower_http=debug".into()),
+                ))
+                .with(tracing_subscriber::fmt::layer())
+                .init();
+        }
+
+        #[test]
+        fn it_drops_held_items() -> Result<()> {
+            log_test();
+
+            let infra = get_infra()?;
+            let world = Build::new(&infra)?.into_entity();
+            let rake = Build::new(&infra)?.named("Cool Rake")?.into_entity();
+            let person = Build::new(&infra)?.holding(&rake)?.into_entity();
+            let area = Build::new(&infra)?.into_entity();
+
+            assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
+
+            let action = DropAction {
+                maybe_item: Some(Item::Named("rake".to_string())),
+            };
+            let reply = action.perform((world, Rc::clone(&person), area, Rc::clone(&infra)))?;
+
+            info!("{:?}", reply);
+
+            assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
+
+            Ok(())
         }
     }
 }
