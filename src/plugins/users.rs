@@ -24,4 +24,12 @@ pub mod model {
             "usernames"
         }
     }
+
+    impl Default for Usernames {
+        fn default() -> Self {
+            Self {
+                users: Default::default(),
+            }
+        }
+    }
 }

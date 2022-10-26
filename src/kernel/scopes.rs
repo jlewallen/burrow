@@ -14,7 +14,7 @@ pub trait Action: Debug {
         Self: Sized;
 }
 
-pub trait Scope: Debug + Needs<Rc<dyn Infrastructure>> + DeserializeOwned {
+pub trait Scope: Debug + Default + Needs<Rc<dyn Infrastructure>> + DeserializeOwned {
     fn scope_key() -> &'static str
     where
         Self: Sized;

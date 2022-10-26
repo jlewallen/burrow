@@ -42,6 +42,14 @@ pub mod model {
         }
     }
 
+    impl Default for Occupying {
+        fn default() -> Self {
+            Self {
+                area: Default::default(),
+            }
+        }
+    }
+
     impl Needs<std::rc::Rc<dyn Infrastructure>> for Occupying {
         fn supply(&mut self, infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
             self.area = infra.ensure_entity(&self.area)?;
@@ -63,6 +71,16 @@ pub mod model {
 
         fn scope_key() -> &'static str {
             "occupyable"
+        }
+    }
+
+    impl Default for Occupyable {
+        fn default() -> Self {
+            Self {
+                acls: Default::default(),
+                occupied: Default::default(),
+                occupancy: Default::default(),
+            }
         }
     }
 
@@ -92,6 +110,14 @@ pub mod model {
         }
     }
 
+    impl Default for Exit {
+        fn default() -> Self {
+            Self {
+                area: Default::default(),
+            }
+        }
+    }
+
     impl Needs<std::rc::Rc<dyn Infrastructure>> for Exit {
         fn supply(&mut self, infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
             self.area = infra.ensure_entity(&self.area)?;
@@ -116,6 +142,14 @@ pub mod model {
 
         fn scope_key() -> &'static str {
             "movement"
+        }
+    }
+
+    impl Default for Movement {
+        fn default() -> Self {
+            Self {
+                routes: Default::default(),
+            }
         }
     }
 

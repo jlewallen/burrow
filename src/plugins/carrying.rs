@@ -65,6 +65,14 @@ pub mod model {
         }
     }
 
+    impl Default for Location {
+        fn default() -> Self {
+            Self {
+                container: Default::default(),
+            }
+        }
+    }
+
     impl Needs<std::rc::Rc<dyn Infrastructure>> for Location {
         fn supply(&mut self, infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
             self.container = infra.ensure_optional_entity(&self.container)?;
@@ -86,6 +94,16 @@ pub mod model {
 
         fn scope_key() -> &'static str {
             "containing"
+        }
+    }
+
+    impl Default for Containing {
+        fn default() -> Self {
+            Self {
+                holding: Default::default(),
+                capacity: Default::default(),
+                produces: Default::default(),
+            }
         }
     }
 
@@ -132,6 +150,12 @@ pub mod model {
 
         fn scope_key() -> &'static str {
             "carryable"
+        }
+    }
+
+    impl Default for Carryable {
+        fn default() -> Self {
+            Self {}
         }
     }
 

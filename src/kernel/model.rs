@@ -238,7 +238,7 @@ impl Default for Entity {
             acls: Default::default(),
             props: Default::default(),
             scopes: Default::default(),
-            infra: Default::default(),
+            infra: None,
         }
     }
 }
@@ -301,10 +301,7 @@ impl Entity {
         .entered();
 
         if !self.scopes.contains_key(scope_key) {
-            return Err(DomainError::NoSuchScope(
-                self.key.clone(),
-                scope_key.to_string(),
-            ));
+            return Ok(Box::new(Default::default()));
         }
 
         // The call to serde_json::from_value requires owned data and we have a
@@ -453,6 +450,19 @@ impl LazyLoadedEntity {
         match &self.entity {
             Some(e) => e.upgrade().ok_or(DomainError::DanglingEntity),
             None => Err(DomainError::DanglingEntity),
+        }
+    }
+}
+
+impl Default for LazyLoadedEntity {
+    fn default() -> Self {
+        Self {
+            py_object: Default::default(),
+            py_ref: Default::default(),
+            key: Default::default(),
+            class: Default::default(),
+            name: Default::default(),
+            entity: Default::default(),
         }
     }
 }
