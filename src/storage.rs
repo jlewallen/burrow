@@ -248,7 +248,7 @@ pub mod sqlite {
                 serialized: "{}".to_string(),
             })?;
 
-            s.rollback()?;
+            s.rollback(true)?;
 
             assert!(s.load(&EntityKey::new("world")).is_err());
 
