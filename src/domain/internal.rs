@@ -96,6 +96,23 @@ impl Entities {
             infra,
         })
     }
+
+    // TODO Lots of cloning going on when adding new entities.
+    fn add_entity(&self, entity: &EntityPtr) -> Result<()> {
+        let loaded = {
+            let clone = Rc::clone(entity);
+            let entity = entity.borrow();
+            LoadedEntity {
+                key: entity.key.clone(),
+                entity: clone,
+                serialized: "".to_string(),
+                version: 1,
+                gid: 0,
+            }
+        };
+        let key = loaded.key.clone();
+        self.entities.add_entity(&key, loaded)
+    }
 }
 
 impl PrepareEntities for Entities {

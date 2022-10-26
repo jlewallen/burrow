@@ -27,6 +27,8 @@ pub trait Infrastructure: Debug + LoadEntities {
             Ok(None)
         }
     }
+
+    fn add_entity(&self, entity: &EntityPtr) -> Result<()>;
 }
 
 pub trait Needs<T: Debug> {
