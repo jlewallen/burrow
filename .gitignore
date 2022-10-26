@@ -10,3 +10,6 @@ Cargo.lock
 
 # Ignore local worlds.
 *.sqlite3
+
+# Ignore exported world.
+world.json
