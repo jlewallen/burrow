@@ -7,7 +7,7 @@ pub trait EntityStorage {
     fn load(&self, key: &EntityKey) -> Result<PersistedEntity>;
     fn save(&self, entity: &PersistedEntity) -> Result<()>;
     fn begin(&self) -> Result<()>;
-    fn rollback(&self) -> Result<()>;
+    fn rollback(&self, benign: bool) -> Result<()>;
     fn commit(&self) -> Result<()>;
 }
 
@@ -122,8 +122,12 @@ pub mod sqlite {
             Ok(())
         }
 
-        fn rollback(&self) -> Result<()> {
-            info!("tx:rollback");
+        fn rollback(&self, benign: bool) -> Result<()> {
+            if benign {
+                debug!("tx:rollback");
+            } else {
+                info!("tx:rollback");
+            }
 
             self.conn.execute("ROLLBACK TRANSACTION", [])?;
 

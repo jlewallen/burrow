@@ -90,7 +90,7 @@ impl Session {
         match check {
             Ok(i) => Ok(i),
             Err(original_err) => {
-                if let Err(_rollback_err) = self.storage.rollback() {
+                if let Err(_rollback_err) = self.storage.rollback(false) {
                     panic!("error rolling back");
                 }
 
@@ -106,7 +106,7 @@ impl Session {
         use treediff::tools::ChangeType;
         use treediff::tools::Recorder;
 
-        self.entity_map.foreach_entity(|l| {
+        let saved = self.entity_map.foreach_entity(|l| {
             let entity = l.entity.borrow();
 
             let _span = span!(Level::DEBUG, "saving", key = entity.key.to_string()).entered();
@@ -146,10 +146,14 @@ impl Session {
                 })?;
             }
 
-            Ok(())
+            Ok(modifications > 0)
         })?;
 
-        self.storage.commit()?;
+        if saved.iter().any(|p| *p) {
+            self.storage.commit()?;
+        } else {
+            self.storage.rollback(true)?;
+        }
 
         self.open.store(false, Ordering::Relaxed);
 

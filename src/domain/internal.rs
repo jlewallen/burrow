@@ -46,14 +46,16 @@ impl EntityMap {
         Ok(())
     }
 
-    pub fn foreach_entity<T: Fn(&LoadedEntity) -> Result<()>>(&self, each: T) -> Result<()> {
+    pub fn foreach_entity<R, T: Fn(&LoadedEntity) -> Result<R>>(&self, each: T) -> Result<Vec<R>> {
         let cache = self.entities.borrow();
 
+        let mut rvals: Vec<R> = Vec::new();
+
         for (_key, entity) in cache.iter() {
-            each(entity)?;
+            rvals.push(each(entity)?);
         }
 
-        Ok(())
+        Ok(rvals)
     }
 }
 
