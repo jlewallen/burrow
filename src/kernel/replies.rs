@@ -1,6 +1,7 @@
 use anyhow::Result;
 use markdown_gen::markdown;
 use serde::Serialize;
+use serde_json::Value;
 use std::{fmt::Debug, string::FromUtf8Error};
 
 pub type ReplyResult = Result<Box<dyn Reply>>;
@@ -12,7 +13,7 @@ pub fn markdown_to_string(md: Markdown) -> Result<String, FromUtf8Error> {
 }
 
 pub trait ToJson: Debug {
-    fn to_json(&self) -> Result<String>;
+    fn to_json(&self) -> Result<Value>;
 }
 
 pub trait Reply: ToJson {
@@ -35,7 +36,7 @@ impl Reply for SimpleReply {
 }
 
 impl ToJson for SimpleReply {
-    fn to_json(&self) -> Result<String> {
-        Ok(serde_json::to_string(self)?)
+    fn to_json(&self) -> Result<Value> {
+        Ok(serde_json::to_value(self)?)
     }
 }

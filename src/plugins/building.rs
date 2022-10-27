@@ -26,6 +26,7 @@ pub mod model {
     use crate::kernel::*;
     use anyhow::Result;
     use serde::Serialize;
+    use serde_json::Value;
 
     pub fn discover(_source: &Entity, _entity_keys: &mut Vec<EntityKey>) -> Result<()> {
         Ok(())
@@ -44,8 +45,8 @@ pub mod model {
     }
 
     impl ToJson for EditorReply {
-        fn to_json(&self) -> Result<String> {
-            Ok(serde_json::to_string(self)?)
+        fn to_json(&self) -> Result<Value> {
+            Ok(serde_json::to_value(self)?)
         }
     }
 }
