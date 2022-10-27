@@ -194,18 +194,29 @@ pub mod actions {
         fn perform(&self, args: ActionArgs) -> ReplyResult {
             info!("hold {:?}!", self.item);
 
-            let (_, user, _, infra) = args.clone();
-            let holding = infra.find_item(args, &self.item)?;
+            let (_, user, area, infra) = args.clone();
 
-            match holding {
+            match infra.find_item(args, &self.item)? {
                 Some(holding) => {
-                    info!("holding {:?}!", holding);
                     let mut user = user.borrow_mut();
-                    let mut containing = user.scope_mut::<Containing>()?;
-                    let _ = containing.hold(holding);
-                    containing.save()?;
+                    let mut pockets = user.scope_mut::<Containing>()?;
 
-                    Ok(Box::new(SimpleReply::Done))
+                    info!("holding {:?}!", holding);
+
+                    match pockets.hold(Rc::clone(&holding))? {
+                        DomainOutcome::Ok(_) => {
+                            let mut area = area.borrow_mut();
+                            let mut ground = area.scope_mut::<Containing>()?;
+
+                            ground.stop_carrying(holding)?;
+
+                            pockets.save()?;
+                            ground.save()?;
+
+                            Ok(Box::new(SimpleReply::Done))
+                        }
+                        DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
+                    }
                 }
                 None => Ok(Box::new(SimpleReply::NotFound)),
             }
@@ -339,6 +350,62 @@ pub mod actions {
         }
 
         #[test]
+        fn it_holds_unheld_items() -> Result<()> {
+            let infra = get_infra()?;
+            let world = Build::new(&infra)?.into_entity();
+            let person = Build::new(&infra)?.into_entity();
+            let rake = Build::new(&infra)?.named("Cool Rake")?.into_entity();
+            let area = Build::new(&infra)?.holding(&rake)?.into_entity();
+
+            assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
+
+            let action = HoldAction {
+                item: Item::Named("rake".to_string()),
+            };
+            let reply = action.perform((
+                world,
+                Rc::clone(&person),
+                Rc::clone(&area),
+                Rc::clone(&infra),
+            ))?;
+
+            assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+
+            assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
+            assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 0);
+
+            Ok(())
+        }
+
+        #[test]
+        fn it_fails_to_hold_unknown_items() -> Result<()> {
+            let infra = get_infra()?;
+            let world = Build::new(&infra)?.into_entity();
+            let person = Build::new(&infra)?.into_entity();
+            let broom = Build::new(&infra)?.named("Cool Broom")?.into_entity();
+            let area = Build::new(&infra)?.holding(&broom)?.into_entity();
+
+            assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
+
+            let action = HoldAction {
+                item: Item::Named("rake".to_string()),
+            };
+            let reply = action.perform((
+                world,
+                Rc::clone(&person),
+                Rc::clone(&area),
+                Rc::clone(&infra),
+            ))?;
+
+            assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+
+            assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
+            assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 1);
+
+            Ok(())
+        }
+
+        #[test]
         fn it_drops_held_items() -> Result<()> {
             let infra = get_infra()?;
             let world = Build::new(&infra)?.into_entity();
@@ -351,11 +418,17 @@ pub mod actions {
             let action = DropAction {
                 maybe_item: Some(Item::Named("rake".to_string())),
             };
-            let reply = action.perform((world, Rc::clone(&person), area, Rc::clone(&infra)))?;
+            let reply = action.perform((
+                world,
+                Rc::clone(&person),
+                Rc::clone(&area),
+                Rc::clone(&infra),
+            ))?;
 
             assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
             assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
+            assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 1);
 
             Ok(())
         }
@@ -373,11 +446,17 @@ pub mod actions {
             let action = DropAction {
                 maybe_item: Some(Item::Named("rake".to_string())),
             };
-            let reply = action.perform((world, Rc::clone(&person), area, Rc::clone(&infra)))?;
+            let reply = action.perform((
+                world,
+                Rc::clone(&person),
+                Rc::clone(&area),
+                Rc::clone(&infra),
+            ))?;
 
             assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
             assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
+            assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 0);
 
             Ok(())
         }
