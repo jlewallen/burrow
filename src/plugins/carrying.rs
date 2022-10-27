@@ -198,17 +198,17 @@ pub mod actions {
 
             match infra.find_item(args, &self.item)? {
                 Some(holding) => {
-                    let mut user = user.borrow_mut();
-                    let mut pockets = user.scope_mut::<Containing>()?;
+                    let mut area = area.borrow_mut();
+                    let mut ground = area.scope_mut::<Containing>()?;
 
                     info!("holding {:?}!", holding);
 
-                    match pockets.hold(Rc::clone(&holding))? {
+                    match ground.stop_carrying(Rc::clone(&holding))? {
                         DomainOutcome::Ok(_) => {
-                            let mut area = area.borrow_mut();
-                            let mut ground = area.scope_mut::<Containing>()?;
+                            let mut user = user.borrow_mut();
+                            let mut pockets = user.scope_mut::<Containing>()?;
 
-                            ground.stop_carrying(holding)?;
+                            pockets.hold(holding)?;
 
                             pockets.save()?;
                             ground.save()?;
