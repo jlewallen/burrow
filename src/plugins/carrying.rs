@@ -339,6 +339,7 @@ pub mod actions {
             Ok(new_infra()?)
         }
 
+        #[allow(dead_code)]
         fn log_test() {
             tracing_subscriber::registry()
                 .with(tracing_subscriber::EnvFilter::new(
