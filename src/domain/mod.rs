@@ -7,7 +7,6 @@ use crate::{
     storage::sqlite::SqliteStorage,
 };
 
-mod eval;
 mod internal;
 
 pub mod build;

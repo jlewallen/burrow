@@ -5,11 +5,10 @@ use std::{
 };
 use tracing::{debug, event, info, span, trace, warn, Level};
 
-use super::eval;
 use super::internal::{DomainInfrastructure, EntityMap};
-use crate::kernel::*;
 use crate::plugins::{moving::model::Occupying, users::model::Usernames};
 use crate::storage::{EntityStorage, EntityStorageFactory, PersistedEntity};
+use crate::{kernel::*, plugins::eval};
 
 pub struct Session {
     infra: Rc<DomainInfrastructure>,
