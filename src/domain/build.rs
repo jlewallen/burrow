@@ -39,11 +39,14 @@ impl Build {
         Ok(self)
     }
 
-    pub fn holding(&self, item: &EntityPtr) -> Result<&Self> {
+    pub fn holding(&self, items: &Vec<EntityPtr>) -> Result<&Self> {
         let mut entity = self.entity.borrow_mut();
         let mut container = entity.scope_mut::<Containing>()?;
 
-        container.hold(Rc::clone(item))?;
+        for item in items {
+            container.hold(Rc::clone(item))?;
+        }
+
         container.save()?;
 
         Ok(self)
@@ -52,33 +55,73 @@ impl Build {
     pub fn into_entity(&self) -> EntityPtr {
         Rc::clone(&self.entity)
     }
+}
 
-    pub fn action_args(&self) -> Result<ActionArgsBuilder> {
-        ActionArgsBuilder::new()
+pub struct BuildActionArgs {
+    infra: Rc<dyn Infrastructure>,
+    hands: Vec<QuickThing>,
+    ground: Vec<QuickThing>,
+}
+
+pub enum QuickThing {
+    Object(String),
+}
+
+impl QuickThing {
+    pub fn make(&self, infra: &Rc<dyn Infrastructure>) -> Result<EntityPtr> {
+        match &*self {
+            QuickThing::Object(name) => Ok(Build::new(infra)?.named(&name)?.into_entity()),
+        }
     }
 }
 
-pub struct ActionArgsBuilder {
-    infra: Rc<dyn Infrastructure>,
-}
-
-impl ActionArgsBuilder {
+impl BuildActionArgs {
     pub fn new() -> Result<Self> {
         Ok(Self {
             infra: get_infra()?,
+            hands: Vec::new(),
+            ground: Vec::new(),
         })
+    }
+
+    pub fn hands(&mut self, items: Vec<QuickThing>) -> &Self {
+        self.hands.extend(items);
+        self
+    }
+
+    pub fn ground(&mut self, items: Vec<QuickThing>) -> &Self {
+        self.ground.extend(items);
+        self
     }
 }
 
-impl TryFrom<ActionArgsBuilder> for ActionArgs {
+impl TryFrom<&BuildActionArgs> for ActionArgs {
     type Error = anyhow::Error;
 
-    fn try_from(builder: ActionArgsBuilder) -> Result<Self, Self::Error> {
-        let infra = builder.infra;
+    fn try_from(builder: &BuildActionArgs) -> Result<Self, Self::Error> {
+        let infra = Rc::clone(&builder.infra);
 
         let world = Build::new(&infra)?.into_entity();
-        let person = Build::new(&infra)?.into_entity();
-        let area = Build::new(&infra)?.into_entity();
+
+        let person = Build::new(&infra)?
+            .holding(
+                &builder
+                    .hands
+                    .iter()
+                    .map(|i| -> Result<_> { i.make(&infra) })
+                    .collect::<Result<Vec<EntityPtr>>>()?,
+            )?
+            .into_entity();
+
+        let area = Build::new(&infra)?
+            .holding(
+                &builder
+                    .ground
+                    .iter()
+                    .map(|i| -> Result<_> { i.make(&infra) })
+                    .collect::<Result<Vec<_>>>()?,
+            )?
+            .into_entity();
 
         Ok((world, person, area, infra))
     }

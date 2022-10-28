@@ -266,27 +266,19 @@ pub mod actions {
     #[cfg(test)]
     mod tests {
         use super::*;
-        use crate::domain::{get_infra, Build};
+        use crate::domain::{get_infra, Build, BuildActionArgs, QuickThing};
 
         #[test]
         fn it_holds_unheld_items() -> Result<()> {
-            let infra = get_infra()?;
-            let world = Build::new(&infra)?.into_entity();
-            let person = Build::new(&infra)?.into_entity();
-            let rake = Build::new(&infra)?.named("Cool Rake")?.into_entity();
-            let area = Build::new(&infra)?.holding(&rake)?.into_entity();
-
-            assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
+            let args: ActionArgs = BuildActionArgs::new()?
+                .ground(vec![QuickThing::Object("Cool Rake".to_string())])
+                .try_into()?;
 
             let action = HoldAction {
                 item: Item::Named("rake".to_string()),
             };
-            let reply = action.perform((
-                world,
-                Rc::clone(&person),
-                Rc::clone(&area),
-                Rc::clone(&infra),
-            ))?;
+            let reply = action.perform(args.clone())?; // TODO This clone isn't 'obvious'
+            let (_, person, area, _) = args.clone();
 
             assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
@@ -302,7 +294,7 @@ pub mod actions {
             let world = Build::new(&infra)?.into_entity();
             let person = Build::new(&infra)?.into_entity();
             let broom = Build::new(&infra)?.named("Cool Broom")?.into_entity();
-            let area = Build::new(&infra)?.holding(&broom)?.into_entity();
+            let area = Build::new(&infra)?.holding(&vec![broom])?.into_entity();
 
             assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
 
@@ -329,7 +321,7 @@ pub mod actions {
             let infra = get_infra()?;
             let world = Build::new(&infra)?.into_entity();
             let rake = Build::new(&infra)?.named("Cool Rake")?.into_entity();
-            let person = Build::new(&infra)?.holding(&rake)?.into_entity();
+            let person = Build::new(&infra)?.holding(&vec![rake])?.into_entity();
             let area = Build::new(&infra)?.into_entity();
 
             assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
@@ -357,7 +349,7 @@ pub mod actions {
             let infra = get_infra()?;
             let world = Build::new(&infra)?.into_entity();
             let rake = Build::new(&infra)?.named("Cool Broom")?.into_entity();
-            let person = Build::new(&infra)?.holding(&rake)?.into_entity();
+            let person = Build::new(&infra)?.holding(&vec![rake])?.into_entity();
             let area = Build::new(&infra)?.into_entity();
 
             assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
@@ -386,7 +378,7 @@ pub mod actions {
             let world = Build::new(&infra)?.into_entity();
             let rake = Build::new(&infra)?.named("Cool Broom")?.into_entity();
             let person = Build::new(&infra)?.into_entity();
-            let area = Build::new(&infra)?.holding(&rake)?.into_entity();
+            let area = Build::new(&infra)?.holding(&vec![rake])?.into_entity();
 
             assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
 
