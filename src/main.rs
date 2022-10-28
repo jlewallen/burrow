@@ -7,7 +7,6 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 pub mod domain;
 pub mod kernel;
-pub mod library;
 pub mod plugins;
 pub mod serve;
 pub mod storage;

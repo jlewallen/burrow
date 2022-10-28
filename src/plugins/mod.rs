@@ -1,6 +1,7 @@
 pub mod building;
 pub mod carrying;
 pub mod eval;
+pub mod library;
 pub mod looking;
 pub mod moving;
 pub mod users;

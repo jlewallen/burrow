@@ -1,8 +1,8 @@
 use anyhow::Result;
 use nom::{bytes::complete::tag, combinator::map, sequence::separated_pair, IResult};
 
+use super::library::{noun, spaces};
 use crate::kernel::*;
-use crate::library::{noun, spaces};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Sentence {
