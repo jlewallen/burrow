@@ -1,5 +1,3 @@
-use crate::storage::EntityStorage;
-use crate::{kernel::*, plugins::carrying::model::Containing};
 use anyhow::{anyhow, Result};
 use std::{
     cell::RefCell,
@@ -8,6 +6,9 @@ use std::{
     rc::{Rc, Weak},
 };
 use tracing::{debug, info, span, trace, Level};
+
+use crate::storage::EntityStorage;
+use crate::{kernel::*, plugins::carrying::model::Containing};
 
 /// Determines if an entity matches a user's description of that entity, given
 /// no other context at all.

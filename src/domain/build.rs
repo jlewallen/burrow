@@ -1,11 +1,11 @@
-use crate::{
-    kernel::{ActionArgs, Entity, EntityPtr, Infrastructure, Needs},
-    plugins::carrying::model::Containing,
-};
 use anyhow::Result;
 use std::rc::Rc;
 
 use super::new_infra;
+use crate::{
+    kernel::{ActionArgs, Entity, EntityPtr, Infrastructure, Needs},
+    plugins::carrying::model::Containing,
+};
 
 pub fn get_infra() -> Result<Rc<dyn Infrastructure>> {
     Ok(new_infra()?)

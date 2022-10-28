@@ -1,11 +1,18 @@
+use anyhow::Result;
 use nanoid::nanoid;
-use std::cell::RefCell;
-use std::ops::{Deref, DerefMut};
-use std::rc::Rc;
-use tracing::{debug, trace};
+use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    fmt::{Debug, Display},
+    ops::{Deref, DerefMut, Index},
+    rc::{Rc, Weak},
+};
+use thiserror::Error;
+use tracing::{debug, span, trace, Level};
 
-use super::infra::*;
-use super::*;
+use super::{infra::*, Scope};
 
 pub static WORLD_KEY: Lazy<EntityKey> = Lazy::new(|| EntityKey("world".to_string()));
 

@@ -1,7 +1,8 @@
-use crate::kernel::*;
-use crate::library::{noun, spaces};
 use anyhow::Result;
 use nom::{bytes::complete::tag, combinator::map, sequence::separated_pair, IResult};
+
+use crate::kernel::*;
+use crate::library::{noun, spaces};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Sentence {
@@ -14,7 +15,7 @@ fn go(i: &str) -> IResult<&str, Sentence> {
     })(i)
 }
 
-pub fn parse(i: &str) -> IResult<&str, Sentence> {
+fn parse(i: &str) -> IResult<&str, Sentence> {
     go(i)
 }
 
@@ -23,9 +24,10 @@ pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
 }
 
 pub mod model {
-    use crate::kernel::*;
     use anyhow::Result;
     use serde::{Deserialize, Serialize};
+
+    use crate::kernel::*;
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Occupying {
@@ -177,8 +179,9 @@ pub mod model {
 }
 
 pub mod actions {
-    use super::*;
     use tracing::info;
+
+    use super::*;
 
     #[derive(Debug)]
     struct GoAction {}

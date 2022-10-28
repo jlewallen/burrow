@@ -8,7 +8,6 @@ use axum::{
 };
 use axum_typed_websockets::{Message, WebSocket, WebSocketUpgrade};
 use clap::Args;
-// use futures::stream::{SplitSink, SplitStream};
 use futures::{sink::SinkExt, stream::StreamExt};
 use serde::{Deserialize, Serialize};
 use std::{

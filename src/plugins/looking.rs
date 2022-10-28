@@ -11,7 +11,7 @@ fn look(i: &str) -> IResult<&str, Sentence> {
     map(tag("look"), |_| Sentence::Look)(i)
 }
 
-pub fn parse(i: &str) -> IResult<&str, Sentence> {
+fn parse(i: &str) -> IResult<&str, Sentence> {
     look(i)
 }
 
@@ -20,6 +20,9 @@ pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
 }
 
 pub mod model {
+    use anyhow::Result;
+    use serde::Serialize;
+    use serde_json::Value;
     use std::ops::Deref;
 
     use crate::{
@@ -27,9 +30,6 @@ pub mod model {
         plugins::carrying::model::Containing,
         plugins::moving::model::{Movement, Occupyable},
     };
-    use anyhow::Result;
-    use serde::Serialize;
-    use serde_json::Value;
 
     pub fn discover(_source: &Entity, _entity_keys: &mut Vec<EntityKey>) -> Result<()> {
         Ok(())
@@ -176,9 +176,10 @@ pub mod model {
 }
 
 pub mod actions {
+    use tracing::info;
+
     use super::model::*;
     use super::*;
-    use tracing::info;
 
     #[derive(Debug)]
     struct LookAction {}

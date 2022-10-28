@@ -1,7 +1,8 @@
-use crate::kernel::*;
-use crate::library::{noun, spaces};
 use anyhow::Result;
 use nom::{branch::alt, bytes::complete::tag, combinator::map, sequence::separated_pair, IResult};
+
+use crate::kernel::*;
+use crate::library::{noun, spaces};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Sentence {
@@ -34,10 +35,11 @@ pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
 }
 
 pub mod model {
-    use crate::kernel::*;
     use anyhow::Result;
     use serde::{Deserialize, Serialize};
     use std::collections::HashMap;
+
+    use crate::kernel::*;
 
     pub type CarryingResult = Result<DomainOutcome>;
 
@@ -175,11 +177,10 @@ pub mod model {
 
 pub mod actions {
     use std::rc::Rc;
-
-    use crate::plugins::carrying::model::Containing;
+    use tracing::info;
 
     use super::*;
-    use tracing::info;
+    use crate::plugins::carrying::model::Containing;
 
     #[derive(Debug)]
     struct HoldAction {
@@ -289,23 +290,7 @@ pub mod actions {
     #[cfg(test)]
     mod tests {
         use super::*;
-        use crate::domain::{new_infra, Build};
-        use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
-        fn get_infra() -> Result<Rc<dyn Infrastructure>> {
-            Ok(new_infra()?)
-        }
-
-        #[allow(dead_code)]
-        fn log_test() {
-            tracing_subscriber::registry()
-                .with(tracing_subscriber::EnvFilter::new(
-                    std::env::var("RUST_LOG")
-                        .unwrap_or_else(|_| "rudder=info,tower_http=debug".into()),
-                ))
-                .with(tracing_subscriber::fmt::layer())
-                .init();
-        }
+        use crate::domain::{get_infra, Build};
 
         #[test]
         fn it_holds_unheld_items() -> Result<()> {

@@ -1,5 +1,8 @@
-use super::*;
+use anyhow::Result;
+use std::fmt::Debug;
 use std::{cell::RefCell, rc::Rc};
+
+use super::{ActionArgs, Entity, EntityPtr, Item, LazyLoadedEntity, LoadEntities};
 
 pub trait Infrastructure: Debug + LoadEntities {
     fn ensure_entity(&self, entity_ref: &LazyLoadedEntity) -> Result<LazyLoadedEntity>;
