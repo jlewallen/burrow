@@ -286,53 +286,10 @@ pub mod actions {
         }
     }
 
-    pub struct Build {
-        entity: EntityPtr,
-    }
-
-    impl Build {
-        pub fn new(infra: &Rc<dyn Infrastructure>) -> Result<Self> {
-            let entity = Entity::new();
-
-            // TODO Would love to do this from `supply` except we only have
-            // &self there instead of Rc<dyn Infrastructure>
-            {
-                let mut entity = entity.borrow_mut();
-                entity.supply(infra)?;
-            }
-
-            infra.add_entity(&entity)?;
-
-            Ok(Self { entity: entity })
-        }
-
-        pub fn named(&self, name: &str) -> Result<&Self> {
-            let mut entity = self.entity.borrow_mut();
-
-            entity.set_name(name)?;
-
-            Ok(self)
-        }
-
-        pub fn holding(&self, item: &EntityPtr) -> Result<&Self> {
-            let mut entity = self.entity.borrow_mut();
-            let mut container = entity.scope_mut::<Containing>()?;
-
-            container.hold(Rc::clone(item))?;
-            container.save()?;
-
-            Ok(self)
-        }
-
-        pub fn into_entity(&self) -> EntityPtr {
-            Rc::clone(&self.entity)
-        }
-    }
-
     #[cfg(test)]
     mod tests {
         use super::*;
-        use crate::domain::new_infra;
+        use crate::domain::{new_infra, Build};
         use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
         fn get_infra() -> Result<Rc<dyn Infrastructure>> {
