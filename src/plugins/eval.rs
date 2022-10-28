@@ -5,9 +5,9 @@ use crate::plugins;
 
 pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
     plugins::looking::evaluate(i)
-        .or(plugins::carrying::evaluate(i))
-        .or(plugins::moving::evaluate(i))
-        .or(plugins::building::evaluate(i))
+        .or_else(|_| plugins::carrying::evaluate(i))
+        .or_else(|_| plugins::moving::evaluate(i))
+        .or_else(|_| plugins::building::evaluate(i))
 }
 
 pub fn discover(source: &Entity, entity_keys: &mut Vec<EntityKey>) -> Result<()> {

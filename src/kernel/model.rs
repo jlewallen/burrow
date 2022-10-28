@@ -65,7 +65,7 @@ pub enum Item {
     // ImplicitlyNavigable(String),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct EntityRef {
     #[serde(rename = "py/object")]
     py_object: String,
@@ -77,24 +77,13 @@ pub struct EntityRef {
     name: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Identity {
     #[serde(rename = "py/object")]
     py_object: String,
     private: String,
     public: String,
     signature: Option<String>, // TODO Why does this happen in the model?
-}
-
-impl Default for Identity {
-    fn default() -> Self {
-        Self {
-            py_object: Default::default(),
-            private: Default::default(),
-            public: Default::default(),
-            signature: Default::default(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -104,18 +93,10 @@ pub struct Kind {
     identity: Identity,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct EntityClass {
     #[serde(rename = "py/type")]
     py_type: String,
-}
-
-impl Default for EntityClass {
-    fn default() -> Self {
-        Self {
-            py_type: Default::default(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -126,20 +107,11 @@ pub struct AclRule {
     perm: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Acls {
     #[serde(rename = "py/object")]
     py_object: String,
     rules: Vec<AclRule>,
-}
-
-impl Default for Acls {
-    fn default() -> Self {
-        Self {
-            py_object: Default::default(),
-            rules: Default::default(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -171,7 +143,7 @@ impl Property {
         Self {
             py_object: "".to_string(),
             acls: Default::default(),
-            value: value,
+            value,
         }
     }
 }
@@ -227,7 +199,7 @@ impl Props {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Entity {
     #[serde(rename = "py/object")]
     py_object: String,
@@ -244,24 +216,6 @@ pub struct Entity {
 
     #[serde(skip)] // Very private
     infra: Option<Weak<dyn Infrastructure>>,
-}
-
-impl Default for Entity {
-    fn default() -> Self {
-        Self {
-            py_object: Default::default(),
-            key: Default::default(),
-            version: Default::default(),
-            parent: Default::default(),
-            creator: Default::default(),
-            identity: Default::default(),
-            class: Default::default(),
-            acls: Default::default(),
-            props: Default::default(),
-            scopes: Default::default(),
-            infra: None,
-        }
-    }
 }
 
 impl Display for Entity {
@@ -391,7 +345,7 @@ impl<T: Scope> OpenScope<T> {
     pub fn new(target: Box<T>) -> Self {
         trace!("scope-open {:?}", target);
 
-        Self { target: target }
+        Self { target }
     }
 }
 
@@ -412,10 +366,7 @@ impl<'me, T: Scope> OpenScopeMut<'me, T> {
     pub fn new(owner: &'me mut Entity, target: Box<T>) -> Self {
         trace!("scope-open {:?}", target);
 
-        Self {
-            owner: owner,
-            target: target,
-        }
+        Self { owner, target }
     }
 
     pub fn save(&mut self) -> Result<()> {
@@ -449,7 +400,7 @@ impl<'me, T: Scope> DerefMut for OpenScopeMut<'me, T> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct LazyLoadedEntity {
     #[serde(rename = "py/object")]
     py_object: String,
@@ -472,7 +423,7 @@ impl LazyLoadedEntity {
             py_ref: "model.entity.Entity".to_string(),       // #python-class
             key: shared_entity.key.clone(),
             class: shared_entity.class.py_type.clone(),
-            name: shared_entity.name().unwrap_or("".to_string()),
+            name: shared_entity.name().unwrap_or_else(|| "".to_string()),
             entity: Some(Rc::downgrade(&entity)),
         }
     }
@@ -485,19 +436,6 @@ impl LazyLoadedEntity {
         match &self.entity {
             Some(e) => e.upgrade().ok_or(DomainError::DanglingEntity),
             None => Err(DomainError::DanglingEntity),
-        }
-    }
-}
-
-impl Default for LazyLoadedEntity {
-    fn default() -> Self {
-        Self {
-            py_object: Default::default(),
-            py_ref: Default::default(),
-            key: Default::default(),
-            class: Default::default(),
-            name: Default::default(),
-            entity: Default::default(),
         }
     }
 }

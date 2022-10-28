@@ -8,7 +8,7 @@ use crate::{
 };
 
 pub fn get_infra() -> Result<Rc<dyn Infrastructure>> {
-    Ok(new_infra()?)
+    new_infra()
 }
 
 pub struct Build {
@@ -28,7 +28,7 @@ impl Build {
 
         infra.add_entity(&entity)?;
 
-        Ok(Self { entity: entity })
+        Ok(Self { entity })
     }
 
     pub fn named(&self, name: &str) -> Result<&Self> {

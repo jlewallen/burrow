@@ -26,8 +26,8 @@ impl Session {
 
         Ok(Self {
             infra: DomainInfrastructure::new(Rc::clone(&storage), Rc::clone(&entity_map)),
-            storage: storage,
-            entity_map: entity_map,
+            storage,
+            entity_map,
             open: AtomicBool::new(true),
             discoverying: true,
         })
@@ -123,10 +123,7 @@ impl Session {
             let modifications = d
                 .calls
                 .iter()
-                .filter(|c| match c {
-                    ChangeType::Modified(_, _, _) => true,
-                    _ => false,
-                })
+                .filter(|c| matches!(c, ChangeType::Modified(_, _, _)))
                 .count();
 
             if modifications > 0 {
@@ -186,7 +183,7 @@ impl Domain {
 
         let storage = self.storage_factory.create_storage()?;
 
-        let _ = storage.begin()?;
+        storage.begin()?;
 
         Session::new(storage)
     }

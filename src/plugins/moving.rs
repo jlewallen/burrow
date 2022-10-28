@@ -29,7 +29,7 @@ pub mod model {
 
     use crate::kernel::*;
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Occupying {
         pub area: LazyLoadedEntity,
     }
@@ -44,14 +44,6 @@ pub mod model {
         }
     }
 
-    impl Default for Occupying {
-        fn default() -> Self {
-            Self {
-                area: Default::default(),
-            }
-        }
-    }
-
     impl Needs<std::rc::Rc<dyn Infrastructure>> for Occupying {
         fn supply(&mut self, infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
             self.area = infra.ensure_entity(&self.area)?;
@@ -59,7 +51,7 @@ pub mod model {
         }
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Occupyable {
         pub acls: Acls,
         pub occupied: Vec<LazyLoadedEntity>,
@@ -76,16 +68,6 @@ pub mod model {
         }
     }
 
-    impl Default for Occupyable {
-        fn default() -> Self {
-            Self {
-                acls: Default::default(),
-                occupied: Default::default(),
-                occupancy: Default::default(),
-            }
-        }
-    }
-
     impl Needs<std::rc::Rc<dyn Infrastructure>> for Occupyable {
         fn supply(&mut self, infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
             self.occupied = self
@@ -97,7 +79,7 @@ pub mod model {
         }
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Exit {
         pub area: LazyLoadedEntity,
     }
@@ -109,14 +91,6 @@ pub mod model {
 
         fn scope_key() -> &'static str {
             "exit"
-        }
-    }
-
-    impl Default for Exit {
-        fn default() -> Self {
-            Self {
-                area: Default::default(),
-            }
         }
     }
 
@@ -132,7 +106,7 @@ pub mod model {
         pub area: LazyLoadedEntity,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Movement {
         pub routes: Vec<AreaRoute>,
     }
@@ -144,14 +118,6 @@ pub mod model {
 
         fn scope_key() -> &'static str {
             "movement"
-        }
-    }
-
-    impl Default for Movement {
-        fn default() -> Self {
-            Self {
-                routes: Default::default(),
-            }
         }
     }
 

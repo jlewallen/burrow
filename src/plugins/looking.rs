@@ -31,7 +31,7 @@ pub mod model {
         plugins::moving::model::{Movement, Occupyable},
     };
 
-    pub fn discover(_source: &Entity, _entity_keys: &mut Vec<EntityKey>) -> Result<()> {
+    pub fn discover(_source: &Entity, _entity_keys: &mut [EntityKey]) -> Result<()> {
         Ok(())
     }
 
@@ -158,10 +158,10 @@ pub mod model {
             Ok(AreaObservation {
                 area: area.borrow().deref().into(),
                 person: user.borrow().deref().into(),
-                living: living,
-                items: items,
-                carrying: carrying,
-                routes: routes,
+                living,
+                items,
+                carrying,
+                routes,
             })
         }
     }

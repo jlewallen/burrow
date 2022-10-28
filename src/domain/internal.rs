@@ -92,7 +92,7 @@ impl Entities {
         trace!("entities-new");
 
         Rc::new(Self {
-            entities: entities,
+            entities,
             storage,
             infra,
         })

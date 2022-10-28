@@ -54,7 +54,7 @@ pub mod sqlite {
                 let _ = stmt.execute([])?;
             }
 
-            Ok(Rc::new(SqliteStorage { conn: conn }))
+            Ok(Rc::new(SqliteStorage { conn }))
         }
     }
 
@@ -169,7 +169,7 @@ pub mod sqlite {
         fn get_storage() -> Result<Rc<dyn EntityStorage>> {
             let s = Factory::new(":memory:")?;
 
-            Ok(s.create_storage()?)
+            s.create_storage()
         }
 
         #[test]

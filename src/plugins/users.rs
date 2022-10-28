@@ -5,7 +5,7 @@ pub mod model {
 
     use crate::kernel::*;
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Usernames {
         pub users: HashMap<String, EntityKey>,
     }
@@ -23,14 +23,6 @@ pub mod model {
 
         fn scope_key() -> &'static str {
             "usernames"
-        }
-    }
-
-    impl Default for Usernames {
-        fn default() -> Self {
-            Self {
-                users: Default::default(),
-            }
         }
     }
 }

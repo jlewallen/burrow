@@ -51,7 +51,7 @@ pub mod model {
 
     impl DomainEvent for CarryingEvent {}
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Location {
         pub container: Option<LazyLoadedEntity>,
     }
@@ -66,14 +66,6 @@ pub mod model {
         }
     }
 
-    impl Default for Location {
-        fn default() -> Self {
-            Self {
-                container: Default::default(),
-            }
-        }
-    }
-
     impl Needs<std::rc::Rc<dyn Infrastructure>> for Location {
         fn supply(&mut self, infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
             self.container = infra.ensure_optional_entity(&self.container)?;
@@ -81,7 +73,7 @@ pub mod model {
         }
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Containing {
         pub holding: Vec<LazyLoadedEntity>,
         pub capacity: Option<u32>,
@@ -95,16 +87,6 @@ pub mod model {
 
         fn scope_key() -> &'static str {
             "containing"
-        }
-    }
-
-    impl Default for Containing {
-        fn default() -> Self {
-            Self {
-                holding: Default::default(),
-                capacity: Default::default(),
-                produces: Default::default(),
-            }
         }
     }
 
@@ -142,7 +124,7 @@ pub mod model {
         }
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Default)]
     struct Carryable {}
 
     impl Scope for Carryable {
@@ -152,12 +134,6 @@ pub mod model {
 
         fn scope_key() -> &'static str {
             "carryable"
-        }
-    }
-
-    impl Default for Carryable {
-        fn default() -> Self {
-            Self {}
         }
     }
 
@@ -241,7 +217,7 @@ pub mod actions {
 
             match &self.maybe_item {
                 Some(item) => {
-                    match infra.find_item(args, &item)? {
+                    match infra.find_item(args, item)? {
                         Some(dropping) => {
                             let mut user = user.borrow_mut();
                             let mut pockets = user.scope_mut::<Containing>()?;
