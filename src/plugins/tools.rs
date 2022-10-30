@@ -13,7 +13,7 @@ pub fn move_between(from: EntityPtr, to: EntityPtr, item: EntityPtr) -> Result<D
     // info!("moving {:?}!", item.borrow().key);
 
     match from_container.stop_carrying(Rc::clone(&item))? {
-        DomainOutcome::Ok(_) => {
+        DomainOutcome::Ok(events) => {
             let mut to = to.borrow_mut();
             let mut into_container = to.scope_mut::<Containing>()?;
 
@@ -21,7 +21,7 @@ pub fn move_between(from: EntityPtr, to: EntityPtr, item: EntityPtr) -> Result<D
             into_container.save()?;
             from_container.save()?;
 
-            Ok(DomainOutcome::Ok(vec![]))
+            Ok(DomainOutcome::Ok(events))
         }
         DomainOutcome::Nope => Ok(DomainOutcome::Nope),
     }
