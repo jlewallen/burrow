@@ -1,5 +1,6 @@
 use anyhow::Result;
 use std::{
+    env,
     rc::Rc,
     sync::atomic::{AtomicBool, Ordering},
 };
@@ -149,7 +150,13 @@ impl Session {
         })?;
 
         if saved.iter().any(|p| *p) {
-            self.storage.commit()?;
+            if env::var("FORCE_ROLLBACK").is_ok() {
+                let _span = span!(Level::DEBUG, "FORCED").entered();
+
+                self.storage.rollback(true)?;
+            } else {
+                self.storage.commit()?;
+            }
         } else {
             self.storage.rollback(true)?;
         }
