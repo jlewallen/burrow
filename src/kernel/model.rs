@@ -329,8 +329,6 @@ impl Entity {
 
         debug!("scope-replace");
 
-        // info!("scope-replace {}", value.to_string());
-
         self.scopes.insert(scope_key.to_string(), value);
 
         Ok(())

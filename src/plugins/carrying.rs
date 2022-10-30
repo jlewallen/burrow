@@ -152,11 +152,10 @@ pub mod model {
 }
 
 pub mod actions {
-    use std::rc::Rc;
     use tracing::info;
 
     use super::*;
-    use crate::plugins::carrying::model::Containing;
+    use crate::plugins::tools;
 
     #[derive(Debug)]
     struct HoldAction {
@@ -174,27 +173,10 @@ pub mod actions {
             let (_, user, area, infra) = args.clone();
 
             match infra.find_item(args, &self.item)? {
-                Some(holding) => {
-                    let mut area = area.borrow_mut();
-                    let mut ground = area.scope_mut::<Containing>()?;
-
-                    info!("holding {:?}!", holding);
-
-                    match ground.stop_carrying(Rc::clone(&holding))? {
-                        DomainOutcome::Ok(_) => {
-                            let mut user = user.borrow_mut();
-                            let mut pockets = user.scope_mut::<Containing>()?;
-
-                            pockets.hold(holding)?;
-
-                            pockets.save()?;
-                            ground.save()?;
-
-                            Ok(Box::new(SimpleReply::Done))
-                        }
-                        DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
-                    }
-                }
+                Some(holding) => match tools::move_between(area, user, holding)? {
+                    DomainOutcome::Ok(_) => Ok(Box::new(SimpleReply::Done)),
+                    DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
+                },
                 None => Ok(Box::new(SimpleReply::NotFound)),
             }
         }
@@ -216,38 +198,13 @@ pub mod actions {
             let (_, user, area, infra) = args.clone();
 
             match &self.maybe_item {
-                Some(item) => {
-                    match infra.find_item(args, item)? {
-                        Some(dropping) => {
-                            let mut user = user.borrow_mut();
-                            let mut pockets = user.scope_mut::<Containing>()?;
-
-                            // TODO Maybe the EntityPtr type becomes a wrapping
-                            // struct and also knows the EntityKey that it
-                            // points at.
-                            info!("dropping {:?}!", dropping.borrow().key);
-
-                            // I actually wanted to return the things that were
-                            // actually dropped, felt cleaner. We don't need
-                            // that for functionality, right now, though.
-                            match pockets.stop_carrying(Rc::clone(&dropping))? {
-                                DomainOutcome::Ok(_) => {
-                                    let mut area = area.borrow_mut();
-                                    let mut ground = area.scope_mut::<Containing>()?;
-
-                                    ground.hold(dropping)?;
-
-                                    pockets.save()?;
-                                    ground.save()?;
-
-                                    Ok(Box::new(SimpleReply::Done))
-                                }
-                                DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
-                            }
-                        }
-                        None => Ok(Box::new(SimpleReply::NotFound)),
-                    }
-                }
+                Some(item) => match infra.find_item(args, item)? {
+                    Some(dropping) => match tools::move_between(user, area, dropping)? {
+                        DomainOutcome::Ok(_) => Ok(Box::new(SimpleReply::Done)),
+                        DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
+                    },
+                    None => Ok(Box::new(SimpleReply::NotFound)),
+                },
                 None => Ok(Box::new(SimpleReply::NotFound)),
             }
         }
@@ -265,8 +222,13 @@ pub mod actions {
 
     #[cfg(test)]
     mod tests {
+        use std::rc::Rc;
+
         use super::*;
-        use crate::domain::{get_infra, Build, BuildActionArgs, QuickThing};
+        use crate::{
+            domain::{get_infra, Build, BuildActionArgs, QuickThing},
+            plugins::carrying::model::Containing,
+        };
 
         #[test]
         fn it_holds_unheld_items() -> Result<()> {

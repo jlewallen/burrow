@@ -4,6 +4,7 @@ pub mod eval;
 pub mod library;
 pub mod looking;
 pub mod moving;
+pub mod tools;
 pub mod users;
 
 #[allow(dead_code)]
