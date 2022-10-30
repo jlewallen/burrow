@@ -222,11 +222,9 @@ pub mod actions {
 
     #[cfg(test)]
     mod tests {
-        use std::rc::Rc;
-
         use super::*;
         use crate::{
-            domain::{get_infra, Build, BuildActionArgs, QuickThing},
+            domain::{BuildActionArgs, QuickThing},
             plugins::carrying::model::Containing,
         };
 
@@ -252,23 +250,15 @@ pub mod actions {
 
         #[test]
         fn it_fails_to_hold_unknown_items() -> Result<()> {
-            let infra = get_infra()?;
-            let world = Build::new(&infra)?.into_entity();
-            let person = Build::new(&infra)?.into_entity();
-            let broom = Build::new(&infra)?.named("Cool Broom")?.into_entity();
-            let area = Build::new(&infra)?.holding(&vec![broom])?.into_entity();
-
-            assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
+            let args: ActionArgs = BuildActionArgs::new()?
+                .ground(vec![QuickThing::Object("Cool Broom".to_string())])
+                .try_into()?;
 
             let action = HoldAction {
                 item: Item::Named("rake".to_string()),
             };
-            let reply = action.perform((
-                world,
-                Rc::clone(&person),
-                Rc::clone(&area),
-                Rc::clone(&infra),
-            ))?;
+            let reply = action.perform(args.clone())?;
+            let (_, person, area, _) = args.clone();
 
             assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -280,23 +270,15 @@ pub mod actions {
 
         #[test]
         fn it_drops_held_items() -> Result<()> {
-            let infra = get_infra()?;
-            let world = Build::new(&infra)?.into_entity();
-            let rake = Build::new(&infra)?.named("Cool Rake")?.into_entity();
-            let person = Build::new(&infra)?.holding(&vec![rake])?.into_entity();
-            let area = Build::new(&infra)?.into_entity();
-
-            assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
+            let args: ActionArgs = BuildActionArgs::new()?
+                .hands(vec![QuickThing::Object("Cool Rake".to_string())])
+                .try_into()?;
 
             let action = DropAction {
                 maybe_item: Some(Item::Named("rake".to_string())),
             };
-            let reply = action.perform((
-                world,
-                Rc::clone(&person),
-                Rc::clone(&area),
-                Rc::clone(&infra),
-            ))?;
+            let reply = action.perform(args.clone())?;
+            let (_, person, area, _) = args.clone();
 
             assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
@@ -308,23 +290,15 @@ pub mod actions {
 
         #[test]
         fn it_fails_to_drop_unknown_items() -> Result<()> {
-            let infra = get_infra()?;
-            let world = Build::new(&infra)?.into_entity();
-            let rake = Build::new(&infra)?.named("Cool Broom")?.into_entity();
-            let person = Build::new(&infra)?.holding(&vec![rake])?.into_entity();
-            let area = Build::new(&infra)?.into_entity();
-
-            assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
+            let args: ActionArgs = BuildActionArgs::new()?
+                .hands(vec![QuickThing::Object("Cool Broom".to_string())])
+                .try_into()?;
 
             let action = DropAction {
                 maybe_item: Some(Item::Named("rake".to_string())),
             };
-            let reply = action.perform((
-                world,
-                Rc::clone(&person),
-                Rc::clone(&area),
-                Rc::clone(&infra),
-            ))?;
+            let reply = action.perform(args.clone())?;
+            let (_, person, area, _) = args.clone();
 
             assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -336,23 +310,15 @@ pub mod actions {
 
         #[test]
         fn it_fails_to_drop_unheld_items() -> Result<()> {
-            let infra = get_infra()?;
-            let world = Build::new(&infra)?.into_entity();
-            let rake = Build::new(&infra)?.named("Cool Broom")?.into_entity();
-            let person = Build::new(&infra)?.into_entity();
-            let area = Build::new(&infra)?.holding(&vec![rake])?.into_entity();
-
-            assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
+            let args: ActionArgs = BuildActionArgs::new()?
+                .ground(vec![QuickThing::Object("Cool Broom".to_string())])
+                .try_into()?;
 
             let action = DropAction {
                 maybe_item: Some(Item::Named("rake".to_string())),
             };
-            let reply = action.perform((
-                world,
-                Rc::clone(&person),
-                Rc::clone(&area),
-                Rc::clone(&infra),
-            ))?;
+            let reply = action.perform(args.clone())?;
+            let (_, person, area, _) = args.clone();
 
             assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
