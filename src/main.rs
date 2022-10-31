@@ -31,6 +31,8 @@ enum Commands {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    color_backtrace::install();
+
     let create_tracing_subscriber = || {
         // use tracing_tree::HierarchicalLayer;
         // HierarchicalLayer::new(2)
