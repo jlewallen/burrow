@@ -1,7 +1,7 @@
 use anyhow::Result;
 use nom::{bytes::complete::tag, combinator::map, sequence::separated_pair, IResult};
 
-use super::library::{noun, spaces};
+use super::library::*;
 use crate::kernel::*;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -10,9 +10,10 @@ pub enum Sentence {
 }
 
 fn go(i: &str) -> IResult<&str, Sentence> {
-    map(separated_pair(tag("go"), spaces, noun), |(_, target)| {
-        Sentence::Go(target)
-    })(i)
+    map(
+        separated_pair(tag("go"), spaces, named_place),
+        |(_, target)| Sentence::Go(target),
+    )(i)
 }
 
 fn parse(i: &str) -> IResult<&str, Sentence> {
@@ -56,6 +57,25 @@ pub mod model {
         pub acls: Acls,
         pub occupied: Vec<LazyLoadedEntity>,
         pub occupancy: u32,
+    }
+
+    impl Occupyable {
+        pub fn stop_occupying(&mut self, item: EntityPtr) -> Result<DomainOutcome> {
+            let before = self.occupied.len();
+            self.occupied.retain(|i| i.key != item.borrow().key);
+            let after = self.occupied.len();
+            if before == after {
+                return Ok(DomainOutcome::Nope);
+            }
+
+            Ok(DomainOutcome::Ok(vec![]))
+        }
+
+        pub fn start_occupying(&mut self, item: EntityPtr) -> Result<DomainOutcome> {
+            self.occupied.push(item.clone().into());
+
+            Ok(DomainOutcome::Ok(vec![]))
+        }
     }
 
     impl Scope for Occupyable {
@@ -145,28 +165,76 @@ pub mod model {
 }
 
 pub mod actions {
+    use super::*;
+    use crate::plugins::tools;
     use tracing::info;
 
-    use super::*;
-
     #[derive(Debug)]
-    struct GoAction {}
+    struct GoAction {
+        item: Item,
+    }
 
     impl Action for GoAction {
         fn is_read_only() -> bool {
             false
         }
 
-        fn perform(&self, (_world, _user, _area, _infra): ActionArgs) -> ReplyResult {
-            info!("go!");
+        fn perform(&self, args: ActionArgs) -> ReplyResult {
+            info!("go {:?}!", self.item);
 
-            Ok(Box::new(SimpleReply::Done))
+            let (_, user, area, infra) = args.clone();
+
+            match infra.find_item(args, &self.item)? {
+                Some(to_area) => match tools::navigate_between(area, to_area, user)? {
+                    DomainOutcome::Ok(_) => Ok(Box::new(SimpleReply::Done)),
+                    DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
+                },
+                None => Ok(Box::new(SimpleReply::NotFound)),
+            }
         }
     }
 
     pub fn evaluate(s: &Sentence) -> Box<dyn Action> {
-        match *s {
-            Sentence::Go(_) => Box::new(GoAction {}),
+        match &*s {
+            Sentence::Go(e) => Box::new(GoAction { item: e.clone() }),
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use crate::domain::{BuildActionArgs, QuickThing};
+
+        #[test]
+        fn it_fails_to_go_unknown_items() -> Result<()> {
+            let args: ActionArgs = BuildActionArgs::new()?.plain().try_into()?;
+
+            let action = GoAction {
+                item: Item::Named("rake".to_string()),
+            };
+            let reply = action.perform(args.clone())?;
+            let (_, _person, _area, _) = args.clone();
+
+            assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+
+            Ok(())
+        }
+
+        #[test]
+        fn it_fails_to_go_non_routes() -> Result<()> {
+            let args: ActionArgs = BuildActionArgs::new()?
+                .ground(vec![QuickThing::Object("Cool Rake".to_string())])
+                .try_into()?;
+
+            let action = GoAction {
+                item: Item::Named("rake".to_string()),
+            };
+            let reply = action.perform(args.clone())?;
+            let (_, _person, _area, _) = args.clone();
+
+            assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+
+            Ok(())
         }
     }
 }
@@ -179,7 +247,7 @@ mod tests {
     fn it_parses_go_noun_correctly() {
         let (remaining, actual) = parse("go west").unwrap();
         assert_eq!(remaining, "");
-        assert_eq!(actual, Sentence::Go(Item::Named("west".to_owned())))
+        assert_eq!(actual, Sentence::Go(Item::Route("west".to_owned())))
     }
 
     #[test]

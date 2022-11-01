@@ -44,7 +44,7 @@ impl Build {
         let mut container = entity.scope_mut::<Containing>()?;
 
         for item in items {
-            container.hold(Rc::clone(item))?;
+            container.start_carrying(Rc::clone(item))?;
         }
 
         container.save()?;
@@ -91,6 +91,10 @@ impl BuildActionArgs {
 
     pub fn ground(&mut self, items: Vec<QuickThing>) -> &Self {
         self.ground.extend(items);
+        self
+    }
+
+    pub fn plain(&mut self) -> &Self {
         self
     }
 }

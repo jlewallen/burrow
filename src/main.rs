@@ -75,8 +75,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             {
                 let session = domain.open_session()?;
 
-                {
-                    let text = &"drop Cloak";
+                for text in &["drop Cloak", "go east"] {
                     let reply = session.evaluate_and_perform("jlewallen", text)?;
                     // info!("reply `{}`", markdown_to_string(reply.to_markdown()?)?);
                     info!("reply `{}`", reply.to_json()?);

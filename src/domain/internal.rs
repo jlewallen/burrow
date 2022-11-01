@@ -10,12 +10,16 @@ use tracing::{debug, info, span, trace, Level};
 use crate::storage::EntityStorage;
 use crate::{kernel::*, plugins::carrying::model::Containing};
 
+fn matches_string_description(incoming: &str, desc: &str) -> bool {
+    // TODO We can do this more efficiently.
+    incoming.to_lowercase().contains(&desc.to_lowercase())
+}
+
 /// Determines if an entity matches a user's description of that entity, given
 /// no other context at all.
 fn matches_description(entity: &Entity, desc: &str) -> bool {
     if let Some(name) = entity.name() {
-        // TODO We can do this more efficiently.
-        name.to_lowercase().contains(&desc.to_lowercase())
+        matches_string_description(&name, desc)
     } else {
         false
     }
@@ -214,6 +218,28 @@ impl Infrastructure for DomainInfrastructure {
 
                 Ok(None)
             }
+            Item::Route(name) => {
+                let haystack = EntityRelationshipSet::new_from_action(args)
+                    .expand()?
+                    .routes()?;
+
+                for entity in &haystack.entities {
+                    match entity {
+                        EntityRelationship::World(_) => {}
+                        EntityRelationship::User(_) => {}
+                        EntityRelationship::Area(_) => {}
+                        EntityRelationship::Holding(_) => {}
+                        EntityRelationship::Ground(_) => {}
+                        EntityRelationship::Exit(route_name, area) => {
+                            if matches_string_description(route_name, name) {
+                                return Ok(Some(area.clone()));
+                            }
+                        }
+                    }
+                }
+
+                Ok(None)
+            }
         }
     }
 
@@ -229,6 +255,7 @@ enum EntityRelationship {
     Area(EntityPtr),
     Holding(EntityPtr),
     Ground(EntityPtr),
+    Exit(String, EntityPtr),
 }
 
 pub struct EntityRelationshipSet {
@@ -252,7 +279,6 @@ impl EntityRelationshipSet {
         // https://github.com/ferrous-systems/elements-of-rust#tuple-structs-and-enum-tuple-variants-as-functions
         for entity in &self.entities {
             match entity {
-                EntityRelationship::World(_world) => {}
                 EntityRelationship::User(user) => {
                     let user = user.borrow();
                     if let Ok(containing) = user.scope::<Containing>() {
@@ -269,8 +295,34 @@ impl EntityRelationshipSet {
                         }
                     }
                 }
+                EntityRelationship::World(_world) => {}
                 EntityRelationship::Holding(_holding) => {}
                 EntityRelationship::Ground(_ground) => {}
+                EntityRelationship::Exit(_route_name, _area) => {}
+            }
+        }
+
+        Ok(Self { entities: expanded })
+    }
+
+    pub fn routes(&self) -> Result<Self> {
+        use crate::plugins::moving::model::Exit;
+
+        let mut expanded = self.entities.clone();
+
+        // https://github.com/ferrous-systems/elements-of-rust#tuple-structs-and-enum-tuple-variants-as-functions
+        for entity in &self.entities {
+            match entity {
+                EntityRelationship::Ground(ground) => {
+                    let item = ground.borrow();
+                    if let Some(exit) = item.maybe_scope::<Exit>()? {
+                        expanded.push(EntityRelationship::Exit(
+                            item.name().ok_or(anyhow!("Route name is required"))?,
+                            exit.area.into_entity()?,
+                        ));
+                    }
+                }
+                _ => {}
             }
         }
 

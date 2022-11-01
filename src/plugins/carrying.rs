@@ -102,7 +102,7 @@ pub mod model {
     }
 
     impl Containing {
-        pub fn hold(&mut self, item: EntityPtr) -> CarryingResult {
+        pub fn start_carrying(&mut self, item: EntityPtr) -> CarryingResult {
             self.holding.push(item.clone().into());
 
             Ok(DomainOutcome::Ok(vec![Box::new(CarryingEvent::ItemHeld(

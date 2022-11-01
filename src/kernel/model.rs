@@ -60,6 +60,7 @@ pub enum DomainOutcome {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Item {
     Named(String),
+    Route(String),
     // ImplicitlyUnheld(String),
     // ImplicitlyHeld(String),
     // ImplicitlyNavigable(String),
@@ -273,6 +274,14 @@ impl Entity {
     pub fn scope<T: Scope>(&self) -> Result<OpenScope<T>, DomainError> {
         let scope = self.load_scope::<T>()?;
         Ok(OpenScope::new(scope))
+    }
+
+    pub fn maybe_scope<T: Scope>(&self) -> Result<Option<OpenScope<T>>, DomainError> {
+        if !self.has_scope::<T>() {
+            return Ok(None);
+        }
+        let scope = self.load_scope::<T>()?;
+        Ok(Some(OpenScope::new(scope)))
     }
 
     fn load_scope<T: Scope>(&self) -> Result<Box<T>, DomainError> {
