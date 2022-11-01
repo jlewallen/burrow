@@ -1,8 +1,7 @@
 use anyhow::Result;
 use std::fmt::Debug;
-use std::{cell::RefCell, rc::Rc};
 
-use super::{ActionArgs, Entity, EntityPtr, Item, LazyLoadedEntity, LoadEntities};
+use super::{ActionArgs, EntityPtr, Item, LazyLoadedEntity, LoadEntities};
 
 pub trait Infrastructure: Debug + LoadEntities {
     fn ensure_entity(&self, entity_ref: &LazyLoadedEntity) -> Result<LazyLoadedEntity>;
@@ -17,13 +16,13 @@ pub trait Infrastructure: Debug + LoadEntities {
         }
     }
 
-    fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<Rc<RefCell<Entity>>>>;
+    fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<EntityPtr>>;
 
     fn find_optional_item(
         &self,
         args: ActionArgs,
         item: Option<Item>,
-    ) -> Result<Option<Rc<RefCell<Entity>>>> {
+    ) -> Result<Option<EntityPtr>> {
         if let Some(item) = item {
             self.find_item(args, &item)
         } else {

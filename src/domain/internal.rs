@@ -48,7 +48,7 @@ impl EntityMap {
         let check_existing = self.entities.borrow();
         if let Some(e) = check_existing.get(key) {
             debug!(%key, "existing");
-            return Ok(Some(Rc::clone(&e.entity)));
+            return Ok(Some(e.entity.clone()));
         }
 
         Ok(None)
@@ -105,7 +105,7 @@ impl Entities {
     // TODO Lots of cloning going on when adding new entities.
     fn add_entity(&self, entity: &EntityPtr) -> Result<()> {
         let loaded = {
-            let clone = Rc::clone(entity);
+            let clone = entity.clone();
             let entity = entity.borrow();
             LoadedEntity {
                 key: entity.key.clone(),
@@ -141,13 +141,13 @@ impl PrepareEntities for Entities {
             return Err(anyhow!("no infrastructure"));
         }
 
-        let cell = Rc::new(RefCell::new(loaded));
+        let cell = EntityPtr::new(&Rc::new(RefCell::new(loaded)));
 
         self.entities.add_entity(
             key,
             LoadedEntity {
                 key: key.clone(),
-                entity: Rc::clone(&cell),
+                entity: cell.clone(),
                 serialized: persisted.serialized,
                 gid: persisted.gid,
                 version: persisted.version + 1,

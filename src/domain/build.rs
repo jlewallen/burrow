@@ -44,7 +44,7 @@ impl Build {
         let mut container = entity.scope_mut::<Containing>()?;
 
         for item in items {
-            container.start_carrying(Rc::clone(item))?;
+            container.start_carrying(item.clone())?;
         }
 
         container.save()?;
@@ -53,7 +53,7 @@ impl Build {
     }
 
     pub fn into_entity(&self) -> EntityPtr {
-        Rc::clone(&self.entity)
+        self.entity.clone()
     }
 }
 

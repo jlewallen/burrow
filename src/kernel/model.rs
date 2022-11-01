@@ -3,7 +3,7 @@ use nanoid::nanoid;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::{
-    cell::RefCell,
+    cell::{Ref, RefCell, RefMut},
     collections::HashMap,
     fmt::{Debug, Display},
     ops::{Deref, DerefMut, Index},
@@ -22,7 +22,42 @@ pub static DESC_PROPERTY: &str = "desc";
 
 pub static GID_PROPERTY: &str = "gid";
 
-pub type EntityPtr = Rc<RefCell<Entity>>;
+#[derive(Debug, Clone)]
+pub struct EntityPtr(Rc<RefCell<Entity>>);
+
+impl EntityPtr {
+    pub fn new(entity: &Rc<RefCell<Entity>>) -> Self {
+        EntityPtr(Rc::clone(entity))
+    }
+
+    pub fn borrow(&self) -> Ref<Entity> {
+        self.0.as_ref().borrow()
+    }
+
+    pub fn borrow_mut(&self) -> RefMut<Entity> {
+        self.0.as_ref().borrow_mut()
+    }
+
+    pub fn downgrade(&self) -> Weak<RefCell<Entity>> {
+        Rc::downgrade(&self.0)
+    }
+}
+
+/*
+Unable to get these to work as smoothly as the above.
+
+impl Borrow<Entity> for EntityPtr {
+    fn borrow(&self) -> &Entity {
+        self.0.borrow()
+    }
+}
+
+impl BorrowMut<Entity> for EntityPtr {
+    fn borrow_mut(&mut self) -> RefMut<Entity> {
+        self.0.borrow_mut()
+    }
+}
+*/
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct EntityKey(String);
@@ -240,7 +275,7 @@ impl Needs<std::rc::Rc<dyn Infrastructure>> for Entity {
 
 impl Entity {
     pub fn new() -> EntityPtr {
-        Rc::new(RefCell::new(Self::default()))
+        EntityPtr(Rc::new(RefCell::new(Self::default())))
     }
 
     pub fn name(&self) -> Option<String> {
@@ -431,7 +466,7 @@ impl LazyLoadedEntity {
             key: shared_entity.key.clone(),
             class: shared_entity.class.py_type.clone(),
             name: shared_entity.name().unwrap_or_else(|| "".to_string()),
-            entity: Some(Rc::downgrade(&entity)),
+            entity: Some(entity.downgrade()),
         }
     }
 
@@ -441,7 +476,10 @@ impl LazyLoadedEntity {
 
     pub fn into_entity(&self) -> Result<EntityPtr, DomainError> {
         match &self.entity {
-            Some(e) => e.upgrade().ok_or(DomainError::DanglingEntity),
+            Some(e) => match e.upgrade() {
+                Some(e) => Ok(EntityPtr::new(&e)),
+                None => Err(DomainError::DanglingEntity),
+            },
             None => Err(DomainError::DanglingEntity),
         }
     }

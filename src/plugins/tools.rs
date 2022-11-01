@@ -1,6 +1,5 @@
 use crate::kernel::{DomainOutcome, EntityPtr};
 use anyhow::Result;
-use std::rc::Rc;
 
 use super::{
     carrying::model::{Containing, Location},
@@ -15,9 +14,9 @@ pub fn move_between(from: EntityPtr, to: EntityPtr, item: EntityPtr) -> Result<D
     // the EntityKey that it points at.
     // info!("moving {:?}!", item.borrow().key);
 
-    match from_container.stop_carrying(Rc::clone(&item))? {
+    match from_container.stop_carrying(item.clone())? {
         DomainOutcome::Ok(events) => {
-            if false {
+            if true {
                 let mut item = item.borrow_mut();
                 let mut item_location = item.scope_mut::<Location>()?;
                 // TODO How do avoid this clone?
@@ -42,9 +41,9 @@ pub fn navigate_between(from: EntityPtr, to: EntityPtr, item: EntityPtr) -> Resu
     let mut from = from.borrow_mut();
     let mut from_container = from.scope_mut::<Occupyable>()?;
 
-    match from_container.stop_occupying(Rc::clone(&item))? {
+    match from_container.stop_occupying(item.clone())? {
         DomainOutcome::Ok(events) => {
-            if false {
+            if true {
                 let mut item = item.borrow_mut();
                 let mut item_location = item.scope_mut::<Occupying>()?;
                 // TODO How do avoid this clone?
