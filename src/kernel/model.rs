@@ -3,7 +3,7 @@ use nanoid::nanoid;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::{
-    cell::{Ref, RefCell, RefMut},
+    cell::RefCell,
     collections::HashMap,
     fmt::{Debug, Display},
     ops::{Deref, DerefMut, Index},
@@ -30,34 +30,20 @@ impl EntityPtr {
         EntityPtr(Rc::clone(entity))
     }
 
-    pub fn borrow(&self) -> Ref<Entity> {
-        self.0.as_ref().borrow()
-    }
-
-    pub fn borrow_mut(&self) -> RefMut<Entity> {
-        self.0.as_ref().borrow_mut()
-    }
-
     pub fn downgrade(&self) -> Weak<RefCell<Entity>> {
         Rc::downgrade(&self.0)
     }
 }
 
-/*
-Unable to get these to work as smoothly as the above.
+// This seems cleaner than implementing borrow/borrow_mut ourselves and things
+// were gnarly when I tried implementing Borrow<T> myself.
+impl Deref for EntityPtr {
+    type Target = RefCell<Entity>;
 
-impl Borrow<Entity> for EntityPtr {
-    fn borrow(&self) -> &Entity {
-        self.0.borrow()
+    fn deref(&self) -> &Self::Target {
+        self.0.as_ref()
     }
 }
-
-impl BorrowMut<Entity> for EntityPtr {
-    fn borrow_mut(&mut self) -> RefMut<Entity> {
-        self.0.borrow_mut()
-    }
-}
-*/
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct EntityKey(String);
