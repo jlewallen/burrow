@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use super::new_infra;
 use crate::{
-    kernel::{ActionArgs, Entity, EntityPtr, Infrastructure, Needs},
+    kernel::{ActionArgs, EntityPtr, Infrastructure, Needs},
     plugins::carrying::model::Containing,
 };
 
@@ -17,7 +17,7 @@ pub struct Build {
 
 impl Build {
     pub fn new(infra: &Rc<dyn Infrastructure>) -> Result<Self> {
-        let entity = Entity::new();
+        let entity = EntityPtr::new_blank();
 
         // TODO Would love to do this from `supply` except we only have
         // &self there instead of Rc<dyn Infrastructure>
@@ -69,8 +69,8 @@ pub enum QuickThing {
 
 impl QuickThing {
     pub fn make(&self, infra: &Rc<dyn Infrastructure>) -> Result<EntityPtr> {
-        match &*self {
-            QuickThing::Object(name) => Ok(Build::new(infra)?.named(&name)?.into_entity()),
+        match self {
+            QuickThing::Object(name) => Ok(Build::new(infra)?.named(name)?.into_entity()),
         }
     }
 }

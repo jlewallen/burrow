@@ -312,17 +312,15 @@ impl EntityRelationshipSet {
 
         // https://github.com/ferrous-systems/elements-of-rust#tuple-structs-and-enum-tuple-variants-as-functions
         for entity in &self.entities {
-            match entity {
-                EntityRelationship::Ground(ground) => {
-                    let item = ground.borrow();
-                    if let Some(exit) = item.maybe_scope::<Exit>()? {
-                        expanded.push(EntityRelationship::Exit(
-                            item.name().ok_or(anyhow!("Route name is required"))?,
-                            exit.area.into_entity()?,
-                        ));
-                    }
+            if let EntityRelationship::Ground(ground) = entity {
+                let item = ground.borrow();
+                if let Some(exit) = item.maybe_scope::<Exit>()? {
+                    expanded.push(EntityRelationship::Exit(
+                        item.name()
+                            .ok_or_else(|| anyhow!("Route name is required"))?,
+                        exit.area.into_entity()?,
+                    ));
                 }
-                _ => {}
             }
         }
 

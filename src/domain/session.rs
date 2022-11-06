@@ -124,10 +124,7 @@ impl Session {
             let modifications = d
                 .calls
                 .iter()
-                .filter(|c| match c {
-                    ChangeType::Unchanged(_, _) => false,
-                    _ => true,
-                })
+                .filter(|c| !matches!(c, ChangeType::Unchanged(_, _)))
                 .count();
 
             if modifications > 0 {

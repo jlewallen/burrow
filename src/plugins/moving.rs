@@ -72,7 +72,7 @@ pub mod model {
         }
 
         pub fn start_occupying(&mut self, item: EntityPtr) -> Result<DomainOutcome> {
-            self.occupied.push(item.clone().into());
+            self.occupied.push(item.into());
 
             Ok(DomainOutcome::Ok(vec![]))
         }
@@ -195,7 +195,7 @@ pub mod actions {
     }
 
     pub fn evaluate(s: &Sentence) -> Box<dyn Action> {
-        match &*s {
+        match s {
             Sentence::Go(e) => Box::new(GoAction { item: e.clone() }),
         }
     }

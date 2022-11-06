@@ -29,12 +29,21 @@ pub struct EntityPtr {
 }
 
 impl EntityPtr {
+    pub fn new_blank() -> Self {
+        let brand_new = Rc::new(RefCell::new(Entity::default()));
+        let lazy = LazyLoadedEntity::new_from_raw(&brand_new);
+        EntityPtr {
+            entity: brand_new,
+            lazy,
+        }
+    }
+
     pub fn new(entity: &Rc<RefCell<Entity>>) -> Self {
         let lazy = LazyLoadedEntity::new_from_raw(entity);
 
         EntityPtr {
             entity: Rc::clone(entity),
-            lazy: lazy,
+            lazy,
         }
     }
 
@@ -268,15 +277,16 @@ impl Needs<std::rc::Rc<dyn Infrastructure>> for Entity {
 }
 
 impl Entity {
+    /*
     pub fn new() -> EntityPtr {
         let brand_new = Rc::new(RefCell::new(Self::default()));
         let lazy = LazyLoadedEntity::new_from_raw(&brand_new);
         EntityPtr {
             entity: brand_new,
-            lazy: lazy,
+            lazy,
         }
     }
-
+    */
     pub fn name(&self) -> Option<String> {
         self.props.string_property(NAME_PROPERTY)
     }
