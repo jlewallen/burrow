@@ -141,7 +141,7 @@ impl PrepareEntities for Entities {
             return Err(anyhow!("no infrastructure"));
         }
 
-        let cell = EntityPtr::new(&Rc::new(RefCell::new(loaded)));
+        let cell: EntityPtr = loaded.into();
 
         self.entities.add_entity(
             key,

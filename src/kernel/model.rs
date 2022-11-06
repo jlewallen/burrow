@@ -38,17 +38,25 @@ impl EntityPtr {
         }
     }
 
-    pub fn new(entity: &Rc<RefCell<Entity>>) -> Self {
-        let lazy = LazyLoadedEntity::new_from_raw(entity);
+    pub fn downgrade(&self) -> Weak<RefCell<Entity>> {
+        Rc::downgrade(&self.entity)
+    }
+}
 
-        EntityPtr {
-            entity: Rc::clone(entity),
+impl From<Rc<RefCell<Entity>>> for EntityPtr {
+    fn from(ep: Rc<RefCell<Entity>>) -> Self {
+        let lazy = LazyLoadedEntity::new_from_raw(&ep);
+
+        Self {
+            entity: Rc::clone(&ep),
             lazy,
         }
     }
+}
 
-    pub fn downgrade(&self) -> Weak<RefCell<Entity>> {
-        Rc::downgrade(&self.entity)
+impl From<Entity> for EntityPtr {
+    fn from(entity: Entity) -> Self {
+        Rc::new(RefCell::new(entity)).into()
     }
 }
 
@@ -490,7 +498,7 @@ impl LazyLoadedEntity {
     pub fn into_entity(&self) -> Result<EntityPtr, DomainError> {
         match &self.entity {
             Some(e) => match e.upgrade() {
-                Some(e) => Ok(EntityPtr::new(&e)),
+                Some(e) => Ok(e.into()),
                 None => Err(DomainError::DanglingEntity),
             },
             None => Err(DomainError::DanglingEntity),
