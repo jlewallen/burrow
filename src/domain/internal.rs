@@ -186,7 +186,7 @@ impl Infrastructure for DomainInfrastructure {
             Ok(entity_ref.clone())
         } else {
             let entity = self.load_entity_by_key(&entity_ref.key)?;
-            Ok(LazyLoadedEntity::new_with_entity(entity))
+            Ok(entity.into())
         }
     }
 

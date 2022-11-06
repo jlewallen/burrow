@@ -25,12 +25,16 @@ pub static GID_PROPERTY: &str = "gid";
 #[derive(Debug, Clone)]
 pub struct EntityPtr {
     entity: Rc<RefCell<Entity>>,
+    lazy: LazyLoadedEntity,
 }
 
 impl EntityPtr {
     pub fn new(entity: &Rc<RefCell<Entity>>) -> Self {
+        let lazy = LazyLoadedEntity::new_from_raw(entity);
+
         EntityPtr {
             entity: Rc::clone(entity),
+            lazy: lazy,
         }
     }
 
@@ -265,8 +269,11 @@ impl Needs<std::rc::Rc<dyn Infrastructure>> for Entity {
 
 impl Entity {
     pub fn new() -> EntityPtr {
+        let brand_new = Rc::new(RefCell::new(Self::default()));
+        let lazy = LazyLoadedEntity::new_from_raw(&brand_new);
         EntityPtr {
-            entity: Rc::new(RefCell::new(Self::default())),
+            entity: brand_new,
+            lazy: lazy,
         }
     }
 
@@ -451,6 +458,10 @@ pub struct LazyLoadedEntity {
 
 impl LazyLoadedEntity {
     pub fn new_with_entity(entity: EntityPtr) -> Self {
+        Self::new_from_raw(&entity.entity)
+    }
+
+    fn new_from_raw(entity: &Rc<RefCell<Entity>>) -> Self {
         let shared_entity = entity.borrow();
         Self {
             py_object: "model.entity.EntityRef".to_string(), // #python-class
@@ -458,7 +469,7 @@ impl LazyLoadedEntity {
             key: shared_entity.key.clone(),
             class: shared_entity.class.py_type.clone(),
             name: shared_entity.name().unwrap_or_else(|| "".to_string()),
-            entity: Some(entity.downgrade()),
+            entity: Some(Rc::downgrade(entity)),
         }
     }
 
@@ -479,7 +490,7 @@ impl LazyLoadedEntity {
 
 impl From<EntityPtr> for LazyLoadedEntity {
     fn from(entity: EntityPtr) -> Self {
-        LazyLoadedEntity::new_with_entity(entity)
+        entity.lazy
     }
 }
 
