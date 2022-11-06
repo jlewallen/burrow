@@ -23,15 +23,19 @@ pub static DESC_PROPERTY: &str = "desc";
 pub static GID_PROPERTY: &str = "gid";
 
 #[derive(Debug, Clone)]
-pub struct EntityPtr(Rc<RefCell<Entity>>);
+pub struct EntityPtr {
+    entity: Rc<RefCell<Entity>>,
+}
 
 impl EntityPtr {
     pub fn new(entity: &Rc<RefCell<Entity>>) -> Self {
-        EntityPtr(Rc::clone(entity))
+        EntityPtr {
+            entity: Rc::clone(entity),
+        }
     }
 
     pub fn downgrade(&self) -> Weak<RefCell<Entity>> {
-        Rc::downgrade(&self.0)
+        Rc::downgrade(&self.entity)
     }
 }
 
@@ -41,7 +45,7 @@ impl Deref for EntityPtr {
     type Target = RefCell<Entity>;
 
     fn deref(&self) -> &Self::Target {
-        self.0.as_ref()
+        self.entity.as_ref()
     }
 }
 
@@ -261,7 +265,9 @@ impl Needs<std::rc::Rc<dyn Infrastructure>> for Entity {
 
 impl Entity {
     pub fn new() -> EntityPtr {
-        EntityPtr(Rc::new(RefCell::new(Self::default())))
+        EntityPtr {
+            entity: Rc::new(RefCell::new(Self::default())),
+        }
     }
 
     pub fn name(&self) -> Option<String> {
