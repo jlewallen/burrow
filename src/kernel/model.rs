@@ -32,7 +32,8 @@ impl EntityPtr {
     pub fn new_blank() -> Self {
         let brand_new = Rc::new(RefCell::new(Entity::default()));
         let lazy = LazyLoadedEntity::new_from_raw(&brand_new);
-        EntityPtr {
+
+        Self {
             entity: brand_new,
             lazy,
         }
