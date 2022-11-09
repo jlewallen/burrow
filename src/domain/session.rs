@@ -123,13 +123,12 @@ impl Session {
         let _span = span!(Level::DEBUG, "flushing", key = entity.key.to_string()).entered();
 
         let serialized = serde_json::to_string(&*entity)?;
-        let v1: serde_json::Value = l.serialized.parse()?;
-        let v2: serde_json::Value = serialized.parse()?;
 
         trace!("json: {:?}", serialized);
 
+        let v1: serde_json::Value = l.serialized.parse()?;
+        let v2: serde_json::Value = serialized.parse()?;
         let mut d = Recorder::default();
-
         diff(&v1, &v2, &mut d);
 
         let modifications = d
@@ -157,17 +156,25 @@ impl Session {
         }
     }
 
-    pub fn close(&self) -> Result<()> {
+    fn get_modified_entities(&self) -> Result<Vec<PersistedEntity>> {
         let saved = self
             .entity_map
             .foreach_entity(|l| self.check_for_changes(l))?;
-        let changes = saved.into_iter().filter_map(|i| i).collect::<Vec<_>>();
-        let saved = changes
+        Ok(saved.into_iter().filter_map(|i| i).collect::<Vec<_>>())
+    }
+
+    fn flush_entities(&self) -> Result<bool> {
+        Ok(self
+            .get_modified_entities()?
             .into_iter()
             .map(|p| self.storage.save(&p))
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<Result<Vec<_>>>()?
+            .len()
+            > 0)
+    }
 
-        if saved.len() > 0 {
+    pub fn close(&self) -> Result<()> {
+        if self.flush_entities()? {
             if should_force_rollback() {
                 let _span = span!(Level::DEBUG, "FORCED").entered();
                 self.storage.rollback(true)?;
