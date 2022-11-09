@@ -6,7 +6,7 @@ use std::{
 };
 use tracing::{debug, event, info, span, trace, warn, Level};
 
-use super::internal::{DomainInfrastructure, EntityMap};
+use super::internal::{DomainInfrastructure, EntityMap, LoadedEntity};
 use crate::plugins::{moving::model::Occupying, users::model::Usernames};
 use crate::storage::{EntityStorage, EntityStorageFactory, PersistedEntity};
 use crate::{kernel::*, plugins::eval};
@@ -113,55 +113,63 @@ impl Session {
         }
     }
 
-    pub fn close(&self) -> Result<()> {
+    fn check_for_changes(&self, l: &LoadedEntity) -> Result<Option<PersistedEntity>> {
         use treediff::diff;
         use treediff::tools::ChangeType;
         use treediff::tools::Recorder;
 
-        let saved = self.entity_map.foreach_entity(|l| {
-            let entity = l.entity.borrow();
+        let entity = l.entity.borrow();
 
-            let _span = span!(Level::DEBUG, "saving", key = entity.key.to_string()).entered();
+        let _span = span!(Level::DEBUG, "flushing", key = entity.key.to_string()).entered();
 
-            let serialized = serde_json::to_string(&*entity)?;
-            let v1: serde_json::Value = l.serialized.parse()?;
-            let v2: serde_json::Value = serialized.parse()?;
+        let serialized = serde_json::to_string(&*entity)?;
+        let v1: serde_json::Value = l.serialized.parse()?;
+        let v2: serde_json::Value = serialized.parse()?;
 
-            trace!("foreach: {:?}", serialized);
+        trace!("json: {:?}", serialized);
 
-            let mut d = Recorder::default();
+        let mut d = Recorder::default();
 
-            diff(&v1, &v2, &mut d);
+        diff(&v1, &v2, &mut d);
 
-            let modifications = d
-                .calls
-                .iter()
-                .filter(|c| !matches!(c, ChangeType::Unchanged(_, _)))
-                .count();
+        let modifications = d
+            .calls
+            .iter()
+            .filter(|c| !matches!(c, ChangeType::Unchanged(_, _)))
+            .count();
 
-            if modifications > 0 {
-                for each in d.calls {
-                    match each {
-                        ChangeType::Unchanged(_, _) => {}
-                        _ => debug!("modified: {:?}", each),
-                    }
+        if modifications > 0 {
+            for each in d.calls {
+                match each {
+                    ChangeType::Unchanged(_, _) => {}
+                    _ => debug!("modified: {:?}", each),
                 }
-
-                self.storage.save(&PersistedEntity {
-                    key: entity.key.to_string(),
-                    gid: l.gid,
-                    version: l.version,
-                    serialized,
-                })?;
             }
 
-            Ok(modifications > 0)
-        })?;
+            Ok(Some(PersistedEntity {
+                key: entity.key.to_string(),
+                gid: l.gid,
+                version: l.version,
+                serialized,
+            }))
+        } else {
+            Ok(None)
+        }
+    }
 
-        if saved.iter().any(|p| *p) {
-            if env::var("FORCE_ROLLBACK").is_ok() {
+    pub fn close(&self) -> Result<()> {
+        let saved = self
+            .entity_map
+            .foreach_entity(|l| self.check_for_changes(l))?;
+        let changes = saved.into_iter().filter_map(|i| i).collect::<Vec<_>>();
+        let saved = changes
+            .into_iter()
+            .map(|p| self.storage.save(&p))
+            .collect::<Result<Vec<_>>>()?;
+
+        if saved.len() > 0 {
+            if should_force_rollback() {
                 let _span = span!(Level::DEBUG, "FORCED").entered();
-
                 self.storage.rollback(true)?;
             } else {
                 self.storage.commit()?;
@@ -206,4 +214,8 @@ impl Domain {
 
         Session::new(storage)
     }
+}
+
+fn should_force_rollback() -> bool {
+    env::var("FORCE_ROLLBACK").is_ok()
 }
