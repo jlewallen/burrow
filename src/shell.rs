@@ -7,10 +7,13 @@ use rustyline::Editor;
 use tracing::*;
 
 #[derive(Debug, Args)]
-pub struct Command {}
+pub struct Command {
+    #[arg(short, long, default_value = "jlewallen")]
+    username: String,
+}
 
 #[tokio::main]
-pub async fn execute_command(_cmd: &Command) -> Result<()> {
+pub async fn execute_command(cmd: &Command) -> Result<()> {
     let storage_factory = storage::sqlite::Factory::new("world.sqlite3")?;
     let domain = domain::Domain::new(storage_factory);
 
@@ -25,7 +28,7 @@ pub async fn execute_command(_cmd: &Command) -> Result<()> {
                 rl.add_history_entry(line.as_str());
                 let session = domain.open_session()?;
 
-                let reply = session.evaluate_and_perform("jlewallen", line.as_str())?;
+                let reply = session.evaluate_and_perform(&cmd.username, line.as_str())?;
 
                 info!("reply `{}`", reply.to_json()?);
 
