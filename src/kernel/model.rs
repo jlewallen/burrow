@@ -42,6 +42,10 @@ impl EntityPtr {
     pub fn downgrade(&self) -> Weak<RefCell<Entity>> {
         Rc::downgrade(&self.entity)
     }
+
+    pub fn key(&self) -> EntityKey {
+        self.lazy.key.clone()
+    }
 }
 
 impl From<Rc<RefCell<Entity>>> for EntityPtr {
@@ -529,6 +533,8 @@ pub enum DomainError {
     ExpiredInfrastructure,
     #[error("session closed")]
     SessionClosed,
+    #[error("container required")]
+    ContainerRequired,
 }
 
 impl From<serde_json::Error> for DomainError {

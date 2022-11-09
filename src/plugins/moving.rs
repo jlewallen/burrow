@@ -203,15 +203,10 @@ pub mod actions {
     #[cfg(test)]
     mod tests {
         use super::*;
-        use crate::{
-            domain::{BuildActionArgs, QuickThing},
-            plugins::log_test,
-        };
+        use crate::domain::{BuildActionArgs, QuickThing};
 
         #[test]
         fn it_goes_through_routes() -> Result<()> {
-            log_test();
-
             let args: ActionArgs = BuildActionArgs::new()?
                 .ground(vec![QuickThing::Route(
                     "East".to_string(),
@@ -223,9 +218,11 @@ pub mod actions {
                 item: Item::Route("east".to_string()),
             };
             let reply = action.perform(args.clone())?;
-            let (_, _person, _area, _) = args.clone();
+            let (_, person, area, _) = args.clone();
 
             assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+
+            assert_ne!(tools::area_of(&person)?.key(), area.key());
 
             Ok(())
         }

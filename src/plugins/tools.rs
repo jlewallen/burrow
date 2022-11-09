@@ -1,3 +1,4 @@
+use crate::kernel::model::*;
 use crate::kernel::{DomainOutcome, EntityPtr};
 use anyhow::Result;
 use tracing::info;
@@ -18,7 +19,7 @@ pub fn move_between(from: EntityPtr, to: EntityPtr, item: EntityPtr) -> Result<D
             {
                 let mut item = item.borrow_mut();
                 let mut item_location = item.scope_mut::<Location>()?;
-                // TODO How do avoid this clone?
+                // TODO How to avoid this clone?
                 item_location.container = Some(to.clone().into());
                 item_location.save()?;
             }
@@ -48,10 +49,10 @@ pub fn navigate_between(from: EntityPtr, to: EntityPtr, item: EntityPtr) -> Resu
         DomainOutcome::Ok(events) => {
             info!("navigating {:?}", to);
 
-            if true {
+            {
                 let mut item = item.borrow_mut();
                 let mut item_location = item.scope_mut::<Occupying>()?;
-                // TODO How do avoid this clone?
+                // TODO How to avoid this clone?
                 item_location.area = to.clone().into();
                 item_location.save()?;
             }
@@ -66,5 +67,21 @@ pub fn navigate_between(from: EntityPtr, to: EntityPtr, item: EntityPtr) -> Resu
             Ok(DomainOutcome::Ok(events))
         }
         DomainOutcome::Nope => Ok(DomainOutcome::Nope),
+    }
+}
+
+pub fn area_of(living: &EntityPtr) -> Result<EntityPtr> {
+    let from = living.borrow();
+    let occupying = from.scope::<Occupying>()?;
+    Ok(occupying.area.into_entity()?)
+}
+
+pub fn container_of(item: &EntityPtr) -> Result<EntityPtr> {
+    let from = item.borrow();
+    let location = from.scope::<Location>()?;
+    if let Some(container) = &location.container {
+        Ok(container.into_entity()?)
+    } else {
+        Err(DomainError::ContainerRequired.into())
     }
 }
