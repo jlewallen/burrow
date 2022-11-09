@@ -30,4 +30,5 @@ erased-serde = "0.3.23"
 nanoid = "0.4.0"
 treediff = { version = "4.0.2", features = ["with-serde-json"] }
 color-backtrace = "0.5.1"
+rustyline = "10.0.0"
 # axum = { git = "https://github.com/tokio-rs/axum", branch = "main", features = ["ws", "headers", "json"]  }

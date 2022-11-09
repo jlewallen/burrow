@@ -13,3 +13,6 @@ Cargo.lock
 
 # Ignore exported world.
 world.json
+
+# Ignore repl history.
+history.txt

@@ -9,6 +9,7 @@ pub mod domain;
 pub mod kernel;
 pub mod plugins;
 pub mod serve;
+pub mod shell;
 pub mod storage;
 
 #[derive(Parser)]
@@ -27,7 +28,19 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     Serve(serve::Command),
+    Shell(shell::Command),
     Eval,
+}
+
+fn get_rust_log() -> String {
+    let mut original =
+        std::env::var("RUST_LOG").unwrap_or_else(|_| "rudder=info,tower_http=debug".into());
+
+    if !original.contains("rustyline=") {
+        original.push_str(",rustyline=info");
+    }
+
+    original
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -40,9 +53,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::new(
-            std::env::var("RUST_LOG").unwrap_or_else(|_| "rudder=info,tower_http=debug".into()),
-        ))
+        .with(tracing_subscriber::EnvFilter::new(get_rust_log()))
         .with(create_tracing_subscriber())
         .init();
 
@@ -54,6 +65,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     match &cli.command {
         Some(Commands::Serve(cmd)) => Ok(serve::execute_command(cmd)?),
+        Some(Commands::Shell(cmd)) => Ok(shell::execute_command(cmd)?),
         Some(Commands::Eval) => {
             // use kernel::markdown_to_string;
 
