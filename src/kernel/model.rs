@@ -22,7 +22,7 @@ pub static DESC_PROPERTY: &str = "desc";
 
 pub static GID_PROPERTY: &str = "gid";
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct EntityPtr {
     entity: Rc<RefCell<Entity>>,
     lazy: LazyLoadedEntity,
@@ -65,6 +65,15 @@ impl From<Entity> for EntityPtr {
     }
 }
 
+impl Debug for EntityPtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("EntityPtr")
+            .field("key", &self.lazy.key)
+            .field("name", &self.lazy.name)
+            .finish()
+    }
+}
+
 // This seems cleaner than implementing borrow/borrow_mut ourselves and things
 // were gnarly when I tried implementing Borrow<T> myself.
 impl Deref for EntityPtr {
@@ -75,7 +84,7 @@ impl Deref for EntityPtr {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct EntityKey(String);
 
 impl EntityKey {
@@ -85,6 +94,12 @@ impl EntityKey {
 
     pub fn key_to_string(&self) -> &str {
         &self.0
+    }
+}
+
+impl Debug for EntityKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("`{}`", self.0))
     }
 }
 
