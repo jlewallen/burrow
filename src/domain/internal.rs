@@ -199,6 +199,8 @@ impl Infrastructure for DomainInfrastructure {
             Item::Named(name) => {
                 let haystack = EntityRelationshipSet::new_from_action(args).expand()?;
 
+                debug!("item:haystack {:?}", haystack);
+
                 // https://github.com/ferrous-systems/elements-of-rust#tuple-structs-and-enum-tuple-variants-as-functions
                 for entity in &haystack.entities {
                     match entity {
@@ -223,6 +225,8 @@ impl Infrastructure for DomainInfrastructure {
                     .expand()?
                     .routes()?;
 
+                debug!("route:haystack {:?}", haystack);
+
                 for entity in &haystack.entities {
                     match entity {
                         EntityRelationship::World(_) => {}
@@ -232,6 +236,7 @@ impl Infrastructure for DomainInfrastructure {
                         EntityRelationship::Ground(_) => {}
                         EntityRelationship::Exit(route_name, area) => {
                             if matches_string_description(route_name, name) {
+                                info!("found: {:?} -> {:?}", route_name, area);
                                 return Ok(Some(area.clone()));
                             }
                         }
@@ -258,6 +263,7 @@ enum EntityRelationship {
     Exit(String, EntityPtr),
 }
 
+#[derive(Debug)]
 pub struct EntityRelationshipSet {
     entities: Vec<EntityRelationship>,
 }

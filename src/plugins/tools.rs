@@ -1,5 +1,6 @@
 use crate::kernel::{DomainOutcome, EntityPtr};
 use anyhow::Result;
+use tracing::info;
 
 use super::{
     carrying::model::{Containing, Location},
@@ -7,16 +8,14 @@ use super::{
 };
 
 pub fn move_between(from: EntityPtr, to: EntityPtr, item: EntityPtr) -> Result<DomainOutcome> {
+    info!("moving {:?}!", item);
+
     let mut from = from.borrow_mut();
     let mut from_container = from.scope_mut::<Containing>()?;
 
-    // TODO Maybe the EntityPtr type becomes a wrapping struct and also knows
-    // the EntityKey that it points at.
-    // info!("moving {:?}!", item.borrow().key);
-
     match from_container.stop_carrying(item.clone())? {
         DomainOutcome::Ok(events) => {
-            if true {
+            {
                 let mut item = item.borrow_mut();
                 let mut item_location = item.scope_mut::<Location>()?;
                 // TODO How do avoid this clone?
@@ -38,11 +37,17 @@ pub fn move_between(from: EntityPtr, to: EntityPtr, item: EntityPtr) -> Result<D
 }
 
 pub fn navigate_between(from: EntityPtr, to: EntityPtr, item: EntityPtr) -> Result<DomainOutcome> {
+    info!("navigating item {:?}", item);
+
+    info!("navigating from {:?}", from);
+
     let mut from = from.borrow_mut();
     let mut from_container = from.scope_mut::<Occupyable>()?;
 
     match from_container.stop_occupying(item.clone())? {
         DomainOutcome::Ok(events) => {
+            info!("navigating {:?}", to);
+
             if true {
                 let mut item = item.borrow_mut();
                 let mut item_location = item.scope_mut::<Occupying>()?;

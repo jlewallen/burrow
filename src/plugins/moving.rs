@@ -203,14 +203,39 @@ pub mod actions {
     #[cfg(test)]
     mod tests {
         use super::*;
-        use crate::domain::{BuildActionArgs, QuickThing};
+        use crate::{
+            domain::{BuildActionArgs, QuickThing},
+            plugins::log_test,
+        };
+
+        #[test]
+        fn it_goes_through_routes() -> Result<()> {
+            log_test();
+
+            let args: ActionArgs = BuildActionArgs::new()?
+                .ground(vec![QuickThing::Route(
+                    "East".to_string(),
+                    Box::new(QuickThing::Place("Place".to_string())),
+                )])
+                .try_into()?;
+
+            let action = GoAction {
+                item: Item::Route("east".to_string()),
+            };
+            let reply = action.perform(args.clone())?;
+            let (_, _person, _area, _) = args.clone();
+
+            assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+
+            Ok(())
+        }
 
         #[test]
         fn it_fails_to_go_unknown_items() -> Result<()> {
             let args: ActionArgs = BuildActionArgs::new()?.plain().try_into()?;
 
             let action = GoAction {
-                item: Item::Named("rake".to_string()),
+                item: Item::Route("rake".to_string()),
             };
             let reply = action.perform(args.clone())?;
             let (_, _person, _area, _) = args.clone();
@@ -227,7 +252,7 @@ pub mod actions {
                 .try_into()?;
 
             let action = GoAction {
-                item: Item::Named("rake".to_string()),
+                item: Item::Route("rake".to_string()),
             };
             let reply = action.perform(args.clone())?;
             let (_, _person, _area, _) = args.clone();

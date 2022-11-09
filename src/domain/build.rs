@@ -4,7 +4,10 @@ use std::rc::Rc;
 use super::new_infra;
 use crate::{
     kernel::{ActionArgs, EntityPtr, Infrastructure, Needs},
-    plugins::carrying::model::Containing,
+    plugins::{
+        carrying::model::Containing,
+        moving::model::{Exit, Occupyable},
+    },
 };
 
 pub fn get_infra() -> Result<Rc<dyn Infrastructure>> {
@@ -39,6 +42,30 @@ impl Build {
         Ok(self)
     }
 
+    pub fn leads_to(&self, area: EntityPtr) -> Result<&Self> {
+        let mut entity = self.entity.borrow_mut();
+        let mut exit = entity.scope_mut::<Exit>()?;
+
+        exit.area = area.into();
+
+        exit.save()?;
+
+        Ok(self)
+    }
+
+    pub fn occupying(&self, living: &Vec<EntityPtr>) -> Result<&Self> {
+        let mut entity = self.entity.borrow_mut();
+        let mut occupyable = entity.scope_mut::<Occupyable>()?;
+
+        for living in living {
+            occupyable.start_occupying(living.clone())?;
+        }
+
+        occupyable.save()?;
+
+        Ok(self)
+    }
+
     pub fn holding(&self, items: &Vec<EntityPtr>) -> Result<&Self> {
         let mut entity = self.entity.borrow_mut();
         let mut container = entity.scope_mut::<Containing>()?;
@@ -65,12 +92,23 @@ pub struct BuildActionArgs {
 
 pub enum QuickThing {
     Object(String),
+    Place(String),
+    Route(String, Box<QuickThing>),
 }
 
 impl QuickThing {
     pub fn make(&self, infra: &Rc<dyn Infrastructure>) -> Result<EntityPtr> {
         match self {
             QuickThing::Object(name) => Ok(Build::new(infra)?.named(name)?.into_entity()),
+            QuickThing::Place(name) => Ok(Build::new(infra)?.named(name)?.into_entity()),
+            QuickThing::Route(name, area) => {
+                let area = area.make(infra)?;
+
+                Ok(Build::new(infra)?
+                    .named(name)?
+                    .leads_to(area)?
+                    .into_entity())
+            }
         }
     }
 }
@@ -108,6 +146,7 @@ impl TryFrom<&BuildActionArgs> for ActionArgs {
         let world = Build::new(&infra)?.into_entity();
 
         let person = Build::new(&infra)?
+            .named("Person")?
             .holding(
                 &builder
                     .hands
@@ -118,6 +157,8 @@ impl TryFrom<&BuildActionArgs> for ActionArgs {
             .into_entity();
 
         let area = Build::new(&infra)?
+            .named("Starting Area")?
+            .occupying(&vec![person.clone()])?
             .holding(
                 &builder
                     .ground
