@@ -34,60 +34,16 @@ impl Session {
         })
     }
 
-    pub fn evaluate_and_perform(&self, user_name: &str, text: &str) -> Result<Box<dyn Reply>> {
+    pub fn evaluate_and_perform(
+        &self,
+        user_name: &str,
+        text: &str,
+    ) -> Result<Option<Box<dyn Reply>>> {
         if !self.open.load(Ordering::Relaxed) {
             return Err(DomainError::SessionClosed.into());
         }
 
-        let check = {
-            let _doing_span = span!(Level::INFO, "session-do", user = user_name).entered();
-
-            debug!("'{}'", text);
-
-            let action = eval::evaluate(text)?;
-
-            info!("performing {:?}", action);
-
-            let (world, user, area) = {
-                let _span = span!(Level::DEBUG, "L").entered();
-
-                let world = self.infra.load_entity_by_key(&WORLD_KEY)?;
-                let usernames: OpenScope<Usernames> = {
-                    let world = world.borrow();
-                    world.scope::<Usernames>()?
-                };
-                let user_key = &usernames.users[user_name];
-                let user = self.infra.load_entity_by_key(user_key)?;
-                let area: EntityPtr = {
-                    let user = user.borrow();
-                    let occupying: OpenScope<Occupying> = user.scope::<Occupying>()?;
-                    occupying.area.into_entity()?
-                };
-
-                info!("area {}", area.borrow());
-
-                (world, user, area)
-            };
-
-            if self.discoverying {
-                let _span = span!(Level::DEBUG, "D").entered();
-                let mut discovered_keys: Vec<EntityKey> = vec![];
-                eval::discover(&user.borrow(), &mut discovered_keys)?;
-                eval::discover(&area.borrow(), &mut discovered_keys)?;
-                info!("discovered {:?}", discovered_keys);
-            }
-
-            let reply = {
-                let _span = span!(Level::INFO, "A").entered();
-                action.perform((world, user, area, self.infra.clone()))?
-            };
-
-            event!(Level::INFO, "done");
-
-            Ok(reply)
-        };
-
-        match check {
+        match self.perform(user_name, text) {
             Ok(i) => Ok(i),
             Err(original_err) => {
                 if let Err(_rollback_err) = self.storage.rollback(false) {
@@ -98,6 +54,62 @@ impl Session {
 
                 Err(original_err)
             }
+        }
+    }
+
+    fn evaluate(&self, user_name: &str) -> Result<(EntityPtr, EntityPtr, EntityPtr)> {
+        let _span = span!(Level::DEBUG, "L").entered();
+
+        let world = self.infra.load_entity_by_key(&WORLD_KEY)?;
+        let usernames: OpenScope<Usernames> = {
+            let world = world.borrow();
+            world.scope::<Usernames>()?
+        };
+        let user_key = &usernames.users[user_name];
+        let user = self.infra.load_entity_by_key(user_key)?;
+        let area: EntityPtr = {
+            let user = user.borrow();
+            let occupying: OpenScope<Occupying> = user.scope::<Occupying>()?;
+            occupying.area.into_entity()?
+        };
+
+        info!("area {}", area.borrow());
+
+        Ok((world, user, area))
+    }
+
+    fn perform_action(&self, user_name: &str, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
+        info!("performing {:?}", action);
+
+        let (world, user, area) = self.evaluate(user_name)?;
+
+        if self.discoverying {
+            let _span = span!(Level::DEBUG, "D").entered();
+            let mut discovered_keys: Vec<EntityKey> = vec![];
+            eval::discover(&user.borrow(), &mut discovered_keys)?;
+            eval::discover(&area.borrow(), &mut discovered_keys)?;
+            info!("discovered {:?}", discovered_keys);
+        }
+
+        let reply = {
+            let _span = span!(Level::INFO, "A").entered();
+            action.perform((world, user, area, self.infra.clone()))?
+        };
+
+        event!(Level::INFO, "done");
+
+        Ok(reply)
+    }
+
+    fn perform(&self, user_name: &str, text: &str) -> Result<Option<Box<dyn Reply>>> {
+        let _doing_span = span!(Level::INFO, "session-do", user = user_name).entered();
+
+        debug!("'{}'", text);
+
+        if let Some(action) = eval::evaluate(text)? {
+            Ok(Some(self.perform_action(user_name, action)?))
+        } else {
+            Ok(None)
         }
     }
 

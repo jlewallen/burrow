@@ -76,9 +76,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let session = domain.open_session()?;
 
                 for text in &["look", "hold rake", "drop", "hold rake", "drop rake"] {
-                    let reply = session.evaluate_and_perform("jlewallen", text)?;
-                    // info!("reply `{}`", markdown_to_string(reply.to_markdown()?)?);
-                    info!("reply `{}`", reply.to_json()?);
+                    if let Some(reply) = session.evaluate_and_perform("jlewallen", text)? {
+                        // info!("reply `{}`", markdown_to_string(reply.to_markdown()?)?);
+                        info!("reply `{}`", reply.to_json()?);
+                    }
                 }
 
                 session.close()?
@@ -88,9 +89,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let session = domain.open_session()?;
 
                 for text in &["drop Cloak", "go east"] {
-                    let reply = session.evaluate_and_perform("jlewallen", text)?;
-                    // info!("reply `{}`", markdown_to_string(reply.to_markdown()?)?);
-                    info!("reply `{}`", reply.to_json()?);
+                    if let Some(reply) = session.evaluate_and_perform("jlewallen", text)? {
+                        // info!("reply `{}`", markdown_to_string(reply.to_markdown()?)?);
+                        info!("reply `{}`", reply.to_json()?);
+                    }
                 }
 
                 session.close()?

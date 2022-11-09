@@ -28,9 +28,11 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
                 rl.add_history_entry(line.as_str());
                 let session = domain.open_session()?;
 
-                let reply = session.evaluate_and_perform(&cmd.username, line.as_str())?;
-
-                info!("reply `{}`", reply.to_json()?);
+                if let Some(reply) = session.evaluate_and_perform(&cmd.username, line.as_str())? {
+                    info!("reply `{}`", reply.to_json()?);
+                } else {
+                    info!("what?");
+                }
 
                 session.close()?
             }
