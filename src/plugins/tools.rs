@@ -9,8 +9,6 @@ use super::{
 };
 
 pub fn move_between(from: EntityPtr, to: EntityPtr, item: EntityPtr) -> Result<DomainOutcome> {
-    info!("moving {:?}!", item);
-
     let mut from = from.borrow_mut();
     let mut from_container = from.scope_mut::<Containing>()?;
 
@@ -38,10 +36,6 @@ pub fn move_between(from: EntityPtr, to: EntityPtr, item: EntityPtr) -> Result<D
 }
 
 pub fn navigate_between(from: EntityPtr, to: EntityPtr, item: EntityPtr) -> Result<DomainOutcome> {
-    info!("navigating item {:?}", item);
-
-    info!("navigating from {:?}", from);
-
     let mut from = from.borrow_mut();
     let mut from_container = from.scope_mut::<Occupyable>()?;
 
