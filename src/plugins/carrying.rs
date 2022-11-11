@@ -1,39 +1,3 @@
-use anyhow::Result;
-use nom::{branch::alt, bytes::complete::tag, combinator::map, sequence::separated_pair, IResult};
-
-use super::library::{noun, spaces};
-use crate::kernel::*;
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Sentence {
-    Hold(Item),
-    Drop(Option<Item>),
-}
-
-fn hold(i: &str) -> IResult<&str, Sentence> {
-    map(separated_pair(tag("hold"), spaces, noun), |(_, target)| {
-        Sentence::Hold(target)
-    })(i)
-}
-
-fn drop(i: &str) -> IResult<&str, Sentence> {
-    let specific = map(separated_pair(tag("drop"), spaces, noun), |(_, target)| {
-        Sentence::Drop(Some(target))
-    });
-
-    let everything = map(tag("drop"), |_| Sentence::Drop(None));
-
-    alt((specific, everything))(i)
-}
-
-pub fn parse(i: &str) -> IResult<&str, Sentence> {
-    alt((hold, drop))(i)
-}
-
-pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
-    Ok(parse(i).map(|(_, sentence)| actions::evaluate(&sentence))?)
-}
-
 pub mod model {
     use anyhow::Result;
     use serde::{Deserialize, Serialize};
@@ -152,9 +116,11 @@ pub mod model {
 }
 
 pub mod actions {
-    use tracing::info;
+    use anyhow::Result;
+    use tracing::*;
 
-    use super::*;
+    use super::parser::{parse, Sentence};
+    use crate::kernel::*;
     use crate::plugins::tools;
 
     #[derive(Debug)]
@@ -210,7 +176,11 @@ pub mod actions {
         }
     }
 
-    pub fn evaluate(s: &Sentence) -> Box<dyn Action> {
+    pub fn evaluate(i: &str) -> EvaluationResult {
+        Ok(parse(i).map(|(_, sentence)| evaluate_sentence(&sentence))?)
+    }
+
+    fn evaluate_sentence(s: &Sentence) -> Box<dyn Action> {
         // TODO Look into this clone, perhaps other ways of cleaning this up.
         match s {
             Sentence::Hold(e) => Box::new(HoldAction { item: e.clone() }),
@@ -330,34 +300,69 @@ pub mod actions {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub mod parser {
+    use nom::{
+        branch::alt, bytes::complete::tag, combinator::map, sequence::separated_pair, IResult,
+    };
 
-    #[test]
-    fn it_parses_hold_noun_correctly() {
-        let (remaining, actual) = parse("hold rake").unwrap();
-        assert_eq!(remaining, "");
-        assert_eq!(actual, Sentence::Hold(Item::Named("rake".to_owned())))
+    use crate::kernel::*;
+    use crate::plugins::library::{noun, spaces};
+
+    #[derive(Debug, Clone, Eq, PartialEq)]
+    pub enum Sentence {
+        Hold(Item),
+        Drop(Option<Item>),
     }
 
-    #[test]
-    fn it_parses_solo_drop_correctly() {
-        let (remaining, actual) = parse("drop").unwrap();
-        assert_eq!(remaining, "");
-        assert_eq!(actual, Sentence::Drop(None))
+    pub fn parse(i: &str) -> IResult<&str, Sentence> {
+        alt((hold, drop))(i)
     }
 
-    #[test]
-    fn it_parses_drop_noun_correctly() {
-        let (remaining, actual) = parse("drop rake").unwrap();
-        assert_eq!(remaining, "");
-        assert_eq!(actual, Sentence::Drop(Some(Item::Named("rake".to_owned()))))
+    fn hold(i: &str) -> IResult<&str, Sentence> {
+        map(separated_pair(tag("hold"), spaces, noun), |(_, target)| {
+            Sentence::Hold(target)
+        })(i)
     }
 
-    #[test]
-    fn it_errors_on_unknown_text() {
-        let output = parse("hello");
-        assert!(output.is_err()); // TODO Weak assertion.
+    fn drop(i: &str) -> IResult<&str, Sentence> {
+        let specific = map(separated_pair(tag("drop"), spaces, noun), |(_, target)| {
+            Sentence::Drop(Some(target))
+        });
+
+        let everything = map(tag("drop"), |_| Sentence::Drop(None));
+
+        alt((specific, everything))(i)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn it_parses_hold_noun_correctly() {
+            let (remaining, actual) = parse("hold rake").unwrap();
+            assert_eq!(remaining, "");
+            assert_eq!(actual, Sentence::Hold(Item::Named("rake".to_owned())))
+        }
+
+        #[test]
+        fn it_parses_solo_drop_correctly() {
+            let (remaining, actual) = parse("drop").unwrap();
+            assert_eq!(remaining, "");
+            assert_eq!(actual, Sentence::Drop(None))
+        }
+
+        #[test]
+        fn it_parses_drop_noun_correctly() {
+            let (remaining, actual) = parse("drop rake").unwrap();
+            assert_eq!(remaining, "");
+            assert_eq!(actual, Sentence::Drop(Some(Item::Named("rake".to_owned()))))
+        }
+
+        #[test]
+        fn it_errors_on_unknown_text() {
+            let output = parse("hello");
+            assert!(output.is_err()); // TODO Weak assertion.
+        }
     }
 }

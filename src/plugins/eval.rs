@@ -4,10 +4,10 @@ use crate::kernel::{Action, Entity, EntityKey, EvaluationError};
 use crate::plugins;
 
 pub fn evaluate(i: &str) -> Result<Option<Box<dyn Action>>, EvaluationError> {
-    match plugins::looking::evaluate(i)
-        .or_else(|_| plugins::carrying::evaluate(i))
-        .or_else(|_| plugins::moving::evaluate(i))
-        .or_else(|_| plugins::building::evaluate(i))
+    match plugins::looking::actions::evaluate(i)
+        .or_else(|_| plugins::carrying::actions::evaluate(i))
+        .or_else(|_| plugins::moving::actions::evaluate(i))
+        .or_else(|_| plugins::building::actions::evaluate(i))
     {
         Ok(e) => Ok(Some(e)),
         Err(_) => Ok(None),

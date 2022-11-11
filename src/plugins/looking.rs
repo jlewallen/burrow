@@ -1,24 +1,3 @@
-use crate::kernel::*;
-use anyhow::Result;
-use nom::{bytes::complete::tag, combinator::map, IResult};
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Sentence {
-    Look,
-}
-
-fn look(i: &str) -> IResult<&str, Sentence> {
-    map(tag("look"), |_| Sentence::Look)(i)
-}
-
-fn parse(i: &str) -> IResult<&str, Sentence> {
-    look(i)
-}
-
-pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
-    Ok(parse(i).map(|(_, sentence)| actions::evaluate(&sentence))?)
-}
-
 pub mod model {
     use anyhow::Result;
     use serde::Serialize;
@@ -176,10 +155,11 @@ pub mod model {
 }
 
 pub mod actions {
-    use tracing::info;
+    use tracing::*;
 
     use super::model::*;
-    use super::*;
+    use super::parser::{parse, Sentence};
+    use crate::kernel::*;
 
     #[derive(Debug)]
     struct LookAction {}
@@ -195,27 +175,48 @@ pub mod actions {
         }
     }
 
-    pub fn evaluate(s: &Sentence) -> Box<dyn Action> {
+    pub fn evaluate(i: &str) -> EvaluationResult {
+        Ok(parse(i).map(|(_, sentence)| evaluate_sentence(&sentence))?)
+    }
+
+    fn evaluate_sentence(s: &Sentence) -> Box<dyn Action> {
         match *s {
             Sentence::Look => Box::new(LookAction {}),
         }
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub mod parser {
+    use nom::{bytes::complete::tag, combinator::map, IResult};
 
-    #[test]
-    fn it_parses_look_correctly() {
-        let (remaining, actual) = parse("look").unwrap();
-        assert_eq!(remaining, "");
-        assert_eq!(actual, Sentence::Look)
+    #[derive(Debug, Clone, Eq, PartialEq)]
+    pub enum Sentence {
+        Look,
     }
 
-    #[test]
-    fn it_errors_on_unknown_text() {
-        let output = parse("hello");
-        assert!(output.is_err()); // TODO Weak assertion.
+    pub fn parse(i: &str) -> IResult<&str, Sentence> {
+        look(i)
+    }
+
+    fn look(i: &str) -> IResult<&str, Sentence> {
+        map(tag("look"), |_| Sentence::Look)(i)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn it_parses_look_correctly() {
+            let (remaining, actual) = parse("look").unwrap();
+            assert_eq!(remaining, "");
+            assert_eq!(actual, Sentence::Look)
+        }
+
+        #[test]
+        fn it_errors_on_unknown_text() {
+            let output = parse("hello");
+            assert!(output.is_err()); // TODO Weak assertion.
+        }
     }
 }

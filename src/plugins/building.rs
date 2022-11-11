@@ -1,28 +1,3 @@
-use anyhow::Result;
-use nom::{bytes::complete::tag, combinator::map, sequence::separated_pair, IResult};
-
-use super::library::{noun, spaces};
-use crate::kernel::*;
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Sentence {
-    Edit(Item),
-}
-
-fn edit_item(i: &str) -> IResult<&str, Sentence> {
-    map(separated_pair(tag("edit"), spaces, noun), |(_, target)| {
-        Sentence::Edit(target)
-    })(i)
-}
-
-pub fn parse(i: &str) -> IResult<&str, Sentence> {
-    edit_item(i)
-}
-
-pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
-    Ok(parse(i).map(|(_, sentence)| actions::evaluate(&sentence))?)
-}
-
 pub mod model {
     use anyhow::Result;
     use serde::Serialize;
@@ -54,9 +29,10 @@ pub mod model {
 }
 
 pub mod actions {
-    use tracing::info;
+    use tracing::*;
 
-    use super::*;
+    use super::parser::{parse, Sentence};
+    use crate::kernel::*;
 
     #[derive(Debug)]
     struct EditAction {
@@ -74,7 +50,11 @@ pub mod actions {
         }
     }
 
-    pub fn evaluate(s: &Sentence) -> Box<dyn Action> {
+    pub fn evaluate(i: &str) -> EvaluationResult {
+        Ok(parse(i).map(|(_, sentence)| evaluate_sentence(&sentence))?)
+    }
+
+    fn evaluate_sentence(s: &Sentence) -> Box<dyn Action> {
         match s {
             Sentence::Edit(e) => Box::new(EditAction {
                 maybe_item: e.clone(),
@@ -83,20 +63,42 @@ pub mod actions {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub mod parser {
+    use nom::{bytes::complete::tag, combinator::map, sequence::separated_pair, IResult};
 
-    #[test]
-    fn it_parses_edit_noun_correctly() {
-        let (remaining, actual) = parse("edit rake").unwrap();
-        assert_eq!(remaining, "");
-        assert_eq!(actual, Sentence::Edit(Item::Named("rake".to_owned())))
+    use crate::kernel::*;
+    use crate::plugins::library::{noun, spaces};
+
+    #[derive(Debug, Clone, Eq, PartialEq)]
+    pub enum Sentence {
+        Edit(Item),
     }
 
-    #[test]
-    fn it_errors_on_unknown_text() {
-        let output = parse("hello");
-        assert!(output.is_err()); // TODO Weak assertion.
+    pub fn parse(i: &str) -> IResult<&str, Sentence> {
+        edit_item(i)
+    }
+
+    fn edit_item(i: &str) -> IResult<&str, Sentence> {
+        map(separated_pair(tag("edit"), spaces, noun), |(_, target)| {
+            Sentence::Edit(target)
+        })(i)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn it_parses_edit_noun_correctly() {
+            let (remaining, actual) = parse("edit rake").unwrap();
+            assert_eq!(remaining, "");
+            assert_eq!(actual, Sentence::Edit(Item::Named("rake".to_owned())))
+        }
+
+        #[test]
+        fn it_errors_on_unknown_text() {
+            let output = parse("hello");
+            assert!(output.is_err()); // TODO Weak assertion.
+        }
     }
 }

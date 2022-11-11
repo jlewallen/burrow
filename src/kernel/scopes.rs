@@ -7,6 +7,8 @@ use super::infra::*;
 use super::model::*;
 use super::ReplyResult;
 
+pub type EvaluationResult = Result<Box<dyn Action>, EvaluationError>;
+
 pub type ActionArgs = (EntityPtr, EntityPtr, EntityPtr, Rc<dyn Infrastructure>);
 
 pub trait Action: Debug {

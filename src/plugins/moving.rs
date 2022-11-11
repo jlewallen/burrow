@@ -1,29 +1,3 @@
-use anyhow::Result;
-use nom::{bytes::complete::tag, combinator::map, sequence::separated_pair, IResult};
-
-use super::library::*;
-use crate::kernel::*;
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Sentence {
-    Go(Item), // TODO Make this more specific.
-}
-
-fn go(i: &str) -> IResult<&str, Sentence> {
-    map(
-        separated_pair(tag("go"), spaces, named_place),
-        |(_, target)| Sentence::Go(target),
-    )(i)
-}
-
-fn parse(i: &str) -> IResult<&str, Sentence> {
-    go(i)
-}
-
-pub fn evaluate(i: &str) -> Result<Box<dyn Action>, EvaluationError> {
-    Ok(parse(i).map(|(_, sentence)| actions::evaluate(&sentence))?)
-}
-
 pub mod model {
     use anyhow::Result;
     use serde::{Deserialize, Serialize};
@@ -165,9 +139,11 @@ pub mod model {
 }
 
 pub mod actions {
-    use super::*;
+    use tracing::*;
+
+    use super::parser::{parse, Sentence};
+    use crate::kernel::*;
     use crate::plugins::tools;
-    use tracing::info;
 
     #[derive(Debug)]
     struct GoAction {
@@ -194,7 +170,11 @@ pub mod actions {
         }
     }
 
-    pub fn evaluate(s: &Sentence) -> Box<dyn Action> {
+    pub fn evaluate(i: &str) -> EvaluationResult {
+        Ok(parse(i).map(|(_, sentence)| evaluate_sentence(&sentence))?)
+    }
+
+    fn evaluate_sentence(s: &Sentence) -> Box<dyn Action> {
         match s {
             Sentence::Go(e) => Box::new(GoAction { item: e.clone() }),
         }
@@ -204,6 +184,7 @@ pub mod actions {
     mod tests {
         use super::*;
         use crate::domain::{BuildActionArgs, QuickThing};
+        use anyhow::Result;
 
         #[test]
         fn it_goes_through_routes() -> Result<()> {
@@ -261,20 +242,43 @@ pub mod actions {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+mod parser {
+    use nom::{bytes::complete::tag, combinator::map, sequence::separated_pair, IResult};
 
-    #[test]
-    fn it_parses_go_noun_correctly() {
-        let (remaining, actual) = parse("go west").unwrap();
-        assert_eq!(remaining, "");
-        assert_eq!(actual, Sentence::Go(Item::Route("west".to_owned())))
+    use crate::kernel::*;
+    use crate::plugins::library::*;
+
+    #[derive(Debug, Clone, Eq, PartialEq)]
+    pub enum Sentence {
+        Go(Item),
     }
 
-    #[test]
-    fn it_errors_on_unknown_text() {
-        let output = parse("hello");
-        assert!(output.is_err()); // TODO Weak assertion.
+    pub fn parse(i: &str) -> IResult<&str, Sentence> {
+        go(i)
+    }
+
+    fn go(i: &str) -> IResult<&str, Sentence> {
+        map(
+            separated_pair(tag("go"), spaces, named_place),
+            |(_, target)| Sentence::Go(target),
+        )(i)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn it_parses_go_noun_correctly() {
+            let (remaining, actual) = parse("go west").unwrap();
+            assert_eq!(remaining, "");
+            assert_eq!(actual, Sentence::Go(Item::Route("west".to_owned())))
+        }
+
+        #[test]
+        fn it_errors_on_unknown_text() {
+            let output = parse("hello");
+            assert!(output.is_err()); // TODO Weak assertion.
+        }
     }
 }
