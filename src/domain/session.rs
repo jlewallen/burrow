@@ -160,17 +160,15 @@ impl Session {
         let saved = self
             .entity_map
             .foreach_entity(|l| self.check_for_changes(l))?;
-        Ok(saved.into_iter().filter_map(|i| i).collect::<Vec<_>>())
+        Ok(saved.into_iter().flatten().collect::<Vec<_>>())
     }
 
     fn flush_entities(&self) -> Result<bool> {
-        Ok(self
+        Ok(!self
             .get_modified_entities()?
             .into_iter()
             .map(|p| self.storage.save(&p))
-            .collect::<Result<Vec<_>>>()?
-            .len()
-            > 0)
+            .collect::<Result<Vec<_>>>()?.is_empty())
     }
 
     pub fn close(&self) -> Result<()> {

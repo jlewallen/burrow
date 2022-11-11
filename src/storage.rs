@@ -38,7 +38,7 @@ pub mod sqlite {
             let conn = if path == ":memory:" {
                 Connection::open_in_memory()?
             } else {
-                Connection::open(&path)?
+                Connection::open(path)?
             };
 
             {

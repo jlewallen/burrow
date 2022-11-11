@@ -506,7 +506,7 @@ impl LazyLoadedEntity {
             py_ref: "model.entity.Entity".to_string(),       // #python-class
             key: shared_entity.key.clone(),
             class: shared_entity.class.py_type.clone(),
-            name: shared_entity.name().unwrap_or_else(|| "".to_string()),
+            name: shared_entity.name().unwrap_or_default(),
             entity: Some(Rc::downgrade(entity)),
         }
     }
