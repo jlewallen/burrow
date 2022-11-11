@@ -1,11 +1,6 @@
 pub mod model {
-    use anyhow::Result;
-    use serde::Serialize;
-    use serde_json::Value;
-    use std::ops::Deref;
-
+    use crate::plugins::library::model::*;
     use crate::{
-        kernel::*,
         plugins::carrying::model::Containing,
         plugins::moving::model::{Movement, Occupyable},
     };
@@ -155,11 +150,9 @@ pub mod model {
 }
 
 pub mod actions {
-    use tracing::*;
-
     use super::model::*;
     use super::parser::{parse, Sentence};
-    use crate::kernel::*;
+    use crate::plugins::library::actions::*;
 
     #[derive(Debug)]
     struct LookAction {}
@@ -187,7 +180,7 @@ pub mod actions {
 }
 
 pub mod parser {
-    use nom::{bytes::complete::tag, combinator::map, IResult};
+    use crate::plugins::library::parser::*;
 
     #[derive(Debug, Clone, Eq, PartialEq)]
     pub enum Sentence {

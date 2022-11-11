@@ -1,9 +1,5 @@
 pub mod model {
-    use anyhow::Result;
-    use serde::{Deserialize, Serialize};
-    use std::collections::HashMap;
-
-    use crate::kernel::*;
+    use crate::plugins::library::model::*;
 
     pub type CarryingResult = Result<DomainOutcome>;
 
@@ -116,12 +112,8 @@ pub mod model {
 }
 
 pub mod actions {
-    use anyhow::Result;
-    use tracing::*;
-
     use super::parser::{parse, Sentence};
-    use crate::kernel::*;
-    use crate::plugins::tools;
+    use crate::plugins::library::actions::*;
 
     #[derive(Debug)]
     struct HoldAction {
@@ -301,12 +293,7 @@ pub mod actions {
 }
 
 pub mod parser {
-    use nom::{
-        branch::alt, bytes::complete::tag, combinator::map, sequence::separated_pair, IResult,
-    };
-
-    use crate::kernel::*;
-    use crate::plugins::library::{noun, spaces};
+    use crate::plugins::library::parser::*;
 
     #[derive(Debug, Clone, Eq, PartialEq)]
     pub enum Sentence {

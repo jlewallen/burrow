@@ -1,9 +1,5 @@
 pub mod model {
-    use anyhow::Result;
-    use serde::{Deserialize, Serialize};
-    use std::collections::HashMap;
-
-    use crate::kernel::*;
+    use crate::plugins::library::model::*;
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Usernames {

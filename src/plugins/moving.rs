@@ -1,8 +1,5 @@
 pub mod model {
-    use anyhow::Result;
-    use serde::{Deserialize, Serialize};
-
-    use crate::kernel::*;
+    use crate::plugins::library::model::*;
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Occupying {
@@ -139,11 +136,8 @@ pub mod model {
 }
 
 pub mod actions {
-    use tracing::*;
-
     use super::parser::{parse, Sentence};
-    use crate::kernel::*;
-    use crate::plugins::tools;
+    use crate::plugins::library::actions::*;
 
     #[derive(Debug)]
     struct GoAction {
@@ -243,10 +237,7 @@ pub mod actions {
 }
 
 mod parser {
-    use nom::{bytes::complete::tag, combinator::map, sequence::separated_pair, IResult};
-
-    use crate::kernel::*;
-    use crate::plugins::library::*;
+    use crate::plugins::library::parser::*;
 
     #[derive(Debug, Clone, Eq, PartialEq)]
     pub enum Sentence {

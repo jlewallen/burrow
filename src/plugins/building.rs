@@ -1,9 +1,5 @@
 pub mod model {
-    use anyhow::Result;
-    use serde::Serialize;
-    use serde_json::Value;
-
-    use crate::kernel::*;
+    use crate::plugins::library::model::*;
 
     pub fn discover(_source: &Entity, _entity_keys: &mut [EntityKey]) -> Result<()> {
         Ok(())
@@ -29,10 +25,8 @@ pub mod model {
 }
 
 pub mod actions {
-    use tracing::*;
-
     use super::parser::{parse, Sentence};
-    use crate::kernel::*;
+    use crate::plugins::library::actions::*;
 
     #[derive(Debug)]
     struct EditAction {
@@ -64,10 +58,7 @@ pub mod actions {
 }
 
 pub mod parser {
-    use nom::{bytes::complete::tag, combinator::map, sequence::separated_pair, IResult};
-
-    use crate::kernel::*;
-    use crate::plugins::library::{noun, spaces};
+    use crate::plugins::library::parser::*;
 
     #[derive(Debug, Clone, Eq, PartialEq)]
     pub enum Sentence {
