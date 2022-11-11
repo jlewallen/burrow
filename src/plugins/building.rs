@@ -92,13 +92,13 @@ pub mod parser {
         fn it_parses_edit_noun_correctly() {
             let (remaining, actual) = parse("edit rake").unwrap();
             assert_eq!(remaining, "");
-            assert_eq!(actual, Sentence::Edit(Item::Named("rake".to_owned())))
+            assert_eq!(actual, Sentence::Edit(Item::Named("rake".to_owned())));
         }
 
         #[test]
         fn it_errors_on_unknown_text() {
-            let output = parse("hello");
-            assert!(output.is_err()); // TODO Weak assertion.
+            let actual = parse("hello");
+            assert!(actual.is_err());
         }
     }
 }

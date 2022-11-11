@@ -342,27 +342,27 @@ pub mod parser {
         fn it_parses_hold_noun_correctly() {
             let (remaining, actual) = parse("hold rake").unwrap();
             assert_eq!(remaining, "");
-            assert_eq!(actual, Sentence::Hold(Item::Named("rake".to_owned())))
+            assert_eq!(actual, Sentence::Hold(Item::Named("rake".to_owned())));
         }
 
         #[test]
         fn it_parses_solo_drop_correctly() {
             let (remaining, actual) = parse("drop").unwrap();
             assert_eq!(remaining, "");
-            assert_eq!(actual, Sentence::Drop(None))
+            assert_eq!(actual, Sentence::Drop(None));
         }
 
         #[test]
         fn it_parses_drop_noun_correctly() {
             let (remaining, actual) = parse("drop rake").unwrap();
             assert_eq!(remaining, "");
-            assert_eq!(actual, Sentence::Drop(Some(Item::Named("rake".to_owned()))))
+            assert_eq!(actual, Sentence::Drop(Some(Item::Named("rake".to_owned()))));
         }
 
         #[test]
         fn it_errors_on_unknown_text() {
-            let output = parse("hello");
-            assert!(output.is_err()); // TODO Weak assertion.
+            let actual = parse("hello");
+            assert!(actual.is_err());
         }
     }
 }
