@@ -178,14 +178,15 @@ pub mod actions {
     mod tests {
         use super::*;
         use crate::domain::{BuildActionArgs, QuickThing};
-        use anyhow::Result;
 
         #[test]
         fn it_goes_through_routes() -> Result<()> {
-            let args: ActionArgs = BuildActionArgs::new()?
+            let mut world = BuildActionArgs::new()?;
+            let destination = world.make(QuickThing::Place("Place".to_string()))?;
+            let args: ActionArgs = world
                 .ground(vec![QuickThing::Route(
                     "East".to_string(),
-                    Box::new(QuickThing::Place("Place".to_string())),
+                    Box::new(QuickThing::Actual(destination.clone())),
                 )])
                 .try_into()?;
 
@@ -198,6 +199,7 @@ pub mod actions {
             assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
             assert_ne!(tools::area_of(&person)?.key(), area.key());
+            assert_eq!(tools::area_of(&person)?.key(), destination.key());
 
             Ok(())
         }

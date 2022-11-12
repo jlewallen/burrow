@@ -1,4 +1,5 @@
 use anyhow::Result;
+use serde::Deserialize;
 use std::rc::Rc;
 
 use super::new_infra;
@@ -94,6 +95,7 @@ pub enum QuickThing {
     Object(String),
     Place(String),
     Route(String, Box<QuickThing>),
+    Actual(EntityPtr),
 }
 
 impl QuickThing {
@@ -109,6 +111,7 @@ impl QuickThing {
                     .leads_to(area)?
                     .into_entity())
             }
+            QuickThing::Actual(ep) => Ok(ep.clone()),
         }
     }
 }
@@ -120,6 +123,10 @@ impl BuildActionArgs {
             hands: Vec::new(),
             ground: Vec::new(),
         })
+    }
+
+    pub fn make(&mut self, q: QuickThing) -> Result<EntityPtr> {
+        Ok(q.make(&self.infra)?)
     }
 
     pub fn hands(&mut self, items: Vec<QuickThing>) -> &Self {
@@ -170,4 +177,28 @@ impl TryFrom<&BuildActionArgs> for ActionArgs {
 
         Ok((world, person, area, infra))
     }
+}
+
+pub struct Constructed {}
+
+impl Constructed {}
+
+#[derive(Deserialize)]
+struct JsonWorld {
+    _ground: Vec<JsonItem>,
+}
+
+#[derive(Deserialize)]
+struct JsonItem {
+    _name: String,
+}
+
+#[derive(Deserialize)]
+struct JsonPlace {
+    _name: String,
+}
+
+pub fn from_json(s: &str) -> Result<Constructed> {
+    let _parsed: JsonWorld = serde_json::from_str(s)?;
+    Ok(Constructed {})
 }
