@@ -184,10 +184,7 @@ pub mod actions {
             let mut world = BuildActionArgs::new()?;
             let destination = world.make(QuickThing::Place("Place".to_string()))?;
             let args: ActionArgs = world
-                .ground(vec![QuickThing::Route(
-                    "East".to_string(),
-                    Box::new(QuickThing::Actual(destination.clone())),
-                )])
+                .route("East", QuickThing::Actual(destination.clone()))
                 .try_into()?;
 
             let action = GoAction {

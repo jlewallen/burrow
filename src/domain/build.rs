@@ -139,6 +139,13 @@ impl BuildActionArgs {
         self
     }
 
+    pub fn route(&mut self, route_name: &str, destination: QuickThing) -> &Self {
+        self.ground(vec![QuickThing::Route(
+            route_name.to_string(),
+            Box::new(destination),
+        )])
+    }
+
     pub fn plain(&mut self) -> &Self {
         self
     }
