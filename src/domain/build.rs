@@ -129,32 +129,32 @@ impl BuildActionArgs {
         Ok(q.make(&self.infra)?)
     }
 
-    pub fn hands(&mut self, items: Vec<QuickThing>) -> &Self {
+    pub fn hands(&mut self, items: Vec<QuickThing>) -> &mut Self {
         self.hands.extend(items);
         self
     }
 
-    pub fn ground(&mut self, items: Vec<QuickThing>) -> &Self {
+    pub fn ground(&mut self, items: Vec<QuickThing>) -> &mut Self {
         self.ground.extend(items);
         self
     }
 
-    pub fn route(&mut self, route_name: &str, destination: QuickThing) -> &Self {
+    pub fn route(&mut self, route_name: &str, destination: QuickThing) -> &mut Self {
         self.ground(vec![QuickThing::Route(
             route_name.to_string(),
             Box::new(destination),
         )])
     }
 
-    pub fn plain(&mut self) -> &Self {
+    pub fn plain(&mut self) -> &mut Self {
         self
     }
 }
 
-impl TryFrom<&BuildActionArgs> for ActionArgs {
+impl TryFrom<&mut BuildActionArgs> for ActionArgs {
     type Error = anyhow::Error;
 
-    fn try_from(builder: &BuildActionArgs) -> Result<Self, Self::Error> {
+    fn try_from(builder: &mut BuildActionArgs) -> Result<Self, Self::Error> {
         let infra = Rc::clone(&builder.infra);
 
         let world = Build::new(&infra)?.into_entity();

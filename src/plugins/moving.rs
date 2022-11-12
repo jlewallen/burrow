@@ -180,7 +180,51 @@ pub mod actions {
         use crate::domain::{BuildActionArgs, QuickThing};
 
         #[test]
-        fn it_goes_through_routes() -> Result<()> {
+        fn it_goes_ignores_bad_matches() -> Result<()> {
+            let mut world = BuildActionArgs::new()?;
+            let east = world.make(QuickThing::Place("East Place".to_string()))?;
+            let west = world.make(QuickThing::Place("West Place".to_string()))?;
+            let args: ActionArgs = world
+                .route("East", QuickThing::Actual(east.clone()))
+                .route("Wast", QuickThing::Actual(west.clone()))
+                .try_into()?;
+
+            let action = GoAction {
+                item: Item::Route("north".to_string()),
+            };
+            let reply = action.perform(args.clone())?;
+
+            assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+
+            Ok(())
+        }
+
+        #[test]
+        fn it_goes_through_correct_route_when_two_nearby() -> Result<()> {
+            let mut world = BuildActionArgs::new()?;
+            let east = world.make(QuickThing::Place("East Place".to_string()))?;
+            let west = world.make(QuickThing::Place("West Place".to_string()))?;
+            let args: ActionArgs = world
+                .route("East", QuickThing::Actual(east.clone()))
+                .route("Wast", QuickThing::Actual(west.clone()))
+                .try_into()?;
+
+            let action = GoAction {
+                item: Item::Route("east".to_string()),
+            };
+            let reply = action.perform(args.clone())?;
+            let (_, person, area, _) = args.clone();
+
+            assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+
+            assert_ne!(tools::area_of(&person)?.key(), area.key());
+            assert_eq!(tools::area_of(&person)?.key(), east.key());
+
+            Ok(())
+        }
+
+        #[test]
+        fn it_goes_through_routes_when_one_nearby() -> Result<()> {
             let mut world = BuildActionArgs::new()?;
             let destination = world.make(QuickThing::Place("Place".to_string()))?;
             let args: ActionArgs = world
