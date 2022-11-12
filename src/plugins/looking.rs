@@ -87,12 +87,6 @@ pub mod model {
         pub routes: Vec<ObservedEntity>,
     }
 
-    impl ToJson for AreaObservation {
-        fn to_json(&self) -> Result<Value> {
-            Ok(serde_json::to_value(self)?)
-        }
-    }
-
     impl AreaObservation {
         pub fn new(user: EntityPtr, area: EntityPtr) -> Result<Self> {
             // I feel like there's a lot of unnecessary copying going on here.
@@ -144,6 +138,12 @@ pub mod model {
         }
     }
 
+    impl ToJson for AreaObservation {
+        fn to_json(&self) -> Result<Value> {
+            Ok(serde_json::to_value(self)?)
+        }
+    }
+
     pub fn discover(_source: &Entity, _entity_keys: &mut [EntityKey]) -> Result<()> {
         Ok(())
     }
@@ -156,6 +156,7 @@ pub mod actions {
 
     #[derive(Debug)]
     struct LookAction {}
+
     impl Action for LookAction {
         fn is_read_only() -> bool {
             true

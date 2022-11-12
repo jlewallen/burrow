@@ -305,16 +305,6 @@ impl Needs<std::rc::Rc<dyn Infrastructure>> for Entity {
 }
 
 impl Entity {
-    /*
-    pub fn new() -> EntityPtr {
-        let brand_new = Rc::new(RefCell::new(Self::default()));
-        let lazy = LazyLoadedEntity::new_from_raw(&brand_new);
-        EntityPtr {
-            entity: brand_new,
-            lazy,
-        }
-    }
-    */
     pub fn name(&self) -> Option<String> {
         self.props.string_property(NAME_PROPERTY)
     }
