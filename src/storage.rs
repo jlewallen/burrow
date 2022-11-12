@@ -57,17 +57,17 @@ pub mod sqlite {
 
             Ok(Rc::new(SqliteStorage { conn }))
         }
-    }
 
-    impl EntityStorage for SqliteStorage {
-        fn load_by_key(&self, key: &EntityKey) -> Result<Option<PersistedEntity>> {
-            let mut stmt = self
-                .conn
-                .prepare("SELECT key, gid, version, serialized FROM entities WHERE key = ?;")?;
+        fn single_query<T: rusqlite::Params>(
+            &self,
+            query: &str,
+            params: T,
+        ) -> Result<Option<PersistedEntity>> {
+            let mut stmt = self.conn.prepare(query)?;
 
             debug!("querying");
 
-            let mut entities = stmt.query_map([key.key_to_string()], |row| {
+            let mut entities = stmt.query_map(params, |row| {
                 Ok(PersistedEntity {
                     key: row.get(0)?,
                     gid: row.get(1)?,
@@ -81,27 +81,21 @@ pub mod sqlite {
                 _ => Ok(None),
             }
         }
+    }
+
+    impl EntityStorage for SqliteStorage {
+        fn load_by_key(&self, key: &EntityKey) -> Result<Option<PersistedEntity>> {
+            self.single_query(
+                "SELECT key, gid, version, serialized FROM entities WHERE key = ?;",
+                [key.key_to_string()],
+            )
+        }
 
         fn load_by_gid(&self, gid: &EntityGID) -> Result<Option<PersistedEntity>> {
-            let mut stmt = self
-                .conn
-                .prepare("SELECT key, gid, version, serialized FROM entities WHERE gid = ?;")?;
-
-            debug!("querying");
-
-            let mut entities = stmt.query_map([gid.gid_to_string()], |row| {
-                Ok(PersistedEntity {
-                    key: row.get(0)?,
-                    gid: row.get(1)?,
-                    version: row.get(2)?,
-                    serialized: row.get(3)?,
-                })
-            })?;
-
-            match entities.next() {
-                Some(p) => Ok(Some(p?)),
-                _ => Ok(None),
-            }
+            self.single_query(
+                "SELECT key, gid, version, serialized FROM entities WHERE gid = ?;",
+                [gid.gid_to_string()],
+            )
         }
 
         fn save(&self, entity: &PersistedEntity) -> Result<()> {
