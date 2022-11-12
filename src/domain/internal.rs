@@ -7,7 +7,7 @@ use std::{
 };
 use tracing::{debug, info, span, trace, Level};
 
-use crate::storage::EntityStorage;
+use crate::storage::{EntityStorage, PersistedEntity};
 use crate::{kernel::*, plugins::carrying::model::Containing};
 
 fn matches_string_description(incoming: &str, desc: &str) -> bool {
@@ -30,22 +30,24 @@ pub struct LoadedEntity {
     pub entity: EntityPtr,
     pub serialized: String,
     pub version: u64,
-    pub gid: u64,
+    pub gid: EntityGID,
 }
 
 pub struct EntityMap {
-    entities: RefCell<HashMap<EntityKey, LoadedEntity>>,
+    by_key: RefCell<HashMap<EntityKey, LoadedEntity>>,
+    by_gid: RefCell<HashMap<EntityGID, EntityKey>>,
 }
 
 impl EntityMap {
     pub fn new() -> Rc<Self> {
         Rc::new(Self {
-            entities: RefCell::new(HashMap::new()),
+            by_key: RefCell::new(HashMap::new()),
+            by_gid: RefCell::new(HashMap::new()),
         })
     }
 
-    pub fn lookup_entity(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
-        let check_existing = self.entities.borrow();
+    pub fn lookup_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
+        let check_existing = self.by_key.borrow();
         if let Some(e) = check_existing.get(key) {
             debug!(%key, "existing");
             return Ok(Some(e.entity.clone()));
@@ -54,16 +56,27 @@ impl EntityMap {
         Ok(None)
     }
 
-    pub fn add_entity(&self, key: &EntityKey, loaded: LoadedEntity) -> Result<()> {
-        let mut cache = self.entities.borrow_mut();
+    pub fn lookup_entity_by_gid(&self, gid: &EntityGID) -> Result<Option<EntityPtr>> {
+        let check_existing = self.by_gid.borrow();
+        if let Some(k) = check_existing.get(gid) {
+            Ok(self.lookup_entity_by_key(k)?)
+        } else {
+            Ok(None)
+        }
+    }
 
-        cache.insert(key.clone(), loaded);
+    pub fn add_entity(&self, _key: &EntityKey, loaded: LoadedEntity) -> Result<()> {
+        let mut key_cache = self.by_key.borrow_mut();
+        let mut gid_cache = self.by_gid.borrow_mut();
+
+        gid_cache.insert(loaded.gid.clone(), loaded.key.clone());
+        key_cache.insert(loaded.key.clone(), loaded);
 
         Ok(())
     }
 
     pub fn foreach_entity<R, T: Fn(&LoadedEntity) -> Result<R>>(&self, each: T) -> Result<Vec<R>> {
-        let cache = self.entities.borrow();
+        let cache = self.by_key.borrow();
 
         let mut rvals: Vec<R> = Vec::new();
 
@@ -112,25 +125,14 @@ impl Entities {
                 entity: clone,
                 serialized: "".to_string(),
                 version: 1,
-                gid: 0,
+                gid: EntityGID::new(0),
             }
         };
         let key = loaded.key.clone();
         self.entities.add_entity(&key, loaded)
     }
-}
 
-impl PrepareEntities for Entities {
-    fn prepare_entity_by_key(&self, key: &EntityKey) -> Result<EntityPtr> {
-        if let Some(e) = self.entities.lookup_entity(key)? {
-            return Ok(e);
-        }
-
-        let _loading_span = span!(Level::INFO, "entity", key = key.key_to_string()).entered();
-
-        info!("loading");
-        let persisted = self.storage.load(key)?;
-
+    fn prepare_persisted(&self, persisted: PersistedEntity) -> Result<EntityPtr> {
         trace!("parsing");
         let mut loaded: Entity = serde_json::from_str(&persisted.serialized)?;
 
@@ -143,18 +145,48 @@ impl PrepareEntities for Entities {
 
         let cell: EntityPtr = loaded.into();
 
+        let key = EntityKey::new(&persisted.key);
+
         self.entities.add_entity(
-            key,
+            &key,
             LoadedEntity {
                 key: key.clone(),
                 entity: cell.clone(),
                 serialized: persisted.serialized,
-                gid: persisted.gid,
+                gid: EntityGID::new(persisted.gid),
                 version: persisted.version + 1,
             },
         )?;
 
         Ok(cell)
+    }
+}
+
+impl PrepareEntities for Entities {
+    fn prepare_entity_by_key(&self, key: &EntityKey) -> Result<EntityPtr> {
+        if let Some(e) = self.entities.lookup_entity_by_key(key)? {
+            return Ok(e);
+        }
+
+        let _loading_span = span!(Level::INFO, "entity", key = key.key_to_string()).entered();
+
+        info!("loading");
+        let persisted = self.storage.load_by_key(key)?;
+
+        self.prepare_persisted(persisted)
+    }
+
+    fn prepare_entity_by_gid(&self, gid: &EntityGID) -> Result<EntityPtr> {
+        if let Some(e) = self.entities.lookup_entity_by_gid(gid)? {
+            return Ok(e);
+        }
+
+        let _loading_span = span!(Level::INFO, "entity", gid = gid.gid_to_string()).entered();
+
+        info!("loading");
+        let persisted = self.storage.load_by_gid(gid)?;
+
+        self.prepare_persisted(persisted)
     }
 }
 
@@ -177,6 +209,10 @@ impl DomainInfrastructure {
 impl LoadEntities for DomainInfrastructure {
     fn load_entity_by_key(&self, key: &EntityKey) -> Result<EntityPtr> {
         self.entities.prepare_entity_by_key(key)
+    }
+
+    fn load_entity_by_gid(&self, gid: &EntityGID) -> Result<EntityPtr> {
+        self.entities.prepare_entity_by_gid(gid)
     }
 }
 
@@ -245,6 +281,7 @@ impl Infrastructure for DomainInfrastructure {
 
                 Ok(None)
             }
+            Item::GID(gid) => Ok(Some(self.load_entity_by_gid(&gid)?)),
         }
     }
 

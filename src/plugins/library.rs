@@ -1,9 +1,12 @@
 pub mod parser {
     pub use crate::kernel::*;
+    use nom::sequence::preceded;
     pub use nom::{
         branch::alt,
         bytes::complete::{tag, take_while1},
+        character::complete::digit1,
         combinator::map,
+        combinator::{map_res, recognize},
         sequence::separated_pair,
         IResult,
     };
@@ -19,6 +22,18 @@ pub mod parser {
 
     pub fn noun(i: &str) -> IResult<&str, Item> {
         map(word, |s: &str| Item::Named(s.to_owned()))(i)
+    }
+
+    pub fn number(i: &str) -> IResult<&str, i64> {
+        map_res(recognize(digit1), str::parse)(i)
+    }
+
+    pub fn gid_reference(i: &str) -> IResult<&str, Item> {
+        map(preceded(tag("#"), number), |n| Item::GID(EntityGID::new(n)))(i)
+    }
+
+    pub fn item_or_noun(i: &str) -> IResult<&str, Item> {
+        alt((gid_reference, noun))(i)
     }
 
     pub fn named_place(i: &str) -> IResult<&str, Item> {

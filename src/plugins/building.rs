@@ -71,9 +71,10 @@ pub mod parser {
     }
 
     fn edit_item(i: &str) -> IResult<&str, Sentence> {
-        map(separated_pair(tag("edit"), spaces, noun), |(_, target)| {
-            Sentence::Edit(target)
-        })(i)
+        map(
+            separated_pair(tag("edit"), spaces, item_or_noun),
+            |(_, target)| Sentence::Edit(target),
+        )(i)
     }
 
     #[cfg(test)]
@@ -85,6 +86,19 @@ pub mod parser {
             let (remaining, actual) = parse("edit rake").unwrap();
             assert_eq!(remaining, "");
             assert_eq!(actual, Sentence::Edit(Item::Named("rake".to_owned())));
+        }
+
+        #[test]
+        fn it_parses_edit_gid_number_correctly() {
+            let (remaining, actual) = parse("edit #608").unwrap();
+            assert_eq!(remaining, "");
+            assert_eq!(actual, Sentence::Edit(Item::GID(EntityGID::new(608))));
+        }
+
+        #[test]
+        fn it_skips_parsing_misleading_gid_number() {
+            let (remaining, _actual) = parse("edit #3g34").unwrap();
+            assert_eq!(remaining, "g34");
         }
 
         #[test]

@@ -84,6 +84,31 @@ impl Deref for EntityPtr {
     }
 }
 
+#[derive(Clone, Eq, PartialEq, Hash, Serialize, Deserialize, Debug)]
+pub struct EntityGID(i64);
+
+impl EntityGID {
+    pub fn new(i: i64) -> EntityGID {
+        EntityGID(i)
+    }
+
+    pub fn gid_to_string(&self) -> String {
+        format!("{}", self.0)
+    }
+}
+
+impl Display for EntityGID {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<EntityGID> for i64 {
+    fn from(gid: EntityGID) -> Self {
+        gid.0
+    }
+}
+
 #[derive(Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct EntityKey(String);
 
@@ -127,9 +152,7 @@ pub enum DomainOutcome {
 pub enum Item {
     Named(String),
     Route(String),
-    // ImplicitlyUnheld(String),
-    // ImplicitlyHeld(String),
-    // ImplicitlyNavigable(String),
+    GID(EntityGID),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -320,8 +343,12 @@ impl Entity {
         self.props.string_property(DESC_PROPERTY)
     }
 
-    pub fn gid(&self) -> Option<i64> {
-        self.props.i64_property(GID_PROPERTY)
+    pub fn gid(&self) -> Option<EntityGID> {
+        if let Some(id) = self.props.i64_property(GID_PROPERTY) {
+            Some(EntityGID(id))
+        } else {
+            None
+        }
     }
 
     pub fn has_scope<T: Scope>(&self) -> bool {

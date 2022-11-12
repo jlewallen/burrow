@@ -1,10 +1,11 @@
-use crate::kernel::EntityKey;
+use crate::kernel::{EntityGID, EntityKey};
 use anyhow::Result;
 use std::rc::Rc;
 use tracing::debug;
 
 pub trait EntityStorage {
-    fn load(&self, key: &EntityKey) -> Result<PersistedEntity>;
+    fn load_by_key(&self, key: &EntityKey) -> Result<PersistedEntity>;
+    fn load_by_gid(&self, gid: &EntityGID) -> Result<PersistedEntity>;
     fn save(&self, entity: &PersistedEntity) -> Result<()>;
     fn begin(&self) -> Result<()>;
     fn rollback(&self, benign: bool) -> Result<()>;
@@ -18,7 +19,7 @@ pub trait EntityStorageFactory {
 #[derive(Debug)]
 pub struct PersistedEntity {
     pub key: String,
-    pub gid: u64,
+    pub gid: i64,
     pub version: u64,
     pub serialized: String,
 }
@@ -59,7 +60,7 @@ pub mod sqlite {
     }
 
     impl EntityStorage for SqliteStorage {
-        fn load(&self, key: &EntityKey) -> Result<PersistedEntity> {
+        fn load_by_key(&self, key: &EntityKey) -> Result<PersistedEntity> {
             let mut stmt = self
                 .conn
                 .prepare("SELECT key, gid, version, serialized FROM entities WHERE key = ?;")?;
@@ -78,6 +79,28 @@ pub mod sqlite {
             match entities.next() {
                 Some(p) => Ok(p?),
                 _ => Err(anyhow!("entity with key '{}' not found", key)),
+            }
+        }
+
+        fn load_by_gid(&self, gid: &EntityGID) -> Result<PersistedEntity> {
+            let mut stmt = self
+                .conn
+                .prepare("SELECT key, gid, version, serialized FROM entities WHERE gid = ?;")?;
+
+            debug!("querying");
+
+            let mut entities = stmt.query_map([gid.gid_to_string()], |row| {
+                Ok(PersistedEntity {
+                    key: row.get(0)?,
+                    gid: row.get(1)?,
+                    version: row.get(2)?,
+                    serialized: row.get(3)?,
+                })
+            })?;
+
+            match entities.next() {
+                Some(p) => Ok(p?),
+                _ => Err(anyhow!("entity with gid '{:?}' not found", gid)),
             }
         }
 
@@ -176,7 +199,7 @@ pub mod sqlite {
         fn it_queries_for_entity_by_missing_key() -> Result<()> {
             let s = get_storage()?;
 
-            assert!(s.load(&EntityKey::new("world")).is_err());
+            assert!(s.load_by_key(&EntityKey::new("world")).is_err());
 
             Ok(())
         }
@@ -204,7 +227,7 @@ pub mod sqlite {
                 serialized: "{}".to_string(),
             })?;
 
-            s.load(&EntityKey::new("world"))?;
+            s.load_by_key(&EntityKey::new("world"))?;
 
             Ok(())
         }
@@ -220,7 +243,7 @@ pub mod sqlite {
                 serialized: "{}".to_string(),
             })?;
 
-            let mut p1 = s.load(&EntityKey::new("world"))?;
+            let mut p1 = s.load_by_key(&EntityKey::new("world"))?;
 
             assert_eq!(1, p1.version);
 
@@ -228,7 +251,7 @@ pub mod sqlite {
 
             s.save(&p1)?;
 
-            let p2 = s.load(&EntityKey::new("world"))?;
+            let p2 = s.load_by_key(&EntityKey::new("world"))?;
 
             assert_eq!(2, p2.version);
 
@@ -250,7 +273,7 @@ pub mod sqlite {
 
             s.rollback(true)?;
 
-            assert!(s.load(&EntityKey::new("world")).is_err());
+            assert!(s.load_by_key(&EntityKey::new("world")).is_err());
 
             Ok(())
         }
@@ -270,7 +293,7 @@ pub mod sqlite {
 
             s.commit()?;
 
-            s.load(&EntityKey::new("world"))?;
+            s.load_by_key(&EntityKey::new("world"))?;
 
             Ok(())
         }

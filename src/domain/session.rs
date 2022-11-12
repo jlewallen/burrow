@@ -147,7 +147,7 @@ impl Session {
 
             Ok(Some(PersistedEntity {
                 key: entity.key.to_string(),
-                gid: l.gid,
+                gid: l.gid.clone().into(),
                 version: l.version,
                 serialized,
             }))
@@ -168,7 +168,8 @@ impl Session {
             .get_modified_entities()?
             .into_iter()
             .map(|p| self.storage.save(&p))
-            .collect::<Result<Vec<_>>>()?.is_empty())
+            .collect::<Result<Vec<_>>>()?
+            .is_empty())
     }
 
     pub fn close(&self) -> Result<()> {
