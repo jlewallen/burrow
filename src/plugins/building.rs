@@ -1,10 +1,6 @@
 pub mod model {
     use crate::plugins::library::model::*;
 
-    pub fn discover(_source: &Entity, _entity_keys: &mut [EntityKey]) -> Result<()> {
-        Ok(())
-    }
-
     #[derive(Debug, Serialize)]
     #[serde(rename_all = "camelCase")]
     struct EditorReply {}
@@ -22,6 +18,10 @@ pub mod model {
             Ok(serde_json::to_value(self)?)
         }
     }
+
+    pub fn discover(_source: &Entity, _entity_keys: &mut [EntityKey]) -> Result<()> {
+        Ok(())
+    }
 }
 
 pub mod actions {
@@ -32,6 +32,7 @@ pub mod actions {
     struct EditAction {
         maybe_item: Item,
     }
+
     impl Action for EditAction {
         fn is_read_only() -> bool {
             true

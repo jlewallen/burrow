@@ -102,6 +102,7 @@ pub mod model {
             Ok(())
         }
     }
+
     pub fn discover(source: &Entity, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
         if let Ok(containing) = source.scope::<Containing>() {
             // TODO Pretty sure this clone should be unnecessary, can we clone into from an iterator?

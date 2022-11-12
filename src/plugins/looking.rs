@@ -5,10 +5,6 @@ pub mod model {
         plugins::moving::model::{Movement, Occupyable},
     };
 
-    pub fn discover(_source: &Entity, _entity_keys: &mut [EntityKey]) -> Result<()> {
-        Ok(())
-    }
-
     #[derive(Debug, Serialize)]
     pub struct ObservedArea {}
 
@@ -146,6 +142,10 @@ pub mod model {
             md.write("")?;
             Ok(md)
         }
+    }
+
+    pub fn discover(_source: &Entity, _entity_keys: &mut [EntityKey]) -> Result<()> {
+        Ok(())
     }
 }
 
