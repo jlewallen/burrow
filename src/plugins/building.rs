@@ -30,7 +30,7 @@ pub mod actions {
 
     #[derive(Debug)]
     struct EditAction {
-        maybe_item: Item,
+        item: Item,
     }
 
     impl Action for EditAction {
@@ -38,10 +38,18 @@ pub mod actions {
             true
         }
 
-        fn perform(&self, (_world, _user, _area, _infra): ActionArgs) -> ReplyResult {
-            info!("edit {:?}!", self.maybe_item);
+        fn perform(&self, args: ActionArgs) -> ReplyResult {
+            info!("editing {:?}!", self.item);
 
-            Ok(Box::new(SimpleReply::Done))
+            let (_, _, _, infra) = args.clone();
+
+            match infra.find_item(args, &self.item)? {
+                Some(editing) => {
+                    info!("editing {:?}", editing);
+                    Ok(Box::new(SimpleReply::Done))
+                }
+                None => Ok(Box::new(SimpleReply::NotFound)),
+            }
         }
     }
 
@@ -51,9 +59,81 @@ pub mod actions {
 
     fn evaluate_sentence(s: &Sentence) -> Box<dyn Action> {
         match s {
-            Sentence::Edit(e) => Box::new(EditAction {
-                maybe_item: e.clone(),
-            }),
+            Sentence::Edit(e) => Box::new(EditAction { item: e.clone() }),
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use crate::domain::{BuildActionArgs, QuickThing};
+
+        #[test]
+        fn it_fails_to_edit_unknown_items() -> Result<()> {
+            let args: ActionArgs = BuildActionArgs::new()?
+                .ground(vec![QuickThing::Object("Cool Broom".to_string())])
+                .try_into()?;
+
+            let action = EditAction {
+                item: Item::Named("rake".to_string()),
+            };
+            let reply = action.perform(args.clone())?;
+            // let (_, _, _, _) = args.clone();
+
+            assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+
+            Ok(())
+        }
+
+        #[test]
+        fn it_edits_items_named() -> Result<()> {
+            let args: ActionArgs = BuildActionArgs::new()?
+                .ground(vec![QuickThing::Object("Cool Broom".to_string())])
+                .try_into()?;
+
+            let action = EditAction {
+                item: Item::Named("broom".to_string()),
+            };
+            let reply = action.perform(args.clone())?;
+            // let (_, _, _, _) = args.clone();
+
+            assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+
+            Ok(())
+        }
+
+        #[test]
+        fn it_edits_items_by_gid() -> Result<()> {
+            let args: ActionArgs = BuildActionArgs::new()?
+                .ground(vec![QuickThing::Object("Cool Broom".to_string())])
+                .try_into()?;
+
+            let action = EditAction {
+                item: Item::GID(EntityGID::new(1)),
+            };
+            let reply = action.perform(args.clone())?;
+            // let (_, _, _, _) = args.clone();
+
+            assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+
+            Ok(())
+        }
+
+        #[test]
+        fn it_fails_to_edit_items_by_missing_gid() -> Result<()> {
+            let args: ActionArgs = BuildActionArgs::new()?
+                .ground(vec![QuickThing::Object("Cool Broom".to_string())])
+                .try_into()?;
+
+            let action = EditAction {
+                item: Item::GID(EntityGID::new(1000)),
+            };
+            let reply = action.perform(args.clone())?;
+            // let (_, _, _, _) = args.clone();
+
+            assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+
+            Ok(())
         }
     }
 }

@@ -163,30 +163,34 @@ impl Entities {
 }
 
 impl PrepareEntities for Entities {
-    fn prepare_entity_by_key(&self, key: &EntityKey) -> Result<EntityPtr> {
+    fn prepare_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
         if let Some(e) = self.entities.lookup_entity_by_key(key)? {
-            return Ok(e);
+            return Ok(Some(e));
         }
 
         let _loading_span = span!(Level::INFO, "entity", key = key.key_to_string()).entered();
 
         info!("loading");
-        let persisted = self.storage.load_by_key(key)?;
-
-        self.prepare_persisted(persisted)
+        if let Some(persisted) = self.storage.load_by_key(key)? {
+            Ok(Some(self.prepare_persisted(persisted)?))
+        } else {
+            Ok(None)
+        }
     }
 
-    fn prepare_entity_by_gid(&self, gid: &EntityGID) -> Result<EntityPtr> {
+    fn prepare_entity_by_gid(&self, gid: &EntityGID) -> Result<Option<EntityPtr>> {
         if let Some(e) = self.entities.lookup_entity_by_gid(gid)? {
-            return Ok(e);
+            return Ok(Some(e));
         }
 
         let _loading_span = span!(Level::INFO, "entity", gid = gid.gid_to_string()).entered();
 
         info!("loading");
-        let persisted = self.storage.load_by_gid(gid)?;
-
-        self.prepare_persisted(persisted)
+        if let Some(persisted) = self.storage.load_by_gid(gid)? {
+            Ok(Some(self.prepare_persisted(persisted)?))
+        } else {
+            Ok(None)
+        }
     }
 }
 
@@ -207,11 +211,11 @@ impl DomainInfrastructure {
 }
 
 impl LoadEntities for DomainInfrastructure {
-    fn load_entity_by_key(&self, key: &EntityKey) -> Result<EntityPtr> {
+    fn load_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
         self.entities.prepare_entity_by_key(key)
     }
 
-    fn load_entity_by_gid(&self, gid: &EntityGID) -> Result<EntityPtr> {
+    fn load_entity_by_gid(&self, gid: &EntityGID) -> Result<Option<EntityPtr>> {
         self.entities.prepare_entity_by_gid(gid)
     }
 }
@@ -221,8 +225,11 @@ impl Infrastructure for DomainInfrastructure {
         if entity_ref.has_entity() {
             Ok(entity_ref.clone())
         } else {
-            let entity = self.load_entity_by_key(&entity_ref.key)?;
-            Ok(entity.into())
+            if let Some(entity) = self.load_entity_by_key(&entity_ref.key)? {
+                Ok(entity.into())
+            } else {
+                Err(anyhow!("Entity not found"))
+            }
         }
     }
 
@@ -281,7 +288,13 @@ impl Infrastructure for DomainInfrastructure {
 
                 Ok(None)
             }
-            Item::GID(gid) => Ok(Some(self.load_entity_by_gid(&gid)?)),
+            Item::GID(gid) => {
+                if let Some(e) = self.load_entity_by_gid(&gid)? {
+                    Ok(Some(e))
+                } else {
+                    Ok(None)
+                }
+            }
         }
     }
 

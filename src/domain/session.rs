@@ -60,13 +60,19 @@ impl Session {
     fn evaluate(&self, user_name: &str) -> Result<(EntityPtr, EntityPtr, EntityPtr)> {
         let _span = span!(Level::DEBUG, "L").entered();
 
-        let world = self.infra.load_entity_by_key(&WORLD_KEY)?;
+        let world = self
+            .infra
+            .load_entity_by_key(&WORLD_KEY)?
+            .ok_or(DomainError::EntityNotFound)?;
         let usernames: OpenScope<Usernames> = {
             let world = world.borrow();
             world.scope::<Usernames>()?
         };
         let user_key = &usernames.users[user_name];
-        let user = self.infra.load_entity_by_key(user_key)?;
+        let user = self
+            .infra
+            .load_entity_by_key(user_key)?
+            .ok_or(DomainError::EntityNotFound)?;
         let area: EntityPtr = {
             let user = user.borrow();
             let occupying: OpenScope<Occupying> = user.scope::<Occupying>()?;

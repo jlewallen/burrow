@@ -28,17 +28,17 @@ pub trait Scope: Debug + Default + Needs<Rc<dyn Infrastructure>> + DeserializeOw
 }
 
 pub trait PrepareEntities {
-    fn prepare_entity_by_key(&self, key: &EntityKey) -> Result<EntityPtr>;
+    fn prepare_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>>;
 
-    fn prepare_entity_by_gid(&self, gid: &EntityGID) -> Result<EntityPtr>;
+    fn prepare_entity_by_gid(&self, gid: &EntityGID) -> Result<Option<EntityPtr>>;
 }
 
 pub trait LoadEntities {
-    fn load_entity_by_key(&self, key: &EntityKey) -> Result<EntityPtr>;
+    fn load_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>>;
 
-    fn load_entity_by_gid(&self, gid: &EntityGID) -> Result<EntityPtr>;
+    fn load_entity_by_gid(&self, gid: &EntityGID) -> Result<Option<EntityPtr>>;
 
-    fn load_entity_by_ref(&self, entity_ref: &EntityRef) -> Result<EntityPtr> {
+    fn load_entity_by_ref(&self, entity_ref: &EntityRef) -> Result<Option<EntityPtr>> {
         self.load_entity_by_key(&entity_ref.key)
     }
 }

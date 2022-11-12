@@ -567,6 +567,8 @@ pub enum DomainError {
     SessionClosed,
     #[error("container required")]
     ContainerRequired,
+    #[error("entity not found")]
+    EntityNotFound,
 }
 
 impl From<serde_json::Error> for DomainError {

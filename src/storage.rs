@@ -4,8 +4,8 @@ use std::rc::Rc;
 use tracing::debug;
 
 pub trait EntityStorage {
-    fn load_by_key(&self, key: &EntityKey) -> Result<PersistedEntity>;
-    fn load_by_gid(&self, gid: &EntityGID) -> Result<PersistedEntity>;
+    fn load_by_key(&self, key: &EntityKey) -> Result<Option<PersistedEntity>>;
+    fn load_by_gid(&self, gid: &EntityGID) -> Result<Option<PersistedEntity>>;
     fn save(&self, entity: &PersistedEntity) -> Result<()>;
     fn begin(&self) -> Result<()>;
     fn rollback(&self, benign: bool) -> Result<()>;
@@ -60,7 +60,7 @@ pub mod sqlite {
     }
 
     impl EntityStorage for SqliteStorage {
-        fn load_by_key(&self, key: &EntityKey) -> Result<PersistedEntity> {
+        fn load_by_key(&self, key: &EntityKey) -> Result<Option<PersistedEntity>> {
             let mut stmt = self
                 .conn
                 .prepare("SELECT key, gid, version, serialized FROM entities WHERE key = ?;")?;
@@ -77,12 +77,12 @@ pub mod sqlite {
             })?;
 
             match entities.next() {
-                Some(p) => Ok(p?),
-                _ => Err(anyhow!("entity with key '{}' not found", key)),
+                Some(p) => Ok(Some(p?)),
+                _ => Ok(None),
             }
         }
 
-        fn load_by_gid(&self, gid: &EntityGID) -> Result<PersistedEntity> {
+        fn load_by_gid(&self, gid: &EntityGID) -> Result<Option<PersistedEntity>> {
             let mut stmt = self
                 .conn
                 .prepare("SELECT key, gid, version, serialized FROM entities WHERE gid = ?;")?;
@@ -99,8 +99,8 @@ pub mod sqlite {
             })?;
 
             match entities.next() {
-                Some(p) => Ok(p?),
-                _ => Err(anyhow!("entity with gid '{:?}' not found", gid)),
+                Some(p) => Ok(Some(p?)),
+                _ => Ok(None),
             }
         }
 
@@ -199,7 +199,7 @@ pub mod sqlite {
         fn it_queries_for_entity_by_missing_key() -> Result<()> {
             let s = get_storage()?;
 
-            assert!(s.load_by_key(&EntityKey::new("world")).is_err());
+            assert!(s.load_by_key(&EntityKey::new("world"))?.is_none());
 
             Ok(())
         }
@@ -243,7 +243,7 @@ pub mod sqlite {
                 serialized: "{}".to_string(),
             })?;
 
-            let mut p1 = s.load_by_key(&EntityKey::new("world"))?;
+            let mut p1 = s.load_by_key(&EntityKey::new("world"))?.unwrap();
 
             assert_eq!(1, p1.version);
 
@@ -251,7 +251,7 @@ pub mod sqlite {
 
             s.save(&p1)?;
 
-            let p2 = s.load_by_key(&EntityKey::new("world"))?;
+            let p2 = s.load_by_key(&EntityKey::new("world"))?.unwrap();
 
             assert_eq!(2, p2.version);
 
@@ -273,7 +273,7 @@ pub mod sqlite {
 
             s.rollback(true)?;
 
-            assert!(s.load_by_key(&EntityKey::new("world")).is_err());
+            assert!(s.load_by_key(&EntityKey::new("world"))?.is_none());
 
             Ok(())
         }
