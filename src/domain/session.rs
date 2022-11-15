@@ -2,14 +2,42 @@ use anyhow::Result;
 use std::{
     env,
     rc::Rc,
-    sync::atomic::{AtomicBool, Ordering},
+    sync::atomic::{AtomicBool, AtomicI64, Ordering},
 };
 use tracing::{debug, event, info, span, trace, warn, Level};
 
 use super::internal::{DomainInfrastructure, EntityMap, LoadedEntity};
-use crate::plugins::{moving::model::Occupying, users::model::Usernames};
+use crate::plugins::{identifiers, moving::model::Occupying, users::model::Usernames};
 use crate::storage::{EntityStorage, EntityStorageFactory, PersistedEntity};
 use crate::{kernel::*, plugins::eval};
+
+#[derive(Debug)]
+pub struct GlobalIds {
+    gid: AtomicI64,
+}
+
+impl GlobalIds {
+    pub fn new() -> Rc<Self> {
+        Rc::new(Self {
+            gid: AtomicI64::new(0),
+        })
+    }
+
+    pub fn gid(&self) -> i64 {
+        self.gid.load(Ordering::Relaxed)
+    }
+}
+
+impl GeneratesGlobalIdentifiers for GlobalIds {
+    fn generate_gid(&self) -> Result<i64> {
+        // If this is ever used in a multithreaded context, this should be
+        // improved upon. For now, this is only used in single threaded
+        // situations, we rely on the database for the rest.
+        let id = self.gid.load(Ordering::Relaxed) + 1;
+        self.gid.store(id, Ordering::Relaxed);
+        Ok(id)
+    }
+}
 
 pub struct Session {
     infra: Rc<DomainInfrastructure>,
@@ -17,6 +45,7 @@ pub struct Session {
     entity_map: Rc<EntityMap>,
     open: AtomicBool,
     discoverying: bool,
+    global_ids: Rc<GlobalIds>,
 }
 
 impl Session {
@@ -24,13 +53,21 @@ impl Session {
         info!("session-new");
 
         let entity_map = EntityMap::new();
+        let global_ids = GlobalIds::new();
+
+        let generates_ids = Rc::clone(&global_ids) as Rc<dyn GeneratesGlobalIdentifiers>;
 
         Ok(Self {
-            infra: DomainInfrastructure::new(Rc::clone(&storage), Rc::clone(&entity_map)),
+            infra: DomainInfrastructure::new(
+                Rc::clone(&storage),
+                Rc::clone(&entity_map),
+                Rc::clone(&generates_ids),
+            ),
             storage,
             entity_map,
             open: AtomicBool::new(true),
             discoverying: true,
+            global_ids: global_ids,
         })
     }
 
@@ -57,7 +94,44 @@ impl Session {
         }
     }
 
-    fn evaluate(&self, user_name: &str) -> Result<(EntityPtr, EntityPtr, EntityPtr)> {
+    fn maybe_save_gid(&self) -> Result<()> {
+        let world = self
+            .infra
+            .load_entity_by_key(&WORLD_KEY)?
+            .ok_or(DomainError::EntityNotFound)?;
+        let previous_gid = match identifiers::model::get_gid(&world)? {
+            Some(id) => id,
+            None => 0,
+        };
+        let new_gid = self.global_ids.gid();
+        if previous_gid != new_gid {
+            info!("gid:changed {} -> {}", previous_gid, new_gid);
+            identifiers::model::set_gid(&world, new_gid)?;
+        } else {
+            info!("gid:same {}", previous_gid);
+        }
+        Ok(())
+    }
+
+    pub fn close(&self) -> Result<()> {
+        if self.should_flush_entities()? {
+            self.maybe_save_gid()?;
+            if should_force_rollback() {
+                let _span = span!(Level::DEBUG, "FORCED").entered();
+                self.storage.rollback(true)?;
+            } else {
+                self.storage.commit()?;
+            }
+        } else {
+            self.storage.rollback(true)?;
+        }
+
+        self.open.store(false, Ordering::Relaxed);
+
+        Ok(())
+    }
+
+    fn evaluate_user_name(&self, user_name: &str) -> Result<(EntityPtr, EntityPtr, EntityPtr)> {
         let _span = span!(Level::DEBUG, "L").entered();
 
         let world = self
@@ -186,23 +260,6 @@ impl Session {
             .map(|p| self.storage.save(&p))
             .collect::<Result<Vec<_>>>()?
             .is_empty())
-    }
-
-    pub fn close(&self) -> Result<()> {
-        if self.flush_entities()? {
-            if should_force_rollback() {
-                let _span = span!(Level::DEBUG, "FORCED").entered();
-                self.storage.rollback(true)?;
-            } else {
-                self.storage.commit()?;
-            }
-        } else {
-            self.storage.rollback(true)?;
-        }
-
-        self.open.store(false, Ordering::Relaxed);
-
-        Ok(())
     }
 }
 

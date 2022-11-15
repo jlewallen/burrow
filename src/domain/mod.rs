@@ -17,5 +17,6 @@ use crate::{
 pub fn new_infra() -> Result<Rc<dyn Infrastructure>> {
     let storage = SqliteStorage::new(":memory:")?;
     let entity_map = EntityMap::new();
-    Ok(DomainInfrastructure::new(storage, entity_map))
+    let global_ids = GlobalIds::new();
+    Ok(DomainInfrastructure::new(storage, entity_map, global_ids))
 }

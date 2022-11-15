@@ -197,15 +197,23 @@ impl PrepareEntities for Entities {
 #[derive(Debug)]
 pub struct DomainInfrastructure {
     entities: Rc<Entities>,
+    global_ids: Rc<dyn GeneratesGlobalIdentifiers>,
 }
 
 impl DomainInfrastructure {
-    pub fn new(storage: Rc<dyn EntityStorage>, entity_map: Rc<EntityMap>) -> Rc<Self> {
+    pub fn new(
+        storage: Rc<dyn EntityStorage>,
+        entity_map: Rc<EntityMap>,
+        global_ids: Rc<dyn GeneratesGlobalIdentifiers>,
+    ) -> Rc<Self> {
         Rc::new_cyclic(|me: &Weak<DomainInfrastructure>| {
             // How acceptable is this kind of thing?
             let infra = Weak::clone(me) as Weak<dyn Infrastructure>;
             let entities = Entities::new(entity_map, storage, infra);
-            DomainInfrastructure { entities }
+            DomainInfrastructure {
+                entities,
+                global_ids,
+            }
         })
     }
 }
@@ -231,6 +239,13 @@ impl Infrastructure for DomainInfrastructure {
                 Err(anyhow!("Entity not found"))
             }
         }
+    }
+
+    fn prepare_entity(&self, entity: &mut Entity) -> Result<()> {
+        if entity.gid().is_none() {
+            entity.set_gid(self.global_ids.generate_gid()?)?;
+        }
+        Ok(())
     }
 
     fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<EntityPtr>> {

@@ -287,6 +287,13 @@ impl Props {
     fn set_property(&mut self, name: &str, value: serde_json::Value) {
         self.map.insert(name.to_string(), Property::new(value));
     }
+
+    fn set_i64_property(&mut self, name: &str, gid: i64) -> Result<()> {
+        self.map
+            .insert(name.to_owned(), Property::new(serde_json::to_value(gid)?));
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -323,7 +330,7 @@ impl Needs<std::rc::Rc<dyn Infrastructure>> for Entity {
         self.infra = Some(Rc::downgrade(infra));
         self.parent = infra.ensure_optional_entity(&self.parent)?;
         self.creator = infra.ensure_optional_entity(&self.creator)?;
-        Ok(())
+        infra.prepare_entity(self)
     }
 }
 
@@ -339,16 +346,20 @@ impl Entity {
         Ok(())
     }
 
-    pub fn desc(&self) -> Option<String> {
-        self.props.string_property(DESC_PROPERTY)
-    }
-
     pub fn gid(&self) -> Option<EntityGID> {
         if let Some(id) = self.props.i64_property(GID_PROPERTY) {
             Some(EntityGID(id))
         } else {
             None
         }
+    }
+
+    pub fn set_gid(&mut self, gid: i64) -> Result<()> {
+        self.props.set_i64_property(GID_PROPERTY, gid)
+    }
+
+    pub fn desc(&self) -> Option<String> {
+        self.props.string_property(DESC_PROPERTY)
     }
 
     pub fn has_scope<T: Scope>(&self) -> bool {
