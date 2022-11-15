@@ -21,14 +21,11 @@ pub struct Build {
 
 impl Build {
     pub fn new(infra: &Rc<dyn Infrastructure>) -> Result<Self> {
-        let entity = EntityPtr::new_blank();
-
-        // TODO Would love to do this from `supply` except we only have
-        // &self there instead of Rc<dyn Infrastructure>
-        {
-            let mut entity = entity.borrow_mut();
-            entity.supply(infra)?;
-        }
+        let entity: EntityPtr = {
+            let entity = EntityPtr::new_blank();
+            entity.borrow_mut().supply(infra)?;
+            entity
+        };
 
         infra.add_entity(&entity)?;
 
@@ -134,16 +131,16 @@ impl BuildActionArgs {
         self
     }
 
-    pub fn ground(&mut self, items: Vec<QuickThing>) -> &mut Self {
-        self.ground.extend(items);
-        self
-    }
-
     pub fn route(&mut self, route_name: &str, destination: QuickThing) -> &mut Self {
         self.ground(vec![QuickThing::Route(
             route_name.to_string(),
             Box::new(destination),
         )])
+    }
+
+    pub fn ground(&mut self, items: Vec<QuickThing>) -> &mut Self {
+        self.ground.extend(items);
+        self
     }
 
     pub fn plain(&mut self) -> &mut Self {

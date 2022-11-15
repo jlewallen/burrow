@@ -64,15 +64,19 @@ impl Session {
             .infra
             .load_entity_by_key(&WORLD_KEY)?
             .ok_or(DomainError::EntityNotFound)?;
+
         let usernames: OpenScope<Usernames> = {
             let world = world.borrow();
             world.scope::<Usernames>()?
         };
+
         let user_key = &usernames.users[user_name];
+
         let user = self
             .infra
             .load_entity_by_key(user_key)?
             .ok_or(DomainError::EntityNotFound)?;
+
         let area: EntityPtr = {
             let user = user.borrow();
             let occupying: OpenScope<Occupying> = user.scope::<Occupying>()?;
@@ -84,18 +88,24 @@ impl Session {
         Ok((world, user, area))
     }
 
+    fn discover_from(&self, entities: Vec<&EntityPtr>) -> Result<Vec<EntityKey>> {
+        let _span = span!(Level::DEBUG, "D").entered();
+        let mut discovered: Vec<EntityKey> = vec![];
+        if self.discoverying {
+            for entity in &entities {
+                eval::discover(&entity.borrow(), &mut discovered)?;
+            }
+            info!("discovered {:?}", discovered);
+        }
+        Ok(discovered)
+    }
+
     fn perform_action(&self, user_name: &str, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
         info!("performing {:?}", action);
 
-        let (world, user, area) = self.evaluate(user_name)?;
+        let (world, user, area) = self.evaluate_user_name(user_name)?;
 
-        if self.discoverying {
-            let _span = span!(Level::DEBUG, "D").entered();
-            let mut discovered_keys: Vec<EntityKey> = vec![];
-            eval::discover(&user.borrow(), &mut discovered_keys)?;
-            eval::discover(&area.borrow(), &mut discovered_keys)?;
-            info!("discovered {:?}", discovered_keys);
-        }
+        self.discover_from(vec![&user, &area])?;
 
         let reply = {
             let _span = span!(Level::INFO, "A").entered();
@@ -169,7 +179,7 @@ impl Session {
         Ok(saved.into_iter().flatten().collect::<Vec<_>>())
     }
 
-    fn flush_entities(&self) -> Result<bool> {
+    fn should_flush_entities(&self) -> Result<bool> {
         Ok(!self
             .get_modified_entities()?
             .into_iter()
