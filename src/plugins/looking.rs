@@ -1,4 +1,6 @@
 pub mod model {
+    use serde_json::json;
+
     use crate::plugins::library::model::*;
     use crate::{
         plugins::carrying::model::Containing,
@@ -140,7 +142,7 @@ pub mod model {
 
     impl ToJson for AreaObservation {
         fn to_json(&self) -> Result<Value> {
-            Ok(serde_json::to_value(self)?)
+            Ok(json!({ "areaObservation": serde_json::to_value(self)? }))
         }
     }
 

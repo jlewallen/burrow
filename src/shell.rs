@@ -1,5 +1,6 @@
 use crate::domain;
 use crate::storage;
+use crate::text::Renderer;
 use anyhow::Result;
 use clap::Args;
 use rustyline::error::ReadlineError;
@@ -14,6 +15,7 @@ pub struct Command {
 
 #[tokio::main]
 pub async fn execute_command(cmd: &Command) -> Result<()> {
+    let renderer = Renderer::new()?;
     let storage_factory = storage::sqlite::Factory::new("world.sqlite3")?;
     let domain = domain::Domain::new(storage_factory);
 
@@ -30,6 +32,9 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
 
                 if let Some(reply) = session.evaluate_and_perform(&cmd.username, line.as_str())? {
                     info!("reply `{}`", reply.to_json()?);
+
+                    let text = renderer.render(reply)?;
+                    println!("{}", text);
                 } else {
                     info!("what?");
                 }

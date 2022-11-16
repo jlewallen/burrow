@@ -11,6 +11,7 @@ pub mod plugins;
 pub mod serve;
 pub mod shell;
 pub mod storage;
+pub mod text;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -67,18 +68,23 @@ fn main() -> Result<(), Box<dyn Error>> {
         Some(Commands::Serve(cmd)) => Ok(serve::execute_command(cmd)?),
         Some(Commands::Shell(cmd)) => Ok(shell::execute_command(cmd)?),
         Some(Commands::Eval) => {
-            // use kernel::markdown_to_string;
+            use crate::text::Renderer;
 
+            let renderer = Renderer::new()?;
             let storage_factory = storage::sqlite::Factory::new("world.sqlite3")?;
             let domain = domain::Domain::new(storage_factory);
 
             {
                 let session = domain.open_session()?;
 
-                for text in &["look", "hold rake", "drop", "hold rake", "drop rake"] {
+                for text in &[
+                    "look", /*, "hold rake", "drop", "hold rake", "drop rake"*/
+                ] {
                     if let Some(reply) = session.evaluate_and_perform("jlewallen", text)? {
-                        // info!("reply `{}`", markdown_to_string(reply.to_markdown()?)?);
                         info!("reply `{}`", reply.to_json()?);
+
+                        let text = renderer.render(reply)?;
+                        println!("{}", text);
                     }
                 }
 
@@ -88,10 +94,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             {
                 let session = domain.open_session()?;
 
-                for text in &["drop Cloak", "go east"] {
+                for text in &["look"] {
                     if let Some(reply) = session.evaluate_and_perform("jlewallen", text)? {
-                        // info!("reply `{}`", markdown_to_string(reply.to_markdown()?)?);
                         info!("reply `{}`", reply.to_json()?);
+
+                        let text = renderer.render(reply)?;
+                        println!("{}", text);
                     }
                 }
 

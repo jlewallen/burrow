@@ -1,0 +1,17 @@
+
+{{ areaObservation.area.name }}
+
+{%- if areaObservation.area.desc != areaObservation.area.desc -%}
+{{ areaObservation.area.desc }}
+{% endif %}
+
+{% set all_here = areaObservation.items | concat(with=areaObservation.living) -%}
+{% set described_here = all_here -%}
+
+Also here is {% for item in all_here -%}
+{%- if loop.first %}{%- else -%}{%- if loop.last %} and {% else %}, {% endif -%}{%- endif -%} a {{ item.name }} {%- endfor -%}.
+
+{%- if areaObservation.carrying -%}
+You are carrying {% for item in areaObservation.carrying -%}
+{%- if loop.first %}{%- else -%}{%- if loop.last %} and {% else %}, {% endif -%}{%- endif -%} a {{ item.name }} {%- endfor -%}.
+{%- endif %}
