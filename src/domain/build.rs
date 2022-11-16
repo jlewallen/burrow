@@ -147,7 +147,7 @@ impl BuildActionArgs {
     }
 
     pub fn make(&mut self, q: QuickThing) -> Result<EntityPtr> {
-        Ok(q.make(&self.infra)?)
+        q.make(&self.infra)
     }
 
     pub fn hands(&mut self, items: Vec<QuickThing>) -> &mut Self {

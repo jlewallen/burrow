@@ -353,11 +353,7 @@ impl Entity {
     }
 
     pub fn gid(&self) -> Option<EntityGID> {
-        if let Some(id) = self.props.i64_property(GID_PROPERTY) {
-            Some(EntityGID(id))
-        } else {
-            None
-        }
+        self.props.i64_property(GID_PROPERTY).map(EntityGID)
     }
 
     pub fn set_gid(&mut self, gid: i64) -> Result<()> {

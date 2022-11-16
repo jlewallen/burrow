@@ -125,7 +125,7 @@ impl Entities {
                 entity: clone,
                 serialized: None,
                 version: 1,
-                gid: entity.gid().ok_or(anyhow!("entity missing gid"))?,
+                gid: entity.gid().ok_or_else(|| anyhow!("entity missing gid"))?,
             }
         };
         let key = loaded.key.clone();
@@ -232,12 +232,10 @@ impl Infrastructure for DomainInfrastructure {
     fn ensure_entity(&self, entity_ref: &LazyLoadedEntity) -> Result<LazyLoadedEntity> {
         if entity_ref.has_entity() {
             Ok(entity_ref.clone())
+        } else if let Some(entity) = self.load_entity_by_key(&entity_ref.key)? {
+            Ok(entity.into())
         } else {
-            if let Some(entity) = self.load_entity_by_key(&entity_ref.key)? {
-                Ok(entity.into())
-            } else {
-                Err(anyhow!("Entity not found"))
-            }
+            Err(anyhow!("Entity not found"))
         }
     }
 
@@ -304,7 +302,7 @@ impl Infrastructure for DomainInfrastructure {
                 Ok(None)
             }
             Item::GID(gid) => {
-                if let Some(e) = self.load_entity_by_gid(&gid)? {
+                if let Some(e) = self.load_entity_by_gid(gid)? {
                     Ok(Some(e))
                 } else {
                     Ok(None)

@@ -67,7 +67,7 @@ impl Session {
             entity_map,
             open: AtomicBool::new(true),
             discoverying: true,
-            global_ids: global_ids,
+            global_ids,
         })
     }
 
@@ -103,10 +103,7 @@ impl Session {
             .infra
             .load_entity_by_key(&WORLD_KEY)?
             .ok_or(DomainError::EntityNotFound)?;
-        let previous_gid = match identifiers::model::get_gid(&world)? {
-            Some(id) => id,
-            None => 0,
-        };
+        let previous_gid = identifiers::model::get_gid(&world)?.unwrap_or(0);
         let new_gid = self.global_ids.gid();
         if previous_gid != new_gid {
             info!("gid:changed {} -> {}", previous_gid, new_gid);
