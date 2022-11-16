@@ -57,7 +57,7 @@ pub mod sqlite {
                 )"#,
             )?;
 
-            exec(r#"CREATE UNIQUE INDEX entities_gid ON entities (gid)"#)?;
+            exec(r#"CREATE UNIQUE INDEX IF NOT EXISTS entities_gid ON entities (gid)"#)?;
 
             Ok(Rc::new(SqliteStorage { conn }))
         }
