@@ -25,7 +25,7 @@ pub static GID_PROPERTY: &str = "gid";
 #[derive(Clone)]
 pub struct EntityPtr {
     entity: Rc<RefCell<Entity>>,
-    lazy: LazyLoadedEntity,
+    lazy: RefCell<LazyLoadedEntity>,
 }
 
 impl EntityPtr {
@@ -35,7 +35,7 @@ impl EntityPtr {
 
         Self {
             entity: brand_new,
-            lazy,
+            lazy: lazy.into(),
         }
     }
 
@@ -44,7 +44,17 @@ impl EntityPtr {
     }
 
     pub fn key(&self) -> EntityKey {
-        self.lazy.key.clone()
+        self.lazy.borrow().key.clone()
+    }
+
+    pub fn modified(&self) -> Result<()> {
+        let entity = self.borrow();
+        let mut lazy = self.lazy.borrow_mut();
+        if let Some(name) = entity.name() {
+            lazy.name = name;
+        }
+
+        Ok(())
     }
 }
 
@@ -54,7 +64,7 @@ impl From<Rc<RefCell<Entity>>> for EntityPtr {
 
         Self {
             entity: Rc::clone(&ep),
-            lazy,
+            lazy: RefCell::new(lazy),
         }
     }
 }
@@ -67,9 +77,10 @@ impl From<Entity> for EntityPtr {
 
 impl Debug for EntityPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let lazy = self.lazy.borrow();
         f.debug_struct("EntityPtr")
-            .field("key", &self.lazy.key)
-            .field("name", &self.lazy.name)
+            .field("key", &lazy.key)
+            .field("name", &lazy.name)
             .finish()
     }
 }
@@ -558,7 +569,7 @@ impl LazyLoadedEntity {
 
 impl From<EntityPtr> for LazyLoadedEntity {
     fn from(entity: EntityPtr) -> Self {
-        entity.lazy
+        entity.lazy.borrow().clone()
     }
 }
 

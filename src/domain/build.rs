@@ -47,9 +47,12 @@ impl Build {
     }
 
     pub fn named(&self, name: &str) -> Result<&Self> {
-        let mut entity = self.entity.borrow_mut();
+        {
+            let mut entity = self.entity.borrow_mut();
+            entity.set_name(name)?;
+        }
 
-        entity.set_name(name)?;
+        self.entity.modified()?;
 
         Ok(self)
     }
@@ -182,10 +185,13 @@ impl TryFrom<&mut BuildActionArgs> for ActionArgs {
     fn try_from(builder: &mut BuildActionArgs) -> Result<Self, Self::Error> {
         let infra = Rc::clone(&builder.infra);
 
-        let world = Build::new(&infra)?.key(&WORLD_KEY)?.into_entity()?;
+        let world = Build::new(&infra)?
+            .key(&WORLD_KEY)?
+            .named("World")?
+            .into_entity()?;
 
         let person = Build::new(&infra)?
-            .named("Person")?
+            .named("Living")?
             .holding(
                 &builder
                     .hands
@@ -196,7 +202,7 @@ impl TryFrom<&mut BuildActionArgs> for ActionArgs {
             .into_entity()?;
 
         let area = Build::new(&infra)?
-            .named("Starting Area")?
+            .named("Welcome Area")?
             .occupying(&vec![person.clone()])?
             .holding(
                 &builder
