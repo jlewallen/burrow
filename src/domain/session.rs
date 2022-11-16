@@ -26,6 +26,10 @@ impl GlobalIds {
     pub fn gid(&self) -> i64 {
         self.gid.load(Ordering::Relaxed)
     }
+
+    pub fn set_gid(&self, value: i64) {
+        self.gid.store(value, Ordering::Relaxed);
+    }
 }
 
 impl GeneratesGlobalIdentifiers for GlobalIds {
@@ -54,15 +58,22 @@ impl Session {
 
         let entity_map = EntityMap::new();
         let global_ids = GlobalIds::new();
-
         let generates_ids = Rc::clone(&global_ids) as Rc<dyn GeneratesGlobalIdentifiers>;
 
+        let infra = DomainInfrastructure::new(
+            Rc::clone(&storage),
+            Rc::clone(&entity_map),
+            Rc::clone(&generates_ids),
+        );
+
+        if let Some(world) = infra.load_entity_by_key(&WORLD_KEY)? {
+            if let Some(gid) = identifiers::model::get_gid(&world)? {
+                global_ids.set_gid(gid);
+            }
+        }
+
         Ok(Self {
-            infra: DomainInfrastructure::new(
-                Rc::clone(&storage),
-                Rc::clone(&entity_map),
-                Rc::clone(&generates_ids),
-            ),
+            infra,
             storage,
             entity_map,
             open: AtomicBool::new(true),
