@@ -11,38 +11,6 @@ use crate::plugins::{identifiers, moving::model::Occupying, users::model::Userna
 use crate::storage::{EntityStorage, EntityStorageFactory, PersistedEntity};
 use crate::{kernel::*, plugins::eval};
 
-#[derive(Debug)]
-pub struct GlobalIds {
-    gid: AtomicI64,
-}
-
-impl GlobalIds {
-    pub fn new() -> Rc<Self> {
-        Rc::new(Self {
-            gid: AtomicI64::new(0),
-        })
-    }
-
-    pub fn gid(&self) -> i64 {
-        self.gid.load(Ordering::Relaxed)
-    }
-
-    pub fn set_gid(&self, value: i64) {
-        self.gid.store(value, Ordering::Relaxed);
-    }
-}
-
-impl GeneratesGlobalIdentifiers for GlobalIds {
-    fn generate_gid(&self) -> Result<i64> {
-        // If this is ever used in a multithreaded context, this should be
-        // improved upon. For now, this is only used in single threaded
-        // situations, we rely on the database for the rest.
-        let id = self.gid.load(Ordering::Relaxed) + 1;
-        self.gid.store(id, Ordering::Relaxed);
-        Ok(id)
-    }
-}
-
 pub struct Session {
     infra: Rc<DomainInfrastructure>,
     storage: Rc<dyn EntityStorage>,
@@ -320,4 +288,31 @@ impl Domain {
 
 fn should_force_rollback() -> bool {
     env::var("FORCE_ROLLBACK").is_ok()
+}
+
+#[derive(Debug)]
+pub struct GlobalIds {
+    gid: AtomicI64,
+}
+
+impl GlobalIds {
+    pub fn new() -> Rc<Self> {
+        Rc::new(Self {
+            gid: AtomicI64::new(0),
+        })
+    }
+
+    pub fn gid(&self) -> i64 {
+        self.gid.load(Ordering::Relaxed)
+    }
+
+    pub fn set_gid(&self, value: i64) {
+        self.gid.store(value, Ordering::Relaxed);
+    }
+}
+
+impl GeneratesGlobalIdentifiers for GlobalIds {
+    fn generate_gid(&self) -> Result<i64> {
+        Ok(self.gid.fetch_add(1, Ordering::Relaxed) + 1)
+    }
 }
