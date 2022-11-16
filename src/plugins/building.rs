@@ -124,7 +124,6 @@ pub mod actions {
 
         #[test]
         fn it_fails_to_edit_items_by_missing_gid() -> Result<()> {
-            crate::plugins::log_test();
             let mut build = BuildActionArgs::new()?;
             let args: ActionArgs = build
                 .ground(vec![QuickThing::Object("Cool Broom".to_string())])
