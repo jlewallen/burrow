@@ -71,6 +71,10 @@ impl Session {
         })
     }
 
+    pub fn infra(&self) -> Rc<dyn Infrastructure> {
+        self.infra.clone() as Rc<dyn Infrastructure>
+    }
+
     pub fn evaluate_and_perform(
         &self,
         user_name: &str,
@@ -113,18 +117,24 @@ impl Session {
         Ok(())
     }
 
-    pub fn close(&self) -> Result<()> {
+    pub fn flush(&self) -> Result<()> {
         if self.should_flush_entities()? {
             self.maybe_save_gid()?;
             if should_force_rollback() {
                 let _span = span!(Level::DEBUG, "FORCED").entered();
-                self.storage.rollback(true)?;
+                self.storage.rollback(true)
             } else {
-                self.storage.commit()?;
+                self.storage.commit()
             }
         } else {
-            self.storage.rollback(true)?;
+            self.storage.rollback(true)
         }
+    }
+
+    pub fn close(&self) -> Result<()> {
+        self.flush()?;
+
+        self.storage.begin()?;
 
         self.open.store(false, Ordering::Relaxed);
 
@@ -216,7 +226,11 @@ impl Session {
 
         trace!("json: {:?}", serialized);
 
-        let v1: serde_json::Value = l.serialized.parse()?;
+        let v1: serde_json::Value = if let Some(serialized) = &l.serialized {
+            serialized.parse()?
+        } else {
+            serde_json::Value::Null
+        };
         let v2: serde_json::Value = serialized.parse()?;
         let mut d = Recorder::default();
         diff(&v1, &v2, &mut d);

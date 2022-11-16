@@ -181,10 +181,10 @@ pub mod actions {
 
         #[test]
         fn it_goes_ignores_bad_matches() -> Result<()> {
-            let mut world = BuildActionArgs::new()?;
-            let east = world.make(QuickThing::Place("East Place".to_string()))?;
-            let west = world.make(QuickThing::Place("West Place".to_string()))?;
-            let args: ActionArgs = world
+            let mut build = BuildActionArgs::new()?;
+            let east = build.make(QuickThing::Place("East Place".to_string()))?;
+            let west = build.make(QuickThing::Place("West Place".to_string()))?;
+            let args: ActionArgs = build
                 .route("East", QuickThing::Actual(east.clone()))
                 .route("Wast", QuickThing::Actual(west.clone()))
                 .try_into()?;
@@ -201,10 +201,10 @@ pub mod actions {
 
         #[test]
         fn it_goes_through_correct_route_when_two_nearby() -> Result<()> {
-            let mut world = BuildActionArgs::new()?;
-            let east = world.make(QuickThing::Place("East Place".to_string()))?;
-            let west = world.make(QuickThing::Place("West Place".to_string()))?;
-            let args: ActionArgs = world
+            let mut build = BuildActionArgs::new()?;
+            let east = build.make(QuickThing::Place("East Place".to_string()))?;
+            let west = build.make(QuickThing::Place("West Place".to_string()))?;
+            let args: ActionArgs = build
                 .route("East", QuickThing::Actual(east.clone()))
                 .route("Wast", QuickThing::Actual(west.clone()))
                 .try_into()?;
@@ -225,9 +225,9 @@ pub mod actions {
 
         #[test]
         fn it_goes_through_routes_when_one_nearby() -> Result<()> {
-            let mut world = BuildActionArgs::new()?;
-            let destination = world.make(QuickThing::Place("Place".to_string()))?;
-            let args: ActionArgs = world
+            let mut build = BuildActionArgs::new()?;
+            let destination = build.make(QuickThing::Place("Place".to_string()))?;
+            let args: ActionArgs = build
                 .route("East", QuickThing::Actual(destination.clone()))
                 .try_into()?;
 
@@ -247,7 +247,8 @@ pub mod actions {
 
         #[test]
         fn it_fails_to_go_unknown_items() -> Result<()> {
-            let args: ActionArgs = BuildActionArgs::new()?.plain().try_into()?;
+            let mut build = BuildActionArgs::new()?;
+            let args: ActionArgs = build.plain().try_into()?;
 
             let action = GoAction {
                 item: Item::Route("rake".to_string()),
@@ -262,7 +263,8 @@ pub mod actions {
 
         #[test]
         fn it_fails_to_go_non_routes() -> Result<()> {
-            let args: ActionArgs = BuildActionArgs::new()?
+            let mut build = BuildActionArgs::new()?;
+            let args: ActionArgs = build
                 .ground(vec![QuickThing::Object("Cool Rake".to_string())])
                 .try_into()?;
 

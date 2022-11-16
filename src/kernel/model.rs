@@ -335,6 +335,12 @@ impl Needs<std::rc::Rc<dyn Infrastructure>> for Entity {
 }
 
 impl Entity {
+    pub fn set_key(&mut self, key: &EntityKey) -> Result<()> {
+        self.key = key.clone();
+
+        Ok(())
+    }
+
     pub fn name(&self) -> Option<String> {
         self.props.string_property(NAME_PROPERTY)
     }

@@ -70,7 +70,8 @@ pub mod actions {
 
         #[test]
         fn it_fails_to_edit_unknown_items() -> Result<()> {
-            let args: ActionArgs = BuildActionArgs::new()?
+            let mut build = BuildActionArgs::new()?;
+            let args: ActionArgs = build
                 .ground(vec![QuickThing::Object("Cool Broom".to_string())])
                 .try_into()?;
 
@@ -87,7 +88,8 @@ pub mod actions {
 
         #[test]
         fn it_edits_items_named() -> Result<()> {
-            let args: ActionArgs = BuildActionArgs::new()?
+            let mut build = BuildActionArgs::new()?;
+            let args: ActionArgs = build
                 .ground(vec![QuickThing::Object("Cool Broom".to_string())])
                 .try_into()?;
 
@@ -104,12 +106,13 @@ pub mod actions {
 
         #[test]
         fn it_edits_items_by_gid() -> Result<()> {
-            let args: ActionArgs = BuildActionArgs::new()?
+            let mut build = BuildActionArgs::new()?;
+            let args: ActionArgs = build
                 .ground(vec![QuickThing::Object("Cool Broom".to_string())])
                 .try_into()?;
 
             let action = EditAction {
-                item: Item::GID(EntityGID::new(1)),
+                item: Item::GID(EntityGID::new(1201)),
             };
             let reply = action.perform(args.clone())?;
             // let (_, _, _, _) = args.clone();
@@ -121,17 +124,19 @@ pub mod actions {
 
         #[test]
         fn it_fails_to_edit_items_by_missing_gid() -> Result<()> {
-            let args: ActionArgs = BuildActionArgs::new()?
+            crate::plugins::log_test();
+            let mut build = BuildActionArgs::new()?;
+            let args: ActionArgs = build
                 .ground(vec![QuickThing::Object("Cool Broom".to_string())])
                 .try_into()?;
 
             let action = EditAction {
-                item: Item::GID(EntityGID::new(1000)),
+                item: Item::GID(EntityGID::new(1)),
             };
             let reply = action.perform(args.clone())?;
             // let (_, _, _, _) = args.clone();
 
-            assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+            assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
             Ok(())
         }

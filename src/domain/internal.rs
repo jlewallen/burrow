@@ -28,9 +28,9 @@ fn matches_description(entity: &Entity, desc: &str) -> bool {
 pub struct LoadedEntity {
     pub key: EntityKey,
     pub entity: EntityPtr,
-    pub serialized: String,
     pub version: u64,
     pub gid: EntityGID,
+    pub serialized: Option<String>,
 }
 
 pub struct EntityMap {
@@ -123,9 +123,9 @@ impl Entities {
             LoadedEntity {
                 key: entity.key.clone(),
                 entity: clone,
-                serialized: "".to_string(),
+                serialized: None,
                 version: 1,
-                gid: EntityGID::new(0),
+                gid: entity.gid().ok_or(anyhow!("entity missing gid"))?,
             }
         };
         let key = loaded.key.clone();
@@ -152,7 +152,7 @@ impl Entities {
             LoadedEntity {
                 key: key.clone(),
                 entity: cell.clone(),
-                serialized: persisted.serialized,
+                serialized: Some(persisted.serialized),
                 gid: EntityGID::new(persisted.gid),
                 version: persisted.version + 1,
             },

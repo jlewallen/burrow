@@ -193,14 +193,15 @@ pub mod actions {
 
         #[test]
         fn it_holds_unheld_items() -> Result<()> {
-            let args: ActionArgs = BuildActionArgs::new()?
+            let mut build = BuildActionArgs::new()?;
+            let args: ActionArgs = build
                 .ground(vec![QuickThing::Object("Cool Rake".to_string())])
                 .try_into()?;
 
             let action = HoldAction {
                 item: Item::Named("rake".to_string()),
             };
-            let reply = action.perform(args.clone())?; // TODO This clone isn't 'obvious'
+            let reply = action.perform(args.clone())?;
             let (_, person, area, _) = args.clone();
 
             assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
@@ -213,7 +214,8 @@ pub mod actions {
 
         #[test]
         fn it_fails_to_hold_unknown_items() -> Result<()> {
-            let args: ActionArgs = BuildActionArgs::new()?
+            let mut build = BuildActionArgs::new()?;
+            let args: ActionArgs = build
                 .ground(vec![QuickThing::Object("Cool Broom".to_string())])
                 .try_into()?;
 
@@ -233,7 +235,8 @@ pub mod actions {
 
         #[test]
         fn it_drops_held_items() -> Result<()> {
-            let args: ActionArgs = BuildActionArgs::new()?
+            let mut build = BuildActionArgs::new()?;
+            let args: ActionArgs = build
                 .hands(vec![QuickThing::Object("Cool Rake".to_string())])
                 .try_into()?;
 
@@ -253,7 +256,8 @@ pub mod actions {
 
         #[test]
         fn it_fails_to_drop_unknown_items() -> Result<()> {
-            let args: ActionArgs = BuildActionArgs::new()?
+            let mut build = BuildActionArgs::new()?;
+            let args: ActionArgs = build
                 .hands(vec![QuickThing::Object("Cool Broom".to_string())])
                 .try_into()?;
 
@@ -273,7 +277,8 @@ pub mod actions {
 
         #[test]
         fn it_fails_to_drop_unheld_items() -> Result<()> {
-            let args: ActionArgs = BuildActionArgs::new()?
+            let mut build = BuildActionArgs::new()?;
+            let args: ActionArgs = build
                 .ground(vec![QuickThing::Object("Cool Broom".to_string())])
                 .try_into()?;
 

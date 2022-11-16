@@ -42,18 +42,22 @@ pub mod sqlite {
                 Connection::open(path)?
             };
 
-            {
-                let mut stmt = conn.prepare(
-                    r#"
+            let exec = |sql: &str| -> Result<usize> {
+                let mut stmt = conn.prepare(sql)?;
+                Ok(stmt.execute([])?)
+            };
+
+            exec(
+                r#"
                 CREATE TABLE IF NOT EXISTS entities (
                     key TEXT NOT NULL PRIMARY KEY,
                     version INTEGER NOT NULL,
                     gid INTEGER,
                     serialized TEXT NOT NULL
                 )"#,
-                )?;
-                let _ = stmt.execute([])?;
-            }
+            )?;
+
+            exec(r#"CREATE UNIQUE INDEX entities_gid ON entities (gid)"#)?;
 
             Ok(Rc::new(SqliteStorage { conn }))
         }
@@ -63,9 +67,9 @@ pub mod sqlite {
             query: &str,
             params: T,
         ) -> Result<Option<PersistedEntity>> {
-            let mut stmt = self.conn.prepare(query)?;
-
             debug!("querying");
+
+            let mut stmt = self.conn.prepare(query)?;
 
             let mut entities = stmt.query_map(params, |row| {
                 Ok(PersistedEntity {
@@ -100,6 +104,8 @@ pub mod sqlite {
 
         fn save(&self, entity: &PersistedEntity) -> Result<()> {
             let affected = if entity.version == 1 {
+                debug!("inserting");
+
                 let mut stmt = self.conn.prepare(
                     "INSERT INTO entities (key, gid, version, serialized) VALUES (?1, ?2, ?3, ?4)",
                 )?;
@@ -111,6 +117,8 @@ pub mod sqlite {
                     &entity.serialized,
                 ))?
             } else {
+                debug!("updating");
+
                 let mut stmt = self.conn.prepare(
                     "UPDATE entities SET gid = ?1, version = ?2, serialized = ?3 WHERE key = ?4 AND version = ?5",
                 )?;
