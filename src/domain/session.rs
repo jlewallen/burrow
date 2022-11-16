@@ -93,7 +93,7 @@ impl Session {
         Ok(())
     }
 
-    pub fn flush(&self) -> Result<()> {
+    fn save_entity_changes(&self) -> Result<()> {
         if self.should_flush_entities()? {
             self.maybe_save_gid()?;
 
@@ -108,10 +108,13 @@ impl Session {
         }
     }
 
-    pub fn close(&self) -> Result<()> {
-        self.flush()?;
+    pub fn flush(&self) -> Result<()> {
+        self.save_entity_changes()?;
+        self.storage.begin()
+    }
 
-        self.storage.begin()?;
+    pub fn close(&self) -> Result<()> {
+        self.save_entity_changes()?;
 
         self.open.store(false, Ordering::Relaxed);
 
