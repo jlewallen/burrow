@@ -53,6 +53,7 @@ impl EntityPtr {
         if let Some(name) = entity.name() {
             lazy.name = name;
         }
+        lazy.gid = entity.gid();
 
         Ok(())
     }
@@ -81,6 +82,7 @@ impl Debug for EntityPtr {
         f.debug_struct("EntityPtr")
             .field("key", &lazy.key)
             .field("name", &lazy.name)
+            .field("gid", &lazy.gid)
             .finish()
     }
 }
@@ -530,6 +532,7 @@ pub struct LazyLoadedEntity {
     #[serde(rename = "klass")]
     class: String,
     name: String,
+    gid: Option<EntityGID>,
 
     #[serde(skip)]
     entity: Option<Weak<RefCell<Entity>>>,
@@ -548,6 +551,7 @@ impl LazyLoadedEntity {
             key: shared_entity.key.clone(),
             class: shared_entity.class.py_type.clone(),
             name: shared_entity.name().unwrap_or_default(),
+            gid: shared_entity.gid(),
             entity: Some(Rc::downgrade(entity)),
         }
     }

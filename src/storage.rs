@@ -104,7 +104,7 @@ pub mod sqlite {
 
         fn save(&self, entity: &PersistedEntity) -> Result<()> {
             let affected = if entity.version == 1 {
-                debug!("inserting");
+                debug!(%entity.key, %entity.gid, "inserting");
 
                 let mut stmt = self.conn.prepare(
                     "INSERT INTO entities (key, gid, version, serialized) VALUES (?1, ?2, ?3, ?4)",
@@ -117,7 +117,7 @@ pub mod sqlite {
                     &entity.serialized,
                 ))?
             } else {
-                debug!("updating");
+                debug!(%entity.key, %entity.gid, "updating");
 
                 let mut stmt = self.conn.prepare(
                     "UPDATE entities SET gid = ?1, version = ?2, serialized = ?3 WHERE key = ?4 AND version = ?5",
@@ -140,7 +140,7 @@ pub mod sqlite {
         }
 
         fn begin(&self) -> Result<()> {
-            info!("tx:begin");
+            debug!("tx:begin");
 
             self.conn.execute("BEGIN TRANSACTION", [])?;
 
@@ -160,7 +160,7 @@ pub mod sqlite {
         }
 
         fn commit(&self) -> Result<()> {
-            info!("tx:commit");
+            debug!("tx:commit");
 
             self.conn.execute("COMMIT TRANSACTION", [])?;
 

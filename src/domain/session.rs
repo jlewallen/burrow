@@ -106,10 +106,10 @@ impl Session {
         let previous_gid = identifiers::model::get_gid(&world)?.unwrap_or(0);
         let new_gid = self.global_ids.gid();
         if previous_gid != new_gid {
-            info!("gid:changed {} -> {}", previous_gid, new_gid);
+            info!(%previous_gid, %new_gid, "gid:changed");
             identifiers::model::set_gid(&world, new_gid)?;
         } else {
-            info!("gid:same {}", previous_gid);
+            info!(%previous_gid, "gid:same");
         }
         Ok(())
     }
@@ -117,6 +117,7 @@ impl Session {
     pub fn flush(&self) -> Result<()> {
         if self.should_flush_entities()? {
             self.maybe_save_gid()?;
+
             if should_force_rollback() {
                 let _span = span!(Level::DEBUG, "FORCED").entered();
                 self.storage.rollback(true)
