@@ -42,7 +42,7 @@ pub mod model {
             Ok(DomainOutcome::Ok(vec![]))
         }
 
-        pub fn start_occupying(&mut self, item: EntityPtr) -> Result<DomainOutcome> {
+        pub fn start_occupying(&mut self, item: &EntityPtr) -> Result<DomainOutcome> {
             self.occupied.push(item.into());
 
             Ok(DomainOutcome::Ok(vec![]))
@@ -138,6 +138,7 @@ pub mod model {
 pub mod actions {
     use super::parser::{parse, Sentence};
     use crate::plugins::library::actions::*;
+    use crate::plugins::looking::actions::*;
 
     #[derive(Debug)]
     struct GoAction {
@@ -155,8 +156,8 @@ pub mod actions {
             let (_, user, area, infra) = args.clone();
 
             match infra.find_item(args, &self.item)? {
-                Some(to_area) => match tools::navigate_between(area, to_area, user)? {
-                    DomainOutcome::Ok(_) => Ok(Box::new(SimpleReply::Done)),
+                Some(to_area) => match tools::navigate_between(&area, &to_area, &user)? {
+                    DomainOutcome::Ok(_) => infra.chain(&user, Box::new(LookAction {})),
                     DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
                 },
                 None => Ok(Box::new(SimpleReply::NotFound)),
@@ -177,7 +178,10 @@ pub mod actions {
     #[cfg(test)]
     mod tests {
         use super::*;
-        use crate::domain::{BuildActionArgs, QuickThing};
+        use crate::{
+            domain::{BuildActionArgs, QuickThing},
+            plugins::looking::model::AreaObservation,
+        };
 
         #[test]
         fn it_goes_ignores_bad_matches() -> Result<()> {
@@ -213,12 +217,15 @@ pub mod actions {
                 item: Item::Route("east".to_string()),
             };
             let reply = action.perform(args.clone())?;
-            let (_, person, area, _) = args.clone();
+            let (_, living, area, _) = args.clone();
 
-            assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+            assert_eq!(
+                reply.to_json()?,
+                AreaObservation::new(&living, &east)?.to_json()?
+            );
 
-            assert_ne!(tools::area_of(&person)?.key(), area.key());
-            assert_eq!(tools::area_of(&person)?.key(), east.key());
+            assert_ne!(tools::area_of(&living)?.key(), area.key());
+            assert_eq!(tools::area_of(&living)?.key(), east.key());
 
             Ok(())
         }
@@ -235,12 +242,15 @@ pub mod actions {
                 item: Item::Route("east".to_string()),
             };
             let reply = action.perform(args.clone())?;
-            let (_, person, area, _) = args.clone();
+            let (_, living, area, _) = args.clone();
 
-            assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+            assert_eq!(
+                reply.to_json()?,
+                AreaObservation::new(&living, &destination)?.to_json()?
+            );
 
-            assert_ne!(tools::area_of(&person)?.key(), area.key());
-            assert_eq!(tools::area_of(&person)?.key(), destination.key());
+            assert_ne!(tools::area_of(&living)?.key(), area.key());
+            assert_eq!(tools::area_of(&living)?.key(), destination.key());
 
             Ok(())
         }

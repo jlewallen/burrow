@@ -1,22 +1,168 @@
 use anyhow::Result;
 use std::{
+    cell::RefCell,
     env,
     rc::Rc,
     sync::atomic::{AtomicBool, AtomicI64, Ordering},
 };
 use tracing::{debug, event, info, span, trace, warn, Level};
 
-use super::internal::{DomainInfrastructure, EntityMap, LoadedEntity};
+use super::internal::{DomainInfrastructure, EntityMap, LoadedEntity, Performer};
 use crate::plugins::{identifiers, moving::model::Occupying, users::model::Usernames};
 use crate::storage::{EntityStorage, EntityStorageFactory, PersistedEntity};
 use crate::{kernel::*, plugins::eval};
+
+pub struct StandardPerformer {
+    infra: RefCell<Option<Rc<dyn Infrastructure>>>,
+    discoverying: bool,
+}
+
+impl StandardPerformer {
+    pub fn initialize(&self, infra: Rc<dyn Infrastructure>) {
+        *self.infra.borrow_mut() = Some(infra).into();
+    }
+
+    pub fn new(infra: Option<Rc<dyn Infrastructure>>) -> Rc<Self> {
+        Rc::new(StandardPerformer {
+            infra: RefCell::new(infra),
+            discoverying: false,
+        })
+    }
+
+    pub fn perform_via_user_name(
+        &self,
+        user_name: &str,
+        action: Box<dyn Action>,
+    ) -> Result<Box<dyn Reply>> {
+        info!("performing {:?}", action);
+
+        let (world, user, area) = self.evaluate_user_name(user_name)?;
+
+        self.discover_from(vec![&user, &area])?;
+
+        let reply = {
+            let _span = span!(Level::INFO, "A").entered();
+            let infra = self
+                .infra
+                .borrow()
+                .as_ref()
+                .ok_or(DomainError::NoInfrastructure)?
+                .clone();
+            action.perform((world, user, area, infra))?
+        };
+
+        event!(Level::INFO, "done");
+
+        Ok(reply)
+    }
+
+    pub fn evaluate_and_perform(
+        &self,
+        user_name: &str,
+        text: &str,
+    ) -> Result<Option<Box<dyn Reply>>> {
+        let _doing_span = span!(Level::INFO, "session-do", user = user_name).entered();
+
+        debug!("'{}'", text);
+
+        if let Some(action) = eval::evaluate(text)? {
+            Ok(Some(self.perform_via_user_name(user_name, action)?))
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn evaluate_user_name(&self, user_name: &str) -> Result<(EntityPtr, EntityPtr, EntityPtr)> {
+        let _span = span!(Level::DEBUG, "L").entered();
+
+        let infra = self.infra.borrow();
+
+        let world = infra
+            .as_ref()
+            .ok_or(DomainError::NoInfrastructure)?
+            .load_entity_by_key(&WORLD_KEY)?
+            .ok_or(DomainError::EntityNotFound)?;
+
+        let usernames: OpenScope<Usernames> = {
+            let world = world.borrow();
+            world.scope::<Usernames>()?
+        };
+
+        let user_key = &usernames.users[user_name];
+
+        let living = infra
+            .as_ref()
+            .ok_or(DomainError::NoInfrastructure)?
+            .load_entity_by_key(user_key)?
+            .ok_or(DomainError::EntityNotFound)?;
+
+        self.evaluate_user(&living)
+    }
+
+    fn evaluate_user(&self, living: &EntityPtr) -> Result<(EntityPtr, EntityPtr, EntityPtr)> {
+        let world = self
+            .infra
+            .borrow()
+            .as_ref()
+            .ok_or(DomainError::NoInfrastructure)?
+            .load_entity_by_key(&WORLD_KEY)?
+            .ok_or(DomainError::EntityNotFound)?;
+
+        let area: EntityPtr = {
+            let user = living.borrow();
+            let occupying: OpenScope<Occupying> = user.scope::<Occupying>()?;
+            occupying.area.into_entity()?
+        };
+
+        info!("area {}", area.borrow());
+
+        Ok((world, living.clone(), area))
+    }
+
+    fn discover_from(&self, entities: Vec<&EntityPtr>) -> Result<Vec<EntityKey>> {
+        let _span = span!(Level::DEBUG, "D").entered();
+        let mut discovered: Vec<EntityKey> = vec![];
+        if self.discoverying {
+            for entity in &entities {
+                eval::discover(&entity.borrow(), &mut discovered)?;
+            }
+            info!("discovered {:?}", discovered);
+        }
+        Ok(discovered)
+    }
+}
+
+impl Performer for StandardPerformer {
+    fn perform(&self, user: &EntityPtr, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
+        info!("performing {:?}", action);
+
+        let (world, user, area) = self.evaluate_user(user)?;
+
+        self.discover_from(vec![&user, &area])?;
+
+        let reply = {
+            let _span = span!(Level::INFO, "A").entered();
+            let infra = self
+                .infra
+                .borrow()
+                .as_ref()
+                .ok_or(DomainError::NoInfrastructure)?
+                .clone();
+            action.perform((world, user, area, infra))?
+        };
+
+        event!(Level::INFO, "done");
+
+        Ok(reply)
+    }
+}
 
 pub struct Session {
     infra: Rc<DomainInfrastructure>,
     storage: Rc<dyn EntityStorage>,
     entity_map: Rc<EntityMap>,
+    performer: Rc<StandardPerformer>,
     open: AtomicBool,
-    discoverying: bool,
     global_ids: Rc<GlobalIds>,
 }
 
@@ -27,12 +173,17 @@ impl Session {
         let entity_map = EntityMap::new();
         let global_ids = GlobalIds::new();
         let generates_ids = Rc::clone(&global_ids) as Rc<dyn GeneratesGlobalIdentifiers>;
+        let standard_performer = StandardPerformer::new(None);
+        let performer = standard_performer.clone() as Rc<dyn Performer>;
 
         let infra = DomainInfrastructure::new(
             Rc::clone(&storage),
             Rc::clone(&entity_map),
+            Rc::clone(&performer),
             Rc::clone(&generates_ids),
         );
+
+        standard_performer.initialize(infra.clone() as Rc<dyn Infrastructure>);
 
         if let Some(world) = infra.load_entity_by_key(&WORLD_KEY)? {
             if let Some(gid) = identifiers::model::get_gid(&world)? {
@@ -45,7 +196,7 @@ impl Session {
             storage,
             entity_map,
             open: AtomicBool::new(true),
-            discoverying: true,
+            performer: standard_performer,
             global_ids,
         })
     }
@@ -63,7 +214,7 @@ impl Session {
             return Err(DomainError::SessionClosed.into());
         }
 
-        match self.perform(user_name, text) {
+        match self.performer.evaluate_and_perform(user_name, text) {
             Ok(i) => Ok(i),
             Err(original_err) => {
                 if let Err(_rollback_err) = self.storage.rollback(false) {
@@ -74,37 +225,6 @@ impl Session {
 
                 Err(original_err)
             }
-        }
-    }
-
-    fn maybe_save_gid(&self) -> Result<()> {
-        let world = self
-            .infra
-            .load_entity_by_key(&WORLD_KEY)?
-            .ok_or(DomainError::EntityNotFound)?;
-        let previous_gid = identifiers::model::get_gid(&world)?.unwrap_or(0);
-        let new_gid = self.global_ids.gid();
-        if previous_gid != new_gid {
-            info!(%previous_gid, %new_gid, "gid:changed");
-            identifiers::model::set_gid(&world, new_gid)?;
-        } else {
-            info!(%previous_gid, "gid:same");
-        }
-        Ok(())
-    }
-
-    fn save_entity_changes(&self) -> Result<()> {
-        if self.should_flush_entities()? {
-            self.maybe_save_gid()?;
-
-            if should_force_rollback() {
-                let _span = span!(Level::DEBUG, "FORCED").entered();
-                self.storage.rollback(true)
-            } else {
-                self.storage.commit()
-            }
-        } else {
-            self.storage.rollback(true)
         }
     }
 
@@ -119,78 +239,6 @@ impl Session {
         self.open.store(false, Ordering::Relaxed);
 
         Ok(())
-    }
-
-    fn evaluate_user_name(&self, user_name: &str) -> Result<(EntityPtr, EntityPtr, EntityPtr)> {
-        let _span = span!(Level::DEBUG, "L").entered();
-
-        let world = self
-            .infra
-            .load_entity_by_key(&WORLD_KEY)?
-            .ok_or(DomainError::EntityNotFound)?;
-
-        let usernames: OpenScope<Usernames> = {
-            let world = world.borrow();
-            world.scope::<Usernames>()?
-        };
-
-        let user_key = &usernames.users[user_name];
-
-        let user = self
-            .infra
-            .load_entity_by_key(user_key)?
-            .ok_or(DomainError::EntityNotFound)?;
-
-        let area: EntityPtr = {
-            let user = user.borrow();
-            let occupying: OpenScope<Occupying> = user.scope::<Occupying>()?;
-            occupying.area.into_entity()?
-        };
-
-        info!("area {}", area.borrow());
-
-        Ok((world, user, area))
-    }
-
-    fn discover_from(&self, entities: Vec<&EntityPtr>) -> Result<Vec<EntityKey>> {
-        let _span = span!(Level::DEBUG, "D").entered();
-        let mut discovered: Vec<EntityKey> = vec![];
-        if self.discoverying {
-            for entity in &entities {
-                eval::discover(&entity.borrow(), &mut discovered)?;
-            }
-            info!("discovered {:?}", discovered);
-        }
-        Ok(discovered)
-    }
-
-    fn perform_action(&self, user_name: &str, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
-        info!("performing {:?}", action);
-
-        let (world, user, area) = self.evaluate_user_name(user_name)?;
-
-        self.discover_from(vec![&user, &area])?;
-
-        let reply = {
-            let _span = span!(Level::INFO, "A").entered();
-            action.perform((world, user, area, self.infra.clone()))?
-        };
-
-        event!(Level::INFO, "done");
-
-        Ok(reply)
-    }
-
-    fn perform(&self, user_name: &str, text: &str) -> Result<Option<Box<dyn Reply>>> {
-        let _doing_span = span!(Level::INFO, "session-do", user = user_name).entered();
-
-        debug!("'{}'", text);
-
-        if let Some(action) = eval::evaluate(text)? {
-            Ok(Some(self.perform_action(user_name, action)?))
-        } else {
-            Ok(None)
-        }
     }
 
     fn check_for_changes(&self, l: &LoadedEntity) -> Result<Option<PersistedEntity>> {
@@ -254,6 +302,37 @@ impl Session {
             .map(|p| self.storage.save(&p))
             .collect::<Result<Vec<_>>>()?
             .is_empty())
+    }
+
+    fn maybe_save_gid(&self) -> Result<()> {
+        let world = self
+            .infra
+            .load_entity_by_key(&WORLD_KEY)?
+            .ok_or(DomainError::EntityNotFound)?;
+        let previous_gid = identifiers::model::get_gid(&world)?.unwrap_or(0);
+        let new_gid = self.global_ids.gid();
+        if previous_gid != new_gid {
+            info!(%previous_gid, %new_gid, "gid:changed");
+            identifiers::model::set_gid(&world, new_gid)?;
+        } else {
+            info!(%previous_gid, "gid:same");
+        }
+        Ok(())
+    }
+
+    fn save_entity_changes(&self) -> Result<()> {
+        if self.should_flush_entities()? {
+            self.maybe_save_gid()?;
+
+            if should_force_rollback() {
+                let _span = span!(Level::DEBUG, "FORCED").entered();
+                self.storage.rollback(true)
+            } else {
+                self.storage.commit()
+            }
+        } else {
+            self.storage.rollback(true)
+        }
     }
 }
 

@@ -1,13 +1,11 @@
+use super::{Action, ActionArgs, Entity, EntityPtr, Item, LazyLoadedEntity, LoadEntities, Reply};
 use anyhow::Result;
-use std::fmt::Debug;
 
-use super::{ActionArgs, Entity, EntityPtr, Item, LazyLoadedEntity, LoadEntities};
-
-pub trait GeneratesGlobalIdentifiers: Debug {
+pub trait GeneratesGlobalIdentifiers {
     fn generate_gid(&self) -> Result<i64>;
 }
 
-pub trait Infrastructure: Debug + LoadEntities {
+pub trait Infrastructure: LoadEntities {
     fn ensure_entity(&self, entity_ref: &LazyLoadedEntity) -> Result<LazyLoadedEntity>;
 
     fn prepare_entity(&self, entity: &mut Entity) -> Result<()>;
@@ -37,8 +35,10 @@ pub trait Infrastructure: Debug + LoadEntities {
     }
 
     fn add_entity(&self, entity: &EntityPtr) -> Result<()>;
+
+    fn chain(&self, living: &EntityPtr, action: Box<dyn Action>) -> Result<Box<dyn Reply>>;
 }
 
-pub trait Needs<T: Debug> {
+pub trait Needs<T> {
     fn supply(&mut self, resource: &T) -> Result<()>;
 }

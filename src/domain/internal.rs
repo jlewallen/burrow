@@ -194,9 +194,13 @@ impl PrepareEntities for Entities {
     }
 }
 
-#[derive(Debug)]
+pub trait Performer {
+    fn perform(&self, user: &EntityPtr, action: Box<dyn Action>) -> Result<Box<dyn Reply>>;
+}
+
 pub struct DomainInfrastructure {
     entities: Rc<Entities>,
+    performer: Rc<dyn Performer>,
     global_ids: Rc<dyn GeneratesGlobalIdentifiers>,
 }
 
@@ -204,6 +208,7 @@ impl DomainInfrastructure {
     pub fn new(
         storage: Rc<dyn EntityStorage>,
         entity_map: Rc<EntityMap>,
+        performer: Rc<dyn Performer>,
         global_ids: Rc<dyn GeneratesGlobalIdentifiers>,
     ) -> Rc<Self> {
         Rc::new_cyclic(|me: &Weak<DomainInfrastructure>| {
@@ -212,6 +217,7 @@ impl DomainInfrastructure {
             let entities = Entities::new(entity_map, storage, infra);
             DomainInfrastructure {
                 entities,
+                performer,
                 global_ids,
             }
         })
@@ -313,6 +319,10 @@ impl Infrastructure for DomainInfrastructure {
 
     fn add_entity(&self, entity: &EntityPtr) -> Result<()> {
         self.entities.add_entity(entity)
+    }
+
+    fn chain(&self, living: &EntityPtr, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
+        self.performer.perform(living, action)
     }
 }
 

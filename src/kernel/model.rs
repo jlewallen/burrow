@@ -309,7 +309,7 @@ impl Props {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Clone, Serialize, Deserialize, Default)]
 pub struct Entity {
     #[serde(rename = "py/object")]
     py_object: String,
@@ -522,7 +522,7 @@ impl<'me, T: Scope> DerefMut for OpenScopeMut<'me, T> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Clone, Serialize, Deserialize, Default)]
 pub struct LazyLoadedEntity {
     #[serde(rename = "py/object")]
     py_object: String,
@@ -571,8 +571,24 @@ impl LazyLoadedEntity {
     }
 }
 
+impl Debug for LazyLoadedEntity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LazyLoadedEntity")
+            .field("key", &self.key)
+            .field("name", &self.name)
+            .field("gid", &self.gid)
+            .finish()
+    }
+}
+
 impl From<EntityPtr> for LazyLoadedEntity {
     fn from(entity: EntityPtr) -> Self {
+        entity.lazy.borrow().clone()
+    }
+}
+
+impl From<&EntityPtr> for LazyLoadedEntity {
+    fn from(entity: &EntityPtr) -> Self {
         entity.lazy.borrow().clone()
     }
 }

@@ -18,5 +18,8 @@ pub fn new_infra() -> Result<Rc<dyn Infrastructure>> {
     let storage = SqliteStorage::new(":memory:")?;
     let entity_map = EntityMap::new();
     let global_ids = GlobalIds::new();
-    Ok(DomainInfrastructure::new(storage, entity_map, global_ids))
+    let performer = StandardPerformer::new(None);
+    Ok(DomainInfrastructure::new(
+        storage, entity_map, performer, global_ids,
+    ))
 }

@@ -73,7 +73,7 @@ impl Build {
         let mut occupyable = entity.scope_mut::<Occupyable>()?;
 
         for living in living {
-            occupyable.start_occupying(living.clone())?;
+            occupyable.start_occupying(&living)?;
         }
 
         occupyable.save()?;
@@ -86,7 +86,7 @@ impl Build {
         let mut container = entity.scope_mut::<Containing>()?;
 
         for item in items {
-            container.start_carrying(item.clone())?;
+            container.start_carrying(&item)?;
         }
 
         container.save()?;

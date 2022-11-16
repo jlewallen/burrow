@@ -90,7 +90,7 @@ pub mod model {
     }
 
     impl AreaObservation {
-        pub fn new(user: EntityPtr, area: EntityPtr) -> Result<Self> {
+        pub fn new(user: &EntityPtr, area: &EntityPtr) -> Result<Self> {
             // I feel like there's a lot of unnecessary copying going on here.
 
             let mut living: Vec<ObservedEntity> = vec![];
@@ -157,7 +157,7 @@ pub mod actions {
     use crate::plugins::library::actions::*;
 
     #[derive(Debug)]
-    struct LookAction {}
+    pub struct LookAction {}
 
     impl Action for LookAction {
         fn is_read_only() -> bool {
@@ -167,7 +167,7 @@ pub mod actions {
         fn perform(&self, (_world, user, area, _infra): ActionArgs) -> ReplyResult {
             info!("look!");
 
-            Ok(Box::new(AreaObservation::new(user, area)?))
+            Ok(Box::new(AreaObservation::new(&user, &area)?))
         }
     }
 

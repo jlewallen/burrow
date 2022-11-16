@@ -62,11 +62,11 @@ pub mod model {
     }
 
     impl Containing {
-        pub fn start_carrying(&mut self, item: EntityPtr) -> CarryingResult {
+        pub fn start_carrying(&mut self, item: &EntityPtr) -> CarryingResult {
             self.holding.push(item.clone().into());
 
             Ok(DomainOutcome::Ok(vec![Box::new(CarryingEvent::ItemHeld(
-                item,
+                item.clone(),
             ))]))
         }
 
@@ -132,7 +132,7 @@ pub mod actions {
             let (_, user, area, infra) = args.clone();
 
             match infra.find_item(args, &self.item)? {
-                Some(holding) => match tools::move_between(area, user, holding)? {
+                Some(holding) => match tools::move_between(&area, &user, &holding)? {
                     DomainOutcome::Ok(_) => Ok(Box::new(SimpleReply::Done)),
                     DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
                 },
@@ -158,7 +158,7 @@ pub mod actions {
 
             match &self.maybe_item {
                 Some(item) => match infra.find_item(args, item)? {
-                    Some(dropping) => match tools::move_between(user, area, dropping)? {
+                    Some(dropping) => match tools::move_between(&user, &area, &dropping)? {
                         DomainOutcome::Ok(_) => Ok(Box::new(SimpleReply::Done)),
                         DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
                     },
