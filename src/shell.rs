@@ -30,16 +30,19 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
                 rl.add_history_entry(line.as_str());
                 let session = domain.open_session()?;
 
-                if let Some(reply) = session.evaluate_and_perform(&cmd.username, line.as_str())? {
+                let reply = if let Some(reply) =
+                    session.evaluate_and_perform(&cmd.username, line.as_str())?
+                {
                     info!("reply `{}`", reply.to_json()?);
 
-                    let text = renderer.render(reply)?;
-                    println!("{}", text);
+                    renderer.render(reply)?
                 } else {
-                    info!("what?");
-                }
+                    "what?".to_owned()
+                };
 
-                session.close()?
+                session.close()?;
+
+                println!("{}", reply);
             }
             Err(ReadlineError::Interrupted) => {
                 println!("ctrl-c");
