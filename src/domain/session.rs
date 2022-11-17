@@ -19,7 +19,7 @@ pub struct StandardPerformer {
 
 impl StandardPerformer {
     pub fn initialize(&self, infra: Rc<dyn Infrastructure>) {
-        *self.infra.borrow_mut() = Some(infra).into();
+        *self.infra.borrow_mut() = Some(infra);
     }
 
     pub fn new(infra: Option<Rc<dyn Infrastructure>>) -> Rc<Self> {

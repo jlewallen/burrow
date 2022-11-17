@@ -189,8 +189,8 @@ pub mod actions {
             let east = build.make(QuickThing::Place("East Place".to_string()))?;
             let west = build.make(QuickThing::Place("West Place".to_string()))?;
             let args: ActionArgs = build
-                .route("East", QuickThing::Actual(east.clone()))
-                .route("Wast", QuickThing::Actual(west.clone()))
+                .route("East", QuickThing::Actual(east))
+                .route("Wast", QuickThing::Actual(west))
                 .try_into()?;
 
             let action = GoAction {
@@ -210,7 +210,7 @@ pub mod actions {
             let west = build.make(QuickThing::Place("West Place".to_string()))?;
             let args: ActionArgs = build
                 .route("East", QuickThing::Actual(east.clone()))
-                .route("Wast", QuickThing::Actual(west.clone()))
+                .route("Wast", QuickThing::Actual(west))
                 .try_into()?;
 
             let action = GoAction {
