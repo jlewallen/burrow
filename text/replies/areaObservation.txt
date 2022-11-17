@@ -1,9 +1,9 @@
 
 {{ areaObservation.area.name }}
 
-{%- if areaObservation.area.desc != areaObservation.area.desc -%}
+{% if areaObservation.area.desc != areaObservation.area.name -%}
 {{ areaObservation.area.desc }}
-{% endif %}
+{% endif -%}
 
 {% set all_here = areaObservation.items | concat(with=areaObservation.living) -%}
 {% set described_here = all_here -%}
