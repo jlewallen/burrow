@@ -29,14 +29,10 @@ impl StandardPerformer {
         })
     }
 
-    pub fn perform_via_user_name(
-        &self,
-        user_name: &str,
-        action: Box<dyn Action>,
-    ) -> Result<Box<dyn Reply>> {
+    pub fn perform_via_name(&self, name: &str, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
         info!("performing {:?}", action);
 
-        let (world, user, area) = self.evaluate_user_name(user_name)?;
+        let (world, user, area) = self.evaluate_name(name)?;
 
         self.discover_from(vec![&user, &area])?;
 
@@ -56,23 +52,19 @@ impl StandardPerformer {
         Ok(reply)
     }
 
-    pub fn evaluate_and_perform(
-        &self,
-        user_name: &str,
-        text: &str,
-    ) -> Result<Option<Box<dyn Reply>>> {
-        let _doing_span = span!(Level::INFO, "session-do", user = user_name).entered();
+    pub fn evaluate_and_perform(&self, name: &str, text: &str) -> Result<Option<Box<dyn Reply>>> {
+        let _doing_span = span!(Level::INFO, "session-do", user = name).entered();
 
         debug!("'{}'", text);
 
         if let Some(action) = eval::evaluate(text)? {
-            Ok(Some(self.perform_via_user_name(user_name, action)?))
+            Ok(Some(self.perform_via_name(name, action)?))
         } else {
             Ok(None)
         }
     }
 
-    fn evaluate_user_name(&self, user_name: &str) -> Result<(EntityPtr, EntityPtr, EntityPtr)> {
+    fn evaluate_name(&self, name: &str) -> Result<(EntityPtr, EntityPtr, EntityPtr)> {
         let _span = span!(Level::DEBUG, "L").entered();
 
         let infra = self.infra.borrow();
@@ -88,7 +80,7 @@ impl StandardPerformer {
             world.scope::<Usernames>()?
         };
 
-        let user_key = &usernames.users[user_name];
+        let user_key = &usernames.users[name];
 
         let living = infra
             .as_ref()
@@ -96,10 +88,10 @@ impl StandardPerformer {
             .load_entity_by_key(user_key)?
             .ok_or(DomainError::EntityNotFound)?;
 
-        self.evaluate_user(&living)
+        self.evaluate_living(&living)
     }
 
-    fn evaluate_user(&self, living: &EntityPtr) -> Result<(EntityPtr, EntityPtr, EntityPtr)> {
+    fn evaluate_living(&self, living: &EntityPtr) -> Result<(EntityPtr, EntityPtr, EntityPtr)> {
         let world = self
             .infra
             .borrow()
@@ -133,12 +125,12 @@ impl StandardPerformer {
 }
 
 impl Performer for StandardPerformer {
-    fn perform(&self, user: &EntityPtr, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
+    fn perform(&self, living: &EntityPtr, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
         info!("performing {:?}", action);
 
-        let (world, user, area) = self.evaluate_user(user)?;
+        let (world, living, area) = self.evaluate_living(living)?;
 
-        self.discover_from(vec![&user, &area])?;
+        self.discover_from(vec![&living, &area])?;
 
         let reply = {
             let _span = span!(Level::INFO, "A").entered();
@@ -148,7 +140,7 @@ impl Performer for StandardPerformer {
                 .as_ref()
                 .ok_or(DomainError::NoInfrastructure)?
                 .clone();
-            action.perform((world, user, area, infra))?
+            action.perform((world, living, area, infra))?
         };
 
         event!(Level::INFO, "done");
