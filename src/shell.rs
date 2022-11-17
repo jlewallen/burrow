@@ -1,11 +1,11 @@
 use crate::domain;
+use crate::kernel::{Reply, SimpleReply};
 use crate::storage;
 use crate::text::Renderer;
 use anyhow::Result;
 use clap::Args;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
-use tracing::*;
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -30,19 +30,19 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
                 rl.add_history_entry(line.as_str());
                 let session = domain.open_session()?;
 
-                let reply = if let Some(reply) =
+                let reply: Box<dyn Reply> = if let Some(reply) =
                     session.evaluate_and_perform(&cmd.username, line.as_str())?
                 {
-                    info!("reply `{}`", reply.to_json()?);
-
-                    renderer.render(reply)?
+                    reply
                 } else {
-                    "what?".to_owned()
+                    Box::new(SimpleReply::What)
                 };
+
+                let rendered = renderer.render(reply)?;
 
                 session.close()?;
 
-                println!("{}", reply);
+                println!("{}", rendered);
             }
             Err(ReadlineError::Interrupted) => {
                 println!("ctrl-c");

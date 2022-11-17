@@ -25,6 +25,7 @@ pub trait Reply: ToJson {
 pub enum SimpleReply {
     Done,
     NotFound,
+    What,
 }
 
 impl Reply for SimpleReply {

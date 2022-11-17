@@ -15,17 +15,25 @@ impl Renderer {
 
     pub fn render(&self, reply: Box<dyn Reply>) -> Result<String> {
         let mut all = "".to_string();
-        let maybe_tree = reply.to_json()?;
-        if let Some(tree) = maybe_tree.as_object() {
-            for (key, value) in tree {
-                let mut context = Context::new();
-                context.insert(key, value);
 
-                let path = format!("replies/{}.txt", key);
+        match reply.to_json()? {
+            serde_json::Value::Object(object) => {
+                for (key, value) in object {
+                    let mut context = Context::new();
+                    context.insert(&key, &value);
+
+                    let path = format!("replies/{}.txt", key);
+                    let text = self.tera.render(&path, &context)?;
+                    all.push_str(&text);
+                }
+            }
+            serde_json::Value::String(name) => {
+                let context = Context::new();
+                let path = format!("replies/{}.txt", name);
                 let text = self.tera.render(&path, &context)?;
-
                 all.push_str(&text);
             }
+            _ => todo!(),
         }
 
         Ok(all)
