@@ -16,3 +16,6 @@ world.json
 
 # Ignore repl history.
 history.txt
+
+# Ignore personal vscode settings.
+.vscode
