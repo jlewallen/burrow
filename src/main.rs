@@ -35,7 +35,7 @@ enum Commands {
 
 fn get_rust_log() -> String {
     let mut original =
-        std::env::var("RUST_LOG").unwrap_or_else(|_| "rudder=info,tower_http=debug".into());
+        std::env::var("RUST_LOG").unwrap_or_else(|_| "burrow=info,tower_http=debug".into());
 
     if !original.contains("rustyline=") {
         original.push_str(",rustyline=info");
