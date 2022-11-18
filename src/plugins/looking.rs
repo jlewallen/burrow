@@ -1,6 +1,4 @@
 pub mod model {
-    use serde_json::json;
-
     use crate::plugins::library::model::*;
     use crate::{
         plugins::carrying::model::Containing,
