@@ -1,4 +1,5 @@
 use anyhow::Result;
+use std::time::Instant;
 use std::{
     cell::RefCell,
     env,
@@ -150,18 +151,20 @@ impl Performer for StandardPerformer {
 }
 
 pub struct Session {
-    infra: Rc<DomainInfrastructure>,
+    opened: Instant,
+    open: AtomicBool,
     storage: Rc<dyn EntityStorage>,
     entity_map: Rc<EntityMap>,
-    performer: Rc<StandardPerformer>,
-    open: AtomicBool,
     ids: Rc<GlobalIds>,
+    infra: Rc<DomainInfrastructure>,
+    performer: Rc<StandardPerformer>,
 }
 
 impl Session {
     pub fn new(storage: Rc<dyn EntityStorage>) -> Result<Self> {
         info!("session-new");
 
+        let opened = Instant::now();
         let ids = GlobalIds::new();
         let entity_map = EntityMap::new(Rc::clone(&ids));
         let standard_performer = StandardPerformer::new(None);
@@ -179,6 +182,8 @@ impl Session {
 
         standard_performer.initialize(infra.clone());
 
+        storage.begin()?;
+
         if let Some(world) = infra.load_entity_by_key(&WORLD_KEY)? {
             if let Some(gid) = identifiers::model::get_gid(&world)? {
                 ids.set(&gid);
@@ -186,6 +191,7 @@ impl Session {
         }
 
         Ok(Self {
+            opened,
             infra: domain_infra,
             storage,
             entity_map,
@@ -231,6 +237,11 @@ impl Session {
         self.save_entity_changes()?;
 
         self.open.store(false, Ordering::Relaxed);
+
+        let elapsed = self.opened.elapsed();
+        let elapsed = format!("{:?}", elapsed);
+
+        info!(%elapsed, "session:closed");
 
         Ok(())
     }
@@ -395,8 +406,6 @@ impl Domain {
         info!("session-open");
 
         let storage = self.storage_factory.create_storage()?;
-
-        storage.begin()?;
 
         Session::new(storage)
     }
