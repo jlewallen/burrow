@@ -160,9 +160,7 @@ impl Entities {
 
         Ok(cell)
     }
-}
 
-impl PrepareEntities for Entities {
     fn prepare_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
         if let Some(e) = self.entities.lookup_entity_by_key(key)? {
             return Ok(Some(e));
