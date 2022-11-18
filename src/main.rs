@@ -82,8 +82,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     "look", /*, "hold rake", "drop", "hold rake", "drop rake"*/
                 ] {
                     if let Some(reply) = session.evaluate_and_perform("jlewallen", text)? {
-                        info!("reply `{}`", reply.to_json()?);
-
+                        // info!("reply `{}`", reply.to_json()?);
                         let text = renderer.render(reply)?;
                         println!("{}", text);
                     }
@@ -97,8 +96,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 for text in &["look"] {
                     if let Some(reply) = session.evaluate_and_perform("jlewallen", text)? {
-                        info!("reply `{}`", reply.to_json()?);
-
+                        // info!("reply `{}`", reply.to_json()?);
                         let text = renderer.render(reply)?;
                         println!("{}", text);
                     }
