@@ -26,13 +26,3 @@ pub trait Scope: Debug + Default + Needs<Rc<dyn Infrastructure>> + DeserializeOw
 
     fn serialize(&self) -> Result<Value>;
 }
-
-pub trait LoadEntities {
-    fn load_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>>;
-
-    fn load_entity_by_gid(&self, gid: &EntityGID) -> Result<Option<EntityPtr>>;
-
-    fn load_entity_by_ref(&self, entity_ref: &EntityRef) -> Result<Option<EntityPtr>> {
-        self.load_entity_by_key(&entity_ref.key)
-    }
-}

@@ -1,8 +1,21 @@
-use super::{Action, ActionArgs, Entity, EntityPtr, Item, LazyLoadedEntity, LoadEntities, Reply};
+use super::{
+    Action, ActionArgs, Entity, EntityGID, EntityKey, EntityPtr, EntityRef, Item, LazyLoadedEntity,
+    Reply,
+};
 use anyhow::Result;
 
 pub trait GeneratesGlobalIdentifiers {
     fn generate_gid(&self) -> Result<i64>;
+}
+
+pub trait LoadEntities {
+    fn load_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>>;
+
+    fn load_entity_by_gid(&self, gid: &EntityGID) -> Result<Option<EntityPtr>>;
+
+    fn load_entity_by_ref(&self, entity_ref: &EntityRef) -> Result<Option<EntityPtr>> {
+        self.load_entity_by_key(&entity_ref.key)
+    }
 }
 
 pub trait Infrastructure: LoadEntities {
