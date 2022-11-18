@@ -3,11 +3,11 @@ use std::{
     cell::RefCell,
     env,
     rc::Rc,
-    sync::atomic::{AtomicBool, AtomicI64, Ordering},
+    sync::atomic::{AtomicBool, Ordering},
 };
 use tracing::{debug, event, info, span, trace, warn, Level};
 
-use super::internal::{DomainInfrastructure, EntityMap, LoadedEntity, Performer};
+use super::internal::{DomainInfrastructure, EntityMap, GlobalIds, LoadedEntity, Performer};
 use crate::plugins::{identifiers, moving::model::Occupying, users::model::Usernames};
 use crate::storage::{EntityStorage, EntityStorageFactory, PersistedEntity};
 use crate::{kernel::*, plugins::eval};
@@ -155,16 +155,15 @@ pub struct Session {
     entity_map: Rc<EntityMap>,
     performer: Rc<StandardPerformer>,
     open: AtomicBool,
-    global_ids: Rc<GlobalIds>,
+    ids: Rc<GlobalIds>,
 }
 
 impl Session {
     pub fn new(storage: Rc<dyn EntityStorage>) -> Result<Self> {
         info!("session-new");
 
-        let entity_map = EntityMap::new();
-        let global_ids = GlobalIds::new();
-        let generates_ids = Rc::clone(&global_ids) as Rc<dyn GeneratesGlobalIdentifiers>;
+        let ids = GlobalIds::new();
+        let entity_map = EntityMap::new(Rc::clone(&ids));
         let standard_performer = StandardPerformer::new(None);
         let performer = standard_performer.clone() as Rc<dyn Performer>;
 
@@ -172,7 +171,6 @@ impl Session {
             Rc::clone(&storage),
             Rc::clone(&entity_map),
             Rc::clone(&performer),
-            Rc::clone(&generates_ids),
         );
 
         let infra = domain_infra.clone() as Rc<dyn Infrastructure>;
@@ -183,7 +181,7 @@ impl Session {
 
         if let Some(world) = infra.load_entity_by_key(&WORLD_KEY)? {
             if let Some(gid) = identifiers::model::get_gid(&world)? {
-                global_ids.set_gid(gid);
+                ids.set(&gid);
             }
         }
 
@@ -193,7 +191,7 @@ impl Session {
             entity_map,
             open: AtomicBool::new(true),
             performer: standard_performer,
-            global_ids,
+            ids,
         })
     }
 
@@ -273,9 +271,14 @@ impl Session {
                 }
             }
 
+            let gid = match &l.gid {
+                Some(gid) => gid.clone(),
+                None => self.ids.get(),
+            };
+
             Ok(Some(PersistedEntity {
                 key: entity.key.to_string(),
-                gid: l.gid.clone().into(),
+                gid: gid.into(),
                 version: l.version,
                 serialized,
             }))
@@ -305,8 +308,9 @@ impl Session {
             .infra
             .load_entity_by_key(&WORLD_KEY)?
             .ok_or(DomainError::EntityNotFound)?;
-        let previous_gid = identifiers::model::get_gid(&world)?.unwrap_or(0);
-        let new_gid = self.global_ids.gid();
+        let previous_gid =
+            identifiers::model::get_gid(&world)?.unwrap_or_else(|| EntityGID::new(0));
+        let new_gid = self.ids.gid();
         if previous_gid != new_gid {
             info!(%previous_gid, %new_gid, "gid:changed");
             identifiers::model::set_gid(&world, new_gid)?;
@@ -334,6 +338,10 @@ impl Session {
 
 impl Drop for Session {
     fn drop(&mut self) {
+        // This feels like the most defensive solution. If there's ever a reason
+        // this can happen we can make this warn.
+        set_my_session(None).expect("Error clearing session");
+
         if self.open.load(Ordering::Relaxed) {
             warn!("session-drop: open session!");
         } else {
@@ -345,10 +353,6 @@ impl Drop for Session {
 impl Infrastructure for Session {
     fn ensure_entity(&self, entity_ref: &LazyLoadedEntity) -> Result<LazyLoadedEntity> {
         self.infra.ensure_entity(entity_ref)
-    }
-
-    fn prepare_entity(&self, entity: &mut Entity) -> Result<()> {
-        self.infra.prepare_entity(entity)
     }
 
     fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<EntityPtr>> {
@@ -400,31 +404,4 @@ impl Domain {
 
 fn should_force_rollback() -> bool {
     env::var("FORCE_ROLLBACK").is_ok()
-}
-
-#[derive(Debug)]
-pub struct GlobalIds {
-    gid: AtomicI64,
-}
-
-impl GlobalIds {
-    pub fn new() -> Rc<Self> {
-        Rc::new(Self {
-            gid: AtomicI64::new(0),
-        })
-    }
-
-    pub fn gid(&self) -> i64 {
-        self.gid.load(Ordering::Relaxed)
-    }
-
-    pub fn set_gid(&self, value: i64) {
-        self.gid.store(value, Ordering::Relaxed);
-    }
-}
-
-impl GeneratesGlobalIdentifiers for GlobalIds {
-    fn generate_gid(&self) -> Result<i64> {
-        Ok(self.gid.fetch_add(1, Ordering::Relaxed) + 1)
-    }
 }

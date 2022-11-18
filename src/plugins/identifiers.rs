@@ -23,18 +23,18 @@ pub mod model {
         }
     }
 
-    pub fn get_gid(entity: &EntityPtr) -> Result<Option<i64>> {
+    pub fn get_gid(entity: &EntityPtr) -> Result<Option<EntityGID>> {
         let entity = entity.borrow();
         let ids = entity.scope::<Identifiers>()?;
 
-        Ok(Some(ids.gid))
+        Ok(Some(EntityGID::new(ids.gid)))
     }
 
-    pub fn set_gid(entity: &EntityPtr, value: i64) -> Result<i64> {
+    pub fn set_gid(entity: &EntityPtr, value: EntityGID) -> Result<EntityGID> {
         let mut entity = entity.borrow_mut();
         let mut ids = entity.scope_mut::<Identifiers>()?;
-        ids.gid = value;
+        ids.gid = value.clone().into();
 
-        Ok(ids.gid)
+        Ok(value)
     }
 }

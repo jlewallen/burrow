@@ -1,10 +1,6 @@
 use anyhow::{anyhow, Result};
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-    fmt::Debug,
-    rc::{Rc, Weak},
-};
+use std::sync::atomic::{AtomicI64, Ordering};
+use std::{cell::RefCell, collections::HashMap, fmt::Debug, rc::Rc};
 use tracing::{debug, info, span, trace, Level};
 
 use crate::storage::{EntityStorage, PersistedEntity};
@@ -29,18 +25,20 @@ pub struct LoadedEntity {
     pub key: EntityKey,
     pub entity: EntityPtr,
     pub version: u64,
-    pub gid: EntityGID,
+    pub gid: Option<EntityGID>,
     pub serialized: Option<String>,
 }
 
 pub struct EntityMap {
+    ids: Rc<GlobalIds>,
     by_key: RefCell<HashMap<EntityKey, LoadedEntity>>,
     by_gid: RefCell<HashMap<EntityGID, EntityKey>>,
 }
 
 impl EntityMap {
-    pub fn new() -> Rc<Self> {
+    pub fn new(ids: Rc<GlobalIds>) -> Rc<Self> {
         Rc::new(Self {
+            ids,
             by_key: RefCell::new(HashMap::new()),
             by_gid: RefCell::new(HashMap::new()),
         })
@@ -65,12 +63,23 @@ impl EntityMap {
         }
     }
 
-    pub fn add_entity(&self, _key: &EntityKey, loaded: LoadedEntity) -> Result<()> {
+    pub fn add_entity(&self, mut loaded: LoadedEntity) -> Result<()> {
         let mut key_cache = self.by_key.borrow_mut();
         let mut gid_cache = self.by_gid.borrow_mut();
+        let key = loaded.key.clone();
 
-        gid_cache.insert(loaded.gid.clone(), loaded.key.clone());
-        key_cache.insert(loaded.key.clone(), loaded);
+        let gid = match &loaded.gid {
+            Some(gid) => gid.clone(),
+            None => {
+                let gid = self.ids.get();
+                let loaded = &mut loaded;
+                loaded.gid = Some(gid.clone());
+                gid
+            }
+        };
+
+        gid_cache.insert(gid, key.clone());
+        key_cache.insert(key, loaded);
 
         Ok(())
     }
@@ -91,7 +100,6 @@ impl EntityMap {
 struct Entities {
     entities: Rc<EntityMap>,
     storage: Rc<dyn EntityStorage>,
-    infra: Weak<dyn Infrastructure>,
 }
 
 impl Debug for Entities {
@@ -101,35 +109,22 @@ impl Debug for Entities {
 }
 
 impl Entities {
-    pub fn new(
-        entities: Rc<EntityMap>,
-        storage: Rc<dyn EntityStorage>,
-        infra: Weak<dyn Infrastructure>,
-    ) -> Rc<Self> {
+    pub fn new(entities: Rc<EntityMap>, storage: Rc<dyn EntityStorage>) -> Rc<Self> {
         trace!("entities-new");
 
-        Rc::new(Self {
-            entities,
-            storage,
-            infra,
-        })
+        Rc::new(Self { entities, storage })
     }
 
-    // TODO Lots of cloning going on when adding new entities.
     fn add_entity(&self, entity: &EntityPtr) -> Result<()> {
-        let loaded = {
-            let clone = entity.clone();
-            let entity = entity.borrow();
-            LoadedEntity {
-                key: entity.key.clone(),
-                entity: clone,
-                serialized: None,
-                version: 1,
-                gid: entity.gid().ok_or_else(|| anyhow!("entity missing gid"))?,
-            }
-        };
-        let key = loaded.key.clone();
-        self.entities.add_entity(&key, loaded)
+        let clone = entity.clone();
+        let entity = entity.borrow();
+        self.entities.add_entity(LoadedEntity {
+            key: entity.key.clone(),
+            entity: clone,
+            serialized: None,
+            version: 1,
+            gid: entity.gid(),
+        })
     }
 
     fn prepare_persisted(&self, persisted: PersistedEntity) -> Result<EntityPtr> {
@@ -137,26 +132,19 @@ impl Entities {
         let mut loaded: Entity = serde_json::from_str(&persisted.serialized)?;
 
         trace!("infrastructure");
-        if let Some(infra) = self.infra.upgrade() {
-            loaded.supply(&infra)?;
-        } else {
-            return Err(anyhow!("no infrastructure"));
-        }
+        let session = get_my_session()?; // Thread local session!
+        loaded.supply(&session)?;
 
+        let gid = loaded.gid().clone();
         let cell: EntityPtr = loaded.into();
 
-        let key = EntityKey::new(&persisted.key);
-
-        self.entities.add_entity(
-            &key,
-            LoadedEntity {
-                key: key.clone(),
-                entity: cell.clone(),
-                serialized: Some(persisted.serialized),
-                gid: EntityGID::new(persisted.gid),
-                version: persisted.version + 1,
-            },
-        )?;
+        self.entities.add_entity(LoadedEntity {
+            key: EntityKey::new(&persisted.key),
+            entity: cell.clone(),
+            version: persisted.version + 1,
+            gid: gid,
+            serialized: Some(persisted.serialized),
+        })?;
 
         Ok(cell)
     }
@@ -199,7 +187,6 @@ pub trait Performer {
 pub struct DomainInfrastructure {
     entities: Rc<Entities>,
     performer: Rc<dyn Performer>,
-    global_ids: Rc<dyn GeneratesGlobalIdentifiers>,
 }
 
 impl DomainInfrastructure {
@@ -207,17 +194,11 @@ impl DomainInfrastructure {
         storage: Rc<dyn EntityStorage>,
         entity_map: Rc<EntityMap>,
         performer: Rc<dyn Performer>,
-        global_ids: Rc<dyn GeneratesGlobalIdentifiers>,
     ) -> Rc<Self> {
-        Rc::new_cyclic(|me: &Weak<DomainInfrastructure>| {
-            // How acceptable is this kind of thing?
-            let infra = Weak::clone(me) as Weak<dyn Infrastructure>;
-            let entities = Entities::new(entity_map, storage, infra);
-            DomainInfrastructure {
-                entities,
-                performer,
-                global_ids,
-            }
+        let entities = Entities::new(entity_map, storage);
+        Rc::new(DomainInfrastructure {
+            entities,
+            performer,
         })
     }
 }
@@ -241,13 +222,6 @@ impl Infrastructure for DomainInfrastructure {
         } else {
             Err(anyhow!("Entity not found"))
         }
-    }
-
-    fn prepare_entity(&self, entity: &mut Entity) -> Result<()> {
-        if entity.gid().is_none() {
-            entity.set_gid(self.global_ids.generate_gid()?)?;
-        }
-        Ok(())
     }
 
     fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<EntityPtr>> {
@@ -402,5 +376,30 @@ impl EntityRelationshipSet {
         }
 
         Ok(Self { entities: expanded })
+    }
+}
+
+#[derive(Debug)]
+pub struct GlobalIds {
+    gid: AtomicI64,
+}
+
+impl GlobalIds {
+    pub fn new() -> Rc<Self> {
+        Rc::new(Self {
+            gid: AtomicI64::new(0),
+        })
+    }
+
+    pub fn gid(&self) -> EntityGID {
+        EntityGID::new(self.gid.load(Ordering::Relaxed))
+    }
+
+    pub fn set(&self, gid: &EntityGID) {
+        self.gid.store(gid.into(), Ordering::Relaxed);
+    }
+
+    pub fn get(&self) -> EntityGID {
+        EntityGID::new(self.gid.fetch_add(1, Ordering::Relaxed) + 1)
     }
 }

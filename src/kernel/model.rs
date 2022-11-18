@@ -122,6 +122,12 @@ impl From<EntityGID> for i64 {
     }
 }
 
+impl From<&EntityGID> for i64 {
+    fn from(gid: &EntityGID) -> Self {
+        gid.0
+    }
+}
+
 #[derive(Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct EntityKey(String);
 
@@ -323,8 +329,6 @@ pub struct Entity {
     acls: Acls,
     props: Props,
     scopes: HashMap<String, serde_json::Value>,
-    // #[serde(skip)] // Very private
-    // infra: Option<Weak<dyn Infrastructure>>,
 }
 
 impl Display for Entity {
@@ -339,10 +343,9 @@ impl Display for Entity {
 
 impl Needs<std::rc::Rc<dyn Infrastructure>> for Entity {
     fn supply(&mut self, infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
-        // self.infra = Some(Rc::downgrade(infra));
         self.parent = infra.ensure_optional_entity(&self.parent)?;
         self.creator = infra.ensure_optional_entity(&self.creator)?;
-        infra.prepare_entity(self)
+        Ok(())
     }
 }
 
@@ -423,12 +426,8 @@ impl Entity {
         let mut scope: Box<T> = serde_json::from_value(owned_value)?;
 
         let _prepare_span = span!(Level::DEBUG, "prepare").entered();
-
-        if let Some(infra) = Some(get_my_session()?) {
-            scope.supply(&infra)?;
-        } else {
-            return Err(DomainError::NoInfrastructure);
-        }
+        let session = get_my_session()?; // Thread local session!
+        scope.supply(&session)?;
 
         Ok(scope)
     }

@@ -29,9 +29,6 @@ impl Build {
             entity
         };
 
-        // Doing this in into_entity, now.
-        // infra.add_entity(&entity)?;
-
         Ok(Self {
             infra: Rc::clone(infra),
             entity,

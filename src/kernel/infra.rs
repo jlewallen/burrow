@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::{cell::RefCell, rc::Rc};
 
 use super::{
-    Action, ActionArgs, DomainError, Entity, EntityGID, EntityKey, EntityPtr, EntityRef, Item,
+    Action, ActionArgs, DomainError, EntityGID, EntityKey, EntityPtr, EntityRef, Item,
     LazyLoadedEntity, Reply,
 };
 
@@ -32,10 +32,6 @@ pub fn get_my_session() -> Result<Rc<dyn Infrastructure>> {
     })
 }
 
-pub trait GeneratesGlobalIdentifiers {
-    fn generate_gid(&self) -> Result<i64>;
-}
-
 pub trait LoadEntities {
     fn load_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>>;
 
@@ -48,8 +44,6 @@ pub trait LoadEntities {
 
 pub trait Infrastructure: LoadEntities {
     fn ensure_entity(&self, entity_ref: &LazyLoadedEntity) -> Result<LazyLoadedEntity>;
-
-    fn prepare_entity(&self, entity: &mut Entity) -> Result<()>;
 
     fn ensure_optional_entity(
         &self,
