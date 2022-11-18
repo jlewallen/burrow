@@ -1,8 +1,36 @@
-use super::{
-    Action, ActionArgs, Entity, EntityGID, EntityKey, EntityPtr, EntityRef, Item, LazyLoadedEntity,
-    Reply,
-};
 use anyhow::Result;
+use std::{cell::RefCell, rc::Rc};
+
+use super::{
+    Action, ActionArgs, DomainError, Entity, EntityGID, EntityKey, EntityPtr, EntityRef, Item,
+    LazyLoadedEntity, Reply,
+};
+
+thread_local! {
+    #[allow(unused)]
+    static SESSION: RefCell<Option<std::rc::Weak<dyn Infrastructure>>> = RefCell::new(None)
+}
+
+pub fn set_my_session(session: Option<&Rc<dyn Infrastructure>>) -> Result<()> {
+    SESSION.with(|s| {
+        *s.borrow_mut() = match session {
+            Some(session) => Some(Rc::downgrade(session)),
+            None => None,
+        };
+
+        Ok(())
+    })
+}
+
+pub fn get_my_session() -> Result<Rc<dyn Infrastructure>> {
+    SESSION.with(|s| match &*s.borrow() {
+        Some(s) => match s.upgrade() {
+            Some(s) => Ok(s),
+            None => Err(DomainError::ExpiredInfrastructure.into()),
+        },
+        None => Err(DomainError::NoInfrastructure.into()),
+    })
+}
 
 pub trait GeneratesGlobalIdentifiers {
     fn generate_gid(&self) -> Result<i64>;

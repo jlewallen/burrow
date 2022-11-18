@@ -1,3 +1,4 @@
+// #![feature(local_key_cell_methods)]
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use std::error::Error;

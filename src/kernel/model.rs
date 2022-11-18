@@ -323,9 +323,8 @@ pub struct Entity {
     acls: Acls,
     props: Props,
     scopes: HashMap<String, serde_json::Value>,
-
-    #[serde(skip)] // Very private
-    infra: Option<Weak<dyn Infrastructure>>,
+    // #[serde(skip)] // Very private
+    // infra: Option<Weak<dyn Infrastructure>>,
 }
 
 impl Display for Entity {
@@ -340,7 +339,7 @@ impl Display for Entity {
 
 impl Needs<std::rc::Rc<dyn Infrastructure>> for Entity {
     fn supply(&mut self, infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
-        self.infra = Some(Rc::downgrade(infra));
+        // self.infra = Some(Rc::downgrade(infra));
         self.parent = infra.ensure_optional_entity(&self.parent)?;
         self.creator = infra.ensure_optional_entity(&self.creator)?;
         infra.prepare_entity(self)
@@ -425,12 +424,8 @@ impl Entity {
 
         let _prepare_span = span!(Level::DEBUG, "prepare").entered();
 
-        if let Some(infra) = &self.infra {
-            if let Some(infra) = infra.upgrade() {
-                scope.supply(&infra)?;
-            } else {
-                return Err(DomainError::ExpiredInfrastructure);
-            }
+        if let Some(infra) = Some(get_my_session()?) {
+            scope.supply(&infra)?;
         } else {
             return Err(DomainError::NoInfrastructure);
         }

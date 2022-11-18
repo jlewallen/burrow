@@ -168,14 +168,18 @@ impl Session {
         let standard_performer = StandardPerformer::new(None);
         let performer = standard_performer.clone() as Rc<dyn Performer>;
 
-        let infra = DomainInfrastructure::new(
+        let domain_infra = DomainInfrastructure::new(
             Rc::clone(&storage),
             Rc::clone(&entity_map),
             Rc::clone(&performer),
             Rc::clone(&generates_ids),
         );
 
-        standard_performer.initialize(infra.clone() as Rc<dyn Infrastructure>);
+        let infra = domain_infra.clone() as Rc<dyn Infrastructure>;
+
+        set_my_session(Some(&infra))?;
+
+        standard_performer.initialize(infra.clone());
 
         if let Some(world) = infra.load_entity_by_key(&WORLD_KEY)? {
             if let Some(gid) = identifiers::model::get_gid(&world)? {
@@ -184,7 +188,7 @@ impl Session {
         }
 
         Ok(Self {
-            infra,
+            infra: domain_infra,
             storage,
             entity_map,
             open: AtomicBool::new(true),
