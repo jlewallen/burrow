@@ -595,23 +595,23 @@ impl From<&EntityPtr> for LazyLoadedEntity {
 
 #[derive(Error, Debug)]
 pub enum DomainError {
-    #[error("no such scope '{:?}' on entity '{:?}'", .0, .1)]
+    #[error("No such scope '{:?}' on entity '{:?}'", .0, .1)]
     NoSuchScope(EntityKey, String),
-    #[error("parse failed")]
+    #[error("Parse failed")]
     ParseFailed(#[source] serde_json::Error),
-    #[error("dangling entity")]
+    #[error("Dangling entity")]
     DanglingEntity,
-    #[error("anyhow error")]
+    #[error("Anyhow error")]
     Anyhow(#[source] anyhow::Error),
-    #[error("no infrastructure")]
+    #[error("No infrastructure")]
     NoInfrastructure,
-    #[error("expired infrastructure")]
+    #[error("Expired infrastructure")]
     ExpiredInfrastructure,
-    #[error("session closed")]
+    #[error("Session closed")]
     SessionClosed,
-    #[error("container required")]
+    #[error("Container required")]
     ContainerRequired,
-    #[error("entity not found")]
+    #[error("Entity not found")]
     EntityNotFound,
 }
 
