@@ -55,3 +55,5 @@ pub trait Infrastructure: LoadEntities {
 pub trait Needs<T> {
     fn supply(&mut self, resource: &T) -> Result<()>;
 }
+
+pub trait SessionTrait: Infrastructure {}

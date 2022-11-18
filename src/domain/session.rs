@@ -338,6 +338,40 @@ impl Drop for Session {
     }
 }
 
+impl Infrastructure for Session {
+    fn ensure_entity(&self, entity_ref: &LazyLoadedEntity) -> Result<LazyLoadedEntity> {
+        self.infra.ensure_entity(entity_ref)
+    }
+
+    fn prepare_entity(&self, entity: &mut Entity) -> Result<()> {
+        self.infra.prepare_entity(entity)
+    }
+
+    fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<EntityPtr>> {
+        self.infra.find_item(args, item)
+    }
+
+    fn add_entity(&self, entity: &EntityPtr) -> Result<()> {
+        self.infra.add_entity(entity)
+    }
+
+    fn chain(&self, living: &EntityPtr, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
+        self.infra.chain(living, action)
+    }
+}
+
+impl LoadEntities for Session {
+    fn load_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
+        self.infra.load_entity_by_key(key)
+    }
+
+    fn load_entity_by_gid(&self, gid: &EntityGID) -> Result<Option<EntityPtr>> {
+        self.infra.load_entity_by_gid(gid)
+    }
+}
+
+impl SessionTrait for Session {}
+
 pub struct Domain {
     storage_factory: Box<dyn EntityStorageFactory>,
 }
