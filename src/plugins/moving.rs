@@ -322,6 +322,13 @@ mod parser {
         }
 
         #[test]
+        fn it_parses_go_by_gid_correctly() {
+            let (remaining, actual) = parse("go #3").unwrap();
+            assert_eq!(remaining, "");
+            assert_eq!(actual, Sentence::Go(Item::GID(EntityGID::new(3))));
+        }
+
+        #[test]
         fn it_errors_on_unknown_text() {
             let actual = parse("hello");
             assert!(actual.is_err());

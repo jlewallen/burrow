@@ -156,7 +156,7 @@ pub mod parser {
 
     fn edit_item(i: &str) -> IResult<&str, Sentence> {
         map(
-            separated_pair(tag("edit"), spaces, item_or_noun),
+            separated_pair(tag("edit"), spaces, noun_or_specific),
             |(_, target)| Sentence::Edit(target),
         )(i)
     }

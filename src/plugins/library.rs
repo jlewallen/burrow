@@ -32,12 +32,15 @@ pub mod parser {
         map(preceded(tag("#"), number), |n| Item::GID(EntityGID::new(n)))(i)
     }
 
-    pub fn item_or_noun(i: &str) -> IResult<&str, Item> {
-        alt((gid_reference, noun))(i)
+    pub fn noun_or_specific(i: &str) -> IResult<&str, Item> {
+        alt((noun, gid_reference))(i)
     }
 
     pub fn named_place(i: &str) -> IResult<&str, Item> {
-        map(word, |s: &str| Item::Route(s.to_owned()))(i)
+        alt((
+            gid_reference,
+            map(word, |s: &str| Item::Route(s.to_owned())),
+        ))(i)
     }
 }
 
