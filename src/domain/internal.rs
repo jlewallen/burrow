@@ -44,10 +44,14 @@ impl EntityMap {
         })
     }
 
+    pub fn size(&self) -> usize {
+        self.by_key.borrow().len()
+    }
+
     pub fn lookup_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
         let check_existing = self.by_key.borrow();
         if let Some(e) = check_existing.get(key) {
-            debug!(%key, "existing");
+            trace!(%key, "existing");
             return Ok(Some(e.entity.clone()));
         }
 

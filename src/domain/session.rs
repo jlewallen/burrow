@@ -238,10 +238,11 @@ impl Session {
 
         self.open.store(false, Ordering::Relaxed);
 
+        let nentities = self.entity_map.size();
         let elapsed = self.opened.elapsed();
         let elapsed = format!("{:?}", elapsed);
 
-        info!(%elapsed, "session:closed");
+        info!(%elapsed, %nentities, "session:closed");
 
         Ok(())
     }
