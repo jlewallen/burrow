@@ -5,7 +5,7 @@ use tracing::info;
 
 use super::{new_infra, Domain, Session};
 use crate::{
-    kernel::{ActionArgs, EntityKey, EntityPtr, Infrastructure, Needs, WORLD_KEY},
+    kernel::{ActionArgs, EntityKey, EntityPtr, Infrastructure, WORLD_KEY},
     plugins::{
         carrying::model::Containing,
         moving::model::{Exit, Occupyable},
@@ -22,17 +22,11 @@ pub struct Build {
 }
 
 impl Build {
-    pub fn new(infra: &Rc<dyn Infrastructure>) -> Result<Self> {
-        let entity: EntityPtr = {
-            let entity = EntityPtr::new_blank();
-            entity.borrow_mut().supply(infra)?;
-            entity
-        };
+    pub fn new(session: &Session) -> Result<Self> {
+        let infra = session.infra();
+        let entity = EntityPtr::new_blank();
 
-        Ok(Self {
-            infra: Rc::clone(infra),
-            entity,
-        })
+        Ok(Self { infra, entity })
     }
 
     pub fn key(&self, key: &EntityKey) -> Result<&Self> {
@@ -99,7 +93,6 @@ impl Build {
 }
 
 pub struct BuildActionArgs {
-    infra: Rc<dyn Infrastructure>,
     hands: Vec<QuickThing>,
     ground: Vec<QuickThing>,
     domain: Domain,
@@ -114,14 +107,14 @@ pub enum QuickThing {
 }
 
 impl QuickThing {
-    pub fn make(&self, infra: &Rc<dyn Infrastructure>) -> Result<EntityPtr> {
+    pub fn make(&self, session: &Session) -> Result<EntityPtr> {
         match self {
-            QuickThing::Object(name) => Ok(Build::new(infra)?.named(name)?.into_entity()?),
-            QuickThing::Place(name) => Ok(Build::new(infra)?.named(name)?.into_entity()?),
+            QuickThing::Object(name) => Ok(Build::new(session)?.named(name)?.into_entity()?),
+            QuickThing::Place(name) => Ok(Build::new(session)?.named(name)?.into_entity()?),
             QuickThing::Route(name, area) => {
-                let area = area.make(infra)?;
+                let area = area.make(session)?;
 
-                Ok(Build::new(infra)?
+                Ok(Build::new(session)?
                     .named(name)?
                     .leads_to(area)?
                     .into_entity()?)
@@ -138,7 +131,6 @@ impl BuildActionArgs {
         let session = domain.open_session()?;
 
         Ok(Self {
-            infra: Rc::clone(&session.infra()),
             hands: Vec::new(),
             ground: Vec::new(),
             domain,
@@ -147,7 +139,7 @@ impl BuildActionArgs {
     }
 
     pub fn make(&mut self, q: QuickThing) -> Result<EntityPtr> {
-        q.make(&self.infra)
+        q.make(&self.session)
     }
 
     pub fn hands(&mut self, items: Vec<QuickThing>) -> &mut Self {
@@ -180,32 +172,32 @@ impl TryFrom<&mut BuildActionArgs> for ActionArgs {
     type Error = anyhow::Error;
 
     fn try_from(builder: &mut BuildActionArgs) -> Result<Self, Self::Error> {
-        let infra = Rc::clone(&builder.infra);
+        let infra = builder.session.infra();
 
-        let world = Build::new(&infra)?
+        let world = Build::new(&builder.session)?
             .key(&WORLD_KEY)?
             .named("World")?
             .into_entity()?;
 
-        let person = Build::new(&infra)?
+        let person = Build::new(&builder.session)?
             .named("Living")?
             .holding(
                 &builder
                     .hands
                     .iter()
-                    .map(|i| -> Result<_> { i.make(&infra) })
+                    .map(|i| -> Result<_> { i.make(&builder.session) })
                     .collect::<Result<Vec<EntityPtr>>>()?,
             )?
             .into_entity()?;
 
-        let area = Build::new(&infra)?
+        let area = Build::new(&builder.session)?
             .named("Welcome Area")?
             .occupying(&vec![person.clone()])?
             .holding(
                 &builder
                     .ground
                     .iter()
-                    .map(|i| -> Result<_> { i.make(&infra) })
+                    .map(|i| -> Result<_> { i.make(&builder.session) })
                     .collect::<Result<Vec<_>>>()?,
             )?
             .into_entity()?;
