@@ -263,24 +263,20 @@ impl Session {
 
         let _span = span!(Level::DEBUG, "flushing", key = l.key.to_string()).entered();
 
-        let serialized = {
+        let value_after = {
             let entity = l.entity.borrow();
 
-            serde_json::to_string(&*entity)?
+            serde_json::to_value(&*entity)?
         };
 
-        trace!("json: {:?}", serialized);
-
-        let v1: serde_json::Value = if let Some(serialized) = &l.serialized {
+        let value_before: serde_json::Value = if let Some(serialized) = &l.serialized {
             serialized.parse()?
         } else {
             serde_json::Value::Null
         };
 
-        // TODO Can we serialize directly to Value?
-        let v2: serde_json::Value = serialized.parse()?;
         let mut d = Recorder::default();
-        diff(&v1, &v2, &mut d);
+        diff(&value_before, &value_after, &mut d);
 
         let modifications = d
             .calls
@@ -295,6 +291,9 @@ impl Session {
                     _ => debug!("modified: {:?}", each),
                 }
             }
+
+            // Serialize to string now that we know we'll use this.
+            let serialized = value_after.to_string();
 
             // Assign new global identifier if necessary.
             let gid = match &l.gid {
