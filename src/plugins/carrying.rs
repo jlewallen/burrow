@@ -195,11 +195,11 @@ pub mod actions {
         fn it_holds_unheld_items() -> Result<()> {
             let mut build = BuildActionArgs::new()?;
             let args: ActionArgs = build
-                .ground(vec![QuickThing::Object("Cool Rake".to_string())])
+                .ground(vec![QuickThing::Object("Cool Rake")])
                 .try_into()?;
 
             let action = HoldAction {
-                item: Item::Named("rake".to_string()),
+                item: Item::Named("rake".into()),
             };
             let reply = action.perform(args.clone())?;
             let (_, person, area, _) = args.clone();
@@ -218,11 +218,11 @@ pub mod actions {
         fn it_fails_to_hold_unknown_items() -> Result<()> {
             let mut build = BuildActionArgs::new()?;
             let args: ActionArgs = build
-                .ground(vec![QuickThing::Object("Cool Broom".to_string())])
+                .ground(vec![QuickThing::Object("Cool Broom")])
                 .try_into()?;
 
             let action = HoldAction {
-                item: Item::Named("rake".to_string()),
+                item: Item::Named("rake".into()),
             };
             let reply = action.perform(args.clone())?;
             let (_, person, area, _) = args.clone();
@@ -241,11 +241,11 @@ pub mod actions {
         fn it_drops_held_items() -> Result<()> {
             let mut build = BuildActionArgs::new()?;
             let args: ActionArgs = build
-                .hands(vec![QuickThing::Object("Cool Rake".to_string())])
+                .hands(vec![QuickThing::Object("Cool Rake")])
                 .try_into()?;
 
             let action = DropAction {
-                maybe_item: Some(Item::Named("rake".to_string())),
+                maybe_item: Some(Item::Named("rake".into())),
             };
             let reply = action.perform(args.clone())?;
             let (_, person, area, _) = args.clone();
@@ -264,11 +264,11 @@ pub mod actions {
         fn it_fails_to_drop_unknown_items() -> Result<()> {
             let mut build = BuildActionArgs::new()?;
             let args: ActionArgs = build
-                .hands(vec![QuickThing::Object("Cool Broom".to_string())])
+                .hands(vec![QuickThing::Object("Cool Broom")])
                 .try_into()?;
 
             let action = DropAction {
-                maybe_item: Some(Item::Named("rake".to_string())),
+                maybe_item: Some(Item::Named("rake".into())),
             };
             let reply = action.perform(args.clone())?;
             let (_, person, area, _) = args.clone();
@@ -287,11 +287,11 @@ pub mod actions {
         fn it_fails_to_drop_unheld_items() -> Result<()> {
             let mut build = BuildActionArgs::new()?;
             let args: ActionArgs = build
-                .ground(vec![QuickThing::Object("Cool Broom".to_string())])
+                .ground(vec![QuickThing::Object("Cool Broom")])
                 .try_into()?;
 
             let action = DropAction {
-                maybe_item: Some(Item::Named("rake".to_string())),
+                maybe_item: Some(Item::Named("rake".into())),
             };
             let reply = action.perform(args.clone())?;
             let (_, person, area, _) = args.clone();
@@ -345,7 +345,7 @@ pub mod parser {
         fn it_parses_hold_noun_correctly() {
             let (remaining, actual) = parse("hold rake").unwrap();
             assert_eq!(remaining, "");
-            assert_eq!(actual, Sentence::Hold(Item::Named("rake".to_owned())));
+            assert_eq!(actual, Sentence::Hold(Item::Named("rake".into())));
         }
 
         #[test]
@@ -359,7 +359,7 @@ pub mod parser {
         fn it_parses_drop_noun_correctly() {
             let (remaining, actual) = parse("drop rake").unwrap();
             assert_eq!(remaining, "");
-            assert_eq!(actual, Sentence::Drop(Some(Item::Named("rake".to_owned()))));
+            assert_eq!(actual, Sentence::Drop(Some(Item::Named("rake".into()))));
         }
 
         #[test]

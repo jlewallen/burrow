@@ -107,9 +107,9 @@ pub struct BuildActionArgs {
 }
 
 pub enum QuickThing {
-    Object(String),
-    Place(String),
-    Route(String, Box<QuickThing>),
+    Object(&'static str),
+    Place(&'static str),
+    Route(&'static str, Box<QuickThing>),
     Actual(EntityPtr),
 }
 
@@ -165,11 +165,8 @@ impl BuildActionArgs {
         self
     }
 
-    pub fn route(&mut self, route_name: &str, destination: QuickThing) -> &mut Self {
-        self.ground(vec![QuickThing::Route(
-            route_name.to_string(),
-            Box::new(destination),
-        )])
+    pub fn route(&mut self, route_name: &'static str, destination: QuickThing) -> &mut Self {
+        self.ground(vec![QuickThing::Route(route_name, Box::new(destination))])
     }
 
     pub fn ground(&mut self, items: Vec<QuickThing>) -> &mut Self {

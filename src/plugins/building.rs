@@ -66,11 +66,11 @@ pub mod actions {
         fn it_fails_to_edit_unknown_items() -> Result<()> {
             let mut build = BuildActionArgs::new()?;
             let args: ActionArgs = build
-                .ground(vec![QuickThing::Object("Cool Broom".to_string())])
+                .ground(vec![QuickThing::Object("Cool Broom")])
                 .try_into()?;
 
             let action = EditAction {
-                item: Item::Named("rake".to_string()),
+                item: Item::Named("rake".into()),
             };
             let reply = action.perform(args.clone())?;
             // let (_, _, _, _) = args.clone();
@@ -84,14 +84,13 @@ pub mod actions {
         fn it_edits_items_named() -> Result<()> {
             let mut build = BuildActionArgs::new()?;
             let args: ActionArgs = build
-                .ground(vec![QuickThing::Object("Cool Broom".to_string())])
+                .ground(vec![QuickThing::Object("Cool Broom")])
                 .try_into()?;
 
             let action = EditAction {
-                item: Item::Named("broom".to_string()),
+                item: Item::Named("broom".into()),
             };
             let reply = action.perform(args.clone())?;
-            // let (_, _, _, _) = args.clone();
 
             assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
@@ -102,14 +101,13 @@ pub mod actions {
         fn it_edits_items_by_gid() -> Result<()> {
             let mut build = BuildActionArgs::new()?;
             let args: ActionArgs = build
-                .ground(vec![QuickThing::Object("Cool Broom".to_string())])
+                .ground(vec![QuickThing::Object("Cool Broom")])
                 .try_into()?;
 
             let action = EditAction {
                 item: Item::GID(EntityGID::new(1201)),
             };
             let reply = action.perform(args.clone())?;
-            // let (_, _, _, _) = args.clone();
 
             assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -120,14 +118,13 @@ pub mod actions {
         fn it_fails_to_edit_items_by_missing_gid() -> Result<()> {
             let mut build = BuildActionArgs::new()?;
             let args: ActionArgs = build
-                .ground(vec![QuickThing::Object("Cool Broom".to_string())])
+                .ground(vec![QuickThing::Object("Cool Broom")])
                 .try_into()?;
 
             let action = EditAction {
                 item: Item::GID(EntityGID::new(1)),
             };
             let reply = action.perform(args.clone())?;
-            // let (_, _, _, _) = args.clone();
 
             assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
@@ -163,7 +160,7 @@ pub mod parser {
         fn it_parses_edit_noun_correctly() {
             let (remaining, actual) = parse("edit rake").unwrap();
             assert_eq!(remaining, "");
-            assert_eq!(actual, Sentence::Edit(Item::Named("rake".to_owned())));
+            assert_eq!(actual, Sentence::Edit(Item::Named("rake".into())));
         }
 
         #[test]

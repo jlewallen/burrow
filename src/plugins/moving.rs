@@ -186,15 +186,15 @@ pub mod actions {
         #[test]
         fn it_goes_ignores_bad_matches() -> Result<()> {
             let mut build = BuildActionArgs::new()?;
-            let east = build.make(QuickThing::Place("East Place".to_string()))?;
-            let west = build.make(QuickThing::Place("West Place".to_string()))?;
+            let east = build.make(QuickThing::Place("East Place"))?;
+            let west = build.make(QuickThing::Place("West Place"))?;
             let args: ActionArgs = build
                 .route("East", QuickThing::Actual(east))
                 .route("Wast", QuickThing::Actual(west))
                 .try_into()?;
 
             let action = GoAction {
-                item: Item::Route("north".to_string()),
+                item: Item::Route("north".into()),
             };
             let reply = action.perform(args.clone())?;
 
@@ -208,15 +208,15 @@ pub mod actions {
         #[test]
         fn it_goes_through_correct_route_when_two_nearby() -> Result<()> {
             let mut build = BuildActionArgs::new()?;
-            let east = build.make(QuickThing::Place("East Place".to_string()))?;
-            let west = build.make(QuickThing::Place("West Place".to_string()))?;
+            let east = build.make(QuickThing::Place("East Place"))?;
+            let west = build.make(QuickThing::Place("West Place"))?;
             let args: ActionArgs = build
                 .route("East", QuickThing::Actual(east.clone()))
                 .route("Wast", QuickThing::Actual(west))
                 .try_into()?;
 
             let action = GoAction {
-                item: Item::Route("east".to_string()),
+                item: Item::Route("east".into()),
             };
             let reply = action.perform(args.clone())?;
             let (_, living, area, _) = args.clone();
@@ -237,13 +237,13 @@ pub mod actions {
         #[test]
         fn it_goes_through_routes_when_one_nearby() -> Result<()> {
             let mut build = BuildActionArgs::new()?;
-            let destination = build.make(QuickThing::Place("Place".to_string()))?;
+            let destination = build.make(QuickThing::Place("Place"))?;
             let args: ActionArgs = build
                 .route("East", QuickThing::Actual(destination.clone()))
                 .try_into()?;
 
             let action = GoAction {
-                item: Item::Route("east".to_string()),
+                item: Item::Route("east".into()),
             };
             let reply = action.perform(args.clone())?;
             let (_, living, area, _) = args.clone();
@@ -267,7 +267,7 @@ pub mod actions {
             let args: ActionArgs = build.plain().try_into()?;
 
             let action = GoAction {
-                item: Item::Route("rake".to_string()),
+                item: Item::Route("rake".into()),
             };
             let reply = action.perform(args.clone())?;
             let (_, _person, _area, _) = args.clone();
@@ -283,11 +283,11 @@ pub mod actions {
         fn it_fails_to_go_non_routes() -> Result<()> {
             let mut build = BuildActionArgs::new()?;
             let args: ActionArgs = build
-                .ground(vec![QuickThing::Object("Cool Rake".to_string())])
+                .ground(vec![QuickThing::Object("Cool Rake")])
                 .try_into()?;
 
             let action = GoAction {
-                item: Item::Route("rake".to_string()),
+                item: Item::Route("rake".into()),
             };
             let reply = action.perform(args.clone())?;
             let (_, _person, _area, _) = args.clone();
@@ -328,7 +328,7 @@ mod parser {
         fn it_parses_go_noun_correctly() {
             let (remaining, actual) = parse("go west").unwrap();
             assert_eq!(remaining, "");
-            assert_eq!(actual, Sentence::Go(Item::Route("west".to_owned())));
+            assert_eq!(actual, Sentence::Go(Item::Route("west".into())));
         }
 
         #[test]

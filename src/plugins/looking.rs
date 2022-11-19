@@ -258,8 +258,8 @@ pub mod actions {
         fn it_looks_in_area_with_items_on_ground() -> Result<()> {
             let mut build = BuildActionArgs::new()?;
             let args: ActionArgs = build
-                .ground(vec![QuickThing::Object("Cool Rake".to_string())])
-                .ground(vec![QuickThing::Object("Boring Shovel".to_string())])
+                .ground(vec![QuickThing::Object("Cool Rake")])
+                .ground(vec![QuickThing::Object("Boring Shovel")])
                 .try_into()?;
 
             let action = LookAction {};
@@ -276,10 +276,10 @@ pub mod actions {
         #[test]
         fn it_looks_in_area_with_items_on_ground_and_a_route() -> Result<()> {
             let mut build = BuildActionArgs::new()?;
-            let destination = build.make(QuickThing::Place("Place".to_string()))?;
+            let destination = build.make(QuickThing::Place("Place"))?;
             let args: ActionArgs = build
-                .ground(vec![QuickThing::Object("Cool Rake".to_string())])
-                .ground(vec![QuickThing::Object("Boring Shovel".to_string())])
+                .ground(vec![QuickThing::Object("Cool Rake")])
+                .ground(vec![QuickThing::Object("Boring Shovel")])
                 .route("East Exit", QuickThing::Actual(destination.clone()))
                 .try_into()?;
 
@@ -297,10 +297,10 @@ pub mod actions {
         #[test]
         fn it_looks_in_area_with_items_on_ground_and_holding_items() -> Result<()> {
             let mut build = BuildActionArgs::new()?;
-            let destination = build.make(QuickThing::Place("Place".to_string()))?;
+            let destination = build.make(QuickThing::Place("Place"))?;
             let args: ActionArgs = build
-                .ground(vec![QuickThing::Object("Boring Shovel".to_string())])
-                .hands(vec![QuickThing::Object("Cool Rake".to_string())])
+                .ground(vec![QuickThing::Object("Boring Shovel")])
+                .hands(vec![QuickThing::Object("Cool Rake")])
                 .route("East Exit", QuickThing::Actual(destination.clone()))
                 .try_into()?;
 
@@ -319,7 +319,7 @@ pub mod actions {
         fn it_fails_to_look_inside_non_containers() -> Result<()> {
             let mut build = BuildActionArgs::new()?;
             let args: ActionArgs = build
-                .hands(vec![QuickThing::Object("Not A Box".to_string())])
+                .hands(vec![QuickThing::Object("Not A Box")])
                 .try_into()?;
 
             let action = LookInsideAction {
@@ -341,7 +341,7 @@ pub mod actions {
             let vessel = build
                 .build()?
                 .named("Vessel")?
-                .holding(&vec![build.make(QuickThing::Object("Key".to_string()))?])?
+                .holding(&vec![build.make(QuickThing::Object("Key"))?])?
                 .into_entity()?;
             let args: ActionArgs = build.hands(vec![QuickThing::Actual(vessel)]).try_into()?;
 
