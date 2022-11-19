@@ -12,6 +12,11 @@ use anyhow::Result;
 use serde::Deserialize;
 use tracing::info;
 
+fn get_deterministic_key(session: &Session) -> Result<EntityKey> {
+    let domain_sequence = session.take_from_sequence()?;
+    Ok(EntityKey::new(&format!("E-{}", domain_sequence)))
+}
+
 pub struct Build {
     infra: Rc<dyn Infrastructure>,
     entity: EntityPtr,
@@ -21,10 +26,8 @@ impl Build {
     pub fn new(session: &Session) -> Result<Self> {
         let infra = session.infra();
         let entity = EntityPtr::new_blank();
-
-        let domain_sequence = session.take_from_sequence()?;
-        let deterministic_key = EntityKey::new(&format!("E-{}", domain_sequence));
         {
+            let deterministic_key = get_deterministic_key(session)?;
             let mut modifying = entity.borrow_mut();
             modifying.set_key(&deterministic_key)?;
         }
