@@ -169,7 +169,6 @@ impl Session {
         let entity_map = EntityMap::new(Rc::clone(&ids));
         let standard_performer = StandardPerformer::new(None);
         let performer = standard_performer.clone() as Rc<dyn Performer>;
-
         let domain_infra = DomainInfrastructure::new(
             Rc::clone(&storage),
             Rc::clone(&entity_map),
@@ -177,10 +176,9 @@ impl Session {
         );
 
         let infra = domain_infra.clone() as Rc<dyn Infrastructure>;
+        standard_performer.initialize(infra.clone());
 
         set_my_session(Some(&infra))?;
-
-        standard_performer.initialize(infra.clone());
 
         storage.begin()?;
 
