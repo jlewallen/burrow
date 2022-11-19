@@ -104,6 +104,7 @@ impl EntityMap {
         Ok(rvals)
     }
 
+    #[allow(dead_code)]
     pub fn foreach_entity<R, T: Fn(&LoadedEntity) -> Result<R>>(&self, each: T) -> Result<Vec<R>> {
         let cache = self.by_key.borrow();
 
