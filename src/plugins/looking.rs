@@ -218,6 +218,48 @@ pub mod actions {
 
             Ok(())
         }
+
+        #[test]
+        fn it_looks_in_area_with_items_on_ground_and_a_route() -> Result<()> {
+            let mut build = BuildActionArgs::new()?;
+            let destination = build.make(QuickThing::Place("Place".to_string()))?;
+            let args: ActionArgs = build
+                .ground(vec![QuickThing::Object("Cool Rake".to_string())])
+                .ground(vec![QuickThing::Object("Boring Shovel".to_string())])
+                .route("East Exit", QuickThing::Actual(destination.clone()))
+                .try_into()?;
+
+            let action = LookAction {};
+            let reply = action.perform(args.clone())?;
+            let (_, _person, _area, _) = args.clone();
+
+            insta::assert_json_snapshot!(reply.to_json()?);
+
+            build.close()?;
+
+            Ok(())
+        }
+
+        #[test]
+        fn it_looks_in_area_with_items_on_ground_and_holding_items() -> Result<()> {
+            let mut build = BuildActionArgs::new()?;
+            let destination = build.make(QuickThing::Place("Place".to_string()))?;
+            let args: ActionArgs = build
+                .ground(vec![QuickThing::Object("Boring Shovel".to_string())])
+                .hands(vec![QuickThing::Object("Cool Rake".to_string())])
+                .route("East Exit", QuickThing::Actual(destination.clone()))
+                .try_into()?;
+
+            let action = LookAction {};
+            let reply = action.perform(args.clone())?;
+            let (_, _person, _area, _) = args.clone();
+
+            insta::assert_json_snapshot!(reply.to_json()?);
+
+            build.close()?;
+
+            Ok(())
+        }
     }
 }
 

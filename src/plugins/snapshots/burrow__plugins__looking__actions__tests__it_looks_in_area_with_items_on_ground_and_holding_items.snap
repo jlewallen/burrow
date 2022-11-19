@@ -1,0 +1,45 @@
+---
+source: src/plugins/looking.rs
+expression: reply.to_json()?
+---
+{
+  "areaObservation": {
+    "area": {
+      "desc": null,
+      "key": "E-4",
+      "name": "Welcome Area"
+    },
+    "carrying": [
+      {
+        "desc": null,
+        "key": "E-3",
+        "name": "Cool Rake"
+      }
+    ],
+    "items": [
+      {
+        "desc": null,
+        "key": "E-5",
+        "name": "Boring Shovel"
+      },
+      {
+        "desc": null,
+        "key": "E-6",
+        "name": "East Exit"
+      }
+    ],
+    "living": [
+      {
+        "desc": null,
+        "key": "E-2",
+        "name": "Living"
+      }
+    ],
+    "person": {
+      "desc": null,
+      "key": "E-2",
+      "name": "Living"
+    },
+    "routes": []
+  }
+}
