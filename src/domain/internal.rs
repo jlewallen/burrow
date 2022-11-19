@@ -29,51 +29,109 @@ pub struct LoadedEntity {
     pub serialized: Option<String>,
 }
 
-pub struct EntityMap {
-    ids: Rc<GlobalIds>,
-    // TODO Join into a single RefCell to gain more atomic updates.
-    by_key: RefCell<HashMap<EntityKey, LoadedEntity>>,
-    by_gid: RefCell<HashMap<EntityGID, EntityKey>>,
+struct Maps {
+    by_key: HashMap<EntityKey, LoadedEntity>,
+    by_gid: HashMap<EntityGID, EntityKey>,
 }
 
-impl EntityMap {
-    pub fn new(ids: Rc<GlobalIds>) -> Rc<Self> {
-        Rc::new(Self {
-            ids,
-            by_key: RefCell::new(HashMap::new()),
-            by_gid: RefCell::new(HashMap::new()),
-        })
+impl Maps {
+    fn new() -> Self {
+        Maps {
+            by_key: HashMap::new(),
+            by_gid: HashMap::new(),
+        }
     }
 
-    pub fn size(&self) -> usize {
-        self.by_key.borrow().len()
+    fn size(&self) -> usize {
+        self.by_key.len()
     }
 
-    pub fn lookup_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
-        let check_existing = self.by_key.borrow();
-        if let Some(e) = check_existing.get(key) {
+    fn lookup_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
+        if let Some(e) = self.by_key.get(key) {
             trace!(%key, "existing");
             return Ok(Some(e.entity.clone()));
+        } else {
+            Ok(None)
         }
-
-        Ok(None)
     }
 
-    pub fn lookup_entity_by_gid(&self, gid: &EntityGID) -> Result<Option<EntityPtr>> {
-        let check_existing = self.by_gid.borrow();
-        if let Some(k) = check_existing.get(gid) {
+    fn lookup_entity_by_gid(&self, gid: &EntityGID) -> Result<Option<EntityPtr>> {
+        if let Some(k) = self.by_gid.get(gid) {
             Ok(self.lookup_entity_by_key(k)?)
         } else {
             Ok(None)
         }
     }
 
-    pub fn add_entity(&self, mut loaded: LoadedEntity) -> Result<()> {
-        let mut key_cache = self.by_key.borrow_mut();
-        let mut gid_cache = self.by_gid.borrow_mut();
-        let key = loaded.key.clone();
+    fn add_entity(&mut self, loaded: LoadedEntity) -> Result<()> {
+        self.by_gid.insert(
+            loaded
+                .gid
+                .clone()
+                .ok_or_else(|| anyhow!("Entity missing GID"))?,
+            loaded.key.clone(),
+        );
+        self.by_key.insert(loaded.key.clone(), loaded);
 
-        let gid = match &loaded.gid {
+        Ok(())
+    }
+
+    fn foreach_entity_mut<R, T: Fn(&mut LoadedEntity) -> Result<R>>(
+        &mut self,
+        each: T,
+    ) -> Result<Vec<R>> {
+        let mut rvals: Vec<R> = Vec::new();
+
+        for (_key, entity) in self.by_key.iter_mut() {
+            rvals.push(each(entity)?);
+        }
+
+        Ok(rvals)
+    }
+
+    fn foreach_entity<R, T: Fn(&LoadedEntity) -> Result<R>>(&self, each: T) -> Result<Vec<R>> {
+        let mut rvals: Vec<R> = Vec::new();
+
+        for (_key, entity) in self.by_key.iter() {
+            rvals.push(each(entity)?);
+        }
+
+        Ok(rvals)
+    }
+}
+
+pub struct EntityMap {
+    ids: Rc<GlobalIds>,
+    maps: RefCell<Maps>,
+}
+
+impl EntityMap {
+    pub fn new(ids: Rc<GlobalIds>) -> Rc<Self> {
+        Rc::new(Self {
+            ids,
+            maps: RefCell::new(Maps::new()),
+        })
+    }
+
+    pub fn size(&self) -> usize {
+        self.maps.borrow().size()
+    }
+
+    pub fn lookup_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
+        self.maps.borrow().lookup_entity_by_key(key)
+    }
+
+    pub fn lookup_entity_by_gid(&self, gid: &EntityGID) -> Result<Option<EntityPtr>> {
+        self.maps.borrow().lookup_entity_by_gid(gid)
+    }
+
+    pub fn add_entity(&self, mut loaded: LoadedEntity) -> Result<()> {
+        self.assign_gid_if_necessary(&mut loaded);
+        self.maps.borrow_mut().add_entity(loaded)
+    }
+
+    fn assign_gid_if_necessary(&self, mut loaded: &mut LoadedEntity) {
+        match &loaded.gid {
             Some(gid) => gid.clone(),
             None => {
                 let gid = self.ids.get();
@@ -82,39 +140,18 @@ impl EntityMap {
                 gid
             }
         };
-
-        gid_cache.insert(gid, key.clone());
-        key_cache.insert(key, loaded);
-
-        Ok(())
     }
 
     pub fn foreach_entity_mut<R, T: Fn(&mut LoadedEntity) -> Result<R>>(
         &self,
         each: T,
     ) -> Result<Vec<R>> {
-        let mut cache = self.by_key.borrow_mut();
-
-        let mut rvals: Vec<R> = Vec::new();
-
-        for (_key, entity) in cache.iter_mut() {
-            rvals.push(each(entity)?);
-        }
-
-        Ok(rvals)
+        self.maps.borrow_mut().foreach_entity_mut(each)
     }
 
     #[allow(dead_code)]
     pub fn foreach_entity<R, T: Fn(&LoadedEntity) -> Result<R>>(&self, each: T) -> Result<Vec<R>> {
-        let cache = self.by_key.borrow();
-
-        let mut rvals: Vec<R> = Vec::new();
-
-        for (_key, entity) in cache.iter() {
-            rvals.push(each(entity)?);
-        }
-
-        Ok(rvals)
+        self.maps.borrow().foreach_entity(each)
     }
 }
 
