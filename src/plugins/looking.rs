@@ -186,8 +186,6 @@ pub mod actions {
 
         #[test]
         fn it_looks_in_empty_area() -> Result<()> {
-            log_test();
-
             let mut build = BuildActionArgs::new()?;
             let args: ActionArgs = build.plain().try_into()?;
 
@@ -253,7 +251,7 @@ pub mod parser {
         #[test]
         fn it_errors_on_unknown_text() {
             let output = parse("hello");
-            assert!(output.is_err()); // TODO Weak assertion.
+            assert!(output.is_err());
         }
     }
 }

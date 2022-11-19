@@ -1,7 +1,4 @@
-use anyhow::Result;
-use serde::Deserialize;
-use std::{rc::Rc, sync::atomic::AtomicU64, sync::atomic::Ordering};
-use tracing::info;
+use std::rc::Rc;
 
 use super::Session;
 use crate::{
@@ -11,22 +8,22 @@ use crate::{
         moving::model::{Exit, Occupyable},
     },
 };
+use anyhow::Result;
+use serde::Deserialize;
+use tracing::info;
 
 pub struct Build {
     infra: Rc<dyn Infrastructure>,
     entity: EntityPtr,
 }
 
-static COUNTER: AtomicU64 = AtomicU64::new(0);
-
 impl Build {
     pub fn new(session: &Session) -> Result<Self> {
         let infra = session.infra();
         let entity = EntityPtr::new_blank();
 
-        let deterministic_key =
-            EntityKey::new(&format!("E-{}", COUNTER.fetch_add(1, Ordering::Relaxed)));
-
+        let domain_sequence = session.take_from_sequence()?;
+        let deterministic_key = EntityKey::new(&format!("E-{}", domain_sequence));
         {
             let mut modifying = entity.borrow_mut();
             modifying.set_key(&deterministic_key)?;

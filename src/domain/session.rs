@@ -1,4 +1,5 @@
 use anyhow::Result;
+use std::sync::atomic::AtomicU64;
 use std::time::Instant;
 use std::{
     cell::RefCell,
@@ -157,6 +158,7 @@ struct ModifiedEntity {
 
 pub struct Session {
     opened: Instant,
+    sequence: Rc<AtomicU64>,
     open: AtomicBool,
     storage: Rc<dyn EntityStorage>,
     entity_map: Rc<EntityMap>,
@@ -166,7 +168,7 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new(storage: Rc<dyn EntityStorage>) -> Result<Self> {
+    pub fn new(storage: Rc<dyn EntityStorage>, sequence: Rc<AtomicU64>) -> Result<Self> {
         info!("session-new");
 
         let opened = Instant::now();
@@ -195,6 +197,7 @@ impl Session {
 
         Ok(Self {
             opened,
+            sequence,
             infra: domain_infra,
             storage,
             entity_map,
@@ -248,6 +251,10 @@ impl Session {
         info!(%elapsed, %nentities, "session:closed");
 
         Ok(())
+    }
+
+    pub fn take_from_sequence(&self) -> Result<u64> {
+        Ok(self.sequence.fetch_add(1, Ordering::Relaxed))
     }
 
     fn check_for_changes(&self, l: &mut LoadedEntity) -> Result<Option<ModifiedEntity>> {
@@ -436,6 +443,7 @@ impl LoadEntities for Session {
 impl SessionTrait for Session {}
 
 pub struct Domain {
+    sequence: Rc<AtomicU64>,
     storage_factory: Box<dyn EntityStorageFactory>,
 }
 
@@ -443,7 +451,10 @@ impl Domain {
     pub fn new(storage_factory: Box<dyn EntityStorageFactory>) -> Self {
         info!("domain-new");
 
-        Domain { storage_factory }
+        Domain {
+            sequence: Rc::new(AtomicU64::new(0)),
+            storage_factory,
+        }
     }
 
     pub fn open_session(&self) -> Result<Session> {
@@ -451,7 +462,7 @@ impl Domain {
 
         let storage = self.storage_factory.create_storage()?;
 
-        Session::new(storage)
+        Session::new(storage, Rc::clone(&self.sequence))
     }
 }
 
