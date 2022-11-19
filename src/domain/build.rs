@@ -1,6 +1,6 @@
 use anyhow::Result;
 use serde::Deserialize;
-use std::rc::Rc;
+use std::{rc::Rc, sync::atomic::AtomicU64, sync::atomic::Ordering};
 use tracing::info;
 
 use super::Session;
@@ -17,10 +17,21 @@ pub struct Build {
     entity: EntityPtr,
 }
 
+static COUNTER: AtomicU64 = AtomicU64::new(0);
+
 impl Build {
     pub fn new(session: &Session) -> Result<Self> {
         let infra = session.infra();
         let entity = EntityPtr::new_blank();
+
+        let deterministic_key =
+            EntityKey::new(&format!("E-{}", COUNTER.fetch_add(1, Ordering::Relaxed)));
+
+        {
+            let mut modifying = entity.borrow_mut();
+            modifying.set_key(&deterministic_key)?;
+        }
+        entity.modified()?;
 
         Ok(Self { infra, entity })
     }

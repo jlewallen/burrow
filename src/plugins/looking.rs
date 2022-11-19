@@ -178,6 +178,49 @@ pub mod actions {
             Sentence::Look => Box::new(LookAction {}),
         }
     }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use crate::domain::{BuildActionArgs, QuickThing};
+
+        #[test]
+        fn it_looks_in_empty_area() -> Result<()> {
+            log_test();
+
+            let mut build = BuildActionArgs::new()?;
+            let args: ActionArgs = build.plain().try_into()?;
+
+            let action = LookAction {};
+            let reply = action.perform(args.clone())?;
+            let (_, _person, _area, _) = args.clone();
+
+            insta::assert_json_snapshot!(reply.to_json()?);
+
+            build.close()?;
+
+            Ok(())
+        }
+
+        #[test]
+        fn it_looks_in_area_with_items_on_ground() -> Result<()> {
+            let mut build = BuildActionArgs::new()?;
+            let args: ActionArgs = build
+                .ground(vec![QuickThing::Object("Cool Rake".to_string())])
+                .ground(vec![QuickThing::Object("Boring Shovel".to_string())])
+                .try_into()?;
+
+            let action = LookAction {};
+            let reply = action.perform(args.clone())?;
+            let (_, _person, _area, _) = args.clone();
+
+            insta::assert_json_snapshot!(reply.to_json()?);
+
+            build.close()?;
+
+            Ok(())
+        }
+    }
 }
 
 pub mod parser {

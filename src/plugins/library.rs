@@ -56,6 +56,7 @@ pub mod model {
 
 pub mod actions {
     pub use crate::kernel::*;
+    pub use crate::plugins::log_test;
     pub use crate::plugins::tools;
     pub use anyhow::Result;
     pub use tracing::*;

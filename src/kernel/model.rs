@@ -54,6 +54,7 @@ impl EntityPtr {
             lazy.name = name;
         }
         lazy.gid = entity.gid();
+        lazy.key = entity.key.clone();
 
         Ok(())
     }

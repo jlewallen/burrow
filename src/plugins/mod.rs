@@ -15,7 +15,7 @@ fn initialize_tests() {
 }
 
 #[allow(dead_code)]
-fn log_test() {
+pub fn log_test() {
     use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
     tracing_subscriber::registry()
