@@ -3,7 +3,7 @@ pub mod model {
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Identifiers {
-        pub gid: i64,
+        pub gid: u64,
         pub acls: Acls,
     }
 

@@ -23,12 +23,14 @@ pub mod parser {
         map(word, |s: &str| Item::Named(s.to_owned()))(i)
     }
 
-    pub fn number(i: &str) -> IResult<&str, i64> {
+    pub fn unsigned_number(i: &str) -> IResult<&str, u64> {
         map_res(recognize(digit1), str::parse)(i)
     }
 
     pub fn gid_reference(i: &str) -> IResult<&str, Item> {
-        map(preceded(tag("#"), number), |n| Item::GID(EntityGID::new(n)))(i)
+        map(preceded(tag("#"), unsigned_number), |n| {
+            Item::GID(EntityGID::new(n))
+        })(i)
     }
 
     pub fn noun_or_specific(i: &str) -> IResult<&str, Item> {

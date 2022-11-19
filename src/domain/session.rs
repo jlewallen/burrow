@@ -150,6 +150,11 @@ impl Performer for StandardPerformer {
     }
 }
 
+struct ModifiedEntity {
+    entity: EntityPtr,
+    persisting: PersistedEntity,
+}
+
 pub struct Session {
     opened: Instant,
     open: AtomicBool,
@@ -245,7 +250,7 @@ impl Session {
         Ok(())
     }
 
-    fn check_for_changes(&self, l: &LoadedEntity) -> Result<Option<PersistedEntity>> {
+    fn check_for_changes(&self, l: &mut LoadedEntity) -> Result<Option<ModifiedEntity>> {
         use treediff::diff;
         use treediff::tools::ChangeType;
         use treediff::tools::Recorder;
@@ -281,59 +286,47 @@ impl Session {
                 }
             }
 
+            // I wish the below synchronization was closer to the code that kept
+            // the fields on Entity synchronized. On the other hand, I'm
+            // thinking we can maybe get rid of them on Entity or change the
+            // consistency guarantees.
+
+            // Assign new global identifier if necessary.
             let gid = match &l.gid {
                 Some(gid) => gid.clone(),
                 None => self.ids.get(),
             };
+            l.gid = Some(gid.clone());
 
-            Ok(Some(PersistedEntity {
-                key: entity.key.to_string(),
-                gid: gid.into(),
-                version: l.version,
-                serialized,
+            // I'm on the look out for a better way to handle this. Part of me
+            // wishes that it was done after the save and that part is at odds
+            // with the part of me that says here is fine because if the save
+            // fails all bets are off anyway. Also the odds of us ever trying to
+            // recover from a failed save are very low. Easier to just repeat.
+            let version_being_saved = l.version;
+            l.version += 1;
+
+            Ok(Some(ModifiedEntity {
+                entity: l.entity.clone(),
+                persisting: PersistedEntity {
+                    key: entity.key.to_string(),
+                    gid: gid.into(),
+                    version: version_being_saved,
+                    serialized,
+                },
             }))
         } else {
             Ok(None)
         }
     }
 
-    fn get_modified_entities(&self) -> Result<Vec<PersistedEntity>> {
-        let saved = self
-            .entity_map
-            .foreach_entity(|l| self.check_for_changes(l))?;
-        Ok(saved.into_iter().flatten().collect::<Vec<_>>())
-    }
-
-    fn should_flush_entities(&self) -> Result<bool> {
-        Ok(!self
-            .get_modified_entities()?
-            .into_iter()
-            .map(|p| self.storage.save(&p))
-            .collect::<Result<Vec<_>>>()?
-            .is_empty())
-    }
-
-    fn maybe_save_gid(&self) -> Result<()> {
-        let world = self
-            .infra
-            .load_entity_by_key(&WORLD_KEY)?
-            .ok_or(DomainError::EntityNotFound)?;
-        let previous_gid =
-            identifiers::model::get_gid(&world)?.unwrap_or_else(|| EntityGID::new(0));
-        let new_gid = self.ids.gid();
-        if previous_gid != new_gid {
-            info!(%previous_gid, %new_gid, "gid:changed");
-            identifiers::model::set_gid(&world, new_gid)?;
-        } else {
-            info!(%previous_gid, "gid:same");
-        }
-        Ok(())
-    }
-
     fn save_entity_changes(&self) -> Result<()> {
-        if self.should_flush_entities()? {
-            self.maybe_save_gid()?;
+        if self.save_modified_entities()? {
+            // We only do this if we actually saved any entities, that's the
+            // only way this can possible change.
+            self.save_modified_ids()?;
 
+            // Check for a force rollback, usually debugging purposes.
             if should_force_rollback() {
                 let _span = span!(Level::DEBUG, "FORCED").entered();
                 self.storage.rollback(true)
@@ -343,6 +336,58 @@ impl Session {
         } else {
             self.storage.rollback(true)
         }
+    }
+
+    fn save_entity(&self, modified: &ModifiedEntity) -> Result<()> {
+        self.storage.save(&modified.persisting)?;
+
+        {
+            // It would be nice if there was a way to do this in a way that didn't
+            // expose these methods. I believe they're a smell, just need a solution.
+            let mut entity = modified.entity.borrow_mut();
+            entity.set_gid(EntityGID::new(modified.persisting.gid))?;
+            entity.set_version(modified.persisting.version + 1)?;
+        }
+
+        Ok(())
+    }
+
+    fn save_modified_entities(&self) -> Result<bool> {
+        Ok(!self
+            .get_modified_entities()?
+            .into_iter()
+            .map(|modified| self.save_entity(&modified))
+            .collect::<Result<Vec<_>>>()?
+            .is_empty())
+    }
+
+    fn get_modified_entities(&self) -> Result<Vec<ModifiedEntity>> {
+        let modified = self
+            .entity_map
+            .foreach_entity_mut(|l| self.check_for_changes(l))?;
+        Ok(modified.into_iter().flatten().collect::<Vec<_>>())
+    }
+
+    fn save_modified_ids(&self) -> Result<()> {
+        // We may need a cleaner or even faster way of doing these loads.
+        let world = self
+            .infra
+            .load_entity_by_key(&WORLD_KEY)?
+            .ok_or(DomainError::EntityNotFound)?;
+
+        // Check to see if the global identifier has changed due to the creation
+        // of a new entity.
+        let previous_gid =
+            identifiers::model::get_gid(&world)?.unwrap_or_else(|| EntityGID::new(0));
+        let new_gid = self.ids.gid();
+        if previous_gid != new_gid {
+            info!(%previous_gid, %new_gid, "gid:changed");
+            identifiers::model::set_gid(&world, new_gid)?;
+        } else {
+            info!(%previous_gid, "gid:same");
+        }
+
+        Ok(())
     }
 }
 

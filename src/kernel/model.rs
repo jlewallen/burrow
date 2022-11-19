@@ -98,10 +98,10 @@ impl Deref for EntityPtr {
 }
 
 #[derive(Clone, Eq, PartialEq, Hash, Serialize, Deserialize, Debug)]
-pub struct EntityGID(i64);
+pub struct EntityGID(u64);
 
 impl EntityGID {
-    pub fn new(i: i64) -> EntityGID {
+    pub fn new(i: u64) -> EntityGID {
         EntityGID(i)
     }
 
@@ -116,13 +116,13 @@ impl Display for EntityGID {
     }
 }
 
-impl From<EntityGID> for i64 {
+impl From<EntityGID> for u64 {
     fn from(gid: EntityGID) -> Self {
         gid.0
     }
 }
 
-impl From<&EntityGID> for i64 {
+impl From<&EntityGID> for u64 {
     fn from(gid: &EntityGID) -> Self {
         gid.0
     }
@@ -227,7 +227,7 @@ pub struct Acls {
 pub struct Version {
     #[serde(rename = "py/object")]
     py_object: String,
-    i: u32,
+    i: u64,
 }
 
 impl Default for Version {
@@ -292,6 +292,19 @@ impl Props {
         }
     }
 
+    // TODO Make the next few functions.
+    fn u64_property(&self, name: &str) -> Option<u64> {
+        if let Some(property) = self.property_named(name) {
+            match &property.value {
+                serde_json::Value::Number(v) => v.as_u64(),
+                _ => None,
+            }
+        } else {
+            None
+        }
+    }
+
+    /*
     fn i64_property(&self, name: &str) -> Option<i64> {
         if let Some(property) = self.property_named(name) {
             match &property.value {
@@ -302,17 +315,27 @@ impl Props {
             None
         }
     }
+    */
 
     fn set_property(&mut self, name: &str, value: serde_json::Value) {
         self.map.insert(name.to_string(), Property::new(value));
     }
 
-    fn set_i64_property(&mut self, name: &str, gid: i64) -> Result<()> {
+    fn set_u64_property(&mut self, name: &str, value: u64) -> Result<()> {
         self.map
-            .insert(name.to_owned(), Property::new(serde_json::to_value(gid)?));
+            .insert(name.to_owned(), Property::new(serde_json::to_value(value)?));
 
         Ok(())
     }
+
+    /*
+    fn set_i64_property(&mut self, name: &str, value: i64) -> Result<()> {
+        self.map
+            .insert(name.to_owned(), Property::new(serde_json::to_value(value)?));
+
+        Ok(())
+    }
+    */
 }
 
 #[derive(Clone, Serialize, Deserialize, Default)]
@@ -368,11 +391,16 @@ impl Entity {
     }
 
     pub fn gid(&self) -> Option<EntityGID> {
-        self.props.i64_property(GID_PROPERTY).map(EntityGID)
+        self.props.u64_property(GID_PROPERTY).map(EntityGID)
     }
 
-    pub fn set_gid(&mut self, gid: i64) -> Result<()> {
-        self.props.set_i64_property(GID_PROPERTY, gid)
+    pub fn set_gid(&mut self, gid: EntityGID) -> Result<()> {
+        self.props.set_u64_property(GID_PROPERTY, gid.into())
+    }
+
+    pub fn set_version(&mut self, version: u64) -> Result<()> {
+        self.version.i = version;
+        Ok(())
     }
 
     pub fn desc(&self) -> Option<String> {

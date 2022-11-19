@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use std::sync::atomic::{AtomicI64, Ordering};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::{cell::RefCell, collections::HashMap, fmt::Debug, rc::Rc};
 use tracing::{debug, info, span, trace, Level};
 
@@ -31,6 +31,7 @@ pub struct LoadedEntity {
 
 pub struct EntityMap {
     ids: Rc<GlobalIds>,
+    // TODO Join into a single RefCell to gain more atomic updates.
     by_key: RefCell<HashMap<EntityKey, LoadedEntity>>,
     by_gid: RefCell<HashMap<EntityGID, EntityKey>>,
 }
@@ -86,6 +87,21 @@ impl EntityMap {
         key_cache.insert(key, loaded);
 
         Ok(())
+    }
+
+    pub fn foreach_entity_mut<R, T: Fn(&mut LoadedEntity) -> Result<R>>(
+        &self,
+        each: T,
+    ) -> Result<Vec<R>> {
+        let mut cache = self.by_key.borrow_mut();
+
+        let mut rvals: Vec<R> = Vec::new();
+
+        for (_key, entity) in cache.iter_mut() {
+            rvals.push(each(entity)?);
+        }
+
+        Ok(rvals)
     }
 
     pub fn foreach_entity<R, T: Fn(&LoadedEntity) -> Result<R>>(&self, each: T) -> Result<Vec<R>> {
@@ -385,13 +401,13 @@ impl EntityRelationshipSet {
 
 #[derive(Debug)]
 pub struct GlobalIds {
-    gid: AtomicI64,
+    gid: AtomicU64,
 }
 
 impl GlobalIds {
     pub fn new() -> Rc<Self> {
         Rc::new(Self {
-            gid: AtomicI64::new(0),
+            gid: AtomicU64::new(0),
         })
     }
 

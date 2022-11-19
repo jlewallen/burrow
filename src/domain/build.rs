@@ -3,7 +3,7 @@ use serde::Deserialize;
 use std::rc::Rc;
 use tracing::info;
 
-use super::{new_infra, Domain, Session};
+use super::Session;
 use crate::{
     kernel::{ActionArgs, EntityKey, EntityPtr, Infrastructure, WORLD_KEY},
     plugins::{
@@ -11,10 +11,6 @@ use crate::{
         moving::model::{Exit, Occupyable},
     },
 };
-
-pub fn get_infra() -> Result<Rc<dyn Infrastructure>> {
-    new_infra()
-}
 
 pub struct Build {
     infra: Rc<dyn Infrastructure>,
@@ -95,7 +91,6 @@ impl Build {
 pub struct BuildActionArgs {
     hands: Vec<QuickThing>,
     ground: Vec<QuickThing>,
-    domain: Domain,
     session: Session,
 }
 
@@ -125,6 +120,14 @@ impl QuickThing {
 }
 
 impl BuildActionArgs {
+    pub fn new_in_session(session: Session) -> Result<Self> {
+        Ok(Self {
+            hands: Vec::new(),
+            ground: Vec::new(),
+            session,
+        })
+    }
+
     pub fn new() -> Result<Self> {
         let storage_factory = crate::storage::sqlite::Factory::new(":memory:")?;
         let domain = crate::domain::Domain::new(storage_factory);
@@ -133,7 +136,6 @@ impl BuildActionArgs {
         Ok(Self {
             hands: Vec::new(),
             ground: Vec::new(),
-            domain,
             session,
         })
     }
@@ -163,8 +165,14 @@ impl BuildActionArgs {
         self
     }
 
-    pub fn session(&self) -> Result<Session> {
-        self.domain.open_session()
+    pub fn flush(&mut self) -> Result<&mut Self> {
+        self.session.flush()?;
+        Ok(self)
+    }
+
+    pub fn close(&mut self) -> Result<&mut Self> {
+        self.session.close()?;
+        Ok(self)
     }
 }
 

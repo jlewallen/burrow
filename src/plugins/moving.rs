@@ -200,6 +200,8 @@ pub mod actions {
 
             assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
+            build.close()?;
+
             Ok(())
         }
 
@@ -227,6 +229,8 @@ pub mod actions {
             assert_ne!(tools::area_of(&living)?.key(), area.key());
             assert_eq!(tools::area_of(&living)?.key(), east.key());
 
+            build.close()?;
+
             Ok(())
         }
 
@@ -252,6 +256,8 @@ pub mod actions {
             assert_ne!(tools::area_of(&living)?.key(), area.key());
             assert_eq!(tools::area_of(&living)?.key(), destination.key());
 
+            build.close()?;
+
             Ok(())
         }
 
@@ -267,6 +273,8 @@ pub mod actions {
             let (_, _person, _area, _) = args.clone();
 
             assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+
+            build.close()?;
 
             Ok(())
         }
@@ -285,6 +293,8 @@ pub mod actions {
             let (_, _person, _area, _) = args.clone();
 
             assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+
+            build.close()?;
 
             Ok(())
         }

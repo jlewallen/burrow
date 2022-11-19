@@ -19,7 +19,7 @@ pub trait EntityStorageFactory {
 #[derive(Debug)]
 pub struct PersistedEntity {
     pub key: String,
-    pub gid: i64,
+    pub gid: u64,
     pub version: u64,
     pub serialized: String,
 }

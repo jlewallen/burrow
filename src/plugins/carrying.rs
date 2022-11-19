@@ -209,6 +209,8 @@ pub mod actions {
             assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
             assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 0);
 
+            build.close()?;
+
             Ok(())
         }
 
@@ -229,6 +231,8 @@ pub mod actions {
 
             assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
             assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 1);
+
+            build.close()?;
 
             Ok(())
         }
@@ -251,6 +255,8 @@ pub mod actions {
             assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
             assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 1);
 
+            build.close()?;
+
             Ok(())
         }
 
@@ -272,6 +278,8 @@ pub mod actions {
             assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
             assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 0);
 
+            build.close()?;
+
             Ok(())
         }
 
@@ -292,6 +300,8 @@ pub mod actions {
 
             assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
             assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 1);
+
+            build.close()?;
 
             Ok(())
         }
