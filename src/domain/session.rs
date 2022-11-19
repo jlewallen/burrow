@@ -152,7 +152,6 @@ impl Performer for StandardPerformer {
 }
 
 struct ModifiedEntity {
-    entity: EntityPtr,
     persisting: PersistedEntity,
 }
 
@@ -262,11 +261,13 @@ impl Session {
         use treediff::tools::ChangeType;
         use treediff::tools::Recorder;
 
-        let entity = l.entity.borrow();
+        let _span = span!(Level::DEBUG, "flushing", key = l.key.to_string()).entered();
 
-        let _span = span!(Level::DEBUG, "flushing", key = entity.key.to_string()).entered();
+        let serialized = {
+            let entity = l.entity.borrow();
 
-        let serialized = serde_json::to_string(&*entity)?;
+            serde_json::to_string(&*entity)?
+        };
 
         trace!("json: {:?}", serialized);
 
@@ -275,6 +276,8 @@ impl Session {
         } else {
             serde_json::Value::Null
         };
+
+        // TODO Can we serialize directly to Value?
         let v2: serde_json::Value = serialized.parse()?;
         let mut d = Recorder::default();
         diff(&v1, &v2, &mut d);
@@ -293,11 +296,6 @@ impl Session {
                 }
             }
 
-            // I wish the below synchronization was closer to the code that kept
-            // the fields on Entity synchronized. On the other hand, I'm
-            // thinking we can maybe get rid of them on Entity or change the
-            // consistency guarantees.
-
             // Assign new global identifier if necessary.
             let gid = match &l.gid {
                 Some(gid) => gid.clone(),
@@ -313,10 +311,20 @@ impl Session {
             let version_being_saved = l.version;
             l.version += 1;
 
+            {
+                // It would be nice if there was a way to do this in a way that
+                // didn't expose these methods. I believe they're a smell, just
+                // need a solution.  It would also be nice if we could do this
+                // and some of the above syncing later, after the save is known
+                // to be good, but I digress.
+                let mut entity = l.entity.borrow_mut();
+                entity.set_gid(gid.clone())?;
+                entity.set_version(l.version)?;
+            }
+
             Ok(Some(ModifiedEntity {
-                entity: l.entity.clone(),
                 persisting: PersistedEntity {
-                    key: entity.key.to_string(),
+                    key: l.key.to_string(),
                     gid: gid.into(),
                     version: version_being_saved,
                     serialized,
@@ -347,14 +355,6 @@ impl Session {
 
     fn save_entity(&self, modified: &ModifiedEntity) -> Result<()> {
         self.storage.save(&modified.persisting)?;
-
-        {
-            // It would be nice if there was a way to do this in a way that didn't
-            // expose these methods. I believe they're a smell, just need a solution.
-            let mut entity = modified.entity.borrow_mut();
-            entity.set_gid(EntityGID::new(modified.persisting.gid))?;
-            entity.set_version(modified.persisting.version + 1)?;
-        }
 
         Ok(())
     }
