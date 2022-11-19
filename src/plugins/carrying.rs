@@ -174,7 +174,6 @@ pub mod actions {
     }
 
     fn evaluate_sentence(s: &Sentence) -> Box<dyn Action> {
-        // TODO Look into this clone, perhaps other ways of cleaning this up.
         match s {
             Sentence::Hold(e) => Box::new(HoldAction { item: e.clone() }),
             Sentence::Drop(e) => Box::new(DropAction {

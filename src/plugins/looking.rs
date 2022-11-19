@@ -227,9 +227,11 @@ pub mod actions {
     }
 
     fn evaluate_sentence(s: &Sentence) -> Box<dyn Action> {
-        match *s {
+        match s {
             Sentence::Look => Box::new(LookAction {}),
-            Sentence::LookInside(_) => todo!(),
+            Sentence::LookInside(target) => Box::new(LookInsideAction {
+                item: target.clone(),
+            }),
         }
     }
 
