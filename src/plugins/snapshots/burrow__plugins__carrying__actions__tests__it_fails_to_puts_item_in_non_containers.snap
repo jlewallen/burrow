@@ -1,0 +1,5 @@
+---
+source: src/plugins/carrying.rs
+expression: reply.to_json()?
+---
+"impossible"

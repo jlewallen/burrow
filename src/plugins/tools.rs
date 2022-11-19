@@ -16,12 +16,11 @@ pub fn move_between(from: &EntityPtr, to: &EntityPtr, item: &EntityPtr) -> Resul
     let mut from = from.borrow_mut();
     let mut from_container = from.scope_mut::<Containing>()?;
 
-    match from_container.stop_carrying(item.clone())? {
+    match from_container.stop_carrying(&item)? {
         DomainOutcome::Ok(events) => {
             {
                 let mut item = item.borrow_mut();
                 let mut item_location = item.scope_mut::<Location>()?;
-                // TODO How to avoid this clone?
                 item_location.container = Some(to.clone().into());
                 item_location.save()?;
             }
@@ -54,7 +53,6 @@ pub fn navigate_between(
             {
                 let mut item = item.borrow_mut();
                 let mut item_location = item.scope_mut::<Occupying>()?;
-                // TODO How to avoid this clone?
                 item_location.area = to.clone().into();
                 item_location.save()?;
             }
@@ -79,11 +77,25 @@ pub fn area_of(living: &EntityPtr) -> Result<EntityPtr> {
 }
 
 pub fn container_of(item: &EntityPtr) -> Result<EntityPtr> {
-    let from = item.borrow();
-    let location = from.scope::<Location>()?;
+    let item = item.borrow();
+    let location = item.scope::<Location>()?;
     if let Some(container) = &location.container {
         Ok(container.into_entity()?)
     } else {
         Err(DomainError::ContainerRequired.into())
     }
+}
+
+pub fn set_container(item: &EntityPtr, container: &EntityPtr) -> Result<()> {
+    let mut item = item.borrow_mut();
+    let mut location = item.scope_mut::<Location>()?;
+    location.container = Some(container.try_into()?);
+    location.save()
+}
+
+pub fn set_occupying(item: &EntityPtr, occupying: &EntityPtr) -> Result<()> {
+    let mut item = item.borrow_mut();
+    let mut location = item.scope_mut::<Occupying>()?;
+    location.area = occupying.try_into()?;
+    location.save()
 }

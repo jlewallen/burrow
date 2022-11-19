@@ -6,6 +6,7 @@ use crate::{
     plugins::{
         carrying::model::Containing,
         moving::model::{Exit, Occupyable},
+        tools,
     },
 };
 use anyhow::Result;
@@ -73,6 +74,7 @@ impl Build {
 
         for living in living {
             occupyable.start_occupying(living)?;
+            tools::set_occupying(&living, &self.entity)?;
         }
 
         occupyable.save()?;
@@ -85,7 +87,8 @@ impl Build {
         let mut container = entity.scope_mut::<Containing>()?;
 
         for item in items {
-            container.start_carrying(item)?;
+            container.start_carrying(&item)?;
+            tools::set_container(&item, &self.entity)?;
         }
 
         container.save()?;

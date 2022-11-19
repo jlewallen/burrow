@@ -70,7 +70,7 @@ pub mod model {
             ))]))
         }
 
-        pub fn stop_carrying(&mut self, item: EntityPtr) -> CarryingResult {
+        pub fn stop_carrying(&mut self, item: &EntityPtr) -> CarryingResult {
             let before = self.holding.len();
             self.holding.retain(|i| i.key != item.borrow().key);
             let after = self.holding.len();
@@ -79,7 +79,7 @@ pub mod model {
             }
 
             Ok(DomainOutcome::Ok(vec![Box::new(
-                CarryingEvent::ItemDropped(item),
+                CarryingEvent::ItemDropped(item.clone()),
             )]))
         }
     }
@@ -169,6 +169,74 @@ pub mod actions {
         }
     }
 
+    #[derive(Debug)]
+    struct PutInsideAction {
+        item: Item,
+        vessel: Item,
+    }
+
+    impl Action for PutInsideAction {
+        fn is_read_only() -> bool {
+            false
+        }
+
+        fn perform(&self, args: ActionArgs) -> ReplyResult {
+            info!("put-inside {:?} -> {:?}", self.item, self.vessel);
+
+            let (_, _user, _area, infra) = args.clone();
+
+            match infra.find_item(args.clone(), &self.item)? {
+                Some(item) => match infra.find_item(args, &self.vessel)? {
+                    Some(vessel) => {
+                        if tools::is_container(&vessel) {
+                            let from = tools::container_of(&item)?;
+                            match tools::move_between(&from, &vessel, &item)? {
+                                DomainOutcome::Ok(_) => Ok(Box::new(SimpleReply::Done)),
+                                DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
+                            }
+                        } else {
+                            Ok(Box::new(SimpleReply::Impossible))
+                        }
+                    }
+                    None => Ok(Box::new(SimpleReply::NotFound)),
+                },
+                None => Ok(Box::new(SimpleReply::NotFound)),
+            }
+        }
+    }
+
+    #[derive(Debug)]
+    struct TakeOutAction {
+        item: Item,
+        vessel: Item,
+    }
+
+    impl Action for TakeOutAction {
+        fn is_read_only() -> bool {
+            false
+        }
+
+        fn perform(&self, args: ActionArgs) -> ReplyResult {
+            info!("take-out {:?} -> {:?}", self.item, self.vessel);
+
+            let (_, _user, _area, infra) = args.clone();
+
+            match infra.find_item(args.clone(), &self.vessel)? {
+                Some(vessel) => {
+                    if tools::is_container(&vessel) {
+                        match infra.find_item(args, &self.item)? {
+                            Some(_item) => todo!(),
+                            None => Ok(Box::new(SimpleReply::NotFound)),
+                        }
+                    } else {
+                        Ok(Box::new(SimpleReply::Impossible))
+                    }
+                }
+                None => Ok(Box::new(SimpleReply::NotFound)),
+            }
+        }
+    }
+
     pub fn evaluate(i: &str) -> EvaluationResult {
         Ok(parse(i).map(|(_, sentence)| evaluate_sentence(&sentence))?)
     }
@@ -178,6 +246,14 @@ pub mod actions {
             Sentence::Hold(e) => Box::new(HoldAction { item: e.clone() }),
             Sentence::Drop(e) => Box::new(DropAction {
                 maybe_item: e.clone(),
+            }),
+            Sentence::PutInside(item, vessel) => Box::new(PutInsideAction {
+                item: item.clone(),
+                vessel: vessel.clone(),
+            }),
+            Sentence::TakeOut(item, vessel) => Box::new(TakeOutAction {
+                item: item.clone(),
+                vessel: vessel.clone(),
             }),
         }
     }
@@ -304,6 +380,97 @@ pub mod actions {
 
             Ok(())
         }
+
+        #[test]
+        fn it_fails_to_puts_item_in_non_containers() -> Result<()> {
+            let mut build = BuildActionArgs::new()?;
+            let vessel = build.build()?.named("Not A Vessel")?.into_entity()?;
+            let args: ActionArgs = build
+                .hands(vec![
+                    QuickThing::Object("key"),
+                    QuickThing::Actual(vessel.clone()),
+                ])
+                .try_into()?;
+
+            let action = PutInsideAction {
+                item: Item::Named("key".to_owned()),
+                vessel: Item::Named("vessel".to_owned()),
+            };
+            let reply = action.perform(args.clone())?;
+            let (_world, person, _area, _) = args;
+
+            insta::assert_json_snapshot!(reply.to_json()?);
+
+            assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 2);
+            assert_eq!(vessel.borrow().scope::<Containing>()?.holding.len(), 0);
+
+            build.close()?;
+
+            Ok(())
+        }
+
+        #[test]
+        fn it_puts_items_in_containers() -> Result<()> {
+            let mut build = BuildActionArgs::new()?;
+            let vessel = build
+                .build()?
+                .named("Vessel")?
+                .holding(&vec![])?
+                .into_entity()?;
+            let args: ActionArgs = build
+                .hands(vec![
+                    QuickThing::Object("key"),
+                    QuickThing::Actual(vessel.clone()),
+                ])
+                .try_into()?;
+
+            let action = PutInsideAction {
+                item: Item::Named("key".to_owned()),
+                vessel: Item::Named("vessel".to_owned()),
+            };
+            let reply = action.perform(args.clone())?;
+            let (_world, person, _area, _) = args;
+
+            insta::assert_json_snapshot!(reply.to_json()?);
+
+            assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
+            assert_eq!(vessel.borrow().scope::<Containing>()?.holding.len(), 1);
+
+            build.close()?;
+
+            Ok(())
+        }
+
+        #[test]
+        #[ignore]
+        fn it_takes_items_out_of_containers() -> Result<()> {
+            let mut build = BuildActionArgs::new()?;
+            let key = build.build()?.named("Key")?.into_entity()?;
+            let vessel = build
+                .build()?
+                .named("Vessel")?
+                .holding(&vec![key])?
+                .into_entity()?;
+            let args: ActionArgs = build
+                .hands(vec![QuickThing::Actual(vessel.clone())])
+                .try_into()?;
+
+            let action = TakeOutAction {
+                item: Item::Named("key".to_owned()),
+                vessel: Item::Named("vessel".to_owned()),
+            };
+            let reply = action.perform(args.clone())?;
+            let (_world, person, _area, _) = args;
+
+            insta::assert_json_snapshot!(reply.to_json()?);
+
+            assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 2);
+            assert_eq!(vessel.borrow().scope::<Containing>()?.holding.len(), 0);
+
+            build.close()?;
+
+            Ok(())
+        }
     }
 }
 
@@ -314,10 +481,12 @@ pub mod parser {
     pub enum Sentence {
         Hold(Item),
         Drop(Option<Item>),
+        PutInside(Item, Item),
+        TakeOut(Item, Item),
     }
 
     pub fn parse(i: &str) -> IResult<&str, Sentence> {
-        alt((hold, drop))(i)
+        alt((hold, drop, put_inside, take_out))(i)
     }
 
     fn hold(i: &str) -> IResult<&str, Sentence> {
@@ -334,6 +503,28 @@ pub mod parser {
         let everything = map(tag("drop"), |_| Sentence::Drop(None));
 
         alt((specific, everything))(i)
+    }
+
+    fn put_inside(i: &str) -> IResult<&str, Sentence> {
+        let item = map(separated_pair(tag("put"), spaces, noun), |(_, target)| {
+            target
+        });
+
+        map(
+            separated_pair(separated_pair(item, spaces, tag("inside of")), spaces, noun),
+            |(item, target)| Sentence::PutInside(item.0, target),
+        )(i)
+    }
+
+    fn take_out(i: &str) -> IResult<&str, Sentence> {
+        let item = map(separated_pair(tag("take"), spaces, noun), |(_, target)| {
+            target
+        });
+
+        map(
+            separated_pair(separated_pair(item, spaces, tag("out of")), spaces, noun),
+            |(item, target)| Sentence::TakeOut(item.0, target),
+        )(i)
     }
 
     #[cfg(test)]
@@ -359,6 +550,26 @@ pub mod parser {
             let (remaining, actual) = parse("drop rake").unwrap();
             assert_eq!(remaining, "");
             assert_eq!(actual, Sentence::Drop(Some(Item::Named("rake".into()))));
+        }
+
+        #[test]
+        fn it_parses_put_x_inside_of_y() {
+            let (remaining, actual) = parse("put key inside of vessel").unwrap();
+            assert_eq!(remaining, "");
+            assert_eq!(
+                actual,
+                Sentence::PutInside(Item::Named("key".into()), Item::Named("vessel".into()))
+            );
+        }
+
+        #[test]
+        fn it_parses_take_x_out_of_y() {
+            let (remaining, actual) = parse("take key out of vessel").unwrap();
+            assert_eq!(remaining, "");
+            assert_eq!(
+                actual,
+                Sentence::TakeOut(Item::Named("key".into()), Item::Named("vessel".into()))
+            );
         }
 
         #[test]

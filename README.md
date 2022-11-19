@@ -6,13 +6,13 @@ https://github.com/jlewallen/dimsum/
 
 ## TODO
 
-1. Custom entity templates. Maybe a default template for rendering any entity's
-description and then some way to override.
+1. Add entity templates, allow for custom ones.
+2. Our tests should render replies.
 
 ### Actions TODO
 
-3. ```put <X> inside of <Y>```
-2. ```look inside <X>```
-4. ```take <X> out of <Y>```
-5. ```lock <X>```
+1. ```look inside <X>```
+2. ```put <X> inside of <Y>```
+3. ```take <X> out of <Y>```
+4. ```lock <X>```
 5. ```unlock <X>```
