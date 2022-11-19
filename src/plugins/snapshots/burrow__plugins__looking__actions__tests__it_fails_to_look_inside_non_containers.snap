@@ -1,0 +1,5 @@
+---
+source: src/plugins/looking.rs
+expression: reply.to_json()?
+---
+"impossible"

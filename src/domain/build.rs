@@ -30,6 +30,7 @@ impl Build {
             let deterministic_key = get_deterministic_key(session)?;
             let mut modifying = entity.borrow_mut();
             modifying.set_key(&deterministic_key)?;
+            modifying.set_desc("Not described.")?;
         }
         entity.modified()?;
 
@@ -149,6 +150,10 @@ impl BuildActionArgs {
             ground: Vec::new(),
             session,
         })
+    }
+
+    pub fn build(&mut self) -> Result<Build> {
+        Build::new(&self.session)
     }
 
     pub fn make(&mut self, q: QuickThing) -> Result<EntityPtr> {

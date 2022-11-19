@@ -8,6 +8,10 @@ use super::{
     moving::model::{Occupyable, Occupying},
 };
 
+pub fn is_container(item: &EntityPtr) -> bool {
+    item.borrow().has_scope::<Containing>()
+}
+
 pub fn move_between(from: &EntityPtr, to: &EntityPtr, item: &EntityPtr) -> Result<DomainOutcome> {
     let mut from = from.borrow_mut();
     let mut from_container = from.scope_mut::<Containing>()?;

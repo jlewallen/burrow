@@ -144,6 +144,43 @@ pub mod model {
         }
     }
 
+    #[derive(Debug, Serialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct InsideObservation {
+        pub vessel: ObservedEntity,
+        pub items: Vec<ObservedEntity>,
+    }
+
+    impl InsideObservation {
+        pub fn new(_user: &EntityPtr, vessel: &EntityPtr) -> Result<Self> {
+            let mut items = vec![];
+            if let Ok(containing) = vessel.borrow().scope::<Containing>() {
+                for entity in &containing.holding {
+                    items.push(entity.try_into()?);
+                }
+            }
+
+            Ok(InsideObservation {
+                vessel: vessel.borrow().deref().into(),
+                items,
+            })
+        }
+    }
+
+    impl Reply for InsideObservation {
+        fn to_markdown(&self) -> Result<Markdown> {
+            let mut md = Markdown::new(Vec::new());
+            md.write("")?;
+            Ok(md)
+        }
+    }
+
+    impl ToJson for InsideObservation {
+        fn to_json(&self) -> Result<Value> {
+            Ok(json!({ "insideObservation": serde_json::to_value(self)? }))
+        }
+    }
+
     pub fn discover(_source: &Entity, _entity_keys: &mut [EntityKey]) -> Result<()> {
         Ok(())
     }
@@ -169,6 +206,34 @@ pub mod actions {
         }
     }
 
+    #[derive(Debug)]
+    pub struct LookInsideAction {
+        item: Item,
+    }
+
+    impl Action for LookInsideAction {
+        fn is_read_only() -> bool {
+            true
+        }
+
+        fn perform(&self, args: ActionArgs) -> ReplyResult {
+            info!("look inside!");
+
+            let (_, user, _area, infra) = args.clone();
+
+            match infra.find_item(args, &self.item)? {
+                Some(target) => {
+                    if tools::is_container(&target) {
+                        Ok(Box::new(InsideObservation::new(&user, &target)?))
+                    } else {
+                        Ok(Box::new(SimpleReply::Impossible))
+                    }
+                }
+                None => Ok(Box::new(SimpleReply::NotFound)),
+            }
+        }
+    }
+
     pub fn evaluate(i: &str) -> EvaluationResult {
         Ok(parse(i).map(|(_, sentence)| evaluate_sentence(&sentence))?)
     }
@@ -176,6 +241,7 @@ pub mod actions {
     fn evaluate_sentence(s: &Sentence) -> Box<dyn Action> {
         match *s {
             Sentence::Look => Box::new(LookAction {}),
+            Sentence::LookInside(_) => todo!(),
         }
     }
 
@@ -260,15 +326,60 @@ pub mod actions {
 
             Ok(())
         }
+
+        #[test]
+        fn it_fails_to_look_inside_non_containers() -> Result<()> {
+            let mut build = BuildActionArgs::new()?;
+            let args: ActionArgs = build
+                .hands(vec![QuickThing::Object("Not A Box".to_string())])
+                .try_into()?;
+
+            let action = LookInsideAction {
+                item: Item::Named("box".to_owned()),
+            };
+            let reply = action.perform(args.clone())?;
+            let (_, _person, _area, _) = args.clone();
+
+            insta::assert_json_snapshot!(reply.to_json()?);
+
+            build.close()?;
+
+            Ok(())
+        }
+
+        #[test]
+        fn it_looks_inside_containers() -> Result<()> {
+            let mut build = BuildActionArgs::new()?;
+            let vessel = build
+                .build()?
+                .named("Vessel")?
+                .holding(&vec![build.make(QuickThing::Object("Key".to_string()))?])?
+                .into_entity()?;
+            let args: ActionArgs = build.hands(vec![QuickThing::Actual(vessel)]).try_into()?;
+
+            let action = LookInsideAction {
+                item: Item::Named("vessel".to_owned()),
+            };
+            let reply = action.perform(args.clone())?;
+            let (_, _person, _area, _) = args.clone();
+
+            insta::assert_json_snapshot!(reply.to_json()?);
+
+            build.close()?;
+
+            Ok(())
+        }
     }
 }
 
 pub mod parser {
     use crate::plugins::library::parser::*;
 
+    // TODO Underneath, Above, Behond, etc... 'Physically Relative'
     #[derive(Debug, Clone, Eq, PartialEq)]
     pub enum Sentence {
         Look,
+        LookInside(Item),
     }
 
     pub fn parse(i: &str) -> IResult<&str, Sentence> {
@@ -276,7 +387,18 @@ pub mod parser {
     }
 
     fn look(i: &str) -> IResult<&str, Sentence> {
-        map(tag("look"), |_| Sentence::Look)(i)
+        let inside = map(
+            separated_pair(
+                separated_pair(tag("look"), spaces, tag("inside")),
+                spaces,
+                noun,
+            ),
+            |(_, nearby)| Sentence::LookInside(nearby),
+        );
+
+        let area = map(tag("look"), |_| Sentence::Look);
+
+        alt((inside, area))(i)
     }
 
     #[cfg(test)]
@@ -288,6 +410,13 @@ pub mod parser {
             let (remaining, actual) = parse("look").unwrap();
             assert_eq!(remaining, "");
             assert_eq!(actual, Sentence::Look)
+        }
+
+        #[test]
+        fn it_parses_look_inside_correctly() {
+            let (remaining, actual) = parse("look inside box").unwrap();
+            assert_eq!(remaining, "");
+            assert_eq!(actual, Sentence::LookInside(Item::Named("box".to_owned())))
         }
 
         #[test]

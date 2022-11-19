@@ -26,6 +26,7 @@ pub enum SimpleReply {
     Done,
     NotFound,
     What,
+    Impossible,
 }
 
 impl Reply for SimpleReply {

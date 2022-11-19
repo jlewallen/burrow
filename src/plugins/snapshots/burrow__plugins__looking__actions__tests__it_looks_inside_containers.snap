@@ -1,0 +1,20 @@
+---
+source: src/plugins/looking.rs
+expression: reply.to_json()?
+---
+{
+  "insideObservation": {
+    "items": [
+      {
+        "desc": "Not described.",
+        "key": "E-1",
+        "name": "Key"
+      }
+    ],
+    "vessel": {
+      "desc": "Not described.",
+      "key": "E-0",
+      "name": "Vessel"
+    }
+  }
+}

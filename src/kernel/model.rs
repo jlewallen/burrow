@@ -173,6 +173,8 @@ pub enum Item {
     Named(String),
     Route(String),
     GID(EntityGID),
+    // ImplicitlyInHands,
+    // ImplicitlyOnGround,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -406,6 +408,13 @@ impl Entity {
 
     pub fn desc(&self) -> Option<String> {
         self.props.string_property(DESC_PROPERTY)
+    }
+
+    pub fn set_desc(&mut self, value: &str) -> Result<()> {
+        let value: serde_json::Value = value.into();
+        self.props.set_property(DESC_PROPERTY, value);
+
+        Ok(())
     }
 
     pub fn has_scope<T: Scope>(&self) -> bool {
