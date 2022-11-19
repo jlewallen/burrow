@@ -5,13 +5,7 @@ pub mod model {
     #[serde(rename_all = "camelCase")]
     struct EditorReply {}
 
-    impl Reply for EditorReply {
-        fn to_markdown(&self) -> Result<Markdown> {
-            let mut md = Markdown::new(Vec::new());
-            md.write("")?;
-            Ok(md)
-        }
-    }
+    impl Reply for EditorReply {}
 
     impl ToJson for EditorReply {
         fn to_json(&self) -> Result<Value> {

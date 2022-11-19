@@ -130,13 +130,7 @@ pub mod model {
         }
     }
 
-    impl Reply for AreaObservation {
-        fn to_markdown(&self) -> Result<Markdown> {
-            let mut md = Markdown::new(Vec::new());
-            md.write("")?;
-            Ok(md)
-        }
-    }
+    impl Reply for AreaObservation {}
 
     impl ToJson for AreaObservation {
         fn to_json(&self) -> Result<Value> {
@@ -167,13 +161,7 @@ pub mod model {
         }
     }
 
-    impl Reply for InsideObservation {
-        fn to_markdown(&self) -> Result<Markdown> {
-            let mut md = Markdown::new(Vec::new());
-            md.write("")?;
-            Ok(md)
-        }
-    }
+    impl Reply for InsideObservation {}
 
     impl ToJson for InsideObservation {
         fn to_json(&self) -> Result<Value> {
