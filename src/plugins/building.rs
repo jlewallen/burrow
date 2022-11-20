@@ -87,6 +87,31 @@ pub mod actions {
         }
     }
 
+    #[derive(Debug)]
+    struct MakeItemAction {
+        name: String,
+    }
+
+    impl Action for MakeItemAction {
+        fn is_read_only() -> bool {
+            false
+        }
+
+        fn perform(&self, args: ActionArgs) -> ReplyResult {
+            info!("make-item {:?}", self.name);
+
+            let (_, user, _area, infra) = args.clone();
+
+            let new_item = EntityPtr::new_named(&self.name, &self.name)?;
+
+            infra.add_entities(&vec![&new_item])?;
+
+            tools::set_container(&user, &vec![new_item.clone()])?;
+
+            Ok(Box::new(SimpleReply::Done))
+        }
+    }
+
     pub fn evaluate(i: &str) -> EvaluationResult {
         Ok(parse(i).map(|(_, sentence)| evaluate_sentence(&sentence))?)
     }
@@ -94,7 +119,14 @@ pub mod actions {
     fn evaluate_sentence(s: &Sentence) -> Box<dyn Action> {
         match s {
             Sentence::Edit(e) => Box::new(EditAction { item: e.clone() }),
-            Sentence::BidirectionalDig(_, _, _) => todo!(),
+            Sentence::BidirectionalDig(outgoing, returning, new_area) => {
+                Box::new(BidirectionalDigAction {
+                    outgoing: outgoing.clone(),
+                    returning: returning.clone(),
+                    new_area: new_area.clone(),
+                })
+            }
+            Sentence::MakeItem(name) => Box::new(MakeItemAction { name: name.clone() }),
         }
     }
 
@@ -103,7 +135,7 @@ pub mod actions {
         use super::*;
         use crate::{
             domain::{BuildActionArgs, QuickThing},
-            plugins::looking::model::AreaObservation,
+            plugins::{carrying::model::Containing, looking::model::AreaObservation},
         };
 
         #[test]
@@ -199,6 +231,24 @@ pub mod actions {
 
             Ok(())
         }
+
+        #[test]
+        fn it_makes_items() -> Result<()> {
+            let mut build = BuildActionArgs::new()?;
+            let args: ActionArgs = build.plain().try_into()?;
+
+            let action = MakeItemAction {
+                name: "Blue Rake".into(),
+            };
+            let reply = action.perform(args.clone())?;
+            let (_, living, _area, _infra) = args.clone();
+
+            assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+
+            assert_eq!(living.borrow().scope::<Containing>()?.holding.len(), 1);
+
+            Ok(())
+        }
     }
 }
 
@@ -209,10 +259,21 @@ pub mod parser {
     pub enum Sentence {
         Edit(Item),
         BidirectionalDig(String, String, String),
+        MakeItem(String),
     }
 
     pub fn parse(i: &str) -> IResult<&str, Sentence> {
-        alt((edit_item, dig_bidirectional_routes_to_new_area))(i)
+        alt((edit_item, make_item, dig_bidirectional_routes_to_new_area))(i)
+    }
+
+    fn make_item(i: &str) -> IResult<&str, Sentence> {
+        map(
+            tuple((preceded(
+                pair(separated_pair(tag("make"), spaces, tag("item")), spaces),
+                string_literal,
+            ),)),
+            |name| Sentence::MakeItem(name.0.into()),
+        )(i)
     }
 
     fn dig_bidirectional_routes_to_new_area(i: &str) -> IResult<&str, Sentence> {
@@ -263,6 +324,12 @@ pub mod parser {
         fn it_parses_digging_north_south_to_new_area() {
             let (remaining, _actual) =
                 parse(r#"dig "NORTH EXIT" to "SOUTH EXIT" for "A NEW AREA""#).unwrap();
+            assert_eq!(remaining, "");
+        }
+
+        #[test]
+        fn it_parses_make_item() {
+            let (remaining, _actual) = parse(r#"make item "COOL RAKE""#).unwrap();
             assert_eq!(remaining, "");
         }
 

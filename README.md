@@ -21,9 +21,21 @@ https://github.com/jlewallen/dimsum/
 4. Domain events.
 5. Improve test name language. Need a more consistent style.
 
+### Musings
+
+I'm on the lookout for a better way to organize the mutation of entities and
+scopes. There are a few things I'd like to get.
+
+Should be easy to group multiple mutations/operations into one "batch", so that
+JSON serializations are minimized. Maybe we should defer final "save"
+serializations to the actual entity save?
+
+I had a half formed idea in my head that involved defining modifications on a
+trait that pulls the borrows out of the user code.
+
 ### Actions TODO
 
-```dig "NORTH EXIT" to "SOUTH EXIT" for "A NEW AREA"```
+~~~```dig "NORTH EXIT" to "SOUTH EXIT" for "A NEW AREA"```~~~
 
 ```describe (HERE|MYSELF|#held_or_other) AS "..text..."```
 
@@ -34,6 +46,8 @@ https://github.com/jlewallen/dimsum/
 ~~~```put <X> inside of <Y>```~~~
 
 ~~~```take <X> out of <Y>```~~~
+
+```make item "A KEY"```
 
 ```lock <X>```
 
