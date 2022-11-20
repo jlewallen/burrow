@@ -14,6 +14,10 @@ use crate::plugins::{identifiers, moving::model::Occupying, users::model::Userna
 use crate::storage::{EntityStorage, EntityStorageFactory, PersistedEntity};
 use crate::{kernel::*, plugins::eval};
 
+pub trait KeySequence {
+    fn new_key(&self) -> EntityKey;
+}
+
 pub struct StandardPerformer {
     infra: RefCell<Option<Rc<dyn Infrastructure>>>,
     discoverying: bool,
@@ -157,7 +161,6 @@ struct ModifiedEntity {
 
 pub struct Session {
     opened: Instant,
-    sequence: Rc<AtomicU64>,
     open: AtomicBool,
     storage: Rc<dyn EntityStorage>,
     entity_map: Rc<EntityMap>,
@@ -167,7 +170,7 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new(storage: Rc<dyn EntityStorage>, sequence: Rc<AtomicU64>) -> Result<Self> {
+    pub fn new(storage: Rc<dyn EntityStorage>, keys: &Rc<dyn KeySequence>) -> Result<Self> {
         info!("session-new");
 
         let opened = Instant::now();
@@ -179,6 +182,7 @@ impl Session {
             Rc::clone(&storage),
             Rc::clone(&entity_map),
             Rc::clone(&performer),
+            Rc::clone(&keys),
         );
 
         let infra = domain_infra.clone() as Rc<dyn Infrastructure>;
@@ -196,7 +200,6 @@ impl Session {
 
         Ok(Self {
             opened,
-            sequence,
             infra: domain_infra,
             storage,
             entity_map,
@@ -250,10 +253,6 @@ impl Session {
         info!(%elapsed, %nentities, "session:closed");
 
         Ok(())
-    }
-
-    pub fn take_from_sequence(&self) -> Result<u64> {
-        Ok(self.sequence.fetch_add(1, Ordering::Relaxed))
     }
 
     fn check_for_changes(&self, l: &mut LoadedEntity) -> Result<Option<ModifiedEntity>> {
@@ -424,6 +423,10 @@ impl Infrastructure for Session {
         self.infra.add_entity(entity)
     }
 
+    fn new_key(&self) -> EntityKey {
+        self.infra.new_key()
+    }
+
     fn chain(&self, living: &EntityPtr, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
         self.infra.chain(living, action)
     }
@@ -442,17 +445,23 @@ impl LoadEntities for Session {
 impl SessionTrait for Session {}
 
 pub struct Domain {
-    sequence: Rc<AtomicU64>,
     storage_factory: Box<dyn EntityStorageFactory>,
+    keys: Rc<dyn KeySequence>,
 }
 
 impl Domain {
-    pub fn new(storage_factory: Box<dyn EntityStorageFactory>) -> Self {
+    pub fn new(storage_factory: Box<dyn EntityStorageFactory>, deterministic_keys: bool) -> Self {
         info!("domain-new");
 
         Domain {
-            sequence: Rc::new(AtomicU64::new(0)),
             storage_factory,
+            keys: if deterministic_keys {
+                Rc::new(DeterministicKeys {
+                    sequence: AtomicU64::new(0),
+                })
+            } else {
+                Rc::new(RandomKeys {})
+            },
         }
     }
 
@@ -461,10 +470,31 @@ impl Domain {
 
         let storage = self.storage_factory.create_storage()?;
 
-        Session::new(storage, Rc::clone(&self.sequence))
+        Session::new(storage, &self.keys)
     }
 }
 
 fn should_force_rollback() -> bool {
     env::var("FORCE_ROLLBACK").is_ok()
+}
+
+struct DeterministicKeys {
+    sequence: AtomicU64,
+}
+
+impl KeySequence for DeterministicKeys {
+    fn new_key(&self) -> EntityKey {
+        EntityKey::new(&format!(
+            "E-{}",
+            self.sequence.fetch_add(1, Ordering::Relaxed)
+        ))
+    }
+}
+
+struct RandomKeys {}
+
+impl KeySequence for RandomKeys {
+    fn new_key(&self) -> EntityKey {
+        EntityKey::default()
+    }
 }

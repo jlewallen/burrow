@@ -6,13 +6,13 @@ expression: reply.to_json()?
   "insideObservation": {
     "items": [
       {
-        "desc": "Not described.",
+        "desc": null,
         "key": "E-1",
         "name": "Key"
       }
     ],
     "vessel": {
-      "desc": "Not described.",
+      "desc": null,
       "key": "E-0",
       "name": "Vessel"
     }

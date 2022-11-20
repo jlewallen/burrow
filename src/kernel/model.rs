@@ -30,7 +30,8 @@ pub struct EntityPtr {
 
 impl EntityPtr {
     pub fn new_blank() -> Self {
-        let brand_new = Rc::new(RefCell::new(Entity::default()));
+        let session = get_my_session().expect("No session in new_blank_entity!");
+        let brand_new = Rc::new(RefCell::new(Entity::new_with_key(session.new_key())));
         let lazy = LazyLoadedEntity::new_from_raw(&brand_new);
 
         Self {
@@ -40,18 +41,15 @@ impl EntityPtr {
     }
 
     pub fn new_named(name: &str, desc: &str) -> Result<Self> {
-        let brand_new = Rc::new(RefCell::new(Entity::default()));
+        let brand_new = Self::new_blank();
+
         {
             let mut editing = brand_new.borrow_mut();
             editing.set_name(name)?;
             editing.set_desc(desc)?;
         }
-        let lazy = LazyLoadedEntity::new_from_raw(&brand_new);
 
-        Ok(Self {
-            entity: brand_new,
-            lazy: lazy.into(),
-        })
+        Ok(brand_new)
     }
 
     pub fn downgrade(&self) -> Weak<RefCell<Entity>> {
@@ -391,6 +389,23 @@ impl Needs<std::rc::Rc<dyn Infrastructure>> for Entity {
 }
 
 impl Entity {
+    pub fn new_with_key(key: EntityKey) -> Self {
+        // I know I can create another using Default::default and then merge, is there a
+        // faster way that doesn't need the intermediate?
+        Self {
+            key,
+            py_object: Default::default(),
+            version: Default::default(),
+            parent: Default::default(),
+            creator: Default::default(),
+            identity: Default::default(),
+            class: Default::default(),
+            acls: Default::default(),
+            props: Default::default(),
+            scopes: Default::default(),
+        }
+    }
+
     pub fn set_key(&mut self, key: &EntityKey) -> Result<()> {
         self.key = key.clone();
 

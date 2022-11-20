@@ -85,6 +85,8 @@ pub trait Infrastructure: LoadEntities + FindsItems {
         Ok(())
     }
 
+    fn new_key(&self) -> EntityKey;
+
     fn chain(&self, living: &EntityPtr, action: Box<dyn Action>) -> Result<Box<dyn Reply>>;
 }
 

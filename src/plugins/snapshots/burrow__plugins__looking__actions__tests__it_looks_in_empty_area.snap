@@ -5,7 +5,7 @@ expression: reply.to_json()?
 {
   "areaObservation": {
     "area": {
-      "desc": "Not described.",
+      "desc": null,
       "key": "E-2",
       "name": "Welcome Area"
     },
@@ -13,13 +13,13 @@ expression: reply.to_json()?
     "items": [],
     "living": [
       {
-        "desc": "Not described.",
+        "desc": null,
         "key": "E-1",
         "name": "Living"
       }
     ],
     "person": {
-      "desc": "Not described.",
+      "desc": null,
       "key": "E-1",
       "name": "Living"
     },

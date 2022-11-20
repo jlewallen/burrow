@@ -9,11 +9,6 @@ use anyhow::Result;
 use serde::Deserialize;
 use tracing::*;
 
-fn get_deterministic_key(session: &Session) -> Result<EntityKey> {
-    let domain_sequence = session.take_from_sequence()?;
-    Ok(EntityKey::new(&format!("E-{}", domain_sequence)))
-}
-
 pub struct Build {
     infra: Rc<dyn Infrastructure>,
     entity: EntityPtr,
@@ -23,13 +18,6 @@ impl Build {
     pub fn new(session: &Session) -> Result<Self> {
         let infra = session.infra();
         let entity = EntityPtr::new_blank();
-        {
-            let deterministic_key = get_deterministic_key(session)?;
-            let mut modifying = entity.borrow_mut();
-            modifying.set_key(&deterministic_key)?;
-            modifying.set_desc("Not described.")?;
-        }
-        entity.modified()?;
 
         Ok(Self { infra, entity })
     }
@@ -125,7 +113,7 @@ impl BuildActionArgs {
 
     pub fn new() -> Result<Self> {
         let storage_factory = crate::storage::sqlite::Factory::new(":memory:")?;
-        let domain = crate::domain::Domain::new(storage_factory);
+        let domain = crate::domain::Domain::new(storage_factory, true);
         let session = domain.open_session()?;
 
         Ok(Self {

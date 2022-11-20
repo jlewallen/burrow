@@ -73,7 +73,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             let renderer = Renderer::new()?;
             let storage_factory = storage::sqlite::Factory::new("world.sqlite3")?;
-            let domain = domain::Domain::new(storage_factory);
+            let domain = domain::Domain::new(storage_factory, false);
 
             {
                 let session = domain.open_session()?;

@@ -17,7 +17,7 @@ pub struct Command {
 pub async fn execute_command(cmd: &Command) -> Result<()> {
     let renderer = Renderer::new()?;
     let storage_factory = storage::sqlite::Factory::new("world.sqlite3")?;
-    let domain = domain::Domain::new(storage_factory);
+    let domain = domain::Domain::new(storage_factory, false);
 
     let mut rl = Editor::<()>::new()?;
     if rl.load_history("history.txt").is_err() {
