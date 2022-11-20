@@ -78,6 +78,13 @@ pub trait Infrastructure: LoadEntities + FindsItems {
 
     fn add_entity(&self, entity: &EntityPtr) -> Result<()>;
 
+    fn add_entities(&self, entities: &Vec<&EntityPtr>) -> Result<()> {
+        for entity in entities {
+            self.add_entity(entity)?;
+        }
+        Ok(())
+    }
+
     fn chain(&self, living: &EntityPtr, action: Box<dyn Action>) -> Result<Box<dyn Reply>>;
 }
 

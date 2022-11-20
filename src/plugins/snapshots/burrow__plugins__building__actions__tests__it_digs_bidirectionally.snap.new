@@ -1,0 +1,35 @@
+---
+source: src/plugins/building.rs
+assertion_line: 186
+expression: reply.to_json()?
+---
+{
+  "areaObservation": {
+    "area": {
+      "desc": "New Area",
+      "key": "IwewakjJXMg9b5Jo4nT2t",
+      "name": "New Area"
+    },
+    "carrying": [],
+    "items": [
+      {
+        "desc": "South Exit",
+        "key": "OWm8HmeTWAVZEDAsZHI84",
+        "name": "South Exit"
+      }
+    ],
+    "living": [
+      {
+        "desc": "Not described.",
+        "key": "E-1",
+        "name": "Living"
+      }
+    ],
+    "person": {
+      "desc": "Not described.",
+      "key": "E-1",
+      "name": "Living"
+    },
+    "routes": []
+  }
+}

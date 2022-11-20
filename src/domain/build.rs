@@ -3,11 +3,7 @@ use std::rc::Rc;
 use super::Session;
 use crate::{
     kernel::{ActionArgs, EntityKey, EntityPtr, Infrastructure, WORLD_KEY},
-    plugins::{
-        carrying::model::Containing,
-        moving::model::{Exit, Occupyable},
-        tools,
-    },
+    plugins::{moving::model::Exit, tools},
 };
 use anyhow::Result;
 use serde::Deserialize;
@@ -69,29 +65,13 @@ impl Build {
     }
 
     pub fn occupying(&self, living: &Vec<EntityPtr>) -> Result<&Self> {
-        let mut entity = self.entity.borrow_mut();
-        let mut occupyable = entity.scope_mut::<Occupyable>()?;
-
-        for living in living {
-            occupyable.start_occupying(living)?;
-            tools::set_occupying(&living, &self.entity)?;
-        }
-
-        occupyable.save()?;
+        tools::set_occupying(&self.entity, living)?;
 
         Ok(self)
     }
 
     pub fn holding(&self, items: &Vec<EntityPtr>) -> Result<&Self> {
-        let mut entity = self.entity.borrow_mut();
-        let mut container = entity.scope_mut::<Containing>()?;
-
-        for item in items {
-            container.start_carrying(&item)?;
-            tools::set_container(&item, &self.entity)?;
-        }
-
-        container.save()?;
+        tools::set_container(&self.entity, items)?;
 
         Ok(self)
     }

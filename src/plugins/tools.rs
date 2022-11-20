@@ -1,12 +1,13 @@
-use crate::kernel::model::*;
-use crate::kernel::{DomainOutcome, EntityPtr};
 use anyhow::Result;
 use tracing::info;
 
+use super::moving::model::Exit;
 use super::{
     carrying::model::{Containing, Location},
     moving::model::{Occupyable, Occupying},
 };
+use crate::kernel::model::*;
+use crate::kernel::{DomainOutcome, EntityPtr};
 
 pub fn is_container(item: &EntityPtr) -> bool {
     item.borrow().has_scope::<Containing>()
@@ -70,12 +71,6 @@ pub fn navigate_between(
     }
 }
 
-pub fn area_of(living: &EntityPtr) -> Result<EntityPtr> {
-    let from = living.borrow();
-    let occupying = from.scope::<Occupying>()?;
-    Ok(occupying.area.into_entity()?)
-}
-
 pub fn container_of(item: &EntityPtr) -> Result<EntityPtr> {
     let item = item.borrow();
     let location = item.scope::<Location>()?;
@@ -86,18 +81,36 @@ pub fn container_of(item: &EntityPtr) -> Result<EntityPtr> {
     }
 }
 
-pub fn set_container(item: &EntityPtr, container: &EntityPtr) -> Result<()> {
-    let mut item = item.borrow_mut();
-    let mut location = item.scope_mut::<Location>()?;
-    location.container = Some(container.try_into()?);
-    location.save()
+pub fn area_of(living: &EntityPtr) -> Result<EntityPtr> {
+    let from = living.borrow();
+    let occupying = from.scope::<Occupying>()?;
+    Ok(occupying.area.into_entity()?)
 }
 
-pub fn set_occupying(item: &EntityPtr, occupying: &EntityPtr) -> Result<()> {
-    let mut item = item.borrow_mut();
-    let mut location = item.scope_mut::<Occupying>()?;
-    location.area = occupying.try_into()?;
-    location.save()
+pub fn set_container(container: &EntityPtr, items: &Vec<EntityPtr>) -> Result<()> {
+    let mut editing = container.borrow_mut();
+    let mut containing = editing.scope_mut::<Containing>()?;
+    for item in items {
+        containing.start_carrying(&item)?;
+        let mut item = item.borrow_mut();
+        let mut location = item.scope_mut::<Location>()?;
+        location.container = Some(container.try_into()?);
+        location.save()?;
+    }
+    containing.save()
+}
+
+pub fn set_occupying(area: &EntityPtr, living: &Vec<EntityPtr>) -> Result<()> {
+    let mut editing = area.borrow_mut();
+    let mut occupyable = editing.scope_mut::<Occupyable>()?;
+    for item in living {
+        occupyable.start_occupying(&item)?;
+        let mut item = item.borrow_mut();
+        let mut occupying = item.scope_mut::<Occupying>()?;
+        occupying.area = area.try_into()?;
+        occupying.save()?;
+    }
+    occupyable.save()
 }
 
 pub fn contained_by(container: &EntityPtr) -> Result<Vec<EntityPtr>> {
@@ -109,4 +122,11 @@ pub fn contained_by(container: &EntityPtr) -> Result<Vec<EntityPtr>> {
         }
     }
     Ok(entities)
+}
+
+pub fn leads_to<'a>(route: &'a EntityPtr, area: &'a EntityPtr) -> Result<&'a EntityPtr> {
+    let mut building = route.borrow_mut();
+    let mut exit = building.scope_mut::<Exit>()?;
+    exit.area = area.into();
+    Ok(route)
 }

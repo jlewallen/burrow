@@ -19,11 +19,22 @@ https://github.com/jlewallen/dimsum/
 ```
 
 4. Domain events.
+5. Improve test name language. Need a more consistent style.
 
 ### Actions TODO
 
-1. ```look inside <X>```
-2. ```put <X> inside of <Y>```
-3. ```take <X> out of <Y>```
-4. ```lock <X>```
-5. ```unlock <X>```
+```dig "NORTH EXIT" to "SOUTH EXIT" for "A NEW AREA"```
+
+```describe (HERE|MYSELF|#held_or_other) AS "..text..."```
+
+```rename (HERE|MYSELF|#held_or_other) AS "..text..."```
+
+~~~```look inside <X>```~~~
+
+~~~```put <X> inside of <Y>```~~~
+
+~~~```take <X> out of <Y>```~~~
+
+```lock <X>```
+
+```unlock <X>```

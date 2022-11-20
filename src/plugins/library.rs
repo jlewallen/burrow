@@ -1,12 +1,13 @@
 pub mod parser {
     pub use crate::kernel::*;
+    use nom::sequence::delimited;
     pub use nom::{
         branch::alt,
-        bytes::complete::{tag, take_while1},
+        bytes::complete::{tag, take_while, take_while1},
         character::complete::digit1,
         combinator::map,
         combinator::{map_res, recognize},
-        sequence::{pair, preceded, separated_pair},
+        sequence::{pair, preceded, separated_pair, tuple},
         IResult,
     };
     pub use tracing::*;
@@ -21,6 +22,14 @@ pub mod parser {
 
     pub fn noun(i: &str) -> IResult<&str, Item> {
         map(word, |s: &str| Item::Named(s.to_owned()))(i)
+    }
+
+    fn string_inside(i: &str) -> IResult<&str, &str> {
+        take_while(|c: char| c.is_alphabetic() || c.is_whitespace())(i)
+    }
+
+    pub fn string_literal(i: &str) -> IResult<&str, &str> {
+        delimited(tag("\""), string_inside, tag("\""))(i)
     }
 
     pub fn unsigned_number(i: &str) -> IResult<&str, u64> {

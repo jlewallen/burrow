@@ -39,6 +39,21 @@ impl EntityPtr {
         }
     }
 
+    pub fn new_named(name: &str, desc: &str) -> Result<Self> {
+        let brand_new = Rc::new(RefCell::new(Entity::default()));
+        {
+            let mut editing = brand_new.borrow_mut();
+            editing.set_name(name)?;
+            editing.set_desc(desc)?;
+        }
+        let lazy = LazyLoadedEntity::new_from_raw(&brand_new);
+
+        Ok(Self {
+            entity: brand_new,
+            lazy: lazy.into(),
+        })
+    }
+
     pub fn downgrade(&self) -> Weak<RefCell<Entity>> {
         Rc::downgrade(&self.entity)
     }

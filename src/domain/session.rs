@@ -353,9 +353,7 @@ impl Session {
     }
 
     fn save_entity(&self, modified: &ModifiedEntity) -> Result<()> {
-        self.storage.save(&modified.persisting)?;
-
-        Ok(())
+        self.storage.save(&modified.persisting)
     }
 
     fn save_modified_entities(&self) -> Result<bool> {

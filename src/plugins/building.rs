@@ -20,7 +20,7 @@ pub mod model {
 
 pub mod actions {
     use super::parser::{parse, Sentence};
-    use crate::plugins::library::actions::*;
+    use crate::plugins::{library::actions::*, looking::actions::LookAction};
 
     #[derive(Debug)]
     struct EditAction {
@@ -47,6 +47,46 @@ pub mod actions {
         }
     }
 
+    #[derive(Debug)]
+    struct BidirectionalDigAction {
+        outgoing: String,
+        returning: String,
+        new_area: String,
+    }
+
+    impl Action for BidirectionalDigAction {
+        fn is_read_only() -> bool {
+            false
+        }
+
+        fn perform(&self, args: ActionArgs) -> ReplyResult {
+            info!(
+                "bidirectional-dig {:?} <-> {:?} '{:?}'",
+                self.outgoing, self.returning, self.new_area
+            );
+
+            let (_, user, area, infra) = args.clone();
+
+            let new_area = EntityPtr::new_named(&self.new_area, &self.new_area)?;
+            let returning = EntityPtr::new_named(&self.returning, &self.returning)?;
+            tools::leads_to(&returning, &area)?;
+            tools::set_container(&new_area, &vec![returning.clone()])?;
+
+            let outgoing = EntityPtr::new_named(&self.outgoing, &self.outgoing)?;
+            tools::leads_to(&outgoing, &new_area)?;
+            tools::set_container(&area, &vec![outgoing.clone()])?;
+
+            infra.add_entities(&vec![&new_area, &returning, &outgoing])?;
+
+            info!("entity {:?} {:?} {:?}", outgoing, returning, new_area);
+
+            match tools::navigate_between(&area, &new_area, &user)? {
+                DomainOutcome::Ok(_) => infra.chain(&user, Box::new(LookAction {})),
+                DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
+            }
+        }
+    }
+
     pub fn evaluate(i: &str) -> EvaluationResult {
         Ok(parse(i).map(|(_, sentence)| evaluate_sentence(&sentence))?)
     }
@@ -54,13 +94,17 @@ pub mod actions {
     fn evaluate_sentence(s: &Sentence) -> Box<dyn Action> {
         match s {
             Sentence::Edit(e) => Box::new(EditAction { item: e.clone() }),
+            Sentence::BidirectionalDig(_, _, _) => todo!(),
         }
     }
 
     #[cfg(test)]
     mod tests {
         use super::*;
-        use crate::domain::{BuildActionArgs, QuickThing};
+        use crate::{
+            domain::{BuildActionArgs, QuickThing},
+            plugins::looking::model::AreaObservation,
+        };
 
         #[test]
         fn it_fails_to_edit_unknown_items() -> Result<()> {
@@ -73,7 +117,6 @@ pub mod actions {
                 item: Item::Named("rake".into()),
             };
             let reply = action.perform(args.clone())?;
-            // let (_, _, _, _) = args.clone();
 
             assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -130,6 +173,32 @@ pub mod actions {
 
             Ok(())
         }
+
+        #[test]
+        fn it_digs_bidirectionally() -> Result<()> {
+            let mut build = BuildActionArgs::new()?;
+            let args: ActionArgs = build.plain().try_into()?;
+
+            let action = BidirectionalDigAction {
+                outgoing: "North Exit".into(),
+                returning: "South Exit".into(),
+                new_area: "New Area".into(),
+            };
+            let reply = action.perform(args.clone())?;
+            let (_, living, _area, infra) = args.clone();
+
+            // Not the best way of finding the constructed area.
+            let destination = infra
+                .load_entity_by_gid(&EntityGID::new(4))?
+                .ok_or(DomainError::EntityNotFound)?;
+
+            assert_eq!(
+                reply.to_json()?,
+                AreaObservation::new(&living, &destination)?.to_json()?
+            );
+
+            Ok(())
+        }
     }
 }
 
@@ -139,16 +208,30 @@ pub mod parser {
     #[derive(Debug, Clone, Eq, PartialEq)]
     pub enum Sentence {
         Edit(Item),
+        BidirectionalDig(String, String, String),
     }
 
     pub fn parse(i: &str) -> IResult<&str, Sentence> {
-        edit_item(i)
+        alt((edit_item, dig_bidirectional_routes_to_new_area))(i)
+    }
+
+    fn dig_bidirectional_routes_to_new_area(i: &str) -> IResult<&str, Sentence> {
+        map(
+            tuple((
+                preceded(pair(tag("dig"), spaces), string_literal),
+                preceded(pair(spaces, pair(tag("to"), spaces)), string_literal),
+                preceded(pair(spaces, pair(tag("for"), spaces)), string_literal),
+            )),
+            |(outgoing, returning, new_area)| {
+                Sentence::BidirectionalDig(outgoing.into(), returning.into(), new_area.into())
+            },
+        )(i)
     }
 
     fn edit_item(i: &str) -> IResult<&str, Sentence> {
         map(
-            separated_pair(tag("edit"), spaces, noun_or_specific),
-            |(_, target)| Sentence::Edit(target),
+            preceded(pair(tag("edit"), spaces), noun_or_specific),
+            |target| Sentence::Edit(target),
         )(i)
     }
 
@@ -174,6 +257,13 @@ pub mod parser {
         fn it_skips_parsing_misleading_gid_number() {
             let (remaining, _actual) = parse("edit #3g34").unwrap();
             assert_eq!(remaining, "g34");
+        }
+
+        #[test]
+        fn it_parses_digging_north_south_to_new_area() {
+            let (remaining, _actual) =
+                parse(r#"dig "NORTH EXIT" to "SOUTH EXIT" for "A NEW AREA""#).unwrap();
+            assert_eq!(remaining, "");
         }
 
         #[test]
