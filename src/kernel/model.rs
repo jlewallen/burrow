@@ -43,11 +43,12 @@ impl EntityPtr {
     pub fn new_named(name: &str, desc: &str) -> Result<Self> {
         let brand_new = Self::new_blank();
 
-        {
-            let mut editing = brand_new.borrow_mut();
-            editing.set_name(name)?;
-            editing.set_desc(desc)?;
-        }
+        brand_new.mutate(|e| {
+            e.set_name(name)?;
+            e.set_desc(desc)
+        })?;
+
+        brand_new.modified()?;
 
         Ok(brand_new)
     }
@@ -70,6 +71,36 @@ impl EntityPtr {
         lazy.key = entity.key.clone();
 
         Ok(())
+    }
+
+    pub fn mutate<R, T: FnOnce(&mut Entity) -> Result<R>>(&self, mutator: T) -> Result<R> {
+        mutator(&mut self.borrow_mut())
+    }
+
+    pub fn mutate_chained<R, T: FnOnce(&mut Entity) -> Result<()>>(
+        &self,
+        mutator: T,
+    ) -> Result<&Self> {
+        mutator(&mut self.borrow_mut())?;
+
+        Ok(&self)
+    }
+
+    pub fn mutate_scope<S: Scope, R, T: FnOnce(&mut S) -> Result<R>>(
+        &self,
+        mutator: T,
+    ) -> Result<R> {
+        let mut borrowed = self.borrow_mut();
+        let mut scope = borrowed.scope_mut::<S>()?;
+        let res = mutator(&mut scope)?;
+        scope.save()?;
+        Ok(res)
+    }
+
+    pub fn read_scope<S: Scope, R, T: FnOnce(&S) -> Result<R>>(&self, mutator: T) -> Result<R> {
+        let borrowed = self.borrow();
+        let scope = borrowed.scope::<S>()?;
+        mutator(&scope)
     }
 }
 
@@ -354,6 +385,12 @@ impl Props {
     */
 }
 
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ScopeValue {
+    Json(serde_json::Value),
+}
+
 #[derive(Clone, Serialize, Deserialize, Default)]
 pub struct Entity {
     #[serde(rename = "py/object")]
@@ -367,7 +404,7 @@ pub struct Entity {
     class: EntityClass,
     acls: Acls,
     props: Props,
-    scopes: HashMap<String, serde_json::Value>,
+    scopes: HashMap<String, ScopeValue>,
 }
 
 impl Display for Entity {
@@ -380,8 +417,8 @@ impl Display for Entity {
     }
 }
 
-impl Needs<std::rc::Rc<dyn Infrastructure>> for Entity {
-    fn supply(&mut self, infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
+impl Needs<Rc<dyn Infrastructure>> for Entity {
+    fn supply(&mut self, infra: &Rc<dyn Infrastructure>) -> Result<()> {
         self.parent = infra.ensure_optional_entity(&self.parent)?;
         self.creator = infra.ensure_optional_entity(&self.creator)?;
         Ok(())
@@ -491,7 +528,9 @@ impl Entity {
         // Should the 'un-parsed' Scope also owned the parsed data?
         let data = &self.scopes[scope_key];
         let owned_value = data.clone();
-        let mut scope: Box<T> = serde_json::from_value(owned_value)?;
+        let mut scope: Box<T> = match owned_value {
+            ScopeValue::Json(v) => serde_json::from_value(v)?,
+        };
 
         let _prepare_span = span!(Level::DEBUG, "prepare").entered();
         let session = get_my_session()?; // Thread local session!
@@ -515,7 +554,8 @@ impl Entity {
 
         debug!("scope-replace");
 
-        self.scopes.insert(scope_key.to_string(), value);
+        self.scopes
+            .insert(scope_key.to_string(), ScopeValue::Json(value));
 
         Ok(())
     }
@@ -595,7 +635,6 @@ pub struct LazyLoadedEntity {
     class: String,
     name: String,
     gid: Option<EntityGID>,
-
     #[serde(skip)]
     entity: Option<Weak<RefCell<Entity>>>,
 }
