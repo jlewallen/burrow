@@ -99,3 +99,14 @@ pub fn set_occupying(item: &EntityPtr, occupying: &EntityPtr) -> Result<()> {
     location.area = occupying.try_into()?;
     location.save()
 }
+
+pub fn contained_by(container: &EntityPtr) -> Result<Vec<EntityPtr>> {
+    let mut entities: Vec<EntityPtr> = vec![];
+    let container = container.borrow();
+    if let Ok(containing) = container.scope::<Containing>() {
+        for entity in &containing.holding {
+            entities.push(entity.into_entity()?);
+        }
+    }
+    Ok(entities)
+}

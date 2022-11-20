@@ -42,19 +42,12 @@ pub trait LoadEntities {
     }
 }
 
-pub trait Infrastructure: LoadEntities {
-    fn ensure_entity(&self, entity_ref: &LazyLoadedEntity) -> Result<LazyLoadedEntity>;
-
-    fn ensure_optional_entity(
-        &self,
-        entity_ref: &Option<LazyLoadedEntity>,
-    ) -> Result<Option<LazyLoadedEntity>> {
-        match entity_ref {
-            Some(e) => Ok(Some(self.ensure_entity(e)?)),
-            None => Ok(None),
-        }
-    }
-
+/// I think this will eventually need to return or take a construct that's
+/// builder-like so callers can take more control. Things to consider are:
+/// 1) Conditional needle visibility.
+/// 2) Items containing others.
+/// 3) Verb capabilities of the needle.
+pub trait FindsItems {
     fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<EntityPtr>>;
 
     fn find_optional_item(
@@ -66,6 +59,20 @@ pub trait Infrastructure: LoadEntities {
             self.find_item(args, &item)
         } else {
             Ok(None)
+        }
+    }
+}
+
+pub trait Infrastructure: LoadEntities + FindsItems {
+    fn ensure_entity(&self, entity_ref: &LazyLoadedEntity) -> Result<LazyLoadedEntity>;
+
+    fn ensure_optional_entity(
+        &self,
+        entity_ref: &Option<LazyLoadedEntity>,
+    ) -> Result<Option<LazyLoadedEntity>> {
+        match entity_ref {
+            Some(e) => Ok(Some(self.ensure_entity(e)?)),
+            None => Ok(None),
         }
     }
 

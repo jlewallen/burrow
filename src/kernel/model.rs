@@ -173,8 +173,8 @@ pub enum Item {
     Named(String),
     Route(String),
     GID(EntityGID),
-    // ImplicitlyInHands,
-    // ImplicitlyOnGround,
+    // Held(Option<Box<Item>>),
+    Contained(Box<Item>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

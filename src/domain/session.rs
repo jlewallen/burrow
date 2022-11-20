@@ -411,13 +411,15 @@ impl Drop for Session {
     }
 }
 
+impl FindsItems for Session {
+    fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<EntityPtr>> {
+        self.infra.find_item(args, item)
+    }
+}
+
 impl Infrastructure for Session {
     fn ensure_entity(&self, entity_ref: &LazyLoadedEntity) -> Result<LazyLoadedEntity> {
         self.infra.ensure_entity(entity_ref)
-    }
-
-    fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<EntityPtr>> {
-        self.infra.find_item(args, item)
     }
 
     fn add_entity(&self, entity: &EntityPtr) -> Result<()> {

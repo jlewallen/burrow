@@ -219,13 +219,16 @@ pub mod actions {
         fn perform(&self, args: ActionArgs) -> ReplyResult {
             info!("take-out {:?} -> {:?}", self.item, self.vessel);
 
-            let (_, _user, _area, infra) = args.clone();
+            let (_, user, _area, infra) = args.clone();
 
             match infra.find_item(args.clone(), &self.vessel)? {
                 Some(vessel) => {
                     if tools::is_container(&vessel) {
                         match infra.find_item(args, &self.item)? {
-                            Some(_item) => todo!(),
+                            Some(item) => match tools::move_between(&vessel, &user, &item)? {
+                                DomainOutcome::Ok(_) => Ok(Box::new(SimpleReply::Done)),
+                                DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
+                            },
                             None => Ok(Box::new(SimpleReply::NotFound)),
                         }
                     } else {
@@ -442,7 +445,6 @@ pub mod actions {
         }
 
         #[test]
-        #[ignore]
         fn it_takes_items_out_of_containers() -> Result<()> {
             let mut build = BuildActionArgs::new()?;
             let key = build.build()?.named("Key")?.into_entity()?;
@@ -456,7 +458,7 @@ pub mod actions {
                 .try_into()?;
 
             let action = TakeOutAction {
-                item: Item::Named("key".to_owned()),
+                item: Item::Contained(Box::new(Item::Named("key".to_owned()))),
                 vessel: Item::Named("vessel".to_owned()),
             };
             let reply = action.perform(args.clone())?;
@@ -523,7 +525,7 @@ pub mod parser {
 
         map(
             separated_pair(separated_pair(item, spaces, tag("out of")), spaces, noun),
-            |(item, target)| Sentence::TakeOut(item.0, target),
+            |(item, target)| Sentence::TakeOut(Item::Contained(Box::new(item.0)), target),
         )(i)
     }
 
@@ -568,7 +570,10 @@ pub mod parser {
             assert_eq!(remaining, "");
             assert_eq!(
                 actual,
-                Sentence::TakeOut(Item::Named("key".into()), Item::Named("vessel".into()))
+                Sentence::TakeOut(
+                    Item::Contained(Box::new(Item::Named("key".into()))),
+                    Item::Named("vessel".into())
+                )
             );
         }
 

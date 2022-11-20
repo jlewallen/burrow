@@ -11,7 +11,7 @@ use crate::{
 };
 use anyhow::Result;
 use serde::Deserialize;
-use tracing::info;
+use tracing::*;
 
 fn get_deterministic_key(session: &Session) -> Result<EntityKey> {
     let domain_sequence = session.take_from_sequence()?;
@@ -227,7 +227,7 @@ impl TryFrom<&mut BuildActionArgs> for ActionArgs {
             .into_entity()?;
 
         for entity in [&world, &person, &area] {
-            info!("{:?}", entity);
+            trace!("{:?}", entity);
         }
 
         builder.session.flush()?;

@@ -8,6 +8,17 @@ https://github.com/jlewallen/dimsum/
 
 1. Add entity templates, allow for custom ones.
 2. Our tests should render replies.
+3. Intermediate grammar.
+
+```
+"PUT #held IN #held"
+"PUT #held (INSIDE OF|IN) (#held_or_other)?"
+"TAKE (OUT)? #contained (OUT OF #held_or_other)?"
+"HOLD (#unheld)?"
+"DROP #held?"
+```
+
+4. Domain events.
 
 ### Actions TODO
 

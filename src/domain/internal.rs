@@ -3,23 +3,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::{cell::RefCell, collections::HashMap, fmt::Debug, rc::Rc};
 use tracing::{debug, info, span, trace, Level};
 
+use crate::kernel::*;
+use crate::plugins::tools;
 use crate::storage::{EntityStorage, PersistedEntity};
-use crate::{kernel::*, plugins::carrying::model::Containing};
-
-fn matches_string_description(incoming: &str, desc: &str) -> bool {
-    // TODO We can do this more efficiently.
-    incoming.to_lowercase().contains(&desc.to_lowercase())
-}
-
-/// Determines if an entity matches a user's description of that entity, given
-/// no other context at all.
-fn matches_description(entity: &Entity, desc: &str) -> bool {
-    if let Some(name) = entity.name() {
-        matches_string_description(&name, desc)
-    } else {
-        false
-    }
-}
 
 pub struct LoadedEntity {
     pub key: EntityKey,
@@ -259,38 +245,14 @@ impl DomainInfrastructure {
             performer,
         })
     }
-}
 
-impl LoadEntities for DomainInfrastructure {
-    fn load_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
-        self.entities.prepare_entity_by_key(key)
-    }
-
-    fn load_entity_by_gid(&self, gid: &EntityGID) -> Result<Option<EntityPtr>> {
-        self.entities.prepare_entity_by_gid(gid)
-    }
-}
-
-impl Infrastructure for DomainInfrastructure {
-    fn ensure_entity(&self, entity_ref: &LazyLoadedEntity) -> Result<LazyLoadedEntity> {
-        if entity_ref.has_entity() {
-            Ok(entity_ref.clone())
-        } else if let Some(entity) = self.load_entity_by_key(&entity_ref.key)? {
-            Ok(entity.into())
-        } else {
-            Err(anyhow!("Entity not found"))
-        }
-    }
-
-    fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<EntityPtr>> {
-        let _loading_span = span!(Level::INFO, "finding", i = format!("{:?}", item)).entered();
-
-        info!("finding");
-
+    fn find_item_in_set(
+        &self,
+        haystack: &EntityRelationshipSet,
+        item: &Item,
+    ) -> Result<Option<EntityPtr>> {
         match item {
             Item::Named(name) => {
-                let haystack = EntityRelationshipSet::new_from_action(args).expand()?;
-
                 debug!("item:haystack {:?}", haystack);
 
                 // https://github.com/ferrous-systems/elements-of-rust#tuple-structs-and-enum-tuple-variants-as-functions
@@ -306,6 +268,11 @@ impl Infrastructure for DomainInfrastructure {
                                 return Ok(Some(e.clone()));
                             }
                         }
+                        EntityRelationship::Contained(e) => {
+                            if matches_description(&e.borrow(), name) {
+                                return Ok(Some(e.clone()));
+                            }
+                        }
                         _ => {}
                     }
                 }
@@ -313,9 +280,7 @@ impl Infrastructure for DomainInfrastructure {
                 Ok(None)
             }
             Item::Route(name) => {
-                let haystack = EntityRelationshipSet::new_from_action(args)
-                    .expand()?
-                    .routes()?;
+                let haystack = haystack.routes()?;
 
                 debug!("route:haystack {:?}", haystack);
 
@@ -326,6 +291,7 @@ impl Infrastructure for DomainInfrastructure {
                         EntityRelationship::Area(_) => {}
                         EntityRelationship::Holding(_) => {}
                         EntityRelationship::Ground(_) => {}
+                        EntityRelationship::Contained(_) => {}
                         EntityRelationship::Exit(route_name, area) => {
                             if matches_string_description(route_name, name) {
                                 info!("found: {:?} -> {:?}", route_name, area);
@@ -344,6 +310,61 @@ impl Infrastructure for DomainInfrastructure {
                     Ok(None)
                 }
             }
+            // Item::Held(_) => todo!(),
+            Item::Contained(contained) => {
+                let haystack = haystack.expand()?;
+
+                self.find_item_in_set(&haystack, contained)
+            }
+        }
+    }
+}
+
+impl LoadEntities for DomainInfrastructure {
+    fn load_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
+        self.entities.prepare_entity_by_key(key)
+    }
+
+    fn load_entity_by_gid(&self, gid: &EntityGID) -> Result<Option<EntityPtr>> {
+        self.entities.prepare_entity_by_gid(gid)
+    }
+}
+
+fn matches_string_description(incoming: &str, desc: &str) -> bool {
+    // TODO We can do this more efficiently.
+    incoming.to_lowercase().contains(&desc.to_lowercase())
+}
+
+/// Determines if an entity matches a user's description of that entity, given
+/// no other context at all.
+fn matches_description(entity: &Entity, desc: &str) -> bool {
+    if let Some(name) = entity.name() {
+        matches_string_description(&name, desc)
+    } else {
+        false
+    }
+}
+
+impl FindsItems for DomainInfrastructure {
+    fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<EntityPtr>> {
+        let _loading_span = span!(Level::INFO, "finding", i = format!("{:?}", item)).entered();
+
+        info!("finding");
+
+        let haystack = EntityRelationshipSet::new_from_action(args).expand()?;
+
+        self.find_item_in_set(&haystack, item)
+    }
+}
+
+impl Infrastructure for DomainInfrastructure {
+    fn ensure_entity(&self, entity_ref: &LazyLoadedEntity) -> Result<LazyLoadedEntity> {
+        if entity_ref.has_entity() {
+            Ok(entity_ref.clone())
+        } else if let Some(entity) = self.load_entity_by_key(&entity_ref.key)? {
+            Ok(entity.into())
+        } else {
+            Err(anyhow!("Entity not found"))
         }
     }
 
@@ -363,6 +384,10 @@ enum EntityRelationship {
     Area(EntityPtr),
     Holding(EntityPtr),
     Ground(EntityPtr),
+    /// Items is nearby, inside something else. Considering renaming this and
+    /// others to better indicate how far removed they are. For example,
+    /// containers in the area vs containers that are being held.
+    Contained(EntityPtr),
     Exit(String, EntityPtr),
 }
 
@@ -388,26 +413,28 @@ impl EntityRelationshipSet {
         // https://github.com/ferrous-systems/elements-of-rust#tuple-structs-and-enum-tuple-variants-as-functions
         for entity in &self.entities {
             match entity {
-                EntityRelationship::User(user) => {
-                    let user = user.borrow();
-                    if let Ok(containing) = user.scope::<Containing>() {
-                        for entity in &containing.holding {
-                            expanded.push(EntityRelationship::Holding(entity.into_entity()?));
-                        }
-                    }
-                }
-                EntityRelationship::Area(area) => {
-                    let area = area.borrow();
-                    if let Ok(containing) = area.scope::<Containing>() {
-                        for entity in &containing.holding {
-                            expanded.push(EntityRelationship::Ground(entity.into_entity()?));
-                        }
-                    }
-                }
+                EntityRelationship::User(user) => expanded.extend(
+                    tools::contained_by(user)?
+                        .into_iter()
+                        .map(EntityRelationship::Holding)
+                        .collect::<Vec<_>>(),
+                ),
+                EntityRelationship::Area(area) => expanded.extend(
+                    tools::contained_by(area)?
+                        .into_iter()
+                        .map(EntityRelationship::Ground)
+                        .collect::<Vec<_>>(),
+                ),
                 EntityRelationship::World(_world) => {}
-                EntityRelationship::Holding(_holding) => {}
+                EntityRelationship::Holding(holding) => expanded.extend(
+                    tools::contained_by(holding)?
+                        .into_iter()
+                        .map(EntityRelationship::Contained)
+                        .collect::<Vec<_>>(),
+                ),
                 EntityRelationship::Ground(_ground) => {}
                 EntityRelationship::Exit(_route_name, _area) => {}
+                EntityRelationship::Contained(_) => {}
             }
         }
 
