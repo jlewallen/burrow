@@ -21,6 +21,7 @@ pub enum English {
     Held,
     Contained,
     Numbered(u64),
+    Text,
 }
 
 pub fn to_english(i: &str) -> IResult<&str, Vec<English>> {
@@ -28,7 +29,15 @@ pub fn to_english(i: &str) -> IResult<&str, Vec<English>> {
 }
 
 fn term(i: &str) -> IResult<&str, English> {
-    alt((literal, contained, unheld, held, numbered, optional_phrase))(i)
+    alt((
+        literal,
+        contained,
+        unheld,
+        held,
+        text,
+        numbered,
+        optional_phrase,
+    ))(i)
 }
 
 fn optional_phrase(i: &str) -> IResult<&str, English> {
@@ -92,6 +101,10 @@ fn contained(i: &str) -> IResult<&str, English> {
     map(tag("#contained"), |_| English::Contained)(i)
 }
 
+fn text(i: &str) -> IResult<&str, English> {
+    map(tag("#text"), |_| English::Text)(i)
+}
+
 fn uppercase_word(i: &str) -> IResult<&str, &str> {
     take_while1(move |c| "ABCDEFGHIJKLMNOPQRSTUVWXYZ".contains(c))(i)
 }
@@ -118,11 +131,11 @@ mod tests {
     fn get_fixtures() -> Vec<Fixture> {
         vec![
             Fixture::new(
-                "HOLD #unheld",
+                r#"HOLD #unheld"#,
                 vec![English::Literal("HOLD".into()), English::Unheld],
             ),
             Fixture::new(
-                "PUT #held IN #held",
+                r#"PUT #held IN #held"#,
                 vec![
                     English::Literal("PUT".into()),
                     English::Held,
@@ -131,7 +144,7 @@ mod tests {
                 ],
             ),
             Fixture::new(
-                "PUT #held (INSIDE OF|IN) (#held|#unheld)?",
+                r#"PUT #held (INSIDE OF|IN) (#held|#unheld)?"#,
                 vec![
                     English::Literal("PUT".into()),
                     English::Held,
@@ -149,7 +162,7 @@ mod tests {
                 ],
             ),
             Fixture::new(
-                "TAKE (OUT)? #contained (OUT OF (#held|#unheld))?",
+                r#"TAKE (OUT)? #contained (OUT OF (#held|#unheld))?"#,
                 vec![
                     English::Literal("TAKE".into()),
                     English::Optional(Box::new(English::Phrase(Box::new(vec![English::Literal(
@@ -167,19 +180,38 @@ mod tests {
                 ],
             ),
             Fixture::new(
-                "HOLD #unheld",
+                r#"HOLD #unheld"#,
                 vec![English::Literal("HOLD".into()), English::Unheld],
             ),
             Fixture::new(
-                "DROP (#held)?",
+                r#"DROP (#held)?"#,
                 vec![
                     English::Literal("DROP".into()),
                     English::Optional(Box::new(English::Phrase(Box::new(vec![English::Held])))),
                 ],
             ),
             Fixture::new(
-                "EDIT #3493",
+                r#"EDIT #3493"#,
                 vec![English::Literal("EDIT".into()), English::Numbered(3493)],
+            ),
+            Fixture::new(
+                r#"DIG #text TO #text FOR #text"#,
+                vec![
+                    English::Literal("DIG".into()),
+                    English::Text,
+                    English::Literal("TO".into()),
+                    English::Text,
+                    English::Literal("FOR".into()),
+                    English::Text,
+                ],
+            ),
+            Fixture::new(
+                r#"MAKE ITEM #text"#,
+                vec![
+                    English::Literal("MAKE".into()),
+                    English::Literal("ITEM".into()),
+                    English::Text,
+                ],
             ),
         ]
     }
