@@ -427,19 +427,9 @@ impl Needs<Rc<dyn Infrastructure>> for Entity {
 
 impl Entity {
     pub fn new_with_key(key: EntityKey) -> Self {
-        // I know I can create another using Default::default and then merge, is there a
-        // faster way that doesn't need the intermediate?
         Self {
             key,
-            py_object: Default::default(),
-            version: Default::default(),
-            parent: Default::default(),
-            creator: Default::default(),
-            identity: Default::default(),
-            class: Default::default(),
-            acls: Default::default(),
-            props: Default::default(),
-            scopes: Default::default(),
+            ..Self::default()
         }
     }
 
