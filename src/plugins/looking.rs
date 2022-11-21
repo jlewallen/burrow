@@ -222,7 +222,15 @@ pub mod actions {
         }
     }
 
-    pub fn evaluate(i: &str) -> EvaluationResult {
+    pub struct LookingPlugin {}
+
+    impl ParsesActions for LookingPlugin {
+        fn try_parse_action(&self, i: &str) -> EvaluationResult {
+            evaluate(i)
+        }
+    }
+
+    fn evaluate(i: &str) -> EvaluationResult {
         Ok(parse(i).map(|(_, sentence)| evaluate_sentence(&sentence))?)
     }
 

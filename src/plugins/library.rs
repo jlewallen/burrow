@@ -69,4 +69,16 @@ pub mod actions {
     pub use crate::plugins::tools;
     pub use anyhow::Result;
     pub use tracing::*;
+
+    pub trait ParsesActions {
+        fn try_parse_action(&self, i: &str) -> EvaluationResult;
+    }
+
+    pub trait DiscoversEntities {
+        fn discover_entities(
+            &self,
+            source: &Entity,
+            entity_keys: &mut Vec<EntityKey>,
+        ) -> Result<()>;
+    }
 }

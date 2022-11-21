@@ -167,7 +167,15 @@ pub mod actions {
         }
     }
 
-    pub fn evaluate(i: &str) -> EvaluationResult {
+    pub struct MovingPlugin {}
+
+    impl ParsesActions for MovingPlugin {
+        fn try_parse_action(&self, i: &str) -> EvaluationResult {
+            evaluate(i)
+        }
+    }
+
+    fn evaluate(i: &str) -> EvaluationResult {
         Ok(parse(i).map(|(_, sentence)| evaluate_sentence(&sentence))?)
     }
 

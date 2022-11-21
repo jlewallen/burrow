@@ -3,11 +3,23 @@ use anyhow::Result;
 use crate::kernel::{Action, Entity, EntityKey, EvaluationError};
 use crate::plugins;
 
+use super::building::actions::BuildingPlugin;
+use super::carrying::actions::CarryingPlugin;
+use super::library::actions::ParsesActions;
+use super::looking::actions::LookingPlugin;
+use super::moving::actions::MovingPlugin;
+
 pub fn evaluate(i: &str) -> Result<Option<Box<dyn Action>>, EvaluationError> {
-    match plugins::looking::actions::evaluate(i)
-        .or_else(|_| plugins::carrying::actions::evaluate(i))
-        .or_else(|_| plugins::moving::actions::evaluate(i))
-        .or_else(|_| plugins::building::actions::evaluate(i))
+    let carrying = CarryingPlugin {};
+    let looking = LookingPlugin {};
+    let building = BuildingPlugin {};
+    let moving = MovingPlugin {};
+
+    match looking
+        .try_parse_action(i)
+        .or_else(|_| carrying.try_parse_action(i))
+        .or_else(|_| moving.try_parse_action(i))
+        .or_else(|_| building.try_parse_action(i))
     {
         Ok(e) => Ok(Some(e)),
         Err(_) => Ok(None),
