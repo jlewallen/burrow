@@ -182,7 +182,7 @@ impl Session {
             Rc::clone(&storage),
             Rc::clone(&entity_map),
             Rc::clone(&performer),
-            Rc::clone(&keys),
+            Rc::clone(keys),
         );
 
         let infra = domain_infra.clone() as Rc<dyn Infrastructure>;

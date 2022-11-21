@@ -106,7 +106,7 @@ pub mod actions {
 
             infra.add_entities(&vec![&new_item])?;
 
-            tools::set_container(&user, &vec![new_item.clone()])?;
+            tools::set_container(&user, &vec![new_item])?;
 
             Ok(Box::new(SimpleReply::Done))
         }
@@ -292,7 +292,7 @@ pub mod parser {
     fn edit_item(i: &str) -> IResult<&str, Sentence> {
         map(
             preceded(pair(tag("edit"), spaces), noun_or_specific),
-            |target| Sentence::Edit(target),
+            Sentence::Edit,
         )(i)
     }
 

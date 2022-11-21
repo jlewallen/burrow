@@ -83,7 +83,7 @@ impl EntityPtr {
     ) -> Result<&Self> {
         mutator(&mut self.borrow_mut())?;
 
-        Ok(&self)
+        Ok(self)
     }
 
     pub fn mutate_scope<S: Scope, R, T: FnOnce(&mut S) -> Result<R>>(

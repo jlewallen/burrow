@@ -282,7 +282,7 @@ pub mod actions {
             let args: ActionArgs = build
                 .ground(vec![QuickThing::Object("Cool Rake")])
                 .ground(vec![QuickThing::Object("Boring Shovel")])
-                .route("East Exit", QuickThing::Actual(destination.clone()))
+                .route("East Exit", QuickThing::Actual(destination))
                 .try_into()?;
 
             let action = LookAction {};
@@ -303,7 +303,7 @@ pub mod actions {
             let args: ActionArgs = build
                 .ground(vec![QuickThing::Object("Boring Shovel")])
                 .hands(vec![QuickThing::Object("Cool Rake")])
-                .route("East Exit", QuickThing::Actual(destination.clone()))
+                .route("East Exit", QuickThing::Actual(destination))
                 .try_into()?;
 
             let action = LookAction {};

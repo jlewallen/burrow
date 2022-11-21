@@ -37,7 +37,7 @@ impl Maps {
     fn lookup_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
         if let Some(e) = self.by_key.get(key) {
             trace!(%key, "existing");
-            return Ok(Some(e.entity.clone()));
+            Ok(Some(e.entity.clone()))
         } else {
             Ok(None)
         }
@@ -181,14 +181,14 @@ impl Entities {
         let session = get_my_session()?; // Thread local session!
         loaded.supply(&session)?;
 
-        let gid = loaded.gid().clone();
+        let gid = loaded.gid();
         let cell: EntityPtr = loaded.into();
 
         self.entities.add_entity(LoadedEntity {
             key: EntityKey::new(&persisted.key),
             entity: cell.clone(),
             version: persisted.version + 1,
-            gid: gid,
+            gid,
             serialized: Some(persisted.serialized),
         })?;
 

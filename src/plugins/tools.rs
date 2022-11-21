@@ -17,7 +17,7 @@ pub fn move_between(from: &EntityPtr, to: &EntityPtr, item: &EntityPtr) -> Resul
     let mut from = from.borrow_mut();
     let mut from_container = from.scope_mut::<Containing>()?;
 
-    match from_container.stop_carrying(&item)? {
+    match from_container.stop_carrying(item)? {
         DomainOutcome::Ok(events) => {
             {
                 let mut item = item.borrow_mut();
@@ -91,7 +91,7 @@ pub fn set_container(container: &EntityPtr, items: &Vec<EntityPtr>) -> Result<()
     let mut editing = container.borrow_mut();
     let mut containing = editing.scope_mut::<Containing>()?;
     for item in items {
-        containing.start_carrying(&item)?;
+        containing.start_carrying(item)?;
         let mut item = item.borrow_mut();
         let mut location = item.scope_mut::<Location>()?;
         location.container = Some(container.try_into()?);
@@ -104,7 +104,7 @@ pub fn set_occupying(area: &EntityPtr, living: &Vec<EntityPtr>) -> Result<()> {
     let mut editing = area.borrow_mut();
     let mut occupyable = editing.scope_mut::<Occupyable>()?;
     for item in living {
-        occupyable.start_occupying(&item)?;
+        occupyable.start_occupying(item)?;
         let mut item = item.borrow_mut();
         let mut occupying = item.scope_mut::<Occupying>()?;
         occupying.area = area.try_into()?;
