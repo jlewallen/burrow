@@ -1,14 +1,13 @@
-use nom::combinator::opt;
 pub use nom::{
     branch::alt,
     bytes::complete::{tag, take_while, take_while1},
     character::complete::digit1,
-    combinator::map,
-    combinator::{map_res, recognize},
+    combinator::{map, map_res, opt, recognize},
     multi::separated_list0,
     sequence::{delimited, pair, preceded, separated_pair, terminated, tuple},
     IResult,
 };
+use nom::{bytes::complete::tag_no_case, combinator::eof};
 pub use tracing::*;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -223,5 +222,76 @@ mod tests {
             assert_eq!(remaining, "");
             assert_eq!(actual, fixture.expected);
         }
+    }
+
+    #[test]
+    fn should_transform_parser_for_english() {
+        let english = vec![
+            English::Literal("DROP".into()),
+            // English::Literal("EVERYTHING".into()),
+            English::Held,
+        ];
+        let mut parser = english_nodes_to_parser(&english);
+        let value = parser("drop key").unwrap();
+        println!("{:?}", value);
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Debug)]
+enum Node {
+    Ignored,
+    Held(String),
+    Unheld(String),
+    Contained(String),
+    Phrase(Box<Vec<Node>>),
+}
+
+#[allow(dead_code)]
+fn word(i: &str) -> IResult<&str, &str> {
+    take_while1(move |c| "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".contains(c))(i)
+}
+
+#[allow(dead_code)]
+fn english_node_to_parser<'a>(
+    node: &'a English,
+) -> Box<dyn FnMut(&'a str) -> IResult<&'a str, Node> + 'a> {
+    match node {
+        English::Literal(v) => Box::new(map(tag_no_case::<&str, &str, _>(v), |_| Node::Ignored)),
+        English::Phrase(_) => todo!(),
+        English::OneOf(_) => todo!(),
+        English::Optional(_) => todo!(),
+        English::Unheld => Box::new(map(word, |w| Node::Unheld(w.into()))),
+        English::Held => Box::new(map(word, |w| Node::Held(w.into()))),
+        English::Contained => Box::new(map(word, |w| Node::Contained(w.into()))),
+        English::Numbered(_) => todo!(),
+        English::Text => todo!(),
+    }
+}
+
+#[allow(dead_code)]
+fn english_nodes_to_parser<'a>(
+    nodes: &'a Vec<English>,
+) -> impl FnMut(&'a str) -> IResult<&'a str, Node> {
+    move |mut i: &'a str| {
+        // TODO Would love to move this up and out of the closure.
+        let terms = nodes
+            .into_iter()
+            .map(english_node_to_parser)
+            .collect::<Vec<_>>();
+
+        let mut accumulator: Vec<Node> = vec![];
+        for mut term in terms {
+            let (r, term_node) = term(i)?;
+            let (r, _) = alt((spaces, eof))(r)?;
+            i = r;
+
+            match term_node {
+                Node::Ignored => {}
+                _ => accumulator.push(term_node),
+            }
+        }
+
+        Ok((i, Node::Phrase(Box::new(accumulator))))
     }
 }
