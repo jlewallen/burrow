@@ -1,4 +1,6 @@
 pub mod model {
+    use std::rc::Rc;
+
     use crate::plugins::library::model::*;
 
     #[derive(Debug, Serialize, Deserialize, Default)]
@@ -16,8 +18,8 @@ pub mod model {
         }
     }
 
-    impl Needs<std::rc::Rc<dyn Infrastructure>> for Occupying {
-        fn supply(&mut self, infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
+    impl Needs<Rc<dyn Infrastructure>> for Occupying {
+        fn supply(&mut self, infra: &Rc<dyn Infrastructure>) -> Result<()> {
             self.area = infra.ensure_entity(&self.area)?;
             Ok(())
         }
@@ -59,8 +61,8 @@ pub mod model {
         }
     }
 
-    impl Needs<std::rc::Rc<dyn Infrastructure>> for Occupyable {
-        fn supply(&mut self, infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
+    impl Needs<Rc<dyn Infrastructure>> for Occupyable {
+        fn supply(&mut self, infra: &Rc<dyn Infrastructure>) -> Result<()> {
             self.occupied = self
                 .occupied
                 .iter()
@@ -85,8 +87,8 @@ pub mod model {
         }
     }
 
-    impl Needs<std::rc::Rc<dyn Infrastructure>> for Exit {
-        fn supply(&mut self, infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
+    impl Needs<Rc<dyn Infrastructure>> for Exit {
+        fn supply(&mut self, infra: &Rc<dyn Infrastructure>) -> Result<()> {
             self.area = infra.ensure_entity(&self.area)?;
             Ok(())
         }
