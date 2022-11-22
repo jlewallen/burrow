@@ -130,9 +130,10 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
 
                 break;
             }
-            _ => {
-                todo!()
-            }
+            Message::Item(ClientMessage::Evaluate(text)) => println!("evaluate {:?}", text),
+            Message::Ping(_) => {}
+            Message::Pong(_) => {}
+            Message::Close(_) => {}
         }
     }
 

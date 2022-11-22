@@ -18,6 +18,11 @@ yew-router = "0.16.0"
 yew-agent = "0.1.0"
 wasm-bindgen = "0.2.83"
 wasm-logger = "0.2.0"
+gloo-console = "0.2"
+wasm-bindgen-futures = "0.4.33"
+futures = "0.3.25"
+reqwasm = "0.5.0"
+log = "0.4.17"
 
 [dependencies.web-sys]
 version = "0.3"
