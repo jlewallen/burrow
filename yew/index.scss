@@ -1,9 +1,77 @@
 body {
   background-color: #1d1e20;
+  color: rgb(196, 196, 196);
 }
 
 html,
 body {
   height: 100%;
   margin: 0;
+}
+
+html {
+    overflow-y: hidden;
+}
+
+body {
+    height: 100vh;
+}
+
+#wrapper {
+    height: 100%;
+}
+
+#hack {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+#main {
+    // margin-top: 1em;
+}
+
+#upper {
+    flex: 1;
+    overflow: auto;
+}
+
+#upper.obscured {
+    opacity: 0.5;
+}
+
+#app {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+#lower {
+}
+
+.line-editor {
+  margin: 1em;
+
+  input {
+    background-color: #393e46;
+    color: white;
+  }
+
+  input {
+    display: block;
+    width: 100%;
+    height: calc(1.5em + 0.75rem + 2px);
+    font-size: 1.0rem;
+    font-weight: 400;
+    line-height: 1.5;
+    background-clip: padding-box;
+    border: 1px solid #222;
+    border-radius: 0.25rem;
+  }
+}
+
+.history {
+  .entry {
+    padding: 1em;
+  }
 }

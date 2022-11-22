@@ -57,9 +57,24 @@ impl Component for Home {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let link = ctx.link();
         html! {
-            <div class="home">
-                <div><History /></div>
-                <div><LineEditor onsubmit={link.callback(|text| Msg::Send(text))} /></div>
+            <div id="hack">
+                <div id="upper">
+
+                    <div id="main"><History /></div>
+                </div>
+                <div id="lower">
+                    <div class="interactables">
+                        <div class="editor" style="display: none;">
+                            <div class="">
+                                { "Tabs" }
+                            </div>
+                            <div class="buttons">
+                                { "Buttons" }
+                            </div>
+                        </div>
+                        <LineEditor onsubmit={link.callback(|text| Msg::Send(text))} />
+                    </div>
+                </div>
             </div>
         }
     }

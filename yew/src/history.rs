@@ -47,6 +47,11 @@ impl Store for HistoryStore {
             text: "Hello, world!".into(),
         });
 
+        entries.push(HistoryEntry {
+            id: 1,
+            text: "How are you?!".into(),
+        });
+
         let wss = WebsocketService::new();
 
         let message = WebSocketMessage::Login {

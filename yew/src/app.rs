@@ -7,7 +7,7 @@ use crate::routes::*;
 pub fn app() -> Html {
     html! {
         <BrowserRouter>
-            <div class="app">
+            <div id="app">
                 <Switch<Route> render={Switch::render(switch)}/>
             </div>
         </BrowserRouter>
