@@ -1,7 +1,8 @@
-// use wasm_bindgen::prelude::*;
-// use yew::functional::*;
 use yew::prelude::*;
 use yew_router::prelude::*;
+
+use crate::home::Home;
+use crate::login::Login;
 
 #[derive(Debug, Clone, Copy, PartialEq, Routable)]
 pub enum Route {
@@ -13,7 +14,7 @@ pub enum Route {
 
 pub fn switch(selected_route: &Route) -> Html {
     match selected_route {
-        Route::Login => html! {<h1>{ "Login" }</h1>},
-        Route::Home => html! {<h1>{ "Home" }</h1>},
+        Route::Login => html! {<Login />},
+        Route::Home => html! {<Home />},
     }
 }

@@ -1,6 +1,7 @@
 mod app;
+mod home;
+mod login;
 mod routes;
-
 mod text_input;
 
 use app::App;
