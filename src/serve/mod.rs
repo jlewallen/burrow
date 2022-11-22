@@ -27,14 +27,14 @@ use tracing::{debug, info};
 #[derive(Debug, Args)]
 pub struct Command {}
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 enum ServerMessage {
     Error(String),
-    Markdown(String),
+    Reply(serde_json::Value),
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 enum ClientMessage {
     Login { username: String },
@@ -151,19 +151,15 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
 
     // Send joined message to all subscribers.
     let mut rx = state.tx.subscribe();
-    let msg = format!("{} joined.", session.username);
-    tracing::debug!("{}", msg);
-    let _ = state.tx.send(msg);
+    // let msg = format!("{} joined.", session.username);
+    // tracing::debug!("{}", msg);
+    // let _ = state.tx.send(msg);
 
     // Pump messages to clients.
     let mut send_task = tokio::spawn(async move {
-        while let Ok(raw_msg) = rx.recv().await {
+        while let Ok(server_message) = rx.recv().await {
             // In any websocket error, break loop.
-            if sender
-                .send(Message::Item(ServerMessage::Markdown(raw_msg)))
-                .await
-                .is_err()
-            {
+            if sender.send(Message::Item(server_message)).await.is_err() {
                 break;
             }
         }
@@ -178,7 +174,7 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
             match message {
                 ClientMessage::Evaluate(text) => {
                     // Add username before message.
-                    let _ = tx.send(format!("{}: {}", name, text));
+                    // let _ = tx.send(format!("{}: {}", name, text));
                 }
                 _ => todo!(),
             }
@@ -192,9 +188,9 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
     };
 
     // Send user left message.
-    let msg = format!("{} left.", session.username);
-    tracing::debug!("{}", msg);
-    let _ = state.tx.send(msg);
+    // let msg = format!("{} left.", session.username);
+    // tracing::debug!("{}", msg);
+    // let _ = state.tx.send(msg);
 
     state.remove_session(&session);
 }
@@ -204,7 +200,7 @@ struct ClientSession {
 
 struct AppState {
     user_set: Mutex<HashSet<String>>,
-    tx: broadcast::Sender<String>,
+    tx: broadcast::Sender<ServerMessage>,
 }
 
 impl AppState {
