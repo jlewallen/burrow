@@ -72,6 +72,7 @@ pub mod model {
     pub use anyhow::Result;
     pub use serde::{Deserialize, Serialize};
     pub use serde_json::{json, Value};
+    pub use std::rc::Rc;
     pub use std::{collections::HashMap, ops::Deref};
     pub use tracing::*;
 

@@ -122,127 +122,6 @@ pub mod actions {
             Ok(Box::new(SimpleReply::Done))
         }
     }
-
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-        use crate::{
-            domain::{BuildActionArgs, QuickThing},
-            plugins::{carrying::model::Containing, looking::model::AreaObservation},
-        };
-
-        #[test]
-        fn it_fails_to_edit_unknown_items() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let args: ActionArgs = build
-                .ground(vec![QuickThing::Object("Cool Broom")])
-                .try_into()?;
-
-            let action = EditAction {
-                item: Item::Named("rake".into()),
-            };
-            let reply = action.perform(args.clone())?;
-
-            assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
-
-            Ok(())
-        }
-
-        #[test]
-        fn it_edits_items_named() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let args: ActionArgs = build
-                .ground(vec![QuickThing::Object("Cool Broom")])
-                .try_into()?;
-
-            let action = EditAction {
-                item: Item::Named("broom".into()),
-            };
-            let reply = action.perform(args.clone())?;
-
-            assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
-
-            Ok(())
-        }
-
-        #[test]
-        fn it_edits_items_by_gid() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let args: ActionArgs = build
-                .ground(vec![QuickThing::Object("Cool Broom")])
-                .try_into()?;
-
-            let action = EditAction {
-                item: Item::GID(EntityGID::new(1201)),
-            };
-            let reply = action.perform(args.clone())?;
-
-            assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
-
-            Ok(())
-        }
-
-        #[test]
-        fn it_fails_to_edit_items_by_missing_gid() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let args: ActionArgs = build
-                .ground(vec![QuickThing::Object("Cool Broom")])
-                .try_into()?;
-
-            let action = EditAction {
-                item: Item::GID(EntityGID::new(1)),
-            };
-            let reply = action.perform(args.clone())?;
-
-            assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
-
-            Ok(())
-        }
-
-        #[test]
-        fn it_digs_bidirectionally() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let args: ActionArgs = build.plain().try_into()?;
-
-            let action = BidirectionalDigAction {
-                outgoing: "North Exit".into(),
-                returning: "South Exit".into(),
-                new_area: "New Area".into(),
-            };
-            let reply = action.perform(args.clone())?;
-            let (_, living, _area, infra) = args.clone();
-
-            // Not the best way of finding the constructed area.
-            let destination = infra
-                .load_entity_by_gid(&EntityGID::new(4))?
-                .ok_or(DomainError::EntityNotFound)?;
-
-            assert_eq!(
-                reply.to_json()?,
-                AreaObservation::new(&living, &destination)?.to_json()?
-            );
-
-            Ok(())
-        }
-
-        #[test]
-        fn it_makes_items() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let args: ActionArgs = build.plain().try_into()?;
-
-            let action = MakeItemAction {
-                name: "Blue Rake".into(),
-            };
-            let reply = action.perform(args.clone())?;
-            let (_, living, _area, _infra) = args.clone();
-
-            assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
-
-            assert_eq!(living.borrow().scope::<Containing>()?.holding.len(), 1);
-
-            Ok(())
-        }
-    }
 }
 
 pub mod parser {
@@ -300,5 +179,117 @@ pub mod parser {
 
             Ok(Box::new(action))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parser::*;
+    use super::*;
+    use crate::plugins::library::actions::*;
+    use crate::{
+        domain::{BuildActionArgs, QuickThing},
+        plugins::{carrying::model::Containing, looking::model::AreaObservation},
+    };
+
+    #[test]
+    fn it_fails_to_edit_unknown_items() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let args: ActionArgs = build
+            .ground(vec![QuickThing::Object("Cool Broom")])
+            .try_into()?;
+
+        let action = try_parsing(EditActionParser {}, "edit rake")?;
+        let reply = action.perform(args.clone())?;
+
+        assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_edits_items_named() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let args: ActionArgs = build
+            .ground(vec![QuickThing::Object("Cool Broom")])
+            .try_into()?;
+
+        let action = try_parsing(EditActionParser {}, "edit broom")?;
+        let reply = action.perform(args.clone())?;
+
+        assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_fails_to_edit_items_by_missing_gid() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let args: ActionArgs = build
+            .ground(vec![QuickThing::Object("Cool Broom")])
+            .try_into()?;
+
+        let action = try_parsing(EditActionParser {}, "edit #1201")?;
+        let reply = action.perform(args.clone())?;
+
+        assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_edits_items_by_gid() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let args: ActionArgs = build
+            .ground(vec![QuickThing::Object("Cool Broom")])
+            .try_into()?;
+
+        let action = try_parsing(EditActionParser {}, "edit #1")?;
+        let reply = action.perform(args.clone())?;
+
+        assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_digs_bidirectionally() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let args: ActionArgs = build.plain().try_into()?;
+
+        let action = try_parsing(
+            BidirectionalDigActionParser {},
+            r#"dig "North Exit" to "South Exit" for "New Area""#,
+        )?;
+        let reply = action.perform(args.clone())?;
+        let (_, living, _area, infra) = args.clone();
+
+        // Not the best way of finding the constructed area.
+        let destination = infra
+            .load_entity_by_gid(&EntityGID::new(4))?
+            .ok_or(DomainError::EntityNotFound)?;
+
+        assert_eq!(
+            reply.to_json()?,
+            AreaObservation::new(&living, &destination)?.to_json()?
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_makes_items() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let args: ActionArgs = build.plain().try_into()?;
+
+        let action = try_parsing(MakeItemParser {}, r#"make item "Blue Rake""#)?;
+        let reply = action.perform(args.clone())?;
+        let (_, living, _area, _infra) = args.clone();
+
+        assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+
+        assert_eq!(living.borrow().scope::<Containing>()?.holding.len(), 1);
+
+        Ok(())
     }
 }

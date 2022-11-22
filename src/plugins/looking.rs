@@ -230,132 +230,6 @@ pub mod actions {
             }
         }
     }
-
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-        use crate::domain::{BuildActionArgs, QuickThing};
-
-        #[test]
-        fn it_looks_in_empty_area() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let args: ActionArgs = build.plain().try_into()?;
-
-            let action = LookAction {};
-            let reply = action.perform(args.clone())?;
-            let (_, _person, _area, _) = args.clone();
-
-            insta::assert_json_snapshot!(reply.to_json()?);
-
-            build.close()?;
-
-            Ok(())
-        }
-
-        #[test]
-        fn it_looks_in_area_with_items_on_ground() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let args: ActionArgs = build
-                .ground(vec![QuickThing::Object("Cool Rake")])
-                .ground(vec![QuickThing::Object("Boring Shovel")])
-                .try_into()?;
-
-            let action = LookAction {};
-            let reply = action.perform(args.clone())?;
-            let (_, _person, _area, _) = args.clone();
-
-            insta::assert_json_snapshot!(reply.to_json()?);
-
-            build.close()?;
-
-            Ok(())
-        }
-
-        #[test]
-        fn it_looks_in_area_with_items_on_ground_and_a_route() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let destination = build.make(QuickThing::Place("Place"))?;
-            let args: ActionArgs = build
-                .ground(vec![QuickThing::Object("Cool Rake")])
-                .ground(vec![QuickThing::Object("Boring Shovel")])
-                .route("East Exit", QuickThing::Actual(destination))
-                .try_into()?;
-
-            let action = LookAction {};
-            let reply = action.perform(args.clone())?;
-            let (_, _person, _area, _) = args.clone();
-
-            insta::assert_json_snapshot!(reply.to_json()?);
-
-            build.close()?;
-
-            Ok(())
-        }
-
-        #[test]
-        fn it_looks_in_area_with_items_on_ground_and_holding_items() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let destination = build.make(QuickThing::Place("Place"))?;
-            let args: ActionArgs = build
-                .ground(vec![QuickThing::Object("Boring Shovel")])
-                .hands(vec![QuickThing::Object("Cool Rake")])
-                .route("East Exit", QuickThing::Actual(destination))
-                .try_into()?;
-
-            let action = LookAction {};
-            let reply = action.perform(args.clone())?;
-            let (_, _person, _area, _) = args.clone();
-
-            insta::assert_json_snapshot!(reply.to_json()?);
-
-            build.close()?;
-
-            Ok(())
-        }
-
-        #[test]
-        fn it_fails_to_look_inside_non_containers() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let args: ActionArgs = build
-                .hands(vec![QuickThing::Object("Not A Box")])
-                .try_into()?;
-
-            let action = LookInsideAction {
-                item: Item::Named("box".to_owned()),
-            };
-            let reply = action.perform(args.clone())?;
-            let (_, _person, _area, _) = args.clone();
-
-            insta::assert_json_snapshot!(reply.to_json()?);
-
-            build.close()?;
-
-            Ok(())
-        }
-
-        #[test]
-        fn it_looks_inside_containers() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let vessel = build
-                .build()?
-                .named("Vessel")?
-                .holding(&vec![build.make(QuickThing::Object("Key"))?])?
-                .into_entity()?;
-            let args: ActionArgs = build.hands(vec![QuickThing::Actual(vessel)]).try_into()?;
-
-            let action = LookInsideAction {
-                item: Item::Named("vessel".to_owned()),
-            };
-            let reply = action.perform(args.clone())?;
-            let (_, _person, _area, _) = args.clone();
-
-            insta::assert_json_snapshot!(reply.to_json()?);
-
-            build.close()?;
-
-            Ok(())
-        }
-    }
 }
 
 pub mod parser {
@@ -382,5 +256,131 @@ pub mod parser {
 
             Ok(action)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        domain::{BuildActionArgs, QuickThing},
+        plugins::{library::plugin::try_parsing, looking::parser::LookActionParser},
+    };
+    use anyhow::Result;
+
+    #[test]
+    fn it_looks_in_empty_area() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let args: ActionArgs = build.plain().try_into()?;
+
+        let action = try_parsing(LookActionParser {}, "look")?;
+        let reply = action.perform(args.clone())?;
+        let (_, _person, _area, _) = args.clone();
+
+        insta::assert_json_snapshot!(reply.to_json()?);
+
+        build.close()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_looks_in_area_with_items_on_ground() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let args: ActionArgs = build
+            .ground(vec![QuickThing::Object("Cool Rake")])
+            .ground(vec![QuickThing::Object("Boring Shovel")])
+            .try_into()?;
+
+        let action = try_parsing(LookActionParser {}, "look")?;
+        let reply = action.perform(args.clone())?;
+        let (_, _person, _area, _) = args.clone();
+
+        insta::assert_json_snapshot!(reply.to_json()?);
+
+        build.close()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_looks_in_area_with_items_on_ground_and_a_route() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let destination = build.make(QuickThing::Place("Place"))?;
+        let args: ActionArgs = build
+            .ground(vec![QuickThing::Object("Cool Rake")])
+            .ground(vec![QuickThing::Object("Boring Shovel")])
+            .route("East Exit", QuickThing::Actual(destination))
+            .try_into()?;
+
+        let action = try_parsing(LookActionParser {}, "look")?;
+        let reply = action.perform(args.clone())?;
+        let (_, _person, _area, _) = args.clone();
+
+        insta::assert_json_snapshot!(reply.to_json()?);
+
+        build.close()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_looks_in_area_with_items_on_ground_and_holding_items() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let destination = build.make(QuickThing::Place("Place"))?;
+        let args: ActionArgs = build
+            .ground(vec![QuickThing::Object("Boring Shovel")])
+            .hands(vec![QuickThing::Object("Cool Rake")])
+            .route("East Exit", QuickThing::Actual(destination))
+            .try_into()?;
+
+        let action = try_parsing(LookActionParser {}, "look")?;
+        let reply = action.perform(args.clone())?;
+        let (_, _person, _area, _) = args.clone();
+
+        insta::assert_json_snapshot!(reply.to_json()?);
+
+        build.close()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_fails_to_look_inside_non_containers() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let args: ActionArgs = build
+            .hands(vec![QuickThing::Object("Not A Box")])
+            .try_into()?;
+
+        let action = try_parsing(LookActionParser {}, "look inside box")?;
+        let reply = action.perform(args.clone())?;
+        let (_, _person, _area, _) = args.clone();
+
+        insta::assert_json_snapshot!(reply.to_json()?);
+
+        build.close()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_looks_inside_containers() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let vessel = build
+            .build()?
+            .named("Vessel")?
+            .holding(&vec![build.make(QuickThing::Object("Key"))?])?
+            .into_entity()?;
+        let args: ActionArgs = build.hands(vec![QuickThing::Actual(vessel)]).try_into()?;
+
+        let action = try_parsing(LookActionParser {}, "look inside vessel")?;
+        let reply = action.perform(args.clone())?;
+        let (_, _person, _area, _) = args.clone();
+
+        insta::assert_json_snapshot!(reply.to_json()?);
+
+        build.close()?;
+
+        Ok(())
     }
 }

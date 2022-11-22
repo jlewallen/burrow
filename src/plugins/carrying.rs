@@ -39,8 +39,8 @@ pub mod model {
         }
     }
 
-    impl Needs<std::rc::Rc<dyn Infrastructure>> for Location {
-        fn supply(&mut self, infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
+    impl Needs<Rc<dyn Infrastructure>> for Location {
+        fn supply(&mut self, infra: &Rc<dyn Infrastructure>) -> Result<()> {
             self.container = infra.ensure_optional_entity(&self.container)?;
             Ok(())
         }
@@ -63,8 +63,8 @@ pub mod model {
         }
     }
 
-    impl Needs<std::rc::Rc<dyn Infrastructure>> for Containing {
-        fn supply(&mut self, infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
+    impl Needs<Rc<dyn Infrastructure>> for Containing {
+        fn supply(&mut self, infra: &Rc<dyn Infrastructure>) -> Result<()> {
             self.holding = self
                 .holding
                 .iter()
@@ -110,8 +110,8 @@ pub mod model {
         }
     }
 
-    impl Needs<std::rc::Rc<dyn Infrastructure>> for Carryable {
-        fn supply(&mut self, _infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
+    impl Needs<Rc<dyn Infrastructure>> for Carryable {
+        fn supply(&mut self, _infra: &Rc<dyn Infrastructure>) -> Result<()> {
             Ok(())
         }
     }
@@ -251,220 +251,6 @@ pub mod actions {
             }
         }
     }
-
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-        use crate::{
-            domain::{BuildActionArgs, QuickThing},
-            plugins::carrying::model::Containing,
-        };
-
-        #[test]
-        fn it_holds_unheld_items() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let args: ActionArgs = build
-                .ground(vec![QuickThing::Object("Cool Rake")])
-                .try_into()?;
-
-            let action = HoldAction {
-                item: Item::Named("rake".into()),
-            };
-            let reply = action.perform(args.clone())?;
-            let (_, person, area, _) = args.clone();
-
-            assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
-
-            assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
-            assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 0);
-
-            build.close()?;
-
-            Ok(())
-        }
-
-        #[test]
-        fn it_fails_to_hold_unknown_items() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let args: ActionArgs = build
-                .ground(vec![QuickThing::Object("Cool Broom")])
-                .try_into()?;
-
-            let action = HoldAction {
-                item: Item::Named("rake".into()),
-            };
-            let reply = action.perform(args.clone())?;
-            let (_, person, area, _) = args.clone();
-
-            assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
-
-            assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
-            assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 1);
-
-            build.close()?;
-
-            Ok(())
-        }
-
-        #[test]
-        fn it_drops_held_items() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let args: ActionArgs = build
-                .hands(vec![QuickThing::Object("Cool Rake")])
-                .try_into()?;
-
-            let action = DropAction {
-                maybe_item: Some(Item::Named("rake".into())),
-            };
-            let reply = action.perform(args.clone())?;
-            let (_, person, area, _) = args.clone();
-
-            assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
-
-            assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
-            assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 1);
-
-            build.close()?;
-
-            Ok(())
-        }
-
-        #[test]
-        fn it_fails_to_drop_unknown_items() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let args: ActionArgs = build
-                .hands(vec![QuickThing::Object("Cool Broom")])
-                .try_into()?;
-
-            let action = DropAction {
-                maybe_item: Some(Item::Named("rake".into())),
-            };
-            let reply = action.perform(args.clone())?;
-            let (_, person, area, _) = args.clone();
-
-            assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
-
-            assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
-            assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 0);
-
-            build.close()?;
-
-            Ok(())
-        }
-
-        #[test]
-        fn it_fails_to_drop_unheld_items() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let args: ActionArgs = build
-                .ground(vec![QuickThing::Object("Cool Broom")])
-                .try_into()?;
-
-            let action = DropAction {
-                maybe_item: Some(Item::Named("rake".into())),
-            };
-            let reply = action.perform(args.clone())?;
-            let (_, person, area, _) = args.clone();
-
-            assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
-
-            assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
-            assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 1);
-
-            build.close()?;
-
-            Ok(())
-        }
-
-        #[test]
-        fn it_fails_to_puts_item_in_non_containers() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let vessel = build.build()?.named("Not A Vessel")?.into_entity()?;
-            let args: ActionArgs = build
-                .hands(vec![
-                    QuickThing::Object("key"),
-                    QuickThing::Actual(vessel.clone()),
-                ])
-                .try_into()?;
-
-            let action = PutInsideAction {
-                item: Item::Named("key".to_owned()),
-                vessel: Item::Named("vessel".to_owned()),
-            };
-            let reply = action.perform(args.clone())?;
-            let (_world, person, _area, _) = args;
-
-            insta::assert_json_snapshot!(reply.to_json()?);
-
-            assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 2);
-            assert_eq!(vessel.borrow().scope::<Containing>()?.holding.len(), 0);
-
-            build.close()?;
-
-            Ok(())
-        }
-
-        #[test]
-        fn it_puts_items_in_containers() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let vessel = build
-                .build()?
-                .named("Vessel")?
-                .holding(&vec![])?
-                .into_entity()?;
-            let args: ActionArgs = build
-                .hands(vec![
-                    QuickThing::Object("key"),
-                    QuickThing::Actual(vessel.clone()),
-                ])
-                .try_into()?;
-
-            let action = PutInsideAction {
-                item: Item::Named("key".to_owned()),
-                vessel: Item::Named("vessel".to_owned()),
-            };
-            let reply = action.perform(args.clone())?;
-            let (_world, person, _area, _) = args;
-
-            insta::assert_json_snapshot!(reply.to_json()?);
-
-            assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
-            assert_eq!(vessel.borrow().scope::<Containing>()?.holding.len(), 1);
-
-            build.close()?;
-
-            Ok(())
-        }
-
-        #[test]
-        fn it_takes_items_out_of_containers() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let key = build.build()?.named("Key")?.into_entity()?;
-            let vessel = build
-                .build()?
-                .named("Vessel")?
-                .holding(&vec![key])?
-                .into_entity()?;
-            let args: ActionArgs = build
-                .hands(vec![QuickThing::Actual(vessel.clone())])
-                .try_into()?;
-
-            let action = TakeOutAction {
-                item: Item::Contained(Box::new(Item::Named("key".to_owned()))),
-                vessel: Item::Named("vessel".to_owned()),
-            };
-            let reply = action.perform(args.clone())?;
-            let (_world, person, _area, _) = args;
-
-            insta::assert_json_snapshot!(reply.to_json()?);
-
-            assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 2);
-            assert_eq!(vessel.borrow().scope::<Containing>()?.holding.len(), 0);
-
-            build.close()?;
-
-            Ok(())
-        }
-    }
 }
 
 pub mod parser {
@@ -530,7 +316,15 @@ pub mod parser {
             });
 
             let (_, action) = map(
-                separated_pair(separated_pair(item, spaces, tag("inside of")), spaces, noun),
+                separated_pair(
+                    separated_pair(
+                        item,
+                        spaces,
+                        pair(tag("inside"), opt(pair(spaces, tag("of")))),
+                    ),
+                    spaces,
+                    noun,
+                ),
                 |(item, target)| PutInsideAction {
                     item: item.0,
                     vessel: target,
@@ -539,5 +333,202 @@ pub mod parser {
 
             Ok(Box::new(action))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parser::*;
+    use super::*;
+    use crate::{
+        domain::{BuildActionArgs, QuickThing},
+        plugins::carrying::model::Containing,
+    };
+    use anyhow::Result;
+
+    #[test]
+    fn it_holds_unheld_items() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let args: ActionArgs = build
+            .ground(vec![QuickThing::Object("Cool Rake")])
+            .try_into()?;
+
+        let action = try_parsing(HoldActionParser {}, "hold rake")?;
+        let reply = action.perform(args.clone())?;
+        let (_, person, area, _) = args.clone();
+
+        assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+
+        assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
+        assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 0);
+
+        build.close()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_fails_to_hold_unknown_items() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let args: ActionArgs = build
+            .ground(vec![QuickThing::Object("Cool Broom")])
+            .try_into()?;
+
+        let action = try_parsing(HoldActionParser {}, "hold rake")?;
+        let reply = action.perform(args.clone())?;
+        let (_, person, area, _) = args.clone();
+
+        assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+
+        assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
+        assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 1);
+
+        build.close()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_drops_held_items() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let args: ActionArgs = build
+            .hands(vec![QuickThing::Object("Cool Rake")])
+            .try_into()?;
+
+        let action = try_parsing(DropActionParser {}, "drop rake")?;
+        let reply = action.perform(args.clone())?;
+        let (_, person, area, _) = args.clone();
+
+        assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+
+        assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
+        assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 1);
+
+        build.close()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_fails_to_drop_unknown_items() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let args: ActionArgs = build
+            .hands(vec![QuickThing::Object("Cool Broom")])
+            .try_into()?;
+
+        let action = try_parsing(DropActionParser {}, "drop rake")?;
+        let reply = action.perform(args.clone())?;
+        let (_, person, area, _) = args.clone();
+
+        assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+
+        assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
+        assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 0);
+
+        build.close()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_fails_to_drop_unheld_items() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let args: ActionArgs = build
+            .ground(vec![QuickThing::Object("Cool Broom")])
+            .try_into()?;
+
+        let action = try_parsing(DropActionParser {}, "drop rake")?;
+        let reply = action.perform(args.clone())?;
+        let (_, person, area, _) = args.clone();
+
+        assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+
+        assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
+        assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 1);
+
+        build.close()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_fails_to_puts_item_in_non_containers() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let vessel = build.build()?.named("Not A Vessel")?.into_entity()?;
+        let args: ActionArgs = build
+            .hands(vec![
+                QuickThing::Object("key"),
+                QuickThing::Actual(vessel.clone()),
+            ])
+            .try_into()?;
+
+        let action = try_parsing(PutInsideActionParser {}, "put key inside vessel")?;
+        let reply = action.perform(args.clone())?;
+        let (_world, person, _area, _) = args;
+
+        insta::assert_json_snapshot!(reply.to_json()?);
+
+        assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 2);
+        assert_eq!(vessel.borrow().scope::<Containing>()?.holding.len(), 0);
+
+        build.close()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_puts_items_in_containers() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let vessel = build
+            .build()?
+            .named("Vessel")?
+            .holding(&vec![])?
+            .into_entity()?;
+        let args: ActionArgs = build
+            .hands(vec![
+                QuickThing::Object("key"),
+                QuickThing::Actual(vessel.clone()),
+            ])
+            .try_into()?;
+
+        let action = try_parsing(PutInsideActionParser {}, "put key inside vessel")?;
+        let reply = action.perform(args.clone())?;
+        let (_world, person, _area, _) = args;
+
+        insta::assert_json_snapshot!(reply.to_json()?);
+
+        assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
+        assert_eq!(vessel.borrow().scope::<Containing>()?.holding.len(), 1);
+
+        build.close()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_takes_items_out_of_containers() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let key = build.build()?.named("Key")?.into_entity()?;
+        let vessel = build
+            .build()?
+            .named("Vessel")?
+            .holding(&vec![key])?
+            .into_entity()?;
+        let args: ActionArgs = build
+            .hands(vec![QuickThing::Actual(vessel.clone())])
+            .try_into()?;
+
+        let action = try_parsing(TakeOutActionParser {}, "take key out of vessel")?;
+        let reply = action.perform(args.clone())?;
+        let (_world, person, _area, _) = args;
+
+        insta::assert_json_snapshot!(reply.to_json()?);
+
+        assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 2);
+        assert_eq!(vessel.borrow().scope::<Containing>()?.holding.len(), 0);
+
+        build.close()?;
+
+        Ok(())
     }
 }

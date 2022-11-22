@@ -9,8 +9,6 @@ impl ParsesActions for MovingPlugin {
 }
 
 pub mod model {
-    use std::rc::Rc;
-
     use crate::plugins::library::model::*;
 
     #[derive(Debug, Serialize, Deserialize, Default)]
@@ -124,8 +122,8 @@ pub mod model {
         }
     }
 
-    impl Needs<std::rc::Rc<dyn Infrastructure>> for Movement {
-        fn supply(&mut self, infra: &std::rc::Rc<dyn Infrastructure>) -> Result<()> {
+    impl Needs<Rc<dyn Infrastructure>> for Movement {
+        fn supply(&mut self, infra: &Rc<dyn Infrastructure>) -> Result<()> {
             for route in self.routes.iter_mut() {
                 route.area = infra.ensure_entity(&route.area)?;
             }
@@ -175,131 +173,6 @@ pub mod actions {
             }
         }
     }
-
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-        use crate::{
-            domain::{BuildActionArgs, QuickThing},
-            plugins::looking::model::AreaObservation,
-        };
-
-        #[test]
-        fn it_goes_ignores_bad_matches() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let east = build.make(QuickThing::Place("East Place"))?;
-            let west = build.make(QuickThing::Place("West Place"))?;
-            let args: ActionArgs = build
-                .route("East", QuickThing::Actual(east))
-                .route("Wast", QuickThing::Actual(west))
-                .try_into()?;
-
-            let action = GoAction {
-                item: Item::Route("north".into()),
-            };
-            let reply = action.perform(args.clone())?;
-
-            assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
-
-            build.close()?;
-
-            Ok(())
-        }
-
-        #[test]
-        fn it_goes_through_correct_route_when_two_nearby() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let east = build.make(QuickThing::Place("East Place"))?;
-            let west = build.make(QuickThing::Place("West Place"))?;
-            let args: ActionArgs = build
-                .route("East", QuickThing::Actual(east.clone()))
-                .route("Wast", QuickThing::Actual(west))
-                .try_into()?;
-
-            let action = GoAction {
-                item: Item::Route("east".into()),
-            };
-            let reply = action.perform(args.clone())?;
-            let (_, living, area, _) = args.clone();
-
-            assert_eq!(
-                reply.to_json()?,
-                AreaObservation::new(&living, &east)?.to_json()?
-            );
-
-            assert_ne!(tools::area_of(&living)?.key(), area.key());
-            assert_eq!(tools::area_of(&living)?.key(), east.key());
-
-            build.close()?;
-
-            Ok(())
-        }
-
-        #[test]
-        fn it_goes_through_routes_when_one_nearby() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let destination = build.make(QuickThing::Place("Place"))?;
-            let args: ActionArgs = build
-                .route("East", QuickThing::Actual(destination.clone()))
-                .try_into()?;
-
-            let action = GoAction {
-                item: Item::Route("east".into()),
-            };
-            let reply = action.perform(args.clone())?;
-            let (_, living, area, _) = args.clone();
-
-            assert_eq!(
-                reply.to_json()?,
-                AreaObservation::new(&living, &destination)?.to_json()?
-            );
-
-            assert_ne!(tools::area_of(&living)?.key(), area.key());
-            assert_eq!(tools::area_of(&living)?.key(), destination.key());
-
-            build.close()?;
-
-            Ok(())
-        }
-
-        #[test]
-        fn it_fails_to_go_unknown_items() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let args: ActionArgs = build.plain().try_into()?;
-
-            let action = GoAction {
-                item: Item::Route("rake".into()),
-            };
-            let reply = action.perform(args.clone())?;
-            let (_, _person, _area, _) = args.clone();
-
-            assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
-
-            build.close()?;
-
-            Ok(())
-        }
-
-        #[test]
-        fn it_fails_to_go_non_routes() -> Result<()> {
-            let mut build = BuildActionArgs::new()?;
-            let args: ActionArgs = build
-                .ground(vec![QuickThing::Object("Cool Rake")])
-                .try_into()?;
-
-            let action = GoAction {
-                item: Item::Route("rake".into()),
-            };
-            let reply = action.perform(args.clone())?;
-            let (_, _person, _area, _) = args.clone();
-
-            assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
-
-            build.close()?;
-
-            Ok(())
-        }
-    }
 }
 
 mod parser {
@@ -318,5 +191,122 @@ mod parser {
 
             Ok(Box::new(action))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parser::*;
+    use super::*;
+    use crate::{
+        domain::{BuildActionArgs, QuickThing},
+        plugins::{looking::model::AreaObservation, tools},
+    };
+    use anyhow::Result;
+
+    #[test]
+    fn it_goes_ignores_bad_matches() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let east = build.make(QuickThing::Place("East Place"))?;
+        let west = build.make(QuickThing::Place("West Place"))?;
+        let args: ActionArgs = build
+            .route("East", QuickThing::Actual(east))
+            .route("Wast", QuickThing::Actual(west))
+            .try_into()?;
+
+        let action = try_parsing(GoActionParser {}, "go north")?;
+        let reply = action.perform(args.clone())?;
+
+        assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+
+        build.close()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_goes_through_correct_route_when_two_nearby() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let east = build.make(QuickThing::Place("East Place"))?;
+        let west = build.make(QuickThing::Place("West Place"))?;
+        let args: ActionArgs = build
+            .route("East", QuickThing::Actual(east.clone()))
+            .route("Wast", QuickThing::Actual(west))
+            .try_into()?;
+
+        let action = try_parsing(GoActionParser {}, "go east")?;
+        let reply = action.perform(args.clone())?;
+        let (_, living, area, _) = args.clone();
+
+        assert_eq!(
+            reply.to_json()?,
+            AreaObservation::new(&living, &east)?.to_json()?
+        );
+
+        assert_ne!(tools::area_of(&living)?.key(), area.key());
+        assert_eq!(tools::area_of(&living)?.key(), east.key());
+
+        build.close()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_goes_through_routes_when_one_nearby() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let destination = build.make(QuickThing::Place("Place"))?;
+        let args: ActionArgs = build
+            .route("East", QuickThing::Actual(destination.clone()))
+            .try_into()?;
+
+        let action = try_parsing(GoActionParser {}, "go east")?;
+        let reply = action.perform(args.clone())?;
+        let (_, living, area, _) = args.clone();
+
+        assert_eq!(
+            reply.to_json()?,
+            AreaObservation::new(&living, &destination)?.to_json()?
+        );
+
+        assert_ne!(tools::area_of(&living)?.key(), area.key());
+        assert_eq!(tools::area_of(&living)?.key(), destination.key());
+
+        build.close()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_fails_to_go_unknown_items() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let args: ActionArgs = build.plain().try_into()?;
+
+        let action = try_parsing(GoActionParser {}, "go rake")?;
+        let reply = action.perform(args.clone())?;
+        let (_, _person, _area, _) = args.clone();
+
+        assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+
+        build.close()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_fails_to_go_non_routes() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let args: ActionArgs = build
+            .ground(vec![QuickThing::Object("Cool Rake")])
+            .try_into()?;
+
+        let action = try_parsing(GoActionParser {}, "go rake")?;
+        let reply = action.perform(args.clone())?;
+        let (_, _person, _area, _) = args.clone();
+
+        assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+
+        build.close()?;
+
+        Ok(())
     }
 }
