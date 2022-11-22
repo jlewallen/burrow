@@ -344,7 +344,6 @@ mod tests {
         domain::{BuildActionArgs, QuickThing},
         plugins::carrying::model::Containing,
     };
-    use anyhow::Result;
 
     #[test]
     fn it_holds_unheld_items() -> Result<()> {

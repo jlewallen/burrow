@@ -153,7 +153,7 @@ pub mod parser {
         fn try_parse_action(&self, i: &str) -> EvaluationResult {
             let (_, action) = map(
                 preceded(pair(tag("edit"), spaces), noun_or_specific),
-                |item| EditAction { item: item },
+                |item| EditAction { item },
             )(i)?;
 
             Ok(Box::new(action))
@@ -186,7 +186,6 @@ pub mod parser {
 mod tests {
     use super::parser::*;
     use super::*;
-    use crate::plugins::library::actions::*;
     use crate::{
         domain::{BuildActionArgs, QuickThing},
         plugins::{carrying::model::Containing, looking::model::AreaObservation},

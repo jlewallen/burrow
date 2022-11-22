@@ -212,12 +212,11 @@ pub enum DomainOutcome {
     Nope,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Serialize, Eq, PartialEq)]
 pub enum Item {
     Named(String),
     Route(String),
     GID(EntityGID),
-    // Held(Option<Box<Item>>),
     Contained(Box<Item>),
 }
 

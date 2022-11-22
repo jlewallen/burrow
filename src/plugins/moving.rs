@@ -202,7 +202,6 @@ mod tests {
         domain::{BuildActionArgs, QuickThing},
         plugins::{looking::model::AreaObservation, tools},
     };
-    use anyhow::Result;
 
     #[test]
     fn it_goes_ignores_bad_matches() -> Result<()> {

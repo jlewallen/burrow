@@ -244,7 +244,7 @@ enum Node {
     Held(String),
     Unheld(String),
     Contained(String),
-    Phrase(Box<Vec<Node>>),
+    Phrase(Vec<Node>),
 }
 
 #[allow(dead_code)]
@@ -271,14 +271,11 @@ fn english_node_to_parser<'a>(
 
 #[allow(dead_code)]
 fn english_nodes_to_parser<'a>(
-    nodes: &'a Vec<English>,
+    nodes: &'a [English],
 ) -> impl FnMut(&'a str) -> IResult<&'a str, Node> {
     move |mut i: &'a str| {
         // TODO Would love to move this up and out of the closure.
-        let terms = nodes
-            .into_iter()
-            .map(english_node_to_parser)
-            .collect::<Vec<_>>();
+        let terms = nodes.iter().map(english_node_to_parser).collect::<Vec<_>>();
 
         let mut accumulator: Vec<Node> = vec![];
         for mut term in terms {
@@ -292,6 +289,6 @@ fn english_nodes_to_parser<'a>(
             }
         }
 
-        Ok((i, Node::Phrase(Box::new(accumulator))))
+        Ok((i, Node::Phrase(accumulator)))
     }
 }

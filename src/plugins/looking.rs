@@ -261,12 +261,12 @@ pub mod parser {
 
 #[cfg(test)]
 mod tests {
+    use super::parser::LookActionParser;
     use super::*;
     use crate::{
         domain::{BuildActionArgs, QuickThing},
-        plugins::{library::plugin::try_parsing, looking::parser::LookActionParser},
+        plugins::library::plugin::try_parsing,
     };
-    use anyhow::Result;
 
     #[test]
     fn it_looks_in_empty_area() -> Result<()> {

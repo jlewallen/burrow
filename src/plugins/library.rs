@@ -1,6 +1,7 @@
 pub mod plugin {
     pub use super::parser::{try_parsing, ParsesActions};
     pub use crate::kernel::*;
+    pub use anyhow::Result;
 }
 
 pub mod parser {
