@@ -12,7 +12,7 @@ pub trait EntityStorage {
     fn commit(&self) -> Result<()>;
 }
 
-pub trait EntityStorageFactory {
+pub trait EntityStorageFactory: Send + Sync {
     fn create_storage(&self) -> Result<Rc<dyn EntityStorage>>;
 }
 

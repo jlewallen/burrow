@@ -1,5 +1,6 @@
 use anyhow::Result;
 use std::sync::atomic::AtomicU64;
+use std::sync::Arc;
 use std::time::Instant;
 use std::{
     cell::RefCell,
@@ -14,7 +15,7 @@ use crate::plugins::{identifiers, moving::model::Occupying, users::model::Userna
 use crate::storage::{EntityStorage, EntityStorageFactory, PersistedEntity};
 use crate::{kernel::*, plugins::eval};
 
-pub trait KeySequence {
+pub trait KeySequence: Send + Sync {
     fn new_key(&self) -> EntityKey;
 }
 
@@ -170,7 +171,7 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new(storage: Rc<dyn EntityStorage>, keys: &Rc<dyn KeySequence>) -> Result<Self> {
+    pub fn new(storage: Rc<dyn EntityStorage>, keys: &Arc<dyn KeySequence>) -> Result<Self> {
         info!("session-new");
 
         let opened = Instant::now();
@@ -182,7 +183,7 @@ impl Session {
             Rc::clone(&storage),
             Rc::clone(&entity_map),
             Rc::clone(&performer),
-            Rc::clone(keys),
+            Arc::clone(keys),
         );
 
         let infra = domain_infra.clone() as Rc<dyn Infrastructure>;
@@ -446,7 +447,7 @@ impl SessionTrait for Session {}
 
 pub struct Domain {
     storage_factory: Box<dyn EntityStorageFactory>,
-    keys: Rc<dyn KeySequence>,
+    keys: Arc<dyn KeySequence>,
 }
 
 impl Domain {
@@ -456,11 +457,11 @@ impl Domain {
         Domain {
             storage_factory,
             keys: if deterministic_keys {
-                Rc::new(DeterministicKeys {
+                Arc::new(DeterministicKeys {
                     sequence: AtomicU64::new(0),
                 })
             } else {
-                Rc::new(RandomKeys {})
+                Arc::new(RandomKeys {})
             },
         }
     }

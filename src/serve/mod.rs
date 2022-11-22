@@ -11,6 +11,7 @@ use clap::Args;
 use futures::{sink::SinkExt, stream::StreamExt};
 use serde::{Deserialize, Serialize};
 use std::{
+    borrow::Borrow,
     collections::HashSet,
     net::SocketAddr,
     path::PathBuf,
@@ -23,6 +24,12 @@ use tower_http::{
     trace::{DefaultMakeSpan, TraceLayer},
 };
 use tracing::{debug, info};
+
+use crate::{
+    domain::Domain,
+    kernel::{Reply, SimpleReply},
+    storage,
+};
 
 #[derive(Debug, Args)]
 pub struct Command {}
@@ -45,12 +52,19 @@ enum ClientMessage {
 pub async fn execute_command(_cmd: &Command) -> Result<()> {
     info!("serving");
 
+    let storage_factory = storage::sqlite::Factory::new("world.sqlite3")?;
+    let domain = Domain::new(storage_factory, false);
+
     let assets_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
 
     let user_set = Mutex::new(HashSet::new());
     let (tx, _rx) = broadcast::channel(100);
 
-    let app_state = Arc::new(AppState { user_set, tx });
+    let app_state = Arc::new(AppState {
+        domain,
+        user_set,
+        tx,
+    });
 
     let app = Router::new()
         .fallback(
@@ -168,13 +182,32 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
     // Pump messages from clients.
     let tx = state.tx.clone();
     let name = session.username.clone();
+    let user_state = state.clone();
 
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(Message::Item(message))) = receiver.next().await {
             match message {
                 ClientMessage::Evaluate(text) => {
-                    // Add username before message.
-                    // let _ = tx.send(format!("{}: {}", name, text));
+                    let app_state: &AppState = user_state.borrow();
+                    let session = app_state
+                        .domain
+                        .open_session()
+                        .expect("Error opening session");
+
+                    let reply: Box<dyn Reply> = if let Some(reply) = session
+                        .evaluate_and_perform(&name, text.as_str())
+                        .expect("Evaluation error")
+                    {
+                        reply
+                    } else {
+                        Box::new(SimpleReply::What)
+                    };
+
+                    session.close().expect("Error closing session");
+
+                    let _ = tx.send(ServerMessage::Reply(
+                        reply.to_json().expect("Errror serializing reply JSON"),
+                    ));
                 }
                 _ => todo!(),
             }
@@ -199,6 +232,7 @@ struct ClientSession {
 }
 
 struct AppState {
+    domain: Domain,
     user_set: Mutex<HashSet<String>>,
     tx: broadcast::Sender<ServerMessage>,
 }

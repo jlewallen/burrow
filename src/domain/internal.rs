@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use std::{cell::RefCell, collections::HashMap, fmt::Debug, rc::Rc};
 use tracing::{debug, info, span, trace, Level};
 
@@ -233,7 +234,7 @@ pub trait Performer {
 pub struct DomainInfrastructure {
     entities: Rc<Entities>,
     performer: Rc<dyn Performer>,
-    keys: Rc<dyn KeySequence>,
+    keys: Arc<dyn KeySequence>,
 }
 
 impl DomainInfrastructure {
@@ -241,7 +242,7 @@ impl DomainInfrastructure {
         storage: Rc<dyn EntityStorage>,
         entity_map: Rc<EntityMap>,
         performer: Rc<dyn Performer>,
-        keys: Rc<dyn KeySequence>,
+        keys: Arc<dyn KeySequence>,
     ) -> Rc<Self> {
         let entities = Entities::new(entity_map, storage);
         Rc::new(DomainInfrastructure {
