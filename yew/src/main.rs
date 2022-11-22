@@ -1,4 +1,7 @@
 mod app;
+mod routes;
+
+mod text_input;
 
 use app::App;
 
