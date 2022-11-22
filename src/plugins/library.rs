@@ -1,3 +1,8 @@
+pub mod plugin {
+    pub use super::parser::{try_parsing, ParsesActions};
+    pub use crate::kernel::*;
+}
+
 pub mod parser {
     pub use crate::kernel::*;
     use nom::sequence::delimited;
@@ -52,6 +57,14 @@ pub mod parser {
             map(word, |s: &str| Item::Route(s.to_owned())),
         ))(i)
     }
+
+    pub trait ParsesActions {
+        fn try_parse_action(&self, i: &str) -> EvaluationResult;
+    }
+
+    pub fn try_parsing<T: ParsesActions>(parser: T, i: &str) -> EvaluationResult {
+        parser.try_parse_action(i)
+    }
 }
 
 pub mod model {
@@ -61,18 +74,6 @@ pub mod model {
     pub use serde_json::{json, Value};
     pub use std::{collections::HashMap, ops::Deref};
     pub use tracing::*;
-}
-
-pub mod actions {
-    pub use crate::kernel::*;
-    pub use crate::plugins::log_test;
-    pub use crate::plugins::tools;
-    pub use anyhow::Result;
-    pub use tracing::*;
-
-    pub trait ParsesActions {
-        fn try_parse_action(&self, i: &str) -> EvaluationResult;
-    }
 
     pub trait DiscoversEntities {
         fn discover_entities(
@@ -81,4 +82,13 @@ pub mod actions {
             entity_keys: &mut Vec<EntityKey>,
         ) -> Result<()>;
     }
+}
+
+pub mod actions {
+    pub use crate::kernel::*;
+    pub use crate::plugins::library::parser::ParsesActions;
+    pub use crate::plugins::log_test;
+    pub use crate::plugins::tools;
+    pub use anyhow::Result;
+    pub use tracing::*;
 }

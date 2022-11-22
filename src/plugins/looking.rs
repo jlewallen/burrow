@@ -1,3 +1,13 @@
+use crate::plugins::library::plugin::*;
+
+pub struct LookingPlugin {}
+
+impl ParsesActions for LookingPlugin {
+    fn try_parse_action(&self, i: &str) -> EvaluationResult {
+        try_parsing(parser::LookActionParser {}, i)
+    }
+}
+
 pub mod model {
     use crate::plugins::library::model::*;
     use crate::{
@@ -176,7 +186,6 @@ pub mod model {
 
 pub mod actions {
     use super::model::*;
-    use super::parser::{parse, Sentence};
     use crate::plugins::library::actions::*;
 
     #[derive(Debug)]
@@ -196,7 +205,7 @@ pub mod actions {
 
     #[derive(Debug)]
     pub struct LookInsideAction {
-        item: Item,
+        pub item: Item,
     }
 
     impl Action for LookInsideAction {
@@ -219,27 +228,6 @@ pub mod actions {
                 }
                 None => Ok(Box::new(SimpleReply::NotFound)),
             }
-        }
-    }
-
-    pub struct LookingPlugin {}
-
-    impl ParsesActions for LookingPlugin {
-        fn try_parse_action(&self, i: &str) -> EvaluationResult {
-            evaluate(i)
-        }
-    }
-
-    fn evaluate(i: &str) -> EvaluationResult {
-        Ok(parse(i).map(|(_, sentence)| evaluate_sentence(&sentence))?)
-    }
-
-    fn evaluate_sentence(s: &Sentence) -> Box<dyn Action> {
-        match s {
-            Sentence::Look => Box::new(LookAction {}),
-            Sentence::LookInside(target) => Box::new(LookInsideAction {
-                item: target.clone(),
-            }),
         }
     }
 
@@ -373,54 +361,26 @@ pub mod actions {
 pub mod parser {
     use crate::plugins::library::parser::*;
 
-    // TODO Underneath, Above, Behond, etc... 'Physically Relative'
-    #[derive(Debug, Clone, Eq, PartialEq)]
-    pub enum Sentence {
-        Look,
-        LookInside(Item),
-    }
+    use super::actions::{LookAction, LookInsideAction};
 
-    pub fn parse(i: &str) -> IResult<&str, Sentence> {
-        look(i)
-    }
+    pub struct LookActionParser {}
 
-    fn look(i: &str) -> IResult<&str, Sentence> {
-        let inside = map(
-            separated_pair(
-                separated_pair(tag("look"), spaces, tag("inside")),
-                spaces,
-                noun,
-            ),
-            |(_, nearby)| Sentence::LookInside(nearby),
-        );
+    impl ParsesActions for LookActionParser {
+        fn try_parse_action(&self, i: &str) -> EvaluationResult {
+            let inside = map(
+                separated_pair(
+                    separated_pair(tag("look"), spaces, tag("inside")),
+                    spaces,
+                    noun,
+                ),
+                |(_, nearby)| Box::new(LookInsideAction { item: nearby }) as Box<dyn Action>,
+            );
 
-        let area = map(tag("look"), |_| Sentence::Look);
+            let area = map(tag("look"), |_| Box::new(LookAction {}) as Box<dyn Action>);
 
-        alt((inside, area))(i)
-    }
+            let (_, action) = alt((inside, area))(i)?;
 
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-
-        #[test]
-        fn it_parses_look_correctly() {
-            let (remaining, actual) = parse("look").unwrap();
-            assert_eq!(remaining, "");
-            assert_eq!(actual, Sentence::Look)
-        }
-
-        #[test]
-        fn it_parses_look_inside_correctly() {
-            let (remaining, actual) = parse("look inside box").unwrap();
-            assert_eq!(remaining, "");
-            assert_eq!(actual, Sentence::LookInside(Item::Named("box".to_owned())))
-        }
-
-        #[test]
-        fn it_errors_on_unknown_text() {
-            let output = parse("hello");
-            assert!(output.is_err());
+            Ok(action)
         }
     }
 }

@@ -1,3 +1,15 @@
+use crate::plugins::library::plugin::*;
+
+pub struct BuildingPlugin {}
+
+impl ParsesActions for BuildingPlugin {
+    fn try_parse_action(&self, i: &str) -> EvaluationResult {
+        try_parsing(parser::EditActionParser {}, i)
+            .or_else(|_| try_parsing(parser::BidirectionalDigActionParser {}, i))
+            .or_else(|_| try_parsing(parser::MakeItemParser {}, i))
+    }
+}
+
 pub mod model {
     use crate::plugins::library::model::*;
 
@@ -19,12 +31,11 @@ pub mod model {
 }
 
 pub mod actions {
-    use super::parser::{parse, Sentence};
     use crate::plugins::{library::actions::*, looking::actions::LookAction};
 
     #[derive(Debug)]
-    struct EditAction {
-        item: Item,
+    pub struct EditAction {
+        pub item: Item,
     }
 
     impl Action for EditAction {
@@ -48,10 +59,10 @@ pub mod actions {
     }
 
     #[derive(Debug)]
-    struct BidirectionalDigAction {
-        outgoing: String,
-        returning: String,
-        new_area: String,
+    pub struct BidirectionalDigAction {
+        pub outgoing: String,
+        pub returning: String,
+        pub new_area: String,
     }
 
     impl Action for BidirectionalDigAction {
@@ -88,8 +99,8 @@ pub mod actions {
     }
 
     #[derive(Debug)]
-    struct MakeItemAction {
-        name: String,
+    pub struct MakeItemAction {
+        pub name: String,
     }
 
     impl Action for MakeItemAction {
@@ -109,32 +120,6 @@ pub mod actions {
             tools::set_container(&user, &vec![new_item])?;
 
             Ok(Box::new(SimpleReply::Done))
-        }
-    }
-
-    pub struct BuildingPlugin {}
-
-    impl ParsesActions for BuildingPlugin {
-        fn try_parse_action(&self, i: &str) -> EvaluationResult {
-            evaluate(i)
-        }
-    }
-
-    fn evaluate(i: &str) -> EvaluationResult {
-        Ok(parse(i).map(|(_, sentence)| evaluate_sentence(&sentence))?)
-    }
-
-    fn evaluate_sentence(s: &Sentence) -> Box<dyn Action> {
-        match s {
-            Sentence::Edit(e) => Box::new(EditAction { item: e.clone() }),
-            Sentence::BidirectionalDig(outgoing, returning, new_area) => {
-                Box::new(BidirectionalDigAction {
-                    outgoing: outgoing.clone(),
-                    returning: returning.clone(),
-                    new_area: new_area.clone(),
-                })
-            }
-            Sentence::MakeItem(name) => Box::new(MakeItemAction { name: name.clone() }),
         }
     }
 
@@ -263,88 +248,57 @@ pub mod actions {
 pub mod parser {
     use crate::plugins::library::parser::*;
 
-    #[derive(Debug, Clone, Eq, PartialEq)]
-    pub enum Sentence {
-        Edit(Item),
-        BidirectionalDig(String, String, String),
-        MakeItem(String),
+    use super::actions::{BidirectionalDigAction, EditAction, MakeItemAction};
+
+    pub struct MakeItemParser {}
+
+    impl ParsesActions for MakeItemParser {
+        fn try_parse_action(&self, i: &str) -> EvaluationResult {
+            let (_, action) = map(
+                tuple((preceded(
+                    pair(separated_pair(tag("make"), spaces, tag("item")), spaces),
+                    string_literal,
+                ),)),
+                |name| MakeItemAction {
+                    name: name.0.into(),
+                },
+            )(i)?;
+
+            Ok(Box::new(action))
+        }
     }
 
-    pub fn parse(i: &str) -> IResult<&str, Sentence> {
-        alt((edit_item, make_item, dig_bidirectional_routes_to_new_area))(i)
+    pub struct EditActionParser {}
+
+    impl ParsesActions for EditActionParser {
+        fn try_parse_action(&self, i: &str) -> EvaluationResult {
+            let (_, action) = map(
+                preceded(pair(tag("edit"), spaces), noun_or_specific),
+                |item| EditAction { item: item },
+            )(i)?;
+
+            Ok(Box::new(action))
+        }
     }
 
-    fn make_item(i: &str) -> IResult<&str, Sentence> {
-        map(
-            tuple((preceded(
-                pair(separated_pair(tag("make"), spaces, tag("item")), spaces),
-                string_literal,
-            ),)),
-            |name| Sentence::MakeItem(name.0.into()),
-        )(i)
-    }
+    pub struct BidirectionalDigActionParser {}
 
-    fn dig_bidirectional_routes_to_new_area(i: &str) -> IResult<&str, Sentence> {
-        map(
-            tuple((
-                preceded(pair(tag("dig"), spaces), string_literal),
-                preceded(pair(spaces, pair(tag("to"), spaces)), string_literal),
-                preceded(pair(spaces, pair(tag("for"), spaces)), string_literal),
-            )),
-            |(outgoing, returning, new_area)| {
-                Sentence::BidirectionalDig(outgoing.into(), returning.into(), new_area.into())
-            },
-        )(i)
-    }
+    impl ParsesActions for BidirectionalDigActionParser {
+        fn try_parse_action(&self, i: &str) -> EvaluationResult {
+            let (_, action) = map(
+                tuple((
+                    preceded(pair(tag("dig"), spaces), string_literal),
+                    preceded(pair(spaces, pair(tag("to"), spaces)), string_literal),
+                    preceded(pair(spaces, pair(tag("for"), spaces)), string_literal),
+                )),
+                |(outgoing, returning, new_area)| BidirectionalDigAction {
+                    outgoing: outgoing.into(),
+                    returning: returning.into(),
+                    new_area: new_area.into(),
+                },
+            )(i)?;
 
-    fn edit_item(i: &str) -> IResult<&str, Sentence> {
-        map(
-            preceded(pair(tag("edit"), spaces), noun_or_specific),
-            Sentence::Edit,
-        )(i)
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-
-        #[test]
-        fn it_parses_edit_noun_correctly() {
-            let (remaining, actual) = parse("edit rake").unwrap();
-            assert_eq!(remaining, "");
-            assert_eq!(actual, Sentence::Edit(Item::Named("rake".into())));
-        }
-
-        #[test]
-        fn it_parses_edit_gid_number_correctly() {
-            let (remaining, actual) = parse("edit #608").unwrap();
-            assert_eq!(remaining, "");
-            assert_eq!(actual, Sentence::Edit(Item::GID(EntityGID::new(608))));
-        }
-
-        #[test]
-        fn it_skips_parsing_misleading_gid_number() {
-            let (remaining, _actual) = parse("edit #3g34").unwrap();
-            assert_eq!(remaining, "g34");
-        }
-
-        #[test]
-        fn it_parses_digging_north_south_to_new_area() {
-            let (remaining, _actual) =
-                parse(r#"dig "NORTH EXIT" to "SOUTH EXIT" for "A NEW AREA""#).unwrap();
-            assert_eq!(remaining, "");
-        }
-
-        #[test]
-        fn it_parses_make_item() {
-            let (remaining, _actual) = parse(r#"make item "COOL RAKE""#).unwrap();
-            assert_eq!(remaining, "");
-        }
-
-        #[test]
-        fn it_errors_on_unknown_text() {
-            let actual = parse("hello");
-            assert!(actual.is_err());
+            Ok(Box::new(action))
         }
     }
 }

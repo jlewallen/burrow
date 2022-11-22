@@ -1,3 +1,16 @@
+use crate::plugins::library::plugin::*;
+
+pub struct CarryingPlugin {}
+
+impl ParsesActions for CarryingPlugin {
+    fn try_parse_action(&self, i: &str) -> EvaluationResult {
+        try_parsing(parser::DropActionParser {}, i)
+            .or_else(|_| try_parsing(parser::HoldActionParser {}, i))
+            .or_else(|_| try_parsing(parser::PutInsideActionParser {}, i))
+            .or_else(|_| try_parsing(parser::TakeOutActionParser {}, i))
+    }
+}
+
 pub mod model {
     use crate::plugins::library::model::*;
 
@@ -113,12 +126,11 @@ pub mod model {
 }
 
 pub mod actions {
-    use super::parser::{parse, Sentence};
     use crate::plugins::library::actions::*;
 
     #[derive(Debug)]
-    struct HoldAction {
-        item: Item,
+    pub struct HoldAction {
+        pub item: Item,
     }
 
     impl Action for HoldAction {
@@ -142,8 +154,8 @@ pub mod actions {
     }
 
     #[derive(Debug)]
-    struct DropAction {
-        maybe_item: Option<Item>,
+    pub struct DropAction {
+        pub maybe_item: Option<Item>,
     }
 
     impl Action for DropAction {
@@ -170,9 +182,9 @@ pub mod actions {
     }
 
     #[derive(Debug)]
-    struct PutInsideAction {
-        item: Item,
-        vessel: Item,
+    pub struct PutInsideAction {
+        pub item: Item,
+        pub vessel: Item,
     }
 
     impl Action for PutInsideAction {
@@ -206,9 +218,9 @@ pub mod actions {
     }
 
     #[derive(Debug)]
-    struct TakeOutAction {
-        item: Item,
-        vessel: Item,
+    pub struct TakeOutAction {
+        pub item: Item,
+        pub vessel: Item,
     }
 
     impl Action for TakeOutAction {
@@ -237,35 +249,6 @@ pub mod actions {
                 }
                 None => Ok(Box::new(SimpleReply::NotFound)),
             }
-        }
-    }
-
-    pub struct CarryingPlugin {}
-
-    impl ParsesActions for CarryingPlugin {
-        fn try_parse_action(&self, i: &str) -> EvaluationResult {
-            evaluate(i)
-        }
-    }
-
-    fn evaluate(i: &str) -> EvaluationResult {
-        Ok(parse(i).map(|(_, sentence)| evaluate_sentence(&sentence))?)
-    }
-
-    fn evaluate_sentence(s: &Sentence) -> Box<dyn Action> {
-        match s {
-            Sentence::Hold(e) => Box::new(HoldAction { item: e.clone() }),
-            Sentence::Drop(e) => Box::new(DropAction {
-                maybe_item: e.clone(),
-            }),
-            Sentence::PutInside(item, vessel) => Box::new(PutInsideAction {
-                item: item.clone(),
-                vessel: vessel.clone(),
-            }),
-            Sentence::TakeOut(item, vessel) => Box::new(TakeOutAction {
-                item: item.clone(),
-                vessel: vessel.clone(),
-            }),
         }
     }
 
@@ -485,110 +468,76 @@ pub mod actions {
 }
 
 pub mod parser {
+    use super::actions::*;
     use crate::plugins::library::parser::*;
 
-    #[derive(Debug, Clone, Eq, PartialEq)]
-    pub enum Sentence {
-        Hold(Item),
-        Drop(Option<Item>),
-        PutInside(Item, Item),
-        TakeOut(Item, Item),
-    }
+    pub struct HoldActionParser {}
 
-    pub fn parse(i: &str) -> IResult<&str, Sentence> {
-        alt((hold, drop, put_inside, take_out))(i)
-    }
+    impl ParsesActions for HoldActionParser {
+        fn try_parse_action(&self, i: &str) -> EvaluationResult {
+            let (_, action) = map(separated_pair(tag("hold"), spaces, noun), |(_, target)| {
+                HoldAction { item: target }
+            })(i)?;
 
-    fn hold(i: &str) -> IResult<&str, Sentence> {
-        map(separated_pair(tag("hold"), spaces, noun), |(_, target)| {
-            Sentence::Hold(target)
-        })(i)
-    }
-
-    fn drop(i: &str) -> IResult<&str, Sentence> {
-        let specific = map(separated_pair(tag("drop"), spaces, noun), |(_, target)| {
-            Sentence::Drop(Some(target))
-        });
-
-        let everything = map(tag("drop"), |_| Sentence::Drop(None));
-
-        alt((specific, everything))(i)
-    }
-
-    fn put_inside(i: &str) -> IResult<&str, Sentence> {
-        let item = map(separated_pair(tag("put"), spaces, noun), |(_, target)| {
-            target
-        });
-
-        map(
-            separated_pair(separated_pair(item, spaces, tag("inside of")), spaces, noun),
-            |(item, target)| Sentence::PutInside(item.0, target),
-        )(i)
-    }
-
-    fn take_out(i: &str) -> IResult<&str, Sentence> {
-        let item = map(separated_pair(tag("take"), spaces, noun), |(_, target)| {
-            target
-        });
-
-        map(
-            separated_pair(separated_pair(item, spaces, tag("out of")), spaces, noun),
-            |(item, target)| Sentence::TakeOut(Item::Contained(Box::new(item.0)), target),
-        )(i)
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-
-        #[test]
-        fn it_parses_hold_noun_correctly() {
-            let (remaining, actual) = parse("hold rake").unwrap();
-            assert_eq!(remaining, "");
-            assert_eq!(actual, Sentence::Hold(Item::Named("rake".into())));
+            Ok(Box::new(action))
         }
+    }
 
-        #[test]
-        fn it_parses_solo_drop_correctly() {
-            let (remaining, actual) = parse("drop").unwrap();
-            assert_eq!(remaining, "");
-            assert_eq!(actual, Sentence::Drop(None));
+    pub struct DropActionParser {}
+
+    impl ParsesActions for DropActionParser {
+        fn try_parse_action(&self, i: &str) -> EvaluationResult {
+            let specific = map(separated_pair(tag("drop"), spaces, noun), |(_, target)| {
+                DropAction {
+                    maybe_item: Some(target),
+                }
+            });
+
+            let everything = map(tag("drop"), |_| DropAction { maybe_item: None });
+
+            let (_, action) = alt((specific, everything))(i)?;
+
+            Ok(Box::new(action))
         }
+    }
 
-        #[test]
-        fn it_parses_drop_noun_correctly() {
-            let (remaining, actual) = parse("drop rake").unwrap();
-            assert_eq!(remaining, "");
-            assert_eq!(actual, Sentence::Drop(Some(Item::Named("rake".into()))));
+    pub struct TakeOutActionParser {}
+
+    impl ParsesActions for TakeOutActionParser {
+        fn try_parse_action(&self, i: &str) -> EvaluationResult {
+            let item = map(separated_pair(tag("take"), spaces, noun), |(_, target)| {
+                target
+            });
+
+            let (_, action) = map(
+                separated_pair(separated_pair(item, spaces, tag("out of")), spaces, noun),
+                |(item, target)| TakeOutAction {
+                    item: Item::Contained(Box::new(item.0)),
+                    vessel: target,
+                },
+            )(i)?;
+
+            Ok(Box::new(action))
         }
+    }
 
-        #[test]
-        fn it_parses_put_x_inside_of_y() {
-            let (remaining, actual) = parse("put key inside of vessel").unwrap();
-            assert_eq!(remaining, "");
-            assert_eq!(
-                actual,
-                Sentence::PutInside(Item::Named("key".into()), Item::Named("vessel".into()))
-            );
-        }
+    pub struct PutInsideActionParser {}
 
-        #[test]
-        fn it_parses_take_x_out_of_y() {
-            let (remaining, actual) = parse("take key out of vessel").unwrap();
-            assert_eq!(remaining, "");
-            assert_eq!(
-                actual,
-                Sentence::TakeOut(
-                    Item::Contained(Box::new(Item::Named("key".into()))),
-                    Item::Named("vessel".into())
-                )
-            );
-        }
+    impl ParsesActions for PutInsideActionParser {
+        fn try_parse_action(&self, i: &str) -> EvaluationResult {
+            let item = map(separated_pair(tag("put"), spaces, noun), |(_, target)| {
+                target
+            });
 
-        #[test]
-        fn it_errors_on_unknown_text() {
-            let actual = parse("hello");
-            assert!(actual.is_err());
+            let (_, action) = map(
+                separated_pair(separated_pair(item, spaces, tag("inside of")), spaces, noun),
+                |(item, target)| PutInsideAction {
+                    item: item.0,
+                    vessel: target,
+                },
+            )(i)?;
+
+            Ok(Box::new(action))
         }
     }
 }

@@ -3,11 +3,12 @@ use anyhow::Result;
 use crate::kernel::{Action, Entity, EntityKey, EvaluationError};
 use crate::plugins;
 
-use super::building::actions::BuildingPlugin;
-use super::carrying::actions::CarryingPlugin;
-use super::library::actions::ParsesActions;
-use super::looking::actions::LookingPlugin;
-use super::moving::actions::MovingPlugin;
+use super::library::parser::ParsesActions;
+
+use super::building::BuildingPlugin;
+use super::carrying::CarryingPlugin;
+use super::looking::LookingPlugin;
+use super::moving::MovingPlugin;
 
 pub fn evaluate(i: &str) -> Result<Option<Box<dyn Action>>, EvaluationError> {
     let carrying = CarryingPlugin {};

@@ -1,3 +1,13 @@
+use crate::plugins::library::plugin::*;
+
+pub struct MovingPlugin {}
+
+impl ParsesActions for MovingPlugin {
+    fn try_parse_action(&self, i: &str) -> EvaluationResult {
+        try_parsing(parser::GoActionParser {}, i)
+    }
+}
+
 pub mod model {
     use std::rc::Rc;
 
@@ -138,13 +148,12 @@ pub mod model {
 }
 
 pub mod actions {
-    use super::parser::{parse, Sentence};
     use crate::plugins::library::actions::*;
     use crate::plugins::looking::actions::*;
 
     #[derive(Debug)]
-    struct GoAction {
-        item: Item,
+    pub struct GoAction {
+        pub item: Item,
     }
 
     impl Action for GoAction {
@@ -164,24 +173,6 @@ pub mod actions {
                 },
                 None => Ok(Box::new(SimpleReply::NotFound)),
             }
-        }
-    }
-
-    pub struct MovingPlugin {}
-
-    impl ParsesActions for MovingPlugin {
-        fn try_parse_action(&self, i: &str) -> EvaluationResult {
-            evaluate(i)
-        }
-    }
-
-    fn evaluate(i: &str) -> EvaluationResult {
-        Ok(parse(i).map(|(_, sentence)| evaluate_sentence(&sentence))?)
-    }
-
-    fn evaluate_sentence(s: &Sentence) -> Box<dyn Action> {
-        match s {
-            Sentence::Go(e) => Box::new(GoAction { item: e.clone() }),
         }
     }
 
@@ -314,44 +305,18 @@ pub mod actions {
 mod parser {
     use crate::plugins::library::parser::*;
 
-    #[derive(Debug, Clone, Eq, PartialEq)]
-    pub enum Sentence {
-        Go(Item),
-    }
+    use super::actions::GoAction;
 
-    pub fn parse(i: &str) -> IResult<&str, Sentence> {
-        go(i)
-    }
+    pub struct GoActionParser {}
 
-    fn go(i: &str) -> IResult<&str, Sentence> {
-        map(
-            separated_pair(tag("go"), spaces, named_place),
-            |(_, target)| Sentence::Go(target),
-        )(i)
-    }
+    impl ParsesActions for GoActionParser {
+        fn try_parse_action(&self, i: &str) -> EvaluationResult {
+            let (_, action) = map(
+                separated_pair(tag("go"), spaces, named_place),
+                |(_, target)| GoAction { item: target },
+            )(i)?;
 
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-
-        #[test]
-        fn it_parses_go_noun_correctly() {
-            let (remaining, actual) = parse("go west").unwrap();
-            assert_eq!(remaining, "");
-            assert_eq!(actual, Sentence::Go(Item::Route("west".into())));
-        }
-
-        #[test]
-        fn it_parses_go_by_gid_correctly() {
-            let (remaining, actual) = parse("go #3").unwrap();
-            assert_eq!(remaining, "");
-            assert_eq!(actual, Sentence::Go(Item::GID(EntityGID::new(3))));
-        }
-
-        #[test]
-        fn it_errors_on_unknown_text() {
-            let actual = parse("hello");
-            assert!(actual.is_err());
+            Ok(Box::new(action))
         }
     }
 }
