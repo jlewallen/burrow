@@ -11,3 +11,6 @@ shell:
 
 serve:
     RUST_LOG={{ default_level }} cargo run -- serve
+
+clean:
+    rm -rf target
