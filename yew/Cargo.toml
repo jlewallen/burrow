@@ -23,6 +23,7 @@ wasm-bindgen-futures = "0.4.33"
 futures = "0.3.25"
 reqwasm = "0.5.0"
 log = "0.4.17"
+gloo-timers = "0.2.4"
 
 [dependencies.web-sys]
 version = "0.3"
