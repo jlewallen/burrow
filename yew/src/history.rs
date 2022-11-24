@@ -59,11 +59,7 @@ impl Store for HistoryStore {
             password: "jlewallen".into(),
         };
 
-        if let Ok(_) = wss
-            .tx
-            .clone()
-            .try_send(serde_json::to_string(&message).unwrap())
-        {
+        if let Ok(_) = wss.try_send(serde_json::to_string(&message).unwrap()) {
             log::debug!("message sent successfully");
         }
 
@@ -83,12 +79,7 @@ impl Store for HistoryStore {
 
                 let message = WebSocketMessage::Evaluate(text);
 
-                if let Ok(_) = self
-                    .wss
-                    .tx
-                    .clone()
-                    .try_send(serde_json::to_string(&message).unwrap())
-                {
+                if let Ok(_) = self.wss.try_send(serde_json::to_string(&message).unwrap()) {
                     log::debug!("message sent successfully");
                 }
             }
