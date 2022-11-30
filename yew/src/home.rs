@@ -122,23 +122,26 @@ impl Component for Home {
 
 mod internal {
     use crate::text_input::TextInput;
+    use gloo_console as console;
+    use serde::Serialize;
+    use shared_replies::*;
     use std::rc::Rc;
     use yew::prelude::*;
     use yewdux::prelude::*;
 
     pub type EntryId = u32;
 
-    #[derive(Debug, Clone, Eq, PartialEq)]
+    #[derive(Debug, Serialize, Clone, Eq, PartialEq)]
     pub struct HistoryEntry {
         pub id: EntryId,
-        pub reply: serde_json::Value,
+        pub value: serde_json::Value,
     }
 
     impl HistoryEntry {
-        pub fn new(reply: serde_json::Value) -> Self {
+        pub fn new(value: serde_json::Value) -> Self {
             Self {
                 id: 0,
-                reply: reply,
+                value: value,
             }
         }
     }
@@ -169,7 +172,15 @@ mod internal {
         type Message = Msg;
         type Properties = Props;
 
-        fn create(_ctx: &Context<Self>) -> Self {
+        fn create(ctx: &Context<Self>) -> Self {
+            console::log!("item", serde_json::to_string(&ctx.props().entry).unwrap());
+
+            if let Ok(_reply) =
+                serde_json::from_value::<AreaObservation>(ctx.props().entry.value.clone())
+            {
+                console::log!("ok!");
+            }
+
             Self {}
         }
 
@@ -180,7 +191,7 @@ mod internal {
         fn view(&self, ctx: &Context<Self>) -> Html {
             html! {
                 <div class="entry">
-                    { ctx.props().entry.text.as_str() }
+                    { ctx.props().entry.value.to_string() }
                 </div>
             }
         }
