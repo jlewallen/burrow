@@ -1,56 +1,96 @@
-use yew::prelude::*;
-
-use gloo_console as console;
+use crate::services::{ReceivedMessage, WebSocketMessage, WebSocketService};
+// use gloo_console as console;
 use internal::*;
-use yew_agent::{
-    utils::store::{Bridgeable, ReadOnly, StoreWrapper},
-    Bridge,
-};
-
-use crate::history::{HistoryStore, PostRequest};
-
-pub struct Home {
-    store: Box<dyn Bridge<StoreWrapper<HistoryStore>>>,
-}
+use std::rc::Rc;
+use yew::{prelude::*, Children};
+use yewdux::prelude::*;
 
 pub enum Msg {
-    HistoryStoreMsg(ReadOnly<HistoryStore>),
     Send(String),
 }
+
+#[derive(Properties, Clone, PartialEq)]
+pub struct WebSocketProps {
+    pub children: Children,
+}
+
+pub struct AlwaysOpenWebSocket {
+    wss: WebSocketService,
+}
+
+impl Component for AlwaysOpenWebSocket {
+    type Message = ReceivedMessage;
+
+    type Properties = WebSocketProps;
+
+    fn create(ctx: &Context<Self>) -> Self {
+        let callback = ctx.link().callback(|m: ReceivedMessage| m);
+
+        let wss = WebSocketService::new(callback);
+
+        Self { wss }
+    }
+
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            ReceivedMessage::Connecting => {
+                self.wss
+                    .try_send(
+                        serde_json::to_string(&WebSocketMessage::Login {
+                            username: "jlewallen".into(),
+                            password: "jlewallen".into(),
+                        })
+                        .unwrap(),
+                    )
+                    .unwrap();
+
+                true
+            }
+            ReceivedMessage::Item(value) => {
+                match serde_json::from_str::<WebSocketMessage>(&value).unwrap() {
+                    WebSocketMessage::Welcome {} => {
+                        self.wss
+                            .try_send(
+                                serde_json::to_string(&WebSocketMessage::Evaluate("look".into()))
+                                    .unwrap(),
+                            )
+                            .unwrap();
+
+                        false
+                    }
+                    WebSocketMessage::Reply(value) => {
+                        let dispatch = Dispatch::<SessionHistory>::new();
+
+                        dispatch.reduce(move |history| Rc::new(history.append(value)));
+
+                        true
+                    }
+                    _ => false,
+                }
+            }
+        }
+    }
+
+    fn view(&self, ctx: &Context<Self>) -> Html {
+        html! {
+            { for ctx.props().children.iter() }
+        }
+    }
+}
+
+pub struct Home {}
 
 impl Component for Home {
     type Message = Msg;
     type Properties = ();
 
-    fn create(ctx: &Context<Self>) -> Self {
-        let callback = ctx.link().callback(Msg::HistoryStoreMsg);
-        Self {
-            store: HistoryStore::bridge(callback),
-        }
+    fn create(_ctx: &Context<Self>) -> Self {
+        Self {}
     }
 
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::HistoryStoreMsg(_state) => {
-                // We can see this is logged once before we click any button.
-                // The state of the store is sent when we open a bridge.
-                console::log!("Received update");
-
-                /*
-                let state = state.borrow();
-                if state.entries.len() != self.entries.len() {
-                    self.entries = state.entries.clone();
-                    true
-                } else {
-                    false
-                }
-                */
-                false
-            }
-            Msg::Send(text) => {
-                self.store.send(PostRequest::Send(text));
-                true
-            }
+            _ => false,
         }
     }
 
@@ -81,12 +121,43 @@ impl Component for Home {
 }
 
 mod internal {
-    use crate::history::{HistoryEntry, HistoryStore};
     use crate::text_input::TextInput;
-    use gloo_console as console;
+    use std::rc::Rc;
+    // use gloo_console as console;
     use yew::prelude::*;
-    use yew_agent::utils::store::{Bridgeable, ReadOnly, StoreWrapper};
-    use yew_agent::{Bridge, Bridged};
+    use yewdux::prelude::*;
+
+    pub type EntryId = u32;
+
+    #[derive(Debug, Clone, Eq, PartialEq)]
+    pub struct HistoryEntry {
+        pub id: EntryId,
+        pub text: String,
+    }
+
+    impl HistoryEntry {
+        pub fn new(reply: serde_json::Value) -> Self {
+            Self {
+                id: 0,
+                text: reply.to_string(),
+            }
+        }
+    }
+
+    #[derive(Default, Store, PartialEq)]
+    pub struct SessionHistory {
+        entries: Vec<HistoryEntry>,
+    }
+
+    impl SessionHistory {
+        pub fn append(&self, value: serde_json::Value) -> Self {
+            let mut ugly_clone = self.entries.clone();
+            ugly_clone.push(HistoryEntry::new(value));
+            Self {
+                entries: ugly_clone,
+            }
+        }
+    }
 
     #[derive(Properties, Clone, PartialEq)]
     pub struct Props {
@@ -108,7 +179,6 @@ mod internal {
         }
 
         fn view(&self, ctx: &Context<Self>) -> Html {
-            // let link = ctx.link();
             html! {
                 <div class="entry">
                     { ctx.props().entry.text.as_str() }
@@ -118,18 +188,17 @@ mod internal {
     }
 
     pub enum Msg {
-        HistoryStoreMsg(ReadOnly<HistoryStore>),
+        UpdateHistory(std::rc::Rc<SessionHistory>),
         Send(String),
-        HandleMsg(String),
     }
 
     #[derive(Properties, Clone, PartialEq)]
     pub struct HistoryProps {}
 
     pub struct History {
+        history: Rc<SessionHistory>,
         #[allow(dead_code)]
-        store: Box<dyn Bridge<StoreWrapper<HistoryStore>>>,
-        entries: Vec<HistoryEntry>,
+        dispatch: Dispatch<SessionHistory>,
     }
 
     impl Component for History {
@@ -137,43 +206,31 @@ mod internal {
         type Properties = HistoryProps;
 
         fn create(ctx: &Context<Self>) -> Self {
-            let callback = ctx.link().callback(Msg::HistoryStoreMsg);
+            let callback = ctx.link().callback(Msg::UpdateHistory);
+            let dispatch = Dispatch::<SessionHistory>::subscribe(move |h| callback.emit(h));
+
             Self {
-                store: HistoryStore::bridge(callback),
-                entries: vec![],
+                history: dispatch.get(),
+                dispatch,
             }
         }
 
         fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
             match msg {
-                Msg::HistoryStoreMsg(state) => {
-                    // We can see this is logged once before we click any button.
-                    // The state of the store is sent when we open a bridge.
-                    console::log!("[ui] history:update");
-
-                    let state = state.borrow();
-                    if state.entries.borrow().len() != self.entries.len() {
-                        self.entries = state.entries.borrow().clone();
-                        true
-                    } else {
-                        false
-                    }
-                }
-                Msg::HandleMsg(received) => {
-                    console::log!("[ui] ok", received);
+                Msg::UpdateHistory(history) => {
+                    self.history = history;
 
                     true
                 }
-                Msg::Send(_) => todo!(),
+                _ => false,
             }
         }
 
         fn view(&self, _ctx: &Context<Self>) -> Html {
-            // let link = ctx.link();
             html! {
                 <div class="history">
                     <div class="entries">
-                        { for self.entries.iter().map(|entry| html!{ <HistoryEntryItem entry={entry.clone()} /> }) }
+                        { for self.history.entries.iter().map(|entry| html!{ <HistoryEntryItem entry={entry.clone()} /> }) }
                     </div>
                 </div>
             }
@@ -201,7 +258,7 @@ mod internal {
                     ctx.props().onsubmit.emit(text);
                     false
                 }
-                _ => false,
+                _ => todo!(),
             }
         }
 

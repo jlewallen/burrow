@@ -1,6 +1,8 @@
 use yew::prelude::*;
 use yew_router::prelude::*;
 
+pub use crate::home::AlwaysOpenWebSocket;
+
 use crate::home::Home;
 use crate::login::Login;
 

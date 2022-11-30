@@ -7,9 +7,11 @@ use crate::routes::*;
 pub fn app() -> Html {
     html! {
         <BrowserRouter>
-            <div id="app">
-                <Switch<Route> render={Switch::render(switch)}/>
-            </div>
+            <AlwaysOpenWebSocket>
+                <div id="app">
+                    <Switch<Route> render={Switch::render(switch)}/>
+                </div>
+            </AlwaysOpenWebSocket>
         </BrowserRouter>
     }
 }

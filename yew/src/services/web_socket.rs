@@ -13,16 +13,21 @@ use std::{
     },
 };
 use wasm_bindgen_futures::spawn_local;
+use yew::Callback;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Login {
-    username: String,
-    password: String,
+#[serde(rename_all = "camelCase")]
+pub enum WebSocketMessage {
+    Login { username: String, password: String },
+    Welcome {},
+    Evaluate(String),
+    Reply(serde_json::Value),
 }
 
 #[derive(Debug)]
 pub enum ReceivedMessage {
-    Text(serde_json::Value),
+    Connecting,
+    Item(String),
 }
 
 #[derive(Clone)]
@@ -32,7 +37,7 @@ struct ActiveConnection {
 }
 
 impl ActiveConnection {
-    fn new(mut incoming: Sender<Option<ReceivedMessage>>) -> Self {
+    fn new(incoming: Callback<ReceivedMessage>) -> Self {
         let (in_tx, mut in_rx) = futures::channel::mpsc::channel::<Option<String>>(100);
 
         log::debug!("ws:new");
@@ -66,32 +71,20 @@ impl ActiveConnection {
 
         let closer = in_tx.clone();
 
-        // let mut event_bus = EventBus::dispatcher();
-
         spawn_local(async move {
             log::debug!("ws:rx-open");
 
             while let Some(msg) = read.next().await {
                 match msg {
                     Ok(Message::Text(data)) => {
-                        log::trace!("ws:text {}", data);
-                        incoming
-                            .send(Some(ReceivedMessage::Text(
-                                serde_json::to_value(&data).unwrap(),
-                            )))
-                            .await
-                            .unwrap();
-                        // event_bus.send(Request::EventBusMsg(data.into()));
+                        log::debug!("ws:text {}", data);
+                        incoming.emit(ReceivedMessage::Item(data))
                     }
                     Ok(Message::Bytes(b)) => {
                         let decoded = std::str::from_utf8(&b);
                         if let Ok(val) = decoded {
-                            log::trace!("ws:bytes {}", &val);
-                            incoming
-                                .send(Some(ReceivedMessage::Text(val.clone().into())))
-                                .await
-                                .unwrap();
-                            // event_bus.send(Request::EventBusMsg(val.into()));
+                            log::debug!("ws:bytes {}", &val);
+                            incoming.emit(ReceivedMessage::Item(val.into()))
                         }
                     }
                     Err(e) => {
@@ -122,25 +115,37 @@ impl ActiveConnection {
 
 #[derive(Clone)]
 pub struct WebSocketService {
-    connection: Arc<RefCell<ActiveConnection>>,
+    connection: Arc<RefCell<Option<ActiveConnection>>>,
 }
 
 impl WebSocketService {
-    pub fn new(incoming: Sender<Option<ReceivedMessage>>) -> Self {
-        let connection = Arc::new(RefCell::new(ActiveConnection::new(incoming.clone())));
+    pub fn new(incoming: Callback<ReceivedMessage>) -> Self {
+        let connection = Arc::new(RefCell::new(None::<ActiveConnection>));
         let sender = Arc::clone(&connection);
 
         spawn_local(async move {
             loop {
-                TimeoutFuture::new(1_000).await;
-                {
-                    // log::debug!("tick");
+                let connecting = {
                     let mut c = connection.borrow_mut();
-                    if !c.is_busy() {
-                        log::debug!("restarting");
-                        *c = ActiveConnection::new(incoming.clone());
+                    let reconnecting = match &*c {
+                        Some(c) => !c.is_busy(),
+                        _ => true,
+                    };
+                    if reconnecting {
+                        log::debug!("connecting");
+
+                        *c = Some(ActiveConnection::new(incoming.clone()));
+                        true
+                    } else {
+                        false
                     }
+                };
+
+                if connecting {
+                    incoming.emit(ReceivedMessage::Connecting);
                 }
+
+                TimeoutFuture::new(1_000).await;
             }
         });
 
@@ -148,6 +153,13 @@ impl WebSocketService {
     }
 
     pub fn try_send(&self, value: String) -> Result<(), TrySendError<Option<String>>> {
-        self.connection.borrow().try_send(value)
+        self.connection
+            .as_ref()
+            .borrow()
+            .as_ref()
+            .map(|c| c.try_send(value).unwrap())
+            .unwrap();
+
+        Ok(())
     }
 }

@@ -135,19 +135,50 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
 
     let mut session: Option<ClientSession> = None;
 
-    while let Some(Ok(message)) = receiver.next().await {
-        match message {
+    while let Some(Ok(m)) = receiver.next().await {
+        match m {
             Message::Item(ClientMessage::Login { username: given }) => {
-                // If username that is sent by client is not taken, fill username string.
                 if let Ok(started) = state.try_start_session(&given) {
                     session = Some(started)
                 }
 
                 break;
             }
-            _ => {}
+            m => {
+                info!("unexpected: {:?}", m);
+            }
         }
     }
+
+    info!("welcome");
+
+    /*
+    loop {
+        match receiver.next().await {
+            Some(Ok(message)) => {
+                match message {
+                    Message::Item(ClientMessage::Login { username: given }) => {
+                        // If username that is sent by client is not taken, fill username string.
+                        if let Ok(started) = state.try_start_session(&given) {
+                            session = Some(started)
+                        }
+
+                        break;
+                    }
+                    unexpected => {
+                        debug!("unexpected message[0]: {:?}", unexpected);
+
+                        break;
+                    }
+                }
+            }
+            unexpected => {
+                debug!("unexpected message[1]: {:?}", unexpected);
+                break;
+            }
+        }
+    }
+    */
 
     if session.is_none() {
         let _ = sender

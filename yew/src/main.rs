@@ -1,6 +1,5 @@
 mod app;
 mod conn;
-mod history;
 mod home;
 mod login;
 mod routes;
