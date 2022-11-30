@@ -38,7 +38,7 @@ pub struct Command {}
 #[serde(rename_all = "camelCase")]
 enum ServerMessage {
     Error(String),
-    Welcome,
+    Welcome {},
     Reply(serde_json::Value),
 }
 
@@ -158,7 +158,7 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
 
         return;
     } else {
-        let _ = sender.send(Message::Item(ServerMessage::Welcome)).await;
+        let _ = sender.send(Message::Item(ServerMessage::Welcome {})).await;
     }
 
     let session = session.unwrap();

@@ -86,7 +86,7 @@ mod internal {
     use gloo_console as console;
     use yew::prelude::*;
     use yew_agent::utils::store::{Bridgeable, ReadOnly, StoreWrapper};
-    use yew_agent::Bridge;
+    use yew_agent::{Bridge, Bridged};
 
     #[derive(Properties, Clone, PartialEq)]
     pub struct Props {
@@ -120,6 +120,7 @@ mod internal {
     pub enum Msg {
         HistoryStoreMsg(ReadOnly<HistoryStore>),
         Send(String),
+        HandleMsg(String),
     }
 
     #[derive(Properties, Clone, PartialEq)]
@@ -148,17 +149,22 @@ mod internal {
                 Msg::HistoryStoreMsg(state) => {
                     // We can see this is logged once before we click any button.
                     // The state of the store is sent when we open a bridge.
-                    console::log!("Received update");
+                    console::log!("[ui] history:update");
 
                     let state = state.borrow();
-                    if state.entries.len() != self.entries.len() {
-                        self.entries = state.entries.clone();
+                    if state.entries.borrow().len() != self.entries.len() {
+                        self.entries = state.entries.borrow().clone();
                         true
                     } else {
                         false
                     }
                 }
-                _ => false,
+                Msg::HandleMsg(received) => {
+                    console::log!("[ui] ok", received);
+
+                    true
+                }
+                Msg::Send(_) => todo!(),
             }
         }
 
