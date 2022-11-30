@@ -123,7 +123,6 @@ impl Component for Home {
 mod internal {
     use crate::text_input::TextInput;
     use std::rc::Rc;
-    // use gloo_console as console;
     use yew::prelude::*;
     use yewdux::prelude::*;
 
@@ -132,14 +131,14 @@ mod internal {
     #[derive(Debug, Clone, Eq, PartialEq)]
     pub struct HistoryEntry {
         pub id: EntryId,
-        pub text: String,
+        pub reply: serde_json::Value,
     }
 
     impl HistoryEntry {
         pub fn new(reply: serde_json::Value) -> Self {
             Self {
                 id: 0,
-                text: reply.to_string(),
+                reply: reply,
             }
         }
     }
