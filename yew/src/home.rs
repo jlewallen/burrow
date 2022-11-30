@@ -173,12 +173,9 @@ mod internal {
         type Properties = Props;
 
         fn create(ctx: &Context<Self>) -> Self {
-            console::log!("item", serde_json::to_string(&ctx.props().entry).unwrap());
-
-            if let Ok(_reply) =
-                serde_json::from_value::<AreaObservation>(ctx.props().entry.value.clone())
+            if let Ok(reply) = serde_json::from_value::<KnownReply>(ctx.props().entry.value.clone())
             {
-                console::log!("ok!");
+                console::log!("ok!", format!("{:?}", reply));
             }
 
             Self {}

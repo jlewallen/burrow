@@ -200,7 +200,7 @@ mod tests {
     use super::*;
     use crate::{
         domain::{BuildActionArgs, QuickThing},
-        plugins::{looking::model::AreaObservation, tools},
+        plugins::{looking::model::new_area_observation, tools},
     };
 
     #[test]
@@ -239,7 +239,7 @@ mod tests {
 
         assert_eq!(
             reply.to_json()?,
-            AreaObservation::new(&living, &east)?.to_json()?
+            new_area_observation(&living, &east)?.to_json()?
         );
 
         assert_ne!(tools::area_of(&living)?.key(), area.key());
@@ -264,7 +264,7 @@ mod tests {
 
         assert_eq!(
             reply.to_json()?,
-            AreaObservation::new(&living, &destination)?.to_json()?
+            new_area_observation(&living, &destination)?.to_json()?
         );
 
         assert_ne!(tools::area_of(&living)?.key(), area.key());

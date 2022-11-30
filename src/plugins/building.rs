@@ -20,7 +20,7 @@ pub mod model {
     impl Reply for EditorReply {}
 
     impl ToJson for EditorReply {
-        fn to_json(&self) -> Result<Value> {
+        fn to_json(&self) -> Result<Value, serde_json::Error> {
             Ok(serde_json::to_value(self)?)
         }
     }
@@ -188,7 +188,7 @@ mod tests {
     use super::*;
     use crate::{
         domain::{BuildActionArgs, QuickThing},
-        plugins::{carrying::model::Containing, looking::model::AreaObservation},
+        plugins::{carrying::model::Containing, looking::model::new_area_observation},
     };
 
     #[test]
@@ -270,7 +270,7 @@ mod tests {
 
         assert_eq!(
             reply.to_json()?,
-            AreaObservation::new(&living, &destination)?.to_json()?
+            new_area_observation(&living, &destination)?.to_json()?
         );
 
         Ok(())
