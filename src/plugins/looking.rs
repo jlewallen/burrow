@@ -9,8 +9,6 @@ impl ParsesActions for LookingPlugin {
 }
 
 pub mod model {
-    use shared_replies::InsideObservation;
-
     use crate::plugins::library::model::*;
     use crate::{
         plugins::carrying::model::Containing,

@@ -4,8 +4,8 @@ version = "0.1.0"
 authors = ["Jacob Lewallen <jlewallen@gmail.com>"]
 edition = "2021"
 
-[dependencies.shared-replies]
-path = "libs/shared-replies"
+[dependencies.replies]
+path = "libs/replies"
 
 [dependencies.yew]
 path = "yew"
@@ -41,6 +41,5 @@ lazy_static = "1.4.0"
 
 [dev-dependencies]
 insta = { version = "1.21.1", features = ["yaml", "json"] }
-# axum = { git = "https://github.com/tokio-rs/axum", branch = "main", features = ["ws", "headers", "json"]  }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

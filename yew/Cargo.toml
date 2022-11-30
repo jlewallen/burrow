@@ -9,8 +9,8 @@ edition = "2021"
 # keywords = ["yew", "trunk"]
 # categories = ["gui", "wasm", "web-programming"]
 
-[dependencies.shared-replies]
-path = "../libs/shared-replies"
+[dependencies.replies]
+path = "../libs/replies"
 
 [dependencies]
 yew = "0.19"

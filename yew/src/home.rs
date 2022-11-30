@@ -123,8 +123,8 @@ impl Component for Home {
 mod internal {
     use crate::text_input::TextInput;
     use gloo_console as console;
+    use replies::*;
     use serde::Serialize;
-    use shared_replies::*;
     use std::rc::Rc;
     use yew::prelude::*;
     use yewdux::prelude::*;

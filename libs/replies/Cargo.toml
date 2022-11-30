@@ -1,5 +1,5 @@
 [package]
-name = "shared-replies"
+name = "replies"
 version = "0.1.0"
 authors = ["Jacob Lewallen <jlewallen@gmail.com>"]
 edition = "2021"
