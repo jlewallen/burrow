@@ -230,27 +230,92 @@ mod internal {
         }
     }
 
+    fn simple_entities_list(entities: &Vec<ObservedEntity>) -> Html {
+        let names = entities
+            .iter()
+            .map(
+                // TODO Super awkward clone, I'm tired though.
+                |e| /* html! { <span> { */ e.name.clone().or(Some("?".into())).unwrap(), /* } </span> } */
+            )
+            .collect::<Vec<_>>()
+            // .intersperse(", "); // TODO This may be a thing some day and
+            // would ben ice if this had Html returned above, maybe.
+            .join(", ");
+
+        html! {
+            <span class="entities">
+            { names }
+            </span>
+        }
+    }
+
     fn area_observation(reply: &AreaObservation) -> Html {
+        let name: &str = if let Some(name) = &reply.area.name {
+            &name
+        } else {
+            "No Name"
+        };
+
+        let desc: Html = if let Some(desc) = &reply.area.desc {
+            html! {
+                <p>{ desc }</p>
+            }
+        } else {
+            html! { <span></span> }
+        };
+
+        let living: Html = if reply.living.len() > 0 {
+            html! {
+                <div class="living">
+                    { "Also here is "} { simple_entities_list(&reply.living) } { "." }
+                </div>
+            }
+        } else {
+            html! {<span></span>}
+        };
+
+        let items: Html = if reply.items.len() > 0 {
+            html! {
+                <div class="ground">
+                    { "You can see "} { simple_entities_list(&reply.items) } { "." }
+                </div>
+            }
+        } else {
+            html! {<span></span>}
+        };
+
+        let routes: Html = if reply.routes.len() > 0 {
+            html! {
+                <div class="routes">
+                    { "You can see "} { simple_entities_list(&reply.routes) } { "." }
+                </div>
+            }
+        } else {
+            html! {<span></span>}
+        };
+
         html! {
             <div class="entry">
-            { "Area"}
+            <h3>{ name }</h3>
+            { desc }
+            { routes }
+            { living }
+            { items }
             </div>
         }
     }
 
     fn inside_observation(reply: &InsideObservation) -> Html {
         html! {
-            <div class="entry">
-            { "Inside"}
+            <div class="living">
+                { "Inside is "}{ simple_entities_list(&reply.items) }{ "." }
             </div>
         }
     }
 
     fn simple_reply(reply: &SimpleReply) -> Html {
         html! {
-            <div class="entry">
-            { "Simple"}
-            </div>
+            <div class="entry">{ format!("{:?}", reply) }</div>
         }
     }
 
@@ -280,7 +345,7 @@ mod internal {
                 match reply {
                     KnownReply::AreaObservation(reply) => area_observation(&reply),
                     KnownReply::InsideObservation(reply) => inside_observation(&reply),
-                    // KnownReply::SimpleReply(reply) => simple_reply(&reply),
+                    KnownReply::SimpleReply(reply) => simple_reply(&reply),
                 }
             } else {
                 html! {

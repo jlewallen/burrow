@@ -8,7 +8,7 @@ pub trait ToJson: Debug {
 
 pub trait Reply: ToJson {}
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum SimpleReply {
     Done,
@@ -19,7 +19,7 @@ pub enum SimpleReply {
 
 impl ToJson for SimpleReply {
     fn to_json(&self) -> Result<Value, serde_json::Error> {
-        serde_json::to_value(self)
+        Ok(json!({ "simpleReply": serde_json::to_value(self)? }))
     }
 }
 
@@ -71,4 +71,5 @@ impl ToJson for InsideObservation {
 pub enum KnownReply {
     AreaObservation(AreaObservation),
     InsideObservation(InsideObservation),
+    SimpleReply(SimpleReply),
 }
