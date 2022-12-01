@@ -258,7 +258,7 @@ mod internal {
 
         let desc: Html = if let Some(desc) = &reply.area.desc {
             html! {
-                <p>{ desc }</p>
+                <p class="desc">{ desc }</p>
             }
         } else {
             html! { <span></span> }
@@ -284,6 +284,16 @@ mod internal {
             html! {<span></span>}
         };
 
+        let carrying: Html = if reply.carrying.len() > 0 {
+            html! {
+                <div class="hands">
+                    { "You are holding "} { simple_entities_list(&reply.carrying) } { "." }
+                </div>
+            }
+        } else {
+            html! {<span></span>}
+        };
+
         let routes: Html = if reply.routes.len() > 0 {
             html! {
                 <div class="routes">
@@ -296,11 +306,12 @@ mod internal {
 
         html! {
             <div class="entry">
-            <h3>{ name }</h3>
-            { desc }
-            { routes }
-            { living }
-            { items }
+                <h3>{ name }</h3>
+                { desc }
+                { routes }
+                { living }
+                { items }
+                { carrying }
             </div>
         }
     }
