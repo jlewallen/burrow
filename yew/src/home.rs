@@ -200,17 +200,14 @@ mod internal {
     use yew::prelude::*;
     use yewdux::prelude::*;
 
-    pub type EntryId = u32;
-
     #[derive(Debug, Serialize, Clone, Eq, PartialEq)]
     pub struct HistoryEntry {
-        pub id: EntryId,
         pub value: serde_json::Value,
     }
 
     impl HistoryEntry {
         pub fn new(value: serde_json::Value) -> Self {
-            Self { id: 0, value }
+            Self { value }
         }
     }
 
