@@ -1,7 +1,7 @@
 use crate::kernel::{EntityGID, EntityKey};
 use anyhow::Result;
 use std::rc::Rc;
-use tracing::debug;
+use tracing::*;
 
 pub trait EntityStorage {
     fn load_by_key(&self, key: &EntityKey) -> Result<Option<PersistedEntity>>;
@@ -28,7 +28,6 @@ pub mod sqlite {
     use super::*;
     use anyhow::anyhow;
     use rusqlite::Connection;
-    use tracing::info;
 
     pub struct SqliteStorage {
         conn: Connection,
@@ -67,7 +66,7 @@ pub mod sqlite {
             query: &str,
             params: T,
         ) -> Result<Option<PersistedEntity>> {
-            debug!("querying");
+            trace!("querying");
 
             let mut stmt = self.conn.prepare(query)?;
 
@@ -140,7 +139,7 @@ pub mod sqlite {
         }
 
         fn begin(&self) -> Result<()> {
-            debug!("tx:begin");
+            trace!("tx:begin");
 
             self.conn.execute("BEGIN TRANSACTION", [])?;
 
@@ -149,9 +148,9 @@ pub mod sqlite {
 
         fn rollback(&self, benign: bool) -> Result<()> {
             if benign {
-                debug!("tx:rollback");
+                trace!("tx:rollback");
             } else {
-                info!("tx:rollback");
+                warn!("tx:rollback");
             }
 
             self.conn.execute("ROLLBACK TRANSACTION", [])?;
@@ -160,7 +159,7 @@ pub mod sqlite {
         }
 
         fn commit(&self) -> Result<()> {
-            debug!("tx:commit");
+            trace!("tx:commit");
 
             self.conn.execute("COMMIT TRANSACTION", [])?;
 

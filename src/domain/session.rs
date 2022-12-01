@@ -54,8 +54,6 @@ impl StandardPerformer {
             action.perform((world, user, area, infra))?
         };
 
-        event!(Level::INFO, "done");
-
         Ok(reply)
     }
 
@@ -172,7 +170,7 @@ pub struct Session {
 
 impl Session {
     pub fn new(storage: Rc<dyn EntityStorage>, keys: &Arc<dyn KeySequence>) -> Result<Self> {
-        info!("session-new");
+        trace!("session-new");
 
         let opened = Instant::now();
         let ids = GlobalIds::new();
