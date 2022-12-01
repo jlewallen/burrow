@@ -5,7 +5,7 @@ use web_sys::HtmlElement;
 use yew::prelude::*;
 use yewdux::prelude::*;
 
-use crate::command_line::LineEditor;
+use crate::command_line::CommandLine;
 use crate::history::{History, SessionHistory};
 use crate::open_web_socket::Evaluator;
 
@@ -89,7 +89,7 @@ impl Component for Home {
                                 { "Buttons" }
                             </div>
                         </div>
-                        <LineEditor onsubmit={self.evaluate_callback.clone()} />
+                        <CommandLine oncommand={self.evaluate_callback.clone()} />
                     </div>
                 </div>
             </div>

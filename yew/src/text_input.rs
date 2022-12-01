@@ -1,14 +1,14 @@
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
-pub enum Msg {
-    Submit(String),
-}
-
 #[derive(Properties, Clone, PartialEq)]
 pub struct Props {
     pub value: String,
     pub onsubmit: Callback<String>,
+}
+
+pub enum Msg {
+    Submit(String),
 }
 
 pub struct TextInput {

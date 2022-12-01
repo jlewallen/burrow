@@ -1,19 +1,19 @@
-use crate::text_input::TextInput;
-// use gloo_console as console;
 use yew::prelude::*;
+
+use crate::text_input::TextInput;
 
 #[derive(Properties, Clone, PartialEq)]
 pub struct Props {
-    pub onsubmit: Callback<String>,
+    pub oncommand: Callback<String>,
 }
 
 pub enum Msg {
-    Send(String),
+    Command(String),
 }
 
-pub struct LineEditor {}
+pub struct CommandLine {}
 
-impl Component for LineEditor {
+impl Component for CommandLine {
     type Message = Msg;
     type Properties = Props;
 
@@ -23,8 +23,8 @@ impl Component for LineEditor {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::Send(text) => {
-                ctx.props().onsubmit.emit(text);
+            Msg::Command(text) => {
+                ctx.props().oncommand.emit(text);
                 false
             }
         }
@@ -33,8 +33,8 @@ impl Component for LineEditor {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let link = ctx.link();
         html! {
-            <div class="line-editor">
-                <TextInput value="" onsubmit={link.callback(|text| Msg::Send(text))} />
+            <div class="command-line-editor">
+                <TextInput value="" onsubmit={link.callback(|text| Msg::Command(text))} />
             </div>
         }
     }

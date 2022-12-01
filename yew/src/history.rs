@@ -1,9 +1,10 @@
 // use gloo_console as console;
-use replies::*;
 use serde::Serialize;
 use std::rc::Rc;
 use yew::prelude::*;
 use yewdux::prelude::*;
+
+use replies::*;
 
 #[derive(Debug, Serialize, Clone, Eq, PartialEq)]
 pub struct HistoryEntry {
