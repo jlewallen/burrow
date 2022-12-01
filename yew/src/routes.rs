@@ -14,7 +14,7 @@ pub enum Route {
     Home,
 }
 
-pub fn switch(selected_route: &Route) -> Html {
+pub fn switch(selected_route: Route) -> Html {
     match selected_route {
         Route::Login => html! {<Login />},
         Route::Home => html! {<Home />},

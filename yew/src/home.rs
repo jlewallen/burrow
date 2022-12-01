@@ -19,7 +19,7 @@ pub struct WebSocketProps {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Evaluator {
+struct Evaluator {
     pub callback: Callback<String>,
 }
 
@@ -230,24 +230,42 @@ mod internal {
         }
     }
 
+    fn area_observation(reply: &AreaObservation) -> Html {
+        html! {
+            <div class="entry">
+            { "Area"}
+            </div>
+        }
+    }
+
+    fn inside_observation(reply: &InsideObservation) -> Html {
+        html! {
+            <div class="entry">
+            { "Inside"}
+            </div>
+        }
+    }
+
+    fn simple_reply(reply: &SimpleReply) -> Html {
+        html! {
+            <div class="entry">
+            { "Simple"}
+            </div>
+        }
+    }
+
     #[derive(Properties, Clone, PartialEq)]
-    pub struct Props {
+    struct Props {
         pub entry: HistoryEntry,
     }
 
-    pub struct HistoryEntryItem {}
+    struct HistoryEntryItem {}
 
     impl Component for HistoryEntryItem {
         type Message = Msg;
         type Properties = Props;
 
-        fn create(ctx: &Context<Self>) -> Self {
-            let value = &ctx.props().entry.value;
-
-            if let Ok(_reply) = serde_json::from_value::<KnownReply>(value.clone()) {
-                console::log!("ok!" /*, format!("{:?}", reply)*/);
-            }
-
+        fn create(_ctx: &Context<Self>) -> Self {
             Self {}
         }
 
@@ -256,10 +274,20 @@ mod internal {
         }
 
         fn view(&self, ctx: &Context<Self>) -> Html {
-            html! {
-                <div class="entry">
-                    { ctx.props().entry.value.to_string() }
-                </div>
+            let value = &ctx.props().entry.value;
+
+            if let Ok(reply) = serde_json::from_value::<KnownReply>(value.clone()) {
+                match reply {
+                    KnownReply::AreaObservation(reply) => area_observation(&reply),
+                    KnownReply::InsideObservation(reply) => inside_observation(&reply),
+                    // KnownReply::SimpleReply(reply) => simple_reply(&reply),
+                }
+            } else {
+                html! {
+                    <div class="entry">
+                        { ctx.props().entry.value.to_string() }
+                    </div>
+                }
             }
         }
     }

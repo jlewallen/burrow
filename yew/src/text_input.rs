@@ -34,7 +34,11 @@ impl Component for TextInput {
         }
     }
 
-    fn changed(&mut self, ctx: &Context<Self>) -> bool {
+    fn changed(
+        &mut self,
+        ctx: &Context<Self>,
+        _properties: &<Self as yew::Component>::Properties,
+    ) -> bool {
         self.text = ctx.props().value.clone();
         true
     }

@@ -9,7 +9,7 @@ pub fn app() -> Html {
         <BrowserRouter>
             <AlwaysOpenWebSocket>
                 <div id="app">
-                    <Switch<Route> render={Switch::render(switch)}/>
+                    <Switch<Route> render={switch}/>
                 </div>
             </AlwaysOpenWebSocket>
         </BrowserRouter>
