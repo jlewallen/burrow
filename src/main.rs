@@ -1,9 +1,8 @@
-// #![feature(local_key_cell_methods)]
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use std::error::Error;
 use std::path::PathBuf;
-use tracing::{debug, info};
+use tracing::*;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 pub mod domain;
@@ -36,7 +35,7 @@ enum Commands {
 
 fn get_rust_log() -> String {
     let mut original =
-        std::env::var("RUST_LOG").unwrap_or_else(|_| "burrow=info,tower_http=debug".into());
+        std::env::var("RUST_LOG").unwrap_or_else(|_| "burrow=info,tower_http=info".into());
 
     if !original.contains("rustyline=") {
         original.push_str(",rustyline=info");
@@ -60,8 +59,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         .init();
 
     info!("initialized, ready");
-
-    debug!("debug enabled");
 
     let cli = Cli::parse();
 

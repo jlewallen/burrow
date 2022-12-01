@@ -58,12 +58,12 @@ pub async fn execute_command(_cmd: &Command) -> Result<()> {
 
     let assets_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
 
-    let user_set = Mutex::new(HashSet::new());
+    let sessions = Mutex::new(HashSet::new());
     let (tx, _rx) = broadcast::channel(100);
 
     let app_state = Arc::new(AppState {
         domain,
-        user_set,
+        sessions,
         tx,
     });
 
@@ -91,7 +91,7 @@ pub async fn execute_command(_cmd: &Command) -> Result<()> {
         .serve(app.into_make_service())
         .with_graceful_shutdown(shutdown_signal())
         .await
-        .expect("hyper error"); // TODO How do we bubble this error up?
+        .expect("hyper error");
 
     Ok(())
 }
@@ -119,6 +119,8 @@ async fn shutdown_signal() {
         _ = terminate => {},
     }
 
+    println!();
+
     info!("signal received, starting graceful shutdown");
 }
 
@@ -130,7 +132,6 @@ async fn ws_handler(
 }
 
 async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: Arc<AppState>) {
-    // By splitting we can send and receive at the same time.
     let (mut sender, mut receiver) = stream.split();
 
     let mut session: Option<ClientSession> = None;
@@ -150,37 +151,9 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
         }
     }
 
-    info!("welcome");
-
-    /*
-    loop {
-        match receiver.next().await {
-            Some(Ok(message)) => {
-                match message {
-                    Message::Item(ClientMessage::Login { username: given }) => {
-                        // If username that is sent by client is not taken, fill username string.
-                        if let Ok(started) = state.try_start_session(&given) {
-                            session = Some(started)
-                        }
-
-                        break;
-                    }
-                    unexpected => {
-                        debug!("unexpected message[0]: {:?}", unexpected);
-
-                        break;
-                    }
-                }
-            }
-            unexpected => {
-                debug!("unexpected message[1]: {:?}", unexpected);
-                break;
-            }
-        }
-    }
-    */
-
     if session.is_none() {
+        info!("bad credentials");
+
         let _ = sender
             .send(Message::Item(ServerMessage::Error(
                 "Sorry, there's a problem with your credentials.".to_string(),
@@ -189,18 +162,15 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
 
         return;
     } else {
+        info!("welcome");
+
         let _ = sender.send(Message::Item(ServerMessage::Welcome {})).await;
     }
 
     let session = session.unwrap();
 
-    // Send joined message to all subscribers.
+    // Publish events and messages back to the client.
     let mut rx = state.tx.subscribe();
-    // let msg = format!("{} joined.", session.username);
-    // tracing::debug!("{}", msg);
-    // let _ = state.tx.send(msg);
-
-    // Pump messages to clients.
     let mut send_task = tokio::spawn(async move {
         while let Ok(server_message) = rx.recv().await {
             // In any websocket error, break loop.
@@ -212,7 +182,7 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
 
     // Pump messages from clients.
     let tx = state.tx.clone();
-    let name = session.username.clone();
+    let name = session.name.clone();
     let user_state = state.clone();
 
     let mut recv_task = tokio::spawn(async move {
@@ -251,43 +221,39 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
         _ = (&mut recv_task) => send_task.abort(),
     };
 
-    // Send user left message.
-    // let msg = format!("{} left.", session.username);
-    // tracing::debug!("{}", msg);
-    // let _ = state.tx.send(msg);
-
+    // TODO Send user left message.
     state.remove_session(&session);
 }
 struct ClientSession {
-    username: String,
+    name: String,
 }
 
 struct AppState {
     domain: Domain,
-    user_set: Mutex<HashSet<String>>,
+    sessions: Mutex<HashSet<String>>,
     tx: broadcast::Sender<ServerMessage>,
 }
 
 impl AppState {
     pub fn try_start_session(&self, name: &str) -> Result<ClientSession> {
         if name.is_empty() {
-            return Err(anyhow!("username cannot be blank"));
+            return Err(anyhow!("name cannot be blank"));
         }
 
-        let mut user_set = self.user_set.lock().unwrap();
+        let mut sessions = self.sessions.lock().unwrap();
 
-        if user_set.contains(name) {
-            return Err(anyhow!("username already taken"));
+        if sessions.contains(name) {
+            return Err(anyhow!("name already taken"));
         }
 
-        user_set.insert(name.to_owned());
+        sessions.insert(name.to_owned());
 
         Ok(ClientSession {
-            username: name.to_string(),
+            name: name.to_string(),
         })
     }
 
     fn remove_session(&self, session: &ClientSession) {
-        self.user_set.lock().unwrap().remove(&session.username);
+        self.sessions.lock().unwrap().remove(&session.name);
     }
 }
