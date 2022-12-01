@@ -1,11 +1,15 @@
 use crate::services::{ReceivedMessage, WebSocketMessage, WebSocketService};
-// use gloo_console as console;
+use gloo_console as console;
+use gloo_timers::callback::Timeout;
 use internal::*;
 use std::rc::Rc;
+use web_sys::HtmlElement;
 use yew::{prelude::*, Children};
 use yewdux::prelude::*;
 
 pub enum Msg {
+    UpdateHistory(std::rc::Rc<SessionHistory>),
+    Refresh,
     Ignored,
 }
 
@@ -31,7 +35,6 @@ pub enum WebSocketComponentMsg {
 
 impl Component for AlwaysOpenWebSocket {
     type Message = WebSocketComponentMsg;
-
     type Properties = WebSocketProps;
 
     fn create(ctx: &Context<Self>) -> Self {
@@ -107,7 +110,10 @@ impl Component for AlwaysOpenWebSocket {
 }
 
 pub struct Home {
-    pub evaluate_callback: Callback<String>,
+    refs: Vec<NodeRef>,
+    evaluate_callback: Callback<String>,
+    #[allow(dead_code)]
+    dispatch: Dispatch<SessionHistory>,
 }
 
 impl Component for Home {
@@ -120,21 +126,51 @@ impl Component for Home {
             .context::<Evaluator>(ctx.link().callback(|_| Msg::Ignored))
             .expect("No evalutor context");
 
+        let callback = ctx.link().callback(Msg::UpdateHistory);
+        let dispatch = Dispatch::<SessionHistory>::subscribe(move |h| callback.emit(h));
+
         Self {
+            refs: vec![NodeRef::default()],
             evaluate_callback: evaluator.callback.clone(),
+            dispatch,
         }
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, _msg: Self::Message) -> bool {
-        false
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            Self::Message::UpdateHistory(_) => {
+                let refresher = ctx.link().callback(|_| Self::Message::Refresh);
+
+                let timeout = Timeout::new(25, move || {
+                    refresher.emit(());
+                });
+
+                timeout.forget();
+
+                true
+            }
+            Self::Message::Refresh => {
+                let upper = &self.refs[0];
+                let upper_div = &upper.cast::<HtmlElement>().unwrap();
+
+                console::trace!(
+                    "update-history:refresh (T, H)",
+                    upper_div.scroll_top(),
+                    upper_div.scroll_height()
+                );
+
+                upper_div.set_scroll_top(upper_div.scroll_height());
+
+                true
+            }
+            _ => false,
+        }
     }
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
-        // let link = ctx.link();
         html! {
             <div id="hack">
-                <div id="upper">
-
+                <div id="upper" ref={&self.refs[0]}>
                     <div id="main"><History /></div>
                 </div>
                 <div id="lower">
@@ -187,6 +223,7 @@ mod internal {
         pub fn append(&self, value: serde_json::Value) -> Self {
             let mut ugly_clone = self.entries.clone();
             ugly_clone.push(HistoryEntry::new(value));
+
             Self {
                 entries: ugly_clone,
             }
@@ -205,9 +242,10 @@ mod internal {
         type Properties = Props;
 
         fn create(ctx: &Context<Self>) -> Self {
-            if let Ok(reply) = serde_json::from_value::<KnownReply>(ctx.props().entry.value.clone())
-            {
-                console::log!("ok!", format!("{:?}", reply));
+            let value = &ctx.props().entry.value;
+
+            if let Ok(_reply) = serde_json::from_value::<KnownReply>(value.clone()) {
+                console::log!("ok!" /*, format!("{:?}", reply)*/);
             }
 
             Self {}

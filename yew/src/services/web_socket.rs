@@ -77,13 +77,13 @@ impl ActiveConnection {
             while let Some(msg) = read.next().await {
                 match msg {
                     Ok(Message::Text(data)) => {
-                        log::debug!("ws:text {}", data);
+                        log::trace!("ws:text {}", data);
                         incoming.emit(ReceivedMessage::Item(data))
                     }
                     Ok(Message::Bytes(b)) => {
                         let decoded = std::str::from_utf8(&b);
                         if let Ok(val) = decoded {
-                            log::debug!("ws:bytes {}", &val);
+                            log::trace!("ws:bytes {}", &val);
                             incoming.emit(ReceivedMessage::Item(val.into()))
                         }
                     }
