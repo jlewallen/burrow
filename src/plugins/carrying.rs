@@ -18,8 +18,8 @@ pub mod model {
 
     #[derive(Debug)]
     pub enum CarryingEvent {
-        ItemHeld(EntityPtr),
-        ItemDropped(EntityPtr),
+        ItemHeld { living: EntityPtr, item: EntityPtr },
+        ItemDropped { living: EntityPtr, item: EntityPtr },
     }
 
     impl DomainEvent for CarryingEvent {
@@ -152,9 +152,10 @@ pub mod actions {
 
             match infra.find_item(args, &self.item)? {
                 Some(holding) => match tools::move_between(&area, &user, &holding)? {
-                    DomainOutcome::Ok => {
-                        Ok(Box::new(reply_done(CarryingEvent::ItemHeld(holding))?))
-                    }
+                    DomainOutcome::Ok => Ok(Box::new(reply_done(CarryingEvent::ItemHeld {
+                        living: user,
+                        item: holding,
+                    })?)),
                     DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
                 },
                 None => Ok(Box::new(SimpleReply::NotFound)),
@@ -181,7 +182,10 @@ pub mod actions {
                 Some(item) => match infra.find_item(args, item)? {
                     Some(dropping) => match tools::move_between(&user, &area, &dropping)? {
                         DomainOutcome::Ok => {
-                            Ok(Box::new(reply_done(CarryingEvent::ItemDropped(dropping))?))
+                            Ok(Box::new(reply_done(CarryingEvent::ItemDropped {
+                                living: user,
+                                item: dropping,
+                            })?))
                         }
                         DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
                     },
