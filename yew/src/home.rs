@@ -59,7 +59,7 @@ impl Component for Home {
                 let upper = &self.refs[0];
                 let upper_div = &upper.cast::<HtmlElement>().unwrap();
 
-                console::trace!(
+                console::debug!(
                     "update-history:refresh (T, H)",
                     upper_div.scroll_top(),
                     upper_div.scroll_height()
