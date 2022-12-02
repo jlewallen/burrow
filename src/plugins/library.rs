@@ -93,4 +93,10 @@ pub mod actions {
     pub use crate::plugins::tools;
     pub use anyhow::Result;
     pub use tracing::*;
+
+    pub fn reply_done<T: DomainEvent + 'static>(raise: T) -> Result<SimpleReply> {
+        get_my_session()?.raise(Box::new(raise))?;
+
+        Ok(SimpleReply::Done)
+    }
 }

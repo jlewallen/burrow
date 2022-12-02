@@ -22,6 +22,82 @@ pub static DESC_PROPERTY: &str = "desc";
 
 pub static GID_PROPERTY: &str = "gid";
 
+#[derive(Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
+pub struct EntityKey(String);
+
+impl EntityKey {
+    pub fn new(s: &str) -> EntityKey {
+        EntityKey(s.to_string())
+    }
+
+    pub fn key_to_string(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Debug for EntityKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("`{}`", self.0))
+    }
+}
+
+impl Default for EntityKey {
+    fn default() -> Self {
+        Self(nanoid!())
+    }
+}
+
+impl Display for EntityKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Clone, Eq, PartialEq, Hash, Serialize, Deserialize, Debug)]
+pub struct EntityGID(u64);
+
+impl EntityGID {
+    pub fn new(i: u64) -> EntityGID {
+        EntityGID(i)
+    }
+
+    pub fn gid_to_string(&self) -> String {
+        format!("{}", self.0)
+    }
+}
+
+impl Display for EntityGID {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<EntityGID> for u64 {
+    fn from(gid: EntityGID) -> Self {
+        gid.0
+    }
+}
+
+impl From<&EntityGID> for u64 {
+    fn from(gid: &EntityGID) -> Self {
+        gid.0
+    }
+}
+
+#[derive(Debug)]
+pub enum DomainOutcome {
+    Ok,
+    Nope,
+}
+
+#[derive(Debug, Clone, Serialize, Eq, PartialEq)]
+pub enum Item {
+    Named(String),
+    Route(String),
+    GID(EntityGID),
+    Contained(Box<Item>),
+}
+
 #[derive(Clone)]
 pub struct EntityPtr {
     entity: Rc<RefCell<Entity>>,
@@ -142,80 +218,15 @@ impl Deref for EntityPtr {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, Hash, Serialize, Deserialize, Debug)]
-pub struct EntityGID(u64);
-
-impl EntityGID {
-    pub fn new(i: u64) -> EntityGID {
-        EntityGID(i)
-    }
-
-    pub fn gid_to_string(&self) -> String {
-        format!("{}", self.0)
-    }
+pub enum Audience {
+    Nobody,
+    Everybody,
+    Individuals(Vec<EntityKey>),
+    Area(EntityPtr),
 }
 
-impl Display for EntityGID {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<EntityGID> for u64 {
-    fn from(gid: EntityGID) -> Self {
-        gid.0
-    }
-}
-
-impl From<&EntityGID> for u64 {
-    fn from(gid: &EntityGID) -> Self {
-        gid.0
-    }
-}
-
-#[derive(Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
-pub struct EntityKey(String);
-
-impl EntityKey {
-    pub fn new(s: &str) -> EntityKey {
-        EntityKey(s.to_string())
-    }
-
-    pub fn key_to_string(&self) -> &str {
-        &self.0
-    }
-}
-
-impl Debug for EntityKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("`{}`", self.0))
-    }
-}
-
-impl Default for EntityKey {
-    fn default() -> Self {
-        Self(nanoid!())
-    }
-}
-
-impl Display for EntityKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-#[derive(Debug)]
-pub enum DomainOutcome {
-    Ok,
-    Nope,
-}
-
-#[derive(Debug, Clone, Serialize, Eq, PartialEq)]
-pub enum Item {
-    Named(String),
-    Route(String),
-    GID(EntityGID),
-    Contained(Box<Item>),
+pub trait DomainEvent: Debug {
+    fn audience(&self) -> Audience;
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

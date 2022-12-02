@@ -11,6 +11,21 @@ impl ParsesActions for MovingPlugin {
 pub mod model {
     use crate::plugins::library::model::*;
 
+    #[derive(Debug)]
+    pub enum MovingEvent {
+        Left { living: EntityPtr, area: EntityPtr },
+        Arrived { living: EntityPtr, area: EntityPtr },
+    }
+
+    impl DomainEvent for MovingEvent {
+        fn audience(&self) -> Audience {
+            match self {
+                Self::Left { living: _, area } => Audience::Area(area.clone()),
+                Self::Arrived { living: _, area } => Audience::Area(area.clone()),
+            }
+        }
+    }
+
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Occupying {
         pub area: LazyLoadedEntity,
@@ -148,6 +163,7 @@ pub mod model {
 pub mod actions {
     use crate::plugins::library::actions::*;
     use crate::plugins::looking::actions::*;
+    use crate::plugins::moving::model::MovingEvent;
 
     #[derive(Debug)]
     pub struct GoAction {
@@ -162,11 +178,22 @@ pub mod actions {
         fn perform(&self, args: ActionArgs) -> ReplyResult {
             info!("go {:?}!", self.item);
 
-            let (_, user, area, infra) = args.clone();
+            let (_, living, area, infra) = args.clone();
 
             match infra.find_item(args, &self.item)? {
-                Some(to_area) => match tools::navigate_between(&area, &to_area, &user)? {
-                    DomainOutcome::Ok => infra.chain(&user, Box::new(LookAction {})),
+                Some(to_area) => match tools::navigate_between(&area, &to_area, &living)? {
+                    DomainOutcome::Ok => {
+                        get_my_session()?.raise(Box::new(MovingEvent::Left {
+                            living: living.clone(),
+                            area: area,
+                        }))?;
+                        get_my_session()?.raise(Box::new(MovingEvent::Arrived {
+                            living: living.clone(),
+                            area: to_area,
+                        }))?;
+
+                        infra.chain(&living, Box::new(LookAction {}))
+                    }
                     DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
                 },
                 None => Ok(Box::new(SimpleReply::NotFound)),

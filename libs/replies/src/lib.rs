@@ -2,17 +2,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::fmt::Debug;
 
-pub enum Audience {
-    Nobody,
-    Everybody,
-    Individuals(Vec<String>), // TODO This is a Vec<EntityKey>
-    Area(i32),
-}
-
-pub trait DomainEvent: Debug {
-    fn audience(&self) -> Audience;
-}
-
 pub trait ToJson: Debug {
     fn to_json(&self) -> Result<Value, serde_json::Error>;
 }

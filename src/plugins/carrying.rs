@@ -18,13 +18,32 @@ pub mod model {
 
     #[derive(Debug)]
     pub enum CarryingEvent {
-        ItemHeld { living: EntityPtr, item: EntityPtr },
-        ItemDropped { living: EntityPtr, item: EntityPtr },
+        ItemHeld {
+            living: EntityPtr,
+            item: EntityPtr,
+            area: EntityPtr,
+        },
+        ItemDropped {
+            living: EntityPtr,
+            item: EntityPtr,
+            area: EntityPtr,
+        },
     }
 
     impl DomainEvent for CarryingEvent {
         fn audience(&self) -> Audience {
-            Audience::Area(0)
+            match self {
+                Self::ItemHeld {
+                    living: _,
+                    item: _,
+                    area,
+                } => Audience::Area(area.clone()),
+                Self::ItemDropped {
+                    living: _,
+                    item: _,
+                    area,
+                } => Audience::Area(area.clone()),
+            }
         }
     }
 
@@ -129,12 +148,6 @@ pub mod model {
 pub mod actions {
     use crate::plugins::{carrying::model::CarryingEvent, library::actions::*};
 
-    pub fn reply_done<T: DomainEvent + 'static>(raise: T) -> Result<SimpleReply> {
-        get_my_session()?.raise(Box::new(raise))?;
-
-        Ok(SimpleReply::Done)
-    }
-
     #[derive(Debug)]
     pub struct HoldAction {
         pub item: Item,
@@ -155,6 +168,7 @@ pub mod actions {
                     DomainOutcome::Ok => Ok(Box::new(reply_done(CarryingEvent::ItemHeld {
                         living: user,
                         item: holding,
+                        area: area,
                     })?)),
                     DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
                 },
@@ -185,6 +199,7 @@ pub mod actions {
                             Ok(Box::new(reply_done(CarryingEvent::ItemDropped {
                                 living: user,
                                 item: dropping,
+                                area: area,
                             })?))
                         }
                         DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
