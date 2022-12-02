@@ -92,7 +92,7 @@ pub mod actions {
             info!("entity {:?} {:?} {:?}", outgoing, returning, new_area);
 
             match tools::navigate_between(&area, &new_area, &user)? {
-                DomainOutcome::Ok(_) => infra.chain(&user, Box::new(LookAction {})),
+                DomainOutcome::Ok => infra.chain(&user, Box::new(LookAction {})),
                 DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
             }
         }

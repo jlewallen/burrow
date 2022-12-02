@@ -22,7 +22,11 @@ pub mod model {
         ItemDropped(EntityPtr),
     }
 
-    impl DomainEvent for CarryingEvent {}
+    impl DomainEvent for CarryingEvent {
+        fn audience(&self) -> Audience {
+            Audience::Area(0)
+        }
+    }
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Location {
@@ -70,6 +74,7 @@ pub mod model {
                 .iter()
                 .map(|r| infra.ensure_entity(r))
                 .collect::<Result<Vec<_>>>()?;
+
             Ok(())
         }
     }
@@ -78,9 +83,7 @@ pub mod model {
         pub fn start_carrying(&mut self, item: &EntityPtr) -> CarryingResult {
             self.holding.push(item.clone().into());
 
-            Ok(DomainOutcome::Ok(vec![Box::new(CarryingEvent::ItemHeld(
-                item.clone(),
-            ))]))
+            Ok(DomainOutcome::Ok)
         }
 
         pub fn stop_carrying(&mut self, item: &EntityPtr) -> CarryingResult {
@@ -91,9 +94,7 @@ pub mod model {
                 return Ok(DomainOutcome::Nope);
             }
 
-            Ok(DomainOutcome::Ok(vec![Box::new(
-                CarryingEvent::ItemDropped(item.clone()),
-            )]))
+            Ok(DomainOutcome::Ok)
         }
     }
 
@@ -126,7 +127,13 @@ pub mod model {
 }
 
 pub mod actions {
-    use crate::plugins::library::actions::*;
+    use crate::plugins::{carrying::model::CarryingEvent, library::actions::*};
+
+    pub fn reply_done<T: DomainEvent + 'static>(raise: T) -> Result<SimpleReply> {
+        get_my_session()?.raise(Box::new(raise))?;
+
+        Ok(SimpleReply::Done)
+    }
 
     #[derive(Debug)]
     pub struct HoldAction {
@@ -145,7 +152,9 @@ pub mod actions {
 
             match infra.find_item(args, &self.item)? {
                 Some(holding) => match tools::move_between(&area, &user, &holding)? {
-                    DomainOutcome::Ok(_) => Ok(Box::new(SimpleReply::Done)),
+                    DomainOutcome::Ok => {
+                        Ok(Box::new(reply_done(CarryingEvent::ItemHeld(holding))?))
+                    }
                     DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
                 },
                 None => Ok(Box::new(SimpleReply::NotFound)),
@@ -171,7 +180,9 @@ pub mod actions {
             match &self.maybe_item {
                 Some(item) => match infra.find_item(args, item)? {
                     Some(dropping) => match tools::move_between(&user, &area, &dropping)? {
-                        DomainOutcome::Ok(_) => Ok(Box::new(SimpleReply::Done)),
+                        DomainOutcome::Ok => {
+                            Ok(Box::new(reply_done(CarryingEvent::ItemDropped(dropping))?))
+                        }
                         DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
                     },
                     None => Ok(Box::new(SimpleReply::NotFound)),
@@ -203,7 +214,7 @@ pub mod actions {
                         if tools::is_container(&vessel) {
                             let from = tools::container_of(&item)?;
                             match tools::move_between(&from, &vessel, &item)? {
-                                DomainOutcome::Ok(_) => Ok(Box::new(SimpleReply::Done)),
+                                DomainOutcome::Ok => Ok(Box::new(SimpleReply::Done)),
                                 DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
                             }
                         } else {
@@ -238,7 +249,7 @@ pub mod actions {
                     if tools::is_container(&vessel) {
                         match infra.find_item(args, &self.item)? {
                             Some(item) => match tools::move_between(&vessel, &user, &item)? {
-                                DomainOutcome::Ok(_) => Ok(Box::new(SimpleReply::Done)),
+                                DomainOutcome::Ok => Ok(Box::new(SimpleReply::Done)),
                                 DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
                             },
                             None => Ok(Box::new(SimpleReply::NotFound)),

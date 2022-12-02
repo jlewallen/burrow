@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::{cell::RefCell, rc::Rc};
 
 use super::{
-    Action, ActionArgs, DomainError, EntityGID, EntityKey, EntityPtr, EntityRef, Item,
+    Action, ActionArgs, DomainError, DomainEvent, EntityGID, EntityKey, EntityPtr, EntityRef, Item,
     LazyLoadedEntity, Reply,
 };
 
@@ -86,6 +86,8 @@ pub trait Infrastructure: LoadEntities + FindsItems {
     }
 
     fn new_key(&self) -> EntityKey;
+
+    fn raise(&self, event: Box<dyn DomainEvent>) -> Result<()>;
 
     fn chain(&self, living: &EntityPtr, action: Box<dyn Action>) -> Result<Box<dyn Reply>>;
 }

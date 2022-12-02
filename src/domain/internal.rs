@@ -235,6 +235,7 @@ pub struct DomainInfrastructure {
     entities: Rc<Entities>,
     performer: Rc<dyn Performer>,
     keys: Arc<dyn KeySequence>,
+    raised: Rc<RefCell<Vec<Box<dyn DomainEvent>>>>,
 }
 
 impl DomainInfrastructure {
@@ -243,12 +244,14 @@ impl DomainInfrastructure {
         entity_map: Rc<EntityMap>,
         performer: Rc<dyn Performer>,
         keys: Arc<dyn KeySequence>,
+        raised: Rc<RefCell<Vec<Box<dyn DomainEvent>>>>,
     ) -> Rc<Self> {
         let entities = Entities::new(entity_map, storage);
         Rc::new(DomainInfrastructure {
             entities,
             performer,
             keys,
+            raised,
         })
     }
 
@@ -384,6 +387,12 @@ impl Infrastructure for DomainInfrastructure {
 
     fn new_key(&self) -> EntityKey {
         self.keys.new_key()
+    }
+
+    fn raise(&self, event: Box<dyn DomainEvent>) -> Result<()> {
+        self.raised.borrow_mut().push(event);
+
+        Ok(())
     }
 }
 

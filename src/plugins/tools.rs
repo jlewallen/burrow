@@ -18,7 +18,7 @@ pub fn move_between(from: &EntityPtr, to: &EntityPtr, item: &EntityPtr) -> Resul
     let mut from_container = from.scope_mut::<Containing>()?;
 
     match from_container.stop_carrying(item)? {
-        DomainOutcome::Ok(events) => {
+        DomainOutcome::Ok => {
             {
                 let mut item = item.borrow_mut();
                 let mut item_location = item.scope_mut::<Location>()?;
@@ -33,7 +33,7 @@ pub fn move_between(from: &EntityPtr, to: &EntityPtr, item: &EntityPtr) -> Resul
             into_container.save()?;
             from_container.save()?;
 
-            Ok(DomainOutcome::Ok(events))
+            Ok(DomainOutcome::Ok)
         }
         DomainOutcome::Nope => Ok(DomainOutcome::Nope),
     }
@@ -48,7 +48,7 @@ pub fn navigate_between(
     let mut from_container = from.scope_mut::<Occupyable>()?;
 
     match from_container.stop_occupying(item.clone())? {
-        DomainOutcome::Ok(events) => {
+        DomainOutcome::Ok => {
             info!("navigating {:?}", to);
 
             {
@@ -65,7 +65,7 @@ pub fn navigate_between(
             into_container.save()?;
             from_container.save()?;
 
-            Ok(DomainOutcome::Ok(events))
+            Ok(DomainOutcome::Ok)
         }
         DomainOutcome::Nope => Ok(DomainOutcome::Nope),
     }

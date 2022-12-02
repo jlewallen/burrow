@@ -166,6 +166,7 @@ pub struct Session {
     ids: Rc<GlobalIds>,
     infra: Rc<DomainInfrastructure>,
     performer: Rc<StandardPerformer>,
+    raised: Rc<RefCell<Vec<Box<dyn DomainEvent>>>>,
 }
 
 impl Session {
@@ -177,11 +178,13 @@ impl Session {
         let entity_map = EntityMap::new(Rc::clone(&ids));
         let standard_performer = StandardPerformer::new(None);
         let performer = standard_performer.clone() as Rc<dyn Performer>;
+        let raised = Rc::new(RefCell::new(Vec::new()));
         let domain_infra = DomainInfrastructure::new(
             Rc::clone(&storage),
             Rc::clone(&entity_map),
             Rc::clone(&performer),
             Arc::clone(keys),
+            Rc::clone(&raised),
         );
 
         let infra = domain_infra.clone() as Rc<dyn Infrastructure>;
@@ -205,6 +208,7 @@ impl Session {
             open: AtomicBool::new(true),
             performer: standard_performer,
             ids,
+            raised: raised,
         })
     }
 
@@ -240,16 +244,36 @@ impl Session {
         self.storage.begin()
     }
 
+    fn flush_raised(&self) -> Result<()> {
+        let mut pending = self.raised.borrow_mut();
+        let npending = pending.len();
+        if npending == 0 {
+            return Ok(());
+        }
+
+        info!(%npending ,"session:raising");
+
+        for event in pending.iter() {
+            info!("{:?}", event)
+        }
+
+        pending.clear();
+
+        Ok(())
+    }
+
     pub fn close(&self) -> Result<()> {
         self.save_entity_changes()?;
 
-        self.open.store(false, Ordering::Relaxed);
+        self.flush_raised()?;
 
         let nentities = self.entity_map.size();
         let elapsed = self.opened.elapsed();
         let elapsed = format!("{:?}", elapsed);
 
         info!(%elapsed, %nentities, "session:closed");
+
+        self.open.store(false, Ordering::Relaxed);
 
         Ok(())
     }
@@ -428,6 +452,10 @@ impl Infrastructure for Session {
 
     fn chain(&self, living: &EntityPtr, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
         self.infra.chain(living, action)
+    }
+
+    fn raise(&self, event: Box<dyn DomainEvent>) -> Result<()> {
+        self.infra.raise(event)
     }
 }
 

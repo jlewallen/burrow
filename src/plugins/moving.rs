@@ -49,13 +49,13 @@ pub mod model {
                 return Ok(DomainOutcome::Nope);
             }
 
-            Ok(DomainOutcome::Ok(vec![]))
+            Ok(DomainOutcome::Ok)
         }
 
         pub fn start_occupying(&mut self, item: &EntityPtr) -> Result<DomainOutcome> {
             self.occupied.push(item.into());
 
-            Ok(DomainOutcome::Ok(vec![]))
+            Ok(DomainOutcome::Ok)
         }
     }
 
@@ -166,7 +166,7 @@ pub mod actions {
 
             match infra.find_item(args, &self.item)? {
                 Some(to_area) => match tools::navigate_between(&area, &to_area, &user)? {
-                    DomainOutcome::Ok(_) => infra.chain(&user, Box::new(LookAction {})),
+                    DomainOutcome::Ok => infra.chain(&user, Box::new(LookAction {})),
                     DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
                 },
                 None => Ok(Box::new(SimpleReply::NotFound)),

@@ -204,11 +204,9 @@ impl Display for EntityKey {
     }
 }
 
-pub trait DomainEvent: Debug {}
-
 #[derive(Debug)]
 pub enum DomainOutcome {
-    Ok(Vec<Box<dyn DomainEvent>>),
+    Ok,
     Nope,
 }
 
