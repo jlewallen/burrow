@@ -38,6 +38,7 @@ rustyline = "10.0.0"
 ctor = "0.1.26"
 tera = "1.17.1"
 lazy_static = "1.4.0"
+itertools = "0.10.5"
 
 [dev-dependencies]
 insta = { version = "1.21.1", features = ["yaml", "json"] }
