@@ -15,7 +15,7 @@ pub mod model {
         plugins::moving::model::{Movement, Occupyable},
     };
 
-    trait Observe<T> {
+    pub trait Observe<T> {
         fn observe(&self, user: &EntityPtr) -> Result<T>;
     }
 

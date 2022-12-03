@@ -11,6 +11,7 @@ use std::{
 use tracing::{debug, event, info, span, trace, warn, Level};
 
 use super::internal::{DomainInfrastructure, EntityMap, GlobalIds, LoadedEntity, Performer};
+use crate::plugins::tools;
 use crate::plugins::{identifiers, moving::model::Occupying, users::model::Usernames};
 use crate::storage::{EntityStorage, EntityStorageFactory, PersistedEntity};
 use crate::{kernel::*, plugins::eval};
@@ -244,6 +245,15 @@ impl Session {
         self.storage.begin()
     }
 
+    fn get_audience_keys(&self, audience: &Audience) -> Result<Vec<EntityKey>> {
+        match audience {
+            Audience::Nobody => Ok(Vec::new()),
+            Audience::Everybody => todo![],
+            Audience::Individuals(keys) => Ok(keys.to_vec()),
+            Audience::Area(area) => tools::get_occupant_keys(area),
+        }
+    }
+
     fn flush_raised(&self) -> Result<()> {
         let mut pending = self.raised.borrow_mut();
         let npending = pending.len();
@@ -254,7 +264,11 @@ impl Session {
         info!(%npending ,"session:raising");
 
         for event in pending.iter() {
-            info!("{:?}", event)
+            let audience = self.get_audience_keys(&event.audience())?;
+
+            // TODO We need an Observed version of this event.
+
+            info!("{:?} {:?}", event, audience)
         }
 
         pending.clear();

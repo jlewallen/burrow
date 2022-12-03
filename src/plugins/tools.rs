@@ -130,3 +130,12 @@ pub fn leads_to<'a>(route: &'a EntityPtr, area: &'a EntityPtr) -> Result<&'a Ent
     exit.area = area.into();
     Ok(route)
 }
+
+pub fn get_occupant_keys(area: &EntityPtr) -> Result<Vec<EntityKey>> {
+    let occupyable = area.borrow().scope::<Occupyable>()?;
+    Ok(occupyable
+        .occupied
+        .iter()
+        .map(|e| e.key.clone())
+        .collect::<Vec<EntityKey>>())
+}

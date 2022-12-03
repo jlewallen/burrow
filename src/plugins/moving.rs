@@ -9,12 +9,18 @@ impl ParsesActions for MovingPlugin {
 }
 
 pub mod model {
-    use crate::plugins::library::model::*;
+    use crate::plugins::{library::model::*, looking::model::Observe};
 
     #[derive(Debug)]
     pub enum MovingEvent {
         Left { living: EntityPtr, area: EntityPtr },
         Arrived { living: EntityPtr, area: EntityPtr },
+    }
+
+    impl<T> Observe<T> for MovingEvent {
+        fn observe(&self, _user: &EntityPtr) -> Result<T> {
+            todo!()
+        }
     }
 
     impl DomainEvent for MovingEvent {

@@ -12,7 +12,7 @@ impl ParsesActions for CarryingPlugin {
 }
 
 pub mod model {
-    use crate::plugins::library::model::*;
+    use crate::plugins::{library::model::*, looking::model::Observe};
 
     pub type CarryingResult = Result<DomainOutcome>;
 
@@ -44,6 +44,12 @@ pub mod model {
                     area,
                 } => Audience::Area(area.clone()),
             }
+        }
+    }
+
+    impl<T> Observe<T> for CarryingEvent {
+        fn observe(&self, _user: &EntityPtr) -> Result<T> {
+            todo!()
         }
     }
 
