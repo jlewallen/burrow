@@ -1,6 +1,7 @@
 use anyhow::Result;
 use nanoid::nanoid;
 use once_cell::sync::Lazy;
+use replies::Observed;
 use serde::{Deserialize, Serialize};
 use std::{
     cell::RefCell,
@@ -227,6 +228,8 @@ pub enum Audience {
 
 pub trait DomainEvent: Debug {
     fn audience(&self) -> Audience;
+
+    fn observe(&self, user: &EntityPtr) -> Result<Box<dyn Observed>>;
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

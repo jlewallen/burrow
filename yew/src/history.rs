@@ -125,6 +125,12 @@ fn inside_observation(reply: &InsideObservation) -> Html {
     }
 }
 
+fn simple_observation(reply: &SimpleObservation) -> Html {
+    html! {
+        <div class="entry">{ format!("{:?}", reply) }</div>
+    }
+}
+
 fn simple_reply(reply: &SimpleReply) -> Html {
     html! {
         <div class="entry">{ format!("{:?}", reply) }</div>
@@ -157,6 +163,7 @@ impl Component for HistoryEntryItem {
             match reply {
                 KnownReply::AreaObservation(reply) => area_observation(&reply),
                 KnownReply::InsideObservation(reply) => inside_observation(&reply),
+                KnownReply::SimpleObservation(reply) => simple_observation(&reply),
                 KnownReply::SimpleReply(reply) => simple_reply(&reply),
             }
         } else {

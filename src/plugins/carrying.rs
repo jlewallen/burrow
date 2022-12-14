@@ -45,11 +45,24 @@ pub mod model {
                 } => Audience::Area(area.clone()),
             }
         }
-    }
 
-    impl<T> Observe<T> for CarryingEvent {
-        fn observe(&self, _user: &EntityPtr) -> Result<T> {
-            todo!()
+        fn observe(&self, user: &EntityPtr) -> Result<Box<dyn Observed>> {
+            Ok(match self {
+                CarryingEvent::ItemHeld {
+                    living: _living,
+                    item,
+                    area: _area,
+                } => Box::new(SimpleObservation::new(
+                    json!({ "held": { "item": item.observe(user)?}}),
+                )),
+                CarryingEvent::ItemDropped {
+                    living: _living,
+                    item,
+                    area: _area,
+                } => Box::new(SimpleObservation::new(
+                    json!({ "dropped": { "item": item.observe(user)?}}),
+                )),
+            })
         }
     }
 

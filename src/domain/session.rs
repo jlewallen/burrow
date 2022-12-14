@@ -70,7 +70,15 @@ impl StandardPerformer {
         }
     }
 
-    fn evaluate_name(&self, name: &str) -> Result<(EntityPtr, EntityPtr, EntityPtr)> {
+    pub fn find_name_key(&self, name: &str) -> Result<Option<EntityKey>, DomainError> {
+        match self.evaluate_name(name) {
+            Ok((_world, user, _area)) => Ok(Some(user.key())),
+            Err(DomainError::EntityNotFound) => Ok(None),
+            Err(err) => Err(err),
+        }
+    }
+
+    fn evaluate_name(&self, name: &str) -> Result<(EntityPtr, EntityPtr, EntityPtr), DomainError> {
         let _span = span!(Level::DEBUG, "L").entered();
 
         let infra = self.infra.borrow();
@@ -97,7 +105,10 @@ impl StandardPerformer {
         self.evaluate_living(&living)
     }
 
-    fn evaluate_living(&self, living: &EntityPtr) -> Result<(EntityPtr, EntityPtr, EntityPtr)> {
+    fn evaluate_living(
+        &self,
+        living: &EntityPtr,
+    ) -> Result<(EntityPtr, EntityPtr, EntityPtr), DomainError> {
         let world = self
             .infra
             .borrow()
@@ -159,6 +170,24 @@ struct ModifiedEntity {
     persisting: PersistedEntity,
 }
 
+pub trait Notifier {
+    fn notify(&self, audience: EntityKey, observed: Box<dyn Observed>) -> Result<()>;
+}
+
+pub struct DevNullNotifier {}
+
+impl DevNullNotifier {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Notifier for DevNullNotifier {
+    fn notify(&self, _audience: EntityKey, _observed: Box<dyn Observed>) -> Result<()> {
+        Ok(())
+    }
+}
+
 pub struct Session {
     opened: Instant,
     open: AtomicBool,
@@ -217,6 +246,14 @@ impl Session {
         self.infra.clone() as Rc<dyn Infrastructure>
     }
 
+    pub fn find_name_key(&self, user_name: &str) -> Result<Option<EntityKey>, DomainError> {
+        if !self.open.load(Ordering::Relaxed) {
+            return Err(DomainError::SessionClosed.into());
+        }
+
+        self.performer.find_name_key(user_name)
+    }
+
     pub fn evaluate_and_perform(
         &self,
         user_name: &str,
@@ -254,7 +291,7 @@ impl Session {
         }
     }
 
-    fn flush_raised(&self) -> Result<()> {
+    fn flush_raised<T: Notifier>(&self, notifier: &T) -> Result<()> {
         let mut pending = self.raised.borrow_mut();
         let npending = pending.len();
         if npending == 0 {
@@ -264,11 +301,13 @@ impl Session {
         info!(%npending ,"session:raising");
 
         for event in pending.iter() {
-            let audience = self.get_audience_keys(&event.audience())?;
-
-            // TODO We need an Observed version of this event.
-
-            info!("{:?} {:?}", event, audience)
+            let audience_keys = self.get_audience_keys(&event.audience())?;
+            for key in audience_keys {
+                let user = self.load_entity_by_key(&key)?.unwrap();
+                debug!(%key, "observing {:?}", user);
+                let observed = event.observe(&user)?;
+                notifier.notify(key, observed)?;
+            }
         }
 
         pending.clear();
@@ -276,10 +315,10 @@ impl Session {
         Ok(())
     }
 
-    pub fn close(&self) -> Result<()> {
+    pub fn close<T: Notifier>(&self, notifier: &T) -> Result<()> {
         self.save_entity_changes()?;
 
-        self.flush_raised()?;
+        self.flush_raised(notifier)?;
 
         let nentities = self.entity_map.size();
         let elapsed = self.opened.elapsed();

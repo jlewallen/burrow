@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use axum::{
     extract::Extension,
     http::StatusCode,
@@ -10,24 +10,18 @@ use axum_typed_websockets::{Message, WebSocket, WebSocketUpgrade};
 use clap::Args;
 use futures::{sink::SinkExt, stream::StreamExt};
 use serde::{Deserialize, Serialize};
-use std::{
-    borrow::Borrow,
-    collections::HashSet,
-    net::SocketAddr,
-    path::PathBuf,
-    sync::{Arc, Mutex},
-};
+use std::{borrow::Borrow, net::SocketAddr, path::PathBuf, sync::Arc};
 use tokio::signal;
 use tokio::sync::broadcast;
 use tower_http::{
     services::ServeDir,
     trace::{DefaultMakeSpan, TraceLayer},
 };
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 use crate::{
-    domain::Domain,
-    kernel::{Reply, SimpleReply},
+    domain::{DevNullNotifier, Domain, Notifier},
+    kernel::{EntityKey, Reply, SimpleReply},
     storage,
 };
 
@@ -40,6 +34,7 @@ enum ServerMessage {
     Error(String),
     Welcome {},
     Reply(serde_json::Value),
+    Notify(String, serde_json::Value),
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -47,6 +42,53 @@ enum ServerMessage {
 enum ClientMessage {
     Login { username: String },
     Evaluate(String),
+}
+
+struct ClientSession {
+    name: String,
+    key: EntityKey,
+}
+
+struct AppState {
+    domain: Domain,
+    tx: broadcast::Sender<ServerMessage>,
+}
+
+impl AppState {
+    pub fn try_start_session(&self, name: &str, key: &EntityKey) -> Result<ClientSession> {
+        Ok(ClientSession {
+            name: name.to_string(),
+            key: key.clone(),
+        })
+    }
+
+    fn find_user_key(&self, name: &str) -> Result<Option<EntityKey>> {
+        let session = self.domain.open_session().expect("Error opening session");
+
+        let maybe_key = session.find_name_key(name)?;
+
+        session.close(&DevNullNotifier::new())?;
+
+        Ok(maybe_key)
+    }
+
+    fn remove_session(&self, _session: &ClientSession) {}
+}
+
+impl Notifier for AppState {
+    fn notify(
+        &self,
+        audience: crate::kernel::EntityKey,
+        observed: Box<dyn replies::Observed>,
+    ) -> Result<()> {
+        debug!("notify {:?} -> {:?}", audience, observed);
+
+        let serialized = observed.to_json()?;
+        let outgoing = ServerMessage::Notify(audience.to_string(), serialized);
+        self.tx.send(outgoing)?;
+
+        Ok(())
+    }
 }
 
 #[tokio::main]
@@ -58,14 +100,9 @@ pub async fn execute_command(_cmd: &Command) -> Result<()> {
 
     let assets_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
 
-    let sessions = Mutex::new(HashSet::new());
     let (tx, _rx) = broadcast::channel(100);
 
-    let app_state = Arc::new(AppState {
-        domain,
-        sessions,
-        tx,
-    });
+    let app_state = Arc::new(AppState { domain, tx });
 
     let app = Router::new()
         .fallback(
@@ -139,9 +176,19 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
     while let Some(Ok(m)) = receiver.next().await {
         match m {
             Message::Item(ClientMessage::Login { username: given }) => {
-                if let Ok(started) = state.try_start_session(&given) {
-                    session = Some(started)
-                }
+                session = match state.find_user_key(&given) {
+                    Ok(Some(key)) => Some(
+                        state
+                            .try_start_session(&given, &key)
+                            .expect("Error starting session"),
+                    ),
+                    Err(err) => {
+                        warn!("find-user-key: {:?}", err);
+
+                        None
+                    }
+                    _ => None,
+                };
 
                 break;
             }
@@ -167,24 +214,46 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
         let _ = sender.send(Message::Item(ServerMessage::Welcome {})).await;
     }
 
+    // Consider handing off to another method here.
     let session = session.unwrap();
+    let our_key = session.key.to_string();
 
-    // Publish events and messages back to the client.
+    let (session_tx, _session_rx) = broadcast::channel::<ServerMessage>(10);
+
+    // Forward global events to the client if they're the intended audience.
     let mut rx = state.tx.subscribe();
-    let mut send_task = tokio::spawn(async move {
+    let broadcasting_tx = session_tx.clone();
+    let mut broadcasting_task = tokio::spawn(async move {
         while let Ok(server_message) = rx.recv().await {
+            match &server_message {
+                ServerMessage::Notify(key, _) => {
+                    if our_key == *key {
+                        if broadcasting_tx.send(server_message).is_err() {
+                            warn!("broadcasting:tx:error");
+                            break;
+                        }
+                    }
+                }
+                ignoring => warn!("brodcasted:ignoring {:?}", ignoring),
+            };
+        }
+    });
+
+    // Send all outgoing traffic to the client, either from forwarded global
+    // events or replies to commands.
+    let mut session_rx = session_tx.subscribe();
+    let mut send_task = tokio::spawn(async move {
+        while let Ok(server_message) = session_rx.recv().await {
             // In any websocket error, break loop.
             if sender.send(Message::Item(server_message)).await.is_err() {
+                warn!("sending:tx:error");
                 break;
             }
         }
     });
 
-    // Pump messages from clients.
-    let tx = state.tx.clone();
     let name = session.name.clone();
     let user_state = state.clone();
-
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(Message::Item(message))) = receiver.next().await {
             match message {
@@ -204,9 +273,10 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
                         Box::new(SimpleReply::What)
                     };
 
-                    session.close().expect("Error closing session");
+                    session.close(app_state).expect("Error closing session");
 
-                    let _ = tx.send(ServerMessage::Reply(
+                    // Forward to send task.
+                    let _ = session_tx.send(ServerMessage::Reply(
                         reply.to_json().expect("Errror serializing reply JSON"),
                     ));
                 }
@@ -215,45 +285,22 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
         }
     });
 
-    // If any one of the tasks exit, abort the other.
+    // If any one of the tasks exit, abort the others.
     tokio::select! {
-        _ = (&mut send_task) => recv_task.abort(),
-        _ = (&mut recv_task) => send_task.abort(),
+        _ = (&mut broadcasting_task) => warn!("broadcasting-task:exited"),
+        _ = (&mut send_task) => {
+            info!("send-task:exited");
+            recv_task.abort()
+        },
+        _ = (&mut recv_task) => {
+            info!("recv-task:exited");
+            send_task.abort();
+        },
     };
 
-    // TODO Send user left message.
+    // TODO Send user left message, once we can determine the criteria. I'm
+    // thinking we need to have a cool down period just in case they reload the
+    // tab or something.
+
     state.remove_session(&session);
-}
-struct ClientSession {
-    name: String,
-}
-
-struct AppState {
-    domain: Domain,
-    sessions: Mutex<HashSet<String>>,
-    tx: broadcast::Sender<ServerMessage>,
-}
-
-impl AppState {
-    pub fn try_start_session(&self, name: &str) -> Result<ClientSession> {
-        if name.is_empty() {
-            return Err(anyhow!("name cannot be blank"));
-        }
-
-        let mut sessions = self.sessions.lock().unwrap();
-
-        if sessions.contains(name) {
-            return Err(anyhow!("name already taken"));
-        }
-
-        sessions.insert(name.to_owned());
-
-        Ok(ClientSession {
-            name: name.to_string(),
-        })
-    }
-
-    fn remove_session(&self, session: &ClientSession) {
-        self.sessions.lock().unwrap().remove(&session.name);
-    }
 }

@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use super::Session;
+use super::{DevNullNotifier, Session};
 use crate::{
     kernel::{ActionArgs, EntityKey, EntityPtr, Infrastructure, WORLD_KEY},
     plugins::{moving::model::Exit, tools},
@@ -155,7 +155,7 @@ impl BuildActionArgs {
     }
 
     pub fn close(&mut self) -> Result<&mut Self> {
-        self.session.close()?;
+        self.session.close(&DevNullNotifier::new())?;
         Ok(self)
     }
 }

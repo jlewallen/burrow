@@ -80,6 +80,13 @@ impl Component for AlwaysOpenWebSocket {
 
                         true
                     }
+                    WebSocketMessage::Notify(value) => {
+                        let dispatch = Dispatch::<SessionHistory>::new();
+
+                        dispatch.reduce(move |history| Rc::new(history.append(value)));
+
+                        true
+                    }
                     _ => false,
                 }
             }

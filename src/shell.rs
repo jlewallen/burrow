@@ -1,4 +1,4 @@
-use crate::domain;
+use crate::domain::{self, DevNullNotifier};
 use crate::kernel::{Reply, SimpleReply};
 use crate::storage;
 use crate::text::Renderer;
@@ -40,7 +40,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
 
                 let rendered = renderer.render(reply)?;
 
-                session.close()?;
+                session.close(&DevNullNotifier::new())?;
 
                 println!("{}", rendered);
             }

@@ -17,18 +17,29 @@ pub mod model {
         Arrived { living: EntityPtr, area: EntityPtr },
     }
 
-    impl<T> Observe<T> for MovingEvent {
-        fn observe(&self, _user: &EntityPtr) -> Result<T> {
-            todo!()
-        }
-    }
-
     impl DomainEvent for MovingEvent {
         fn audience(&self) -> Audience {
             match self {
                 Self::Left { living: _, area } => Audience::Area(area.clone()),
                 Self::Arrived { living: _, area } => Audience::Area(area.clone()),
             }
+        }
+
+        fn observe(&self, user: &EntityPtr) -> Result<Box<dyn Observed>> {
+            Ok(match self {
+                Self::Left {
+                    living,
+                    area: _area,
+                } => Box::new(SimpleObservation::new(
+                    json!({ "left": { "living": living.observe(user)?}}),
+                )),
+                Self::Arrived {
+                    living,
+                    area: _area,
+                } => Box::new(SimpleObservation::new(
+                    json!({ "arrived": { "living": living.observe(user)?}}),
+                )),
+            })
         }
     }
 

@@ -5,6 +5,8 @@ use std::path::PathBuf;
 use tracing::*;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+use crate::domain::DevNullNotifier;
+
 pub mod domain;
 pub mod kernel;
 pub mod plugins;
@@ -85,7 +87,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                 }
 
-                session.close()?
+                session.close(&DevNullNotifier::new())?
             }
 
             {
@@ -99,7 +101,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                 }
 
-                session.close()?
+                session.close(&DevNullNotifier::new())?
             }
 
             Ok(())
