@@ -54,6 +54,12 @@ impl Display for EntityKey {
     }
 }
 
+impl From<EntityKey> for String {
+    fn from(key: EntityKey) -> Self {
+        key.to_string()
+    }
+}
+
 #[derive(Clone, Eq, PartialEq, Hash, Serialize, Deserialize, Debug)]
 pub struct EntityGID(u64);
 

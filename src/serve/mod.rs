@@ -84,7 +84,7 @@ impl Notifier for AppState {
         debug!("notify {:?} -> {:?}", audience, observed);
 
         let serialized = observed.to_json()?;
-        let outgoing = ServerMessage::Notify(audience.to_string(), serialized);
+        let outgoing = ServerMessage::Notify(audience.into(), serialized);
         self.tx.send(outgoing)?;
 
         Ok(())
