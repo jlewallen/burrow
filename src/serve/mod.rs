@@ -32,7 +32,7 @@ pub struct Command {}
 #[serde(rename_all = "camelCase")]
 enum ServerMessage {
     Error(String),
-    Welcome {},
+    Welcome { self_key: String },
     Reply(serde_json::Value),
     Notify(String, serde_json::Value),
 }
@@ -198,7 +198,15 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
         }
     }
 
-    if session.is_none() {
+    if let Some(session) = &session {
+        info!("welcome");
+
+        let _ = sender
+            .send(Message::Item(ServerMessage::Welcome {
+                self_key: session.key.to_string(),
+            }))
+            .await;
+    } else {
         info!("bad credentials");
 
         let _ = sender
@@ -208,10 +216,6 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
             .await;
 
         return;
-    } else {
-        info!("welcome");
-
-        let _ = sender.send(Message::Item(ServerMessage::Welcome {})).await;
     }
 
     // Consider handing off to another method here.

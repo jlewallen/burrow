@@ -22,6 +22,7 @@ pub enum Msg {
 }
 
 pub struct AlwaysOpenWebSocket {
+    self_key: Option<String>,
     wss: WebSocketService,
     evaluator: Evaluator,
 }
@@ -40,6 +41,7 @@ impl Component for AlwaysOpenWebSocket {
 
         Self {
             wss,
+            self_key: None,
             evaluator: Evaluator {
                 callback: evaluate_callback,
             },
@@ -63,7 +65,8 @@ impl Component for AlwaysOpenWebSocket {
             }
             Self::Message::Received(ReceivedMessage::Item(value)) => {
                 match serde_json::from_str::<WebSocketMessage>(&value).unwrap() {
-                    WebSocketMessage::Welcome {} => {
+                    WebSocketMessage::Welcome { self_key } => {
+                        self.self_key = Some(self_key);
                         self.wss
                             .try_send(
                                 serde_json::to_string(&WebSocketMessage::Evaluate("look".into()))

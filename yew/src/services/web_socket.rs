@@ -19,7 +19,7 @@ use yew::Callback;
 #[serde(rename_all = "camelCase")]
 pub enum WebSocketMessage {
     Login { username: String, password: String },
-    Welcome {},
+    Welcome { self_key: String },
     Evaluate(String),
     Reply(serde_json::Value),
     Notify((String, serde_json::Value)),
