@@ -1,5 +1,5 @@
 // use gloo_console as console;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::rc::Rc;
 use yew::prelude::*;
 use yewdux::prelude::*;
@@ -125,9 +125,66 @@ fn inside_observation(reply: &InsideObservation) -> Html {
     }
 }
 
+#[derive(Debug, Deserialize)]
+struct ItemHeld {
+    living: ObservedEntity,
+    item: ObservedEntity,
+}
+
+#[derive(Debug, Deserialize)]
+struct ItemDropped {
+    living: ObservedEntity,
+    item: ObservedEntity,
+}
+
+#[derive(Debug, Deserialize)]
+struct LivingLeft {
+    living: ObservedEntity,
+}
+
+#[derive(Debug, Deserialize)]
+struct LivingArrived {
+    living: ObservedEntity,
+}
+
+#[derive(Debug, Deserialize)]
+struct KnownSimpleObservations {
+    left: Option<LivingLeft>,
+    arrived: Option<LivingArrived>,
+    held: Option<ItemHeld>,
+    dropped: Option<ItemDropped>,
+}
+
 fn simple_observation(reply: &SimpleObservation) -> Html {
-    html! {
-        <div class="entry">{ format!("{:?}", reply) }</div>
+    // I'm going to love cleaning this up later.
+    if let Ok(reply) = serde_json::from_value::<KnownSimpleObservations>(reply.into()) {
+        if let Some(reply) = reply.left {
+            html! {
+                <div class="entry observation simple living-left">{ reply.living.name }{ " left." }</div>
+            }
+        } else if let Some(reply) = reply.arrived {
+            html! {
+                <div class="entry observation simple living-arrived">{ reply.living.name } { " arrived." }</div>
+            }
+        } else if let Some(reply) = reply.held {
+            log::trace!("TODO compare reply living to self for 'YOU'");
+            html! {
+                <div class="entry observation simple item-held">{ reply.living.name }{ " held " }{ reply.item.name }</div>
+            }
+        } else if let Some(reply) = reply.dropped {
+            log::trace!("TODO compare reply living to self for 'YOU'");
+            html! {
+                <div class="entry observation simple item-dropped">{ reply.living.name }{ " dropped " }{ reply.item.name }</div>
+            }
+        } else {
+            html! {
+                <div class="entry observation simple unknown">{ format!("{:?}", reply) }</div>
+            }
+        }
+    } else {
+        html! {
+            <div class="entry observation simple unknown">{ format!("{:?}", reply) }</div>
+        }
     }
 }
 

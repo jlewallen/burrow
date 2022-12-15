@@ -49,19 +49,19 @@ pub mod model {
         fn observe(&self, user: &EntityPtr) -> Result<Box<dyn Observed>> {
             Ok(match self {
                 CarryingEvent::ItemHeld {
-                    living: _living,
+                    living,
                     item,
                     area: _area,
-                } => Box::new(SimpleObservation::new(
-                    json!({ "held": { "item": item.observe(user)?}}),
-                )),
+                } => Box::new(SimpleObservation::new(json!({ "held": {
+                        "living": living.observe(user)?,
+                         "item": item.observe(user)?}}))),
                 CarryingEvent::ItemDropped {
-                    living: _living,
+                    living,
                     item,
                     area: _area,
-                } => Box::new(SimpleObservation::new(
-                    json!({ "dropped": { "item": item.observe(user)?}}),
-                )),
+                } => Box::new(SimpleObservation::new(json!({ "dropped": {
+                        "living": living.observe(user)?,
+                         "item": item.observe(user)?}}))),
             })
         }
     }

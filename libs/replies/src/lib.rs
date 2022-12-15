@@ -71,8 +71,8 @@ impl ToJson for InsideObservation {
 pub enum KnownReply {
     AreaObservation(AreaObservation),
     InsideObservation(InsideObservation),
-    SimpleObservation(SimpleObservation),
     SimpleReply(SimpleReply),
+    SimpleObservation(SimpleObservation),
 }
 
 pub trait Observed: ToJson {}
@@ -89,6 +89,18 @@ pub struct SimpleObservation(serde_json::Value);
 impl SimpleObservation {
     pub fn new(value: serde_json::Value) -> Self {
         Self(value)
+    }
+}
+
+impl From<&SimpleObservation> for serde_json::Value {
+    fn from(o: &SimpleObservation) -> Self {
+        o.0.clone()
+    }
+}
+
+impl Into<serde_json::Value> for SimpleObservation {
+    fn into(self) -> serde_json::Value {
+        self.0
     }
 }
 
