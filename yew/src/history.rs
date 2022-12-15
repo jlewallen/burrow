@@ -106,7 +106,7 @@ fn area_observation(reply: &AreaObservation) -> Html {
     };
 
     html! {
-        <div class="entry">
+        <div class="entry observation area">
             <h3>{ name }</h3>
             { desc }
             { routes }
@@ -119,7 +119,7 @@ fn area_observation(reply: &AreaObservation) -> Html {
 
 fn inside_observation(reply: &InsideObservation) -> Html {
     html! {
-        <div class="living">
+        <div class="living observation inside">
             { "Inside is "}{ simple_entities_list(&reply.items) }{ "." }
         </div>
     }
@@ -133,7 +133,7 @@ fn simple_observation(reply: &SimpleObservation) -> Html {
 
 fn simple_reply(reply: &SimpleReply) -> Html {
     html! {
-        <div class="entry">{ format!("{:?}", reply) }</div>
+        <div class="entry simple">{ format!("{:?}", reply) }</div>
     }
 }
 
@@ -168,7 +168,7 @@ impl Component for HistoryEntryItem {
             }
         } else {
             html! {
-                <div class="entry">
+                <div class="entry unknown">
                     { ctx.props().entry.value.to_string() }
                 </div>
             }
