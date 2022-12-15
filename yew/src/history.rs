@@ -4,6 +4,7 @@ use std::rc::Rc;
 use yew::prelude::*;
 use yewdux::prelude::*;
 
+use crate::open_web_socket::Myself;
 use replies::*;
 
 #[derive(Debug, Serialize, Clone, Eq, PartialEq)]
@@ -158,6 +159,10 @@ struct KnownSimpleObservations {
 fn simple_observation(reply: &SimpleObservation) -> Html {
     // I'm going to love cleaning this up later.
     if let Ok(reply) = serde_json::from_value::<KnownSimpleObservations>(reply.into()) {
+        let myself = use_context::<Myself>();
+
+        // if let Some(myself) = myself {
+        // if let Some(self_key) = myself.key {
         if let Some(reply) = reply.left {
             html! {
                 <div class="entry observation simple living-left">{ reply.living.name }{ " left." }</div>
@@ -167,23 +172,35 @@ fn simple_observation(reply: &SimpleObservation) -> Html {
                 <div class="entry observation simple living-arrived">{ reply.living.name } { " arrived." }</div>
             }
         } else if let Some(reply) = reply.held {
-            log::trace!("TODO compare reply living to self for 'YOU'");
             html! {
                 <div class="entry observation simple item-held">{ reply.living.name }{ " held " }{ reply.item.name }</div>
             }
         } else if let Some(reply) = reply.dropped {
-            log::trace!("TODO compare reply living to self for 'YOU'");
             html! {
                 <div class="entry observation simple item-dropped">{ reply.living.name }{ " dropped " }{ reply.item.name }</div>
             }
         } else {
             html! {
-                <div class="entry observation simple unknown">{ format!("{:?}", reply) }</div>
+                <div class="entry observation simple missing">{ "Missing: " }{ format!("{:?}", reply) }</div>
             }
         }
+        /*
+        } else {
+            html! {
+                <div class="entry observation simple no-self">{ "NoSelf: " }{ format!("{:?}", reply) }</div>
+            }
+        }
+        */
+        /*
+        } else {
+            html! {
+                <div class="entry observation simple unknown">{ "Unknown: " }{ format!("{:?}", reply) }</div>
+            }
+        }
+        */
     } else {
         html! {
-            <div class="entry observation simple unknown">{ format!("{:?}", reply) }</div>
+            <div class="entry observation simple unknown">{ "Unknown: " }{ format!("{:?}", reply) }</div>
         }
     }
 }

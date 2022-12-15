@@ -11,6 +11,21 @@ pub struct Evaluator {
     pub callback: Callback<String>,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct Myself {
+    pub key: Option<String>,
+}
+
+impl Reducible for Myself {
+    type Action = String;
+
+    fn reduce(self: Rc<Self>, action: Self::Action) -> Rc<Self> {
+        Myself { key: Some(action) }.into()
+    }
+}
+
+pub type MyselfContext = UseReducerHandle<Myself>;
+
 #[derive(Properties, Clone, PartialEq)]
 pub struct Props {
     pub children: Children,
@@ -22,9 +37,9 @@ pub enum Msg {
 }
 
 pub struct AlwaysOpenWebSocket {
-    self_key: Option<String>,
     wss: WebSocketService,
     evaluator: Evaluator,
+    myself: Myself,
 }
 
 impl Component for AlwaysOpenWebSocket {
@@ -41,7 +56,7 @@ impl Component for AlwaysOpenWebSocket {
 
         Self {
             wss,
-            self_key: None,
+            myself: Myself { key: None },
             evaluator: Evaluator {
                 callback: evaluate_callback,
             },
@@ -66,7 +81,9 @@ impl Component for AlwaysOpenWebSocket {
             Self::Message::Received(ReceivedMessage::Item(value)) => {
                 match serde_json::from_str::<WebSocketMessage>(&value).unwrap() {
                     WebSocketMessage::Welcome { self_key } => {
-                        self.self_key = Some(self_key);
+                        self.myself = Myself {
+                            key: Some(self_key),
+                        };
                         self.wss
                             .try_send(
                                 serde_json::to_string(&WebSocketMessage::Evaluate("look".into()))
@@ -108,7 +125,9 @@ impl Component for AlwaysOpenWebSocket {
     fn view(&self, ctx: &Context<Self>) -> Html {
         html! {
             <ContextProvider<Evaluator> context={self.evaluator.clone()}>
-                { for ctx.props().children.iter() }
+                <ContextProvider<MyselfContext> context={self.myself.clone()}>
+                    { for ctx.props().children.iter() }
+                </ContextProvider<MyselfContext>>
             </ContextProvider<Evaluator>>
         }
     }
