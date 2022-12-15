@@ -24,8 +24,6 @@ impl Reducible for Myself {
     }
 }
 
-pub type MyselfContext = UseReducerHandle<Myself>;
-
 #[derive(Properties, Clone, PartialEq)]
 pub struct Props {
     pub children: Children,
@@ -125,9 +123,9 @@ impl Component for AlwaysOpenWebSocket {
     fn view(&self, ctx: &Context<Self>) -> Html {
         html! {
             <ContextProvider<Evaluator> context={self.evaluator.clone()}>
-                <ContextProvider<MyselfContext> context={self.myself.clone()}>
+                <ContextProvider<Myself> context={self.myself.clone()}>
                     { for ctx.props().children.iter() }
-                </ContextProvider<MyselfContext>>
+                </ContextProvider<Myself>>
             </ContextProvider<Evaluator>>
         }
     }

@@ -159,7 +159,7 @@ struct KnownSimpleObservations {
 fn simple_observation(reply: &SimpleObservation) -> Html {
     // I'm going to love cleaning this up later.
     if let Ok(reply) = serde_json::from_value::<KnownSimpleObservations>(reply.into()) {
-        let myself = use_context::<Myself>();
+        // log::debug!("myself {:?}", myself.borrow());
 
         // if let Some(myself) = myself {
         // if let Some(self_key) = myself.key {
@@ -219,7 +219,7 @@ struct Props {
 struct HistoryEntryItem {}
 
 impl Component for HistoryEntryItem {
-    type Message = ();
+    type Message = Msg;
     type Properties = Props;
 
     fn create(_ctx: &Context<Self>) -> Self {
@@ -232,6 +232,16 @@ impl Component for HistoryEntryItem {
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         let value = &ctx.props().entry.value;
+
+        let (myself, _) = ctx
+            .link()
+            .context::<Myself>(ctx.link().callback(|p| {
+                log::debug!("myself:callback: {:?}", p);
+                Msg::Ignored
+            }))
+            .expect("No myself context");
+
+        log::debug!("myself: {:?}", myself);
 
         if let Ok(reply) = serde_json::from_value::<KnownReply>(value.clone()) {
             match reply {
@@ -251,6 +261,7 @@ impl Component for HistoryEntryItem {
 }
 
 pub enum Msg {
+    Ignored,
     UpdateHistory(std::rc::Rc<SessionHistory>),
 }
 
@@ -281,6 +292,7 @@ impl Component for History {
 
                 true
             }
+            _ => false,
         }
     }
 
