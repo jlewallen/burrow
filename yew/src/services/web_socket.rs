@@ -22,7 +22,7 @@ pub enum WebSocketMessage {
     Welcome {},
     Evaluate(String),
     Reply(serde_json::Value),
-    Notify(serde_json::Value),
+    Notify((String, serde_json::Value)),
 }
 
 #[derive(Debug)]
