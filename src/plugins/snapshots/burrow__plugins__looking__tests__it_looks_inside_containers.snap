@@ -8,13 +8,15 @@ expression: reply.to_json()?
       {
         "desc": null,
         "key": "E-1",
-        "name": "Key"
+        "name": "Key",
+        "qualified": "a Key"
       }
     ],
     "vessel": {
       "desc": null,
       "key": "E-0",
-      "name": "Vessel"
+      "name": "Vessel",
+      "qualified": "a Vessel"
     }
   }
 }

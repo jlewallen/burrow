@@ -15,6 +15,11 @@ pub mod model {
         plugins::moving::model::{Movement, Occupyable},
     };
 
+    pub fn qualify_name(_quantity: f32, name: &str) -> String {
+        use indefinite::*;
+        indefinite(name)
+    }
+
     pub trait Observe<T> {
         fn observe(&self, user: &EntityPtr) -> Result<T>;
     }
@@ -22,9 +27,13 @@ pub mod model {
     impl Observe<ObservedEntity> for &EntityPtr {
         fn observe(&self, _user: &EntityPtr) -> Result<ObservedEntity> {
             let e = self.borrow();
+            let name = e.name();
+            let qualified = name.as_ref().map(|n| qualify_name(1.0, &n));
+
             Ok(ObservedEntity {
                 key: e.key.to_string(),
-                name: e.name(),
+                name: name,
+                qualified: qualified,
                 desc: e.desc(),
             })
         }
@@ -171,6 +180,7 @@ pub mod parser {
 
 #[cfg(test)]
 mod tests {
+    use super::model::*;
     use super::parser::LookActionParser;
     use super::*;
     use crate::{
@@ -292,5 +302,15 @@ mod tests {
         build.close()?;
 
         Ok(())
+    }
+
+    #[test]
+    fn qualify_name_basics() {
+        // Not going to test all of indefinite's behavior here, just build edge
+        // cases in our integrating logic.
+        assert_eq!(qualify_name(1.0, "box"), "a box");
+        assert_eq!(qualify_name(1.0, "person"), "a person");
+        assert_eq!(qualify_name(1.0, "orange"), "an orange");
+        assert_eq!(qualify_name(1.0, "East Exit"), "an East Exit");
     }
 }

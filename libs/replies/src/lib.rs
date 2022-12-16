@@ -29,6 +29,7 @@ impl Reply for SimpleReply {}
 pub struct ObservedEntity {
     pub key: String,
     pub name: Option<String>,
+    pub qualified: Option<String>,
     pub desc: Option<String>,
 }
 
