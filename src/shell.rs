@@ -1,5 +1,5 @@
-use crate::domain::{self, DevNullNotifier};
-use crate::kernel::{Reply, SimpleReply};
+use crate::domain::{self, DevNullNotifier, Domain, Notifier};
+use crate::kernel::{EntityKey, Reply, SimpleReply};
 use crate::storage;
 use crate::text::Renderer;
 use anyhow::Result;
@@ -13,11 +13,44 @@ pub struct Command {
     username: String,
 }
 
+struct StandardOutNotifier {
+    key: EntityKey,
+}
+
+impl StandardOutNotifier {
+    fn new(key: &EntityKey) -> Self {
+        Self { key: key.clone() }
+    }
+}
+
+impl Notifier for StandardOutNotifier {
+    fn notify(&self, audience: EntityKey, observed: Box<dyn replies::Observed>) -> Result<()> {
+        if audience == self.key {
+            let serialized = observed.to_json()?;
+            println!("{:?}", serialized);
+        }
+
+        Ok(())
+    }
+}
+
+fn find_user_key(domain: &Domain, name: &str) -> Result<Option<EntityKey>> {
+    let session = domain.open_session().expect("Error opening session");
+
+    let maybe_key = session.find_name_key(name)?;
+
+    session.close(&DevNullNotifier::new())?;
+
+    Ok(maybe_key)
+}
+
 #[tokio::main]
 pub async fn execute_command(cmd: &Command) -> Result<()> {
     let renderer = Renderer::new()?;
     let storage_factory = storage::sqlite::Factory::new("world.sqlite3")?;
     let domain = domain::Domain::new(storage_factory, false);
+
+    let self_key = find_user_key(&domain, &cmd.username)?.expect("No such username");
 
     let mut rl = Editor::<()>::new()?;
     if rl.load_history("history.txt").is_err() {
@@ -40,7 +73,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
 
                 let rendered = renderer.render(reply)?;
 
-                session.close(&DevNullNotifier::new())?;
+                session.close(&StandardOutNotifier::new(&self_key))?;
 
                 println!("{}", rendered);
             }
