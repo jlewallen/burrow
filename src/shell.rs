@@ -6,11 +6,47 @@ use anyhow::Result;
 use clap::Args;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 #[derive(Debug, Args)]
 pub struct Command {
     #[arg(short, long, default_value = "jlewallen")]
     username: String,
+}
+
+pub struct QueuedNotifier {
+    queue: RefCell<Vec<(EntityKey, Rc<dyn replies::Observed>)>>,
+}
+
+impl QueuedNotifier {
+    pub fn new() -> Self {
+        Self {
+            queue: RefCell::new(Vec::new()),
+        }
+    }
+
+    pub fn forward(&self, receiver: &impl Notifier) -> Result<()> {
+        let mut queue = self.queue.borrow_mut();
+
+        for (audience, observed) in queue.iter() {
+            receiver.notify(audience, observed)?;
+        }
+
+        queue.clear();
+
+        Ok(())
+    }
+}
+
+impl Notifier for QueuedNotifier {
+    fn notify(&self, audience: &EntityKey, observed: &Rc<dyn replies::Observed>) -> Result<()> {
+        self.queue
+            .borrow_mut()
+            .push((audience.clone(), observed.clone()));
+
+        Ok(())
+    }
 }
 
 struct StandardOutNotifier {
@@ -24,8 +60,8 @@ impl StandardOutNotifier {
 }
 
 impl Notifier for StandardOutNotifier {
-    fn notify(&self, audience: EntityKey, observed: Box<dyn replies::Observed>) -> Result<()> {
-        if audience == self.key {
+    fn notify(&self, audience: &EntityKey, observed: &Rc<dyn replies::Observed>) -> Result<()> {
+        if *audience == self.key {
             let serialized = observed.to_json()?;
             println!("{:?}", serialized);
         }
@@ -73,9 +109,14 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
 
                 let rendered = renderer.render(reply)?;
 
-                session.close(&StandardOutNotifier::new(&self_key))?;
+                let notifier = QueuedNotifier::new();
+
+                session.close(&notifier)?;
 
                 println!("{}", rendered);
+                println!();
+
+                notifier.forward(&StandardOutNotifier::new(&self_key))?;
             }
             Err(ReadlineError::Interrupted) => {
                 println!("ctrl-c");

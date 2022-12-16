@@ -10,7 +10,7 @@ use axum_typed_websockets::{Message, WebSocket, WebSocketUpgrade};
 use clap::Args;
 use futures::{sink::SinkExt, stream::StreamExt};
 use serde::{Deserialize, Serialize};
-use std::{borrow::Borrow, net::SocketAddr, path::PathBuf, sync::Arc};
+use std::{borrow::Borrow, net::SocketAddr, path::PathBuf, rc::Rc, sync::Arc};
 use tokio::signal;
 use tokio::sync::broadcast;
 use tower_http::{
@@ -76,15 +76,11 @@ impl AppState {
 }
 
 impl Notifier for AppState {
-    fn notify(
-        &self,
-        audience: crate::kernel::EntityKey,
-        observed: Box<dyn replies::Observed>,
-    ) -> Result<()> {
+    fn notify(&self, audience: &EntityKey, observed: &Rc<dyn replies::Observed>) -> Result<()> {
         debug!("notify {:?} -> {:?}", audience, observed);
 
         let serialized = observed.to_json()?;
-        let outgoing = ServerMessage::Notify(audience.into(), serialized);
+        let outgoing = ServerMessage::Notify(audience.to_string(), serialized);
         self.tx.send(outgoing)?;
 
         Ok(())

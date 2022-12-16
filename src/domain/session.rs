@@ -171,7 +171,7 @@ struct ModifiedEntity {
 }
 
 pub trait Notifier {
-    fn notify(&self, audience: EntityKey, observed: Box<dyn Observed>) -> Result<()>;
+    fn notify(&self, audience: &EntityKey, observed: &Rc<dyn Observed>) -> Result<()>;
 }
 
 pub struct DevNullNotifier {}
@@ -183,7 +183,7 @@ impl DevNullNotifier {
 }
 
 impl Notifier for DevNullNotifier {
-    fn notify(&self, _audience: EntityKey, _observed: Box<dyn Observed>) -> Result<()> {
+    fn notify(&self, _audience: &EntityKey, _observed: &Rc<dyn Observed>) -> Result<()> {
         Ok(())
     }
 }
@@ -306,7 +306,8 @@ impl Session {
                 let user = self.load_entity_by_key(&key)?.unwrap();
                 debug!(%key, "observing {:?}", user);
                 let observed = event.observe(&user)?;
-                notifier.notify(key, observed)?;
+                let rc: Rc<dyn Observed> = observed.into();
+                notifier.notify(&key, &rc)?;
             }
         }
 
