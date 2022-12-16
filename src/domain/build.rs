@@ -31,12 +31,18 @@ impl Build {
     }
 
     pub fn named(&self, name: &str) -> Result<&Self> {
-        {
-            let mut entity = self.entity.borrow_mut();
-            entity.set_name(name)?;
-        }
+        self.entity.mutate(|e| {
+            e.set_name(name)?;
+            Ok(())
+        })?;
 
         self.entity.modified()?;
+
+        Ok(self)
+    }
+
+    pub fn of_quantity(&self, quantity: f32) -> Result<&Self> {
+        tools::set_quantity(&self.entity, quantity)?;
 
         Ok(self)
     }
@@ -79,6 +85,7 @@ pub struct BuildActionArgs {
 
 pub enum QuickThing {
     Object(&'static str),
+    Multiple(&'static str, f32),
     Place(&'static str),
     Route(&'static str, Box<QuickThing>),
     Actual(EntityPtr),
@@ -88,6 +95,10 @@ impl QuickThing {
     pub fn make(&self, session: &Session) -> Result<EntityPtr> {
         match self {
             QuickThing::Object(name) => Ok(Build::new(session)?.named(name)?.into_entity()?),
+            QuickThing::Multiple(name, quantity) => Ok(Build::new(session)?
+                .named(name)?
+                .of_quantity(*quantity)?
+                .into_entity()?),
             QuickThing::Place(name) => Ok(Build::new(session)?.named(name)?.into_entity()?),
             QuickThing::Route(name, area) => {
                 let area = area.make(session)?;

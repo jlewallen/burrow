@@ -12,7 +12,7 @@ impl ParsesActions for CarryingPlugin {
 }
 
 pub mod model {
-    use crate::plugins::{library::model::*, looking::model::Observe};
+    use crate::plugins::{library::model::*, looking::model::Observe, tools};
 
     pub type CarryingResult = Result<DomainOutcome>;
 
@@ -137,7 +137,63 @@ pub mod model {
     }
 
     #[derive(Debug, Serialize, Deserialize, Default)]
-    struct Carryable {}
+    pub struct Carryable {
+        kind: Kind,
+        quantity: f32,
+    }
+
+    impl Carryable {
+        pub fn set_kind(&mut self, kind: &Kind) {
+            self.kind = kind.clone();
+        }
+
+        pub fn set_quantity(&mut self, q: f32) -> Result<&mut Self> {
+            self.quantity = q;
+
+            Ok(self)
+        }
+
+        pub fn increase_quantity(&mut self, q: f32) -> Result<&mut Self> {
+            self.quantity += q;
+
+            Ok(self)
+        }
+
+        pub fn decrease_quantity(&mut self, q: f32) -> Result<&mut Self, DomainError> {
+            if q < 1.0 {
+                return Err(DomainError::Impossible);
+            }
+
+            if q > self.quantity {
+                return Err(DomainError::Impossible);
+            }
+
+            self.quantity -= q;
+
+            Ok(self)
+        }
+
+        // TODO This self_entity parameter is going to drive me crazy.
+        pub fn separate(&mut self, self_entity: &EntityPtr, q: f32) -> Result<EntityPtr> {
+            self.decrease_quantity(q)?;
+
+            let separated = tools::new_entity_from(self_entity)?;
+
+            separated.mutate(|creating| {
+                let mut carryable = creating.scope_mut::<Self>()?;
+
+                // TODO Would be nice if we could pass this in and avoid
+                // creating one unnecessarily. See comments in
+                // EntityPtr::new_from
+                carryable.set_kind(&self.kind);
+                carryable.increase_quantity(q)?;
+
+                Ok(())
+            })?;
+
+            Ok(separated)
+        }
+    }
 
     impl Scope for Carryable {
         fn serialize(&self) -> Result<serde_json::Value> {
@@ -389,6 +445,7 @@ pub mod parser {
 mod tests {
     use super::parser::*;
     use super::*;
+    use crate::plugins::tools;
     use crate::{
         domain::{BuildActionArgs, QuickThing},
         plugins::carrying::model::Containing,
@@ -399,6 +456,52 @@ mod tests {
         let mut build = BuildActionArgs::new()?;
         let args: ActionArgs = build
             .ground(vec![QuickThing::Object("Cool Rake")])
+            .try_into()?;
+
+        let action = try_parsing(HoldActionParser {}, "hold rake")?;
+        let reply = action.perform(args.clone())?;
+        let (_, person, area, _) = args.clone();
+
+        assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+
+        assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
+        assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 0);
+
+        build.close()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_separates_multiple_ground_items_when_held() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let args: ActionArgs = build
+            .ground(vec![QuickThing::Multiple("Cool Rake", 2.0)])
+            .try_into()?;
+
+        let action = try_parsing(HoldActionParser {}, "hold rake")?;
+        let reply = action.perform(args.clone())?;
+        let (_, person, area, _) = args.clone();
+
+        assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+
+        assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
+        assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 1);
+
+        build.close()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_combines_multiple_items_when_together_on_ground() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let same_kind = build.make(QuickThing::Object("Cool Rake"))?;
+        tools::set_quantity(&same_kind, 2.0)?;
+        let (first, second) = tools::separate(same_kind, 1.0)?;
+        let args: ActionArgs = build
+            .ground(vec![QuickThing::Actual(first.clone())])
+            .hands(vec![QuickThing::Actual(second.clone())])
             .try_into()?;
 
         let action = try_parsing(HoldActionParser {}, "hold rake")?;

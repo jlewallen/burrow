@@ -1,12 +1,13 @@
 use anyhow::Result;
 use tracing::info;
 
+use super::carrying::model::Carryable;
 use super::moving::model::Exit;
 use super::{
     carrying::model::{Containing, Location},
     moving::model::{Occupyable, Occupying},
 };
-use crate::kernel::model::*;
+use crate::kernel::{get_my_session, model::*};
 use crate::kernel::{DomainOutcome, EntityPtr};
 
 pub fn is_container(item: &EntityPtr) -> bool {
@@ -138,4 +139,34 @@ pub fn get_occupant_keys(area: &EntityPtr) -> Result<Vec<EntityKey>> {
         .iter()
         .map(|e| e.key.clone())
         .collect::<Vec<EntityKey>>())
+}
+
+pub fn new_entity() -> Result<EntityPtr> {
+    let entity = EntityPtr::new_blank();
+    get_my_session()?.add_entity(&entity)?;
+    Ok(entity)
+}
+
+pub fn new_entity_from(template: &EntityPtr) -> Result<EntityPtr> {
+    let entity = EntityPtr::new_from(template)?;
+    get_my_session()?.add_entity(&entity)?;
+    Ok(entity)
+}
+
+pub fn set_quantity(entity: &EntityPtr, quantity: f32) -> Result<&EntityPtr> {
+    entity.mutate(|e| {
+        let mut carryable = e.scope_mut::<Carryable>()?;
+        carryable.set_quantity(quantity)?;
+
+        Ok(())
+    })?;
+
+    Ok(entity)
+}
+
+pub fn separate(entity: EntityPtr, quantity: f32) -> Result<(EntityPtr, EntityPtr)> {
+    let separated =
+        entity.mutate(|e| Ok(e.scope_mut::<Carryable>()?.separate(&entity, quantity)?))?;
+
+    Ok((entity, separated))
 }

@@ -123,6 +123,32 @@ impl EntityPtr {
         }
     }
 
+    pub fn new_from(template: &Self) -> Result<Self> {
+        let brand_new = Self::new_blank();
+
+        brand_new.mutate(|e| {
+            let copying = template.borrow();
+
+            // TODO Customize clone to always remove GID_PROPERTY
+            e.props = copying.props.clone();
+            e.props.remove_property(GID_PROPERTY)?;
+            e.class = copying.class.clone();
+            e.acls = copying.acls.clone();
+            e.parent = copying.parent.clone();
+            e.creator = copying.creator.clone();
+
+            // TODO Allow scopes to hook into this process. For example
+            // elsewhere in this commit I've wondered about how to copy 'kind'
+            // into the new item in the situation for separate, so I'd start
+            // there. Ultimately I think it'd be nice if we could just pass a
+            // map of scopes in with their intended values.
+
+            Ok(())
+        })?;
+
+        Ok(brand_new)
+    }
+
     pub fn new_named(name: &str, desc: &str) -> Result<Self> {
         let brand_new = Self::new_blank();
 
@@ -259,7 +285,7 @@ pub struct Identity {
     signature: Option<String>, // TODO Why does this happen in the model?
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Kind {
     #[serde(rename = "py/object")]
     py_object: String,
@@ -388,6 +414,12 @@ impl Props {
     fn set_u64_property(&mut self, name: &str, value: u64) -> Result<()> {
         self.map
             .insert(name.to_owned(), Property::new(serde_json::to_value(value)?));
+
+        Ok(())
+    }
+
+    fn remove_property(&mut self, name: &str) -> Result<()> {
+        self.map.remove(name);
 
         Ok(())
     }
@@ -721,6 +753,8 @@ pub enum DomainError {
     ContainerRequired,
     #[error("Entity not found")]
     EntityNotFound,
+    #[error("Impossible")]
+    Impossible,
 }
 
 impl From<serde_json::Error> for DomainError {
