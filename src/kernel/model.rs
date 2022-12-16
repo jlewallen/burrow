@@ -113,40 +113,17 @@ pub struct EntityPtr {
 
 impl EntityPtr {
     pub fn new_blank() -> Self {
-        let session = get_my_session().expect("No session in new_blank_entity!");
-        let brand_new = Rc::new(RefCell::new(Entity::new_with_key(session.new_key())));
+        Self::new(Entity::new_blank())
+    }
+
+    pub fn new(e: Entity) -> Self {
+        let brand_new = Rc::new(RefCell::new(e));
         let lazy = LazyLoadedEntity::new_from_raw(&brand_new);
 
         Self {
             entity: brand_new,
             lazy: lazy.into(),
         }
-    }
-
-    pub fn new_from(template: &Self) -> Result<Self> {
-        let brand_new = Self::new_blank();
-
-        brand_new.mutate(|e| {
-            let copying = template.borrow();
-
-            // TODO Customize clone to always remove GID_PROPERTY
-            e.props = copying.props.clone();
-            e.props.remove_property(GID_PROPERTY)?;
-            e.class = copying.class.clone();
-            e.acls = copying.acls.clone();
-            e.parent = copying.parent.clone();
-            e.creator = copying.creator.clone();
-
-            // TODO Allow scopes to hook into this process. For example
-            // elsewhere in this commit I've wondered about how to copy 'kind'
-            // into the new item in the situation for separate, so I'd start
-            // there. Ultimately I think it'd be nice if we could just pass a
-            // map of scopes in with their intended values.
-
-            Ok(())
-        })?;
-
-        Ok(brand_new)
     }
 
     pub fn new_named(name: &str, desc: &str) -> Result<Self> {
@@ -233,11 +210,14 @@ impl From<Entity> for EntityPtr {
 impl Debug for EntityPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let lazy = self.lazy.borrow();
-        f.debug_struct("EntityPtr")
-            .field("key", &lazy.key)
-            .field("name", &lazy.name)
-            .field("gid", &lazy.gid)
-            .finish()
+        if let Some(gid) = &lazy.gid {
+            f.write_fmt(format_args!(
+                "Entity(#{}, `{}`, {})",
+                &gid, &lazy.name, &lazy.key
+            ))
+        } else {
+            f.write_fmt(format_args!("Entity(`{}`, {})", &lazy.name, &lazy.key))
+        }
     }
 }
 
@@ -276,7 +256,7 @@ pub struct EntityRef {
     name: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct Identity {
     #[serde(rename = "py/object")]
     py_object: String,
@@ -285,7 +265,7 @@ pub struct Identity {
     signature: Option<String>, // TODO Why does this happen in the model?
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct Kind {
     #[serde(rename = "py/object")]
     py_object: String,
@@ -482,6 +462,31 @@ impl Entity {
         }
     }
 
+    pub fn new_blank() -> Self {
+        let session = get_my_session().expect("No session in Entity::new_blank!");
+        Self::new_with_key(session.new_key())
+    }
+
+    pub fn new_from(template: &Self) -> Result<Self> {
+        let mut brand_new = Self::new_blank();
+
+        // TODO Allow scopes to hook into this process. For example
+        // elsewhere in this commit I've wondered about how to copy 'kind'
+        // into the new item in the situation for separate, so I'd start
+        // there. Ultimately I think it'd be nice if we could just pass a
+        // map of scopes in with their intended values.
+
+        // TODO Customize clone to always remove GID_PROPERTY
+        brand_new.props = template.props.clone();
+        brand_new.props.remove_property(GID_PROPERTY)?;
+        brand_new.class = template.class.clone();
+        brand_new.acls = template.acls.clone();
+        brand_new.parent = template.parent.clone();
+        brand_new.creator = template.creator.clone();
+
+        Ok(brand_new)
+    }
+
     pub fn set_key(&mut self, key: &EntityKey) -> Result<()> {
         self.key = key.clone();
 
@@ -527,9 +532,12 @@ impl Entity {
         self.scopes.contains_key(<T as Scope>::scope_key())
     }
 
-    pub fn scope_mut<T: Scope>(&mut self) -> Result<OpenScopeMut<T>, DomainError> {
+    pub fn maybe_scope<T: Scope>(&self) -> Result<Option<OpenScope<T>>, DomainError> {
+        if !self.has_scope::<T>() {
+            return Ok(None);
+        }
         let scope = self.load_scope::<T>()?;
-        Ok(OpenScopeMut::new(self, scope))
+        Ok(Some(OpenScope::new(scope)))
     }
 
     pub fn scope<T: Scope>(&self) -> Result<OpenScope<T>, DomainError> {
@@ -537,12 +545,9 @@ impl Entity {
         Ok(OpenScope::new(scope))
     }
 
-    pub fn maybe_scope<T: Scope>(&self) -> Result<Option<OpenScope<T>>, DomainError> {
-        if !self.has_scope::<T>() {
-            return Ok(None);
-        }
+    pub fn scope_mut<T: Scope>(&mut self) -> Result<OpenScopeMut<T>, DomainError> {
         let scope = self.load_scope::<T>()?;
-        Ok(Some(OpenScope::new(scope)))
+        Ok(OpenScopeMut::new(self, scope))
     }
 
     fn load_scope<T: Scope>(&self) -> Result<Box<T>, DomainError> {
