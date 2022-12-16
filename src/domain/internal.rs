@@ -267,7 +267,7 @@ impl DomainInfrastructure {
                 // https://github.com/ferrous-systems/elements-of-rust#tuple-structs-and-enum-tuple-variants-as-functions
                 for entity in &haystack.entities {
                     match entity {
-                        EntityRelationship::Holding(e) => {
+                        EntityRelationship::Contained(e) => {
                             if matches_description(&e.borrow(), name) {
                                 return Ok(Some(e.clone()));
                             }
@@ -277,7 +277,7 @@ impl DomainInfrastructure {
                                 return Ok(Some(e.clone()));
                             }
                         }
-                        EntityRelationship::Contained(e) => {
+                        EntityRelationship::Holding(e) => {
                             if matches_description(&e.borrow(), name) {
                                 return Ok(Some(e.clone()));
                             }
@@ -295,18 +295,13 @@ impl DomainInfrastructure {
 
                 for entity in &haystack.entities {
                     match entity {
-                        EntityRelationship::World(_) => {}
-                        EntityRelationship::User(_) => {}
-                        EntityRelationship::Area(_) => {}
-                        EntityRelationship::Holding(_) => {}
-                        EntityRelationship::Ground(_) => {}
-                        EntityRelationship::Contained(_) => {}
                         EntityRelationship::Exit(route_name, area) => {
                             if matches_string_description(route_name, name) {
                                 info!("found: {:?} -> {:?}", route_name, area);
                                 return Ok(Some(area.clone()));
                             }
                         }
+                        _ => {}
                     }
                 }
 
@@ -319,7 +314,6 @@ impl DomainInfrastructure {
                     Ok(None)
                 }
             }
-            // Item::Held(_) => todo!(),
             Item::Contained(contained) => {
                 let haystack = haystack.expand()?;
 
@@ -420,16 +414,17 @@ impl EntityRelationshipSet {
         Self {
             entities: vec![
                 EntityRelationship::World(world),
-                EntityRelationship::User(user),
                 EntityRelationship::Area(area),
+                EntityRelationship::User(user),
             ],
         }
     }
 
+    // It's important to notice that calling expand will recursively discover
+    // more and more candidates.
     fn expand(&self) -> Result<Self> {
         let mut expanded = self.entities.clone();
 
-        // https://github.com/ferrous-systems/elements-of-rust#tuple-structs-and-enum-tuple-variants-as-functions
         for entity in &self.entities {
             match entity {
                 EntityRelationship::User(user) => expanded.extend(
@@ -444,28 +439,25 @@ impl EntityRelationshipSet {
                         .map(EntityRelationship::Ground)
                         .collect::<Vec<_>>(),
                 ),
-                EntityRelationship::World(_world) => {}
                 EntityRelationship::Holding(holding) => expanded.extend(
                     tools::contained_by(holding)?
                         .into_iter()
                         .map(EntityRelationship::Contained)
                         .collect::<Vec<_>>(),
                 ),
-                EntityRelationship::Ground(_ground) => {}
-                EntityRelationship::Exit(_route_name, _area) => {}
-                EntityRelationship::Contained(_) => {}
+                _ => {}
             }
         }
 
         Ok(Self { entities: expanded })
     }
 
+    // Why not just do this in expand?
     pub fn routes(&self) -> Result<Self> {
         use crate::plugins::moving::model::Exit;
 
         let mut expanded = self.entities.clone();
 
-        // https://github.com/ferrous-systems/elements-of-rust#tuple-structs-and-enum-tuple-variants-as-functions
         for entity in &self.entities {
             if let EntityRelationship::Ground(ground) = entity {
                 let item = ground.borrow();
