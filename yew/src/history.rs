@@ -1,11 +1,10 @@
 // use gloo_console as console;
+use crate::open_web_socket::Myself;
+use replies::*;
 use serde::{Deserialize, Serialize};
 use std::rc::Rc;
 use yew::prelude::*;
 use yewdux::prelude::*;
-
-use crate::open_web_socket::Myself;
-use replies::*;
 
 #[derive(Debug, Serialize, Clone, Eq, PartialEq)]
 pub struct HistoryEntry {
@@ -156,48 +155,53 @@ struct KnownSimpleObservations {
     dropped: Option<ItemDropped>,
 }
 
-fn simple_observation(reply: &SimpleObservation) -> Html {
-    // I'm going to love cleaning this up later.
+fn simple_observation(reply: &SimpleObservation, myself: &Myself) -> Html {
+    // I'm going to love cleaning this up later. Considering a quick function
+    // for the "You" vs name work. We also need to introduce inflections of
+    // various kinds. I think this will become critical when we've got
+    // quantities working.
     if let Ok(reply) = serde_json::from_value::<KnownSimpleObservations>(reply.into()) {
-        // log::debug!("myself {:?}", myself.borrow());
-
-        // if let Some(myself) = myself {
-        // if let Some(self_key) = myself.key {
         if let Some(reply) = reply.left {
-            html! {
-                <div class="entry observation simple living-left">{ reply.living.name }{ " left." }</div>
+            if Some(reply.living.key) != myself.key {
+                html! {
+                    <div class="entry observation simple living-left">{ reply.living.name }{ " left." }</div>
+                }
+            } else {
+                html! { <div></div> }
             }
         } else if let Some(reply) = reply.arrived {
-            html! {
-                <div class="entry observation simple living-arrived">{ reply.living.name } { " arrived." }</div>
+            if Some(reply.living.key) != myself.key {
+                html! {
+                    <div class="entry observation simple living-arrived">{ reply.living.name } { " arrived." }</div>
+                }
+            } else {
+                html! { <div></div> }
             }
         } else if let Some(reply) = reply.held {
-            html! {
-                <div class="entry observation simple item-held">{ reply.living.name }{ " held " }{ reply.item.name }</div>
+            if Some(reply.living.key) == myself.key {
+                html! {
+                    <div class="entry observation simple item-held">{ "You picked up " }{ reply.item.name }</div>
+                }
+            } else {
+                html! {
+                    <div class="entry observation simple item-held">{ reply.living.name }{ " held " }{ reply.item.name }</div>
+                }
             }
         } else if let Some(reply) = reply.dropped {
-            html! {
-                <div class="entry observation simple item-dropped">{ reply.living.name }{ " dropped " }{ reply.item.name }</div>
+            if Some(reply.living.key) == myself.key {
+                html! {
+                    <div class="entry observation simple item-dropped">{ "You dropped " }{ reply.item.name }</div>
+                }
+            } else {
+                html! {
+                    <div class="entry observation simple item-dropped">{ reply.living.name }{ " dropped " }{ reply.item.name }</div>
+                }
             }
         } else {
             html! {
                 <div class="entry observation simple missing">{ "Missing: " }{ format!("{:?}", reply) }</div>
             }
         }
-        /*
-        } else {
-            html! {
-                <div class="entry observation simple no-self">{ "NoSelf: " }{ format!("{:?}", reply) }</div>
-            }
-        }
-        */
-        /*
-        } else {
-            html! {
-                <div class="entry observation simple unknown">{ "Unknown: " }{ format!("{:?}", reply) }</div>
-            }
-        }
-        */
     } else {
         html! {
             <div class="entry observation simple unknown">{ "Unknown: " }{ format!("{:?}", reply) }</div>
@@ -212,56 +216,33 @@ fn simple_reply(reply: &SimpleReply) -> Html {
 }
 
 #[derive(Properties, Clone, PartialEq)]
-struct Props {
+pub struct Props {
     pub entry: HistoryEntry,
 }
 
-struct HistoryEntryItem {}
+#[function_component]
+pub fn HistoryEntryItem(props: &Props) -> Html {
+    let myself = use_context::<Myself>().expect("No myself context");
+    log::debug!("myself: {:?}", myself);
 
-impl Component for HistoryEntryItem {
-    type Message = Msg;
-    type Properties = Props;
-
-    fn create(_ctx: &Context<Self>) -> Self {
-        Self {}
-    }
-
-    fn update(&mut self, _ctx: &Context<Self>, _msg: Self::Message) -> bool {
-        false
-    }
-
-    fn view(&self, ctx: &Context<Self>) -> Html {
-        let value = &ctx.props().entry.value;
-
-        let (myself, _) = ctx
-            .link()
-            .context::<Myself>(ctx.link().callback(|p| {
-                log::debug!("myself:callback: {:?}", p);
-                Msg::Ignored
-            }))
-            .expect("No myself context");
-
-        log::debug!("myself: {:?}", myself);
-
-        if let Ok(reply) = serde_json::from_value::<KnownReply>(value.clone()) {
-            match reply {
-                KnownReply::AreaObservation(reply) => area_observation(&reply),
-                KnownReply::InsideObservation(reply) => inside_observation(&reply),
-                KnownReply::SimpleObservation(reply) => simple_observation(&reply),
-                KnownReply::SimpleReply(reply) => simple_reply(&reply),
-            }
-        } else {
-            html! {
-                <div class="entry unknown">
-                    { ctx.props().entry.value.to_string() }
-                </div>
-            }
+    let value = &props.entry.value;
+    if let Ok(reply) = serde_json::from_value::<KnownReply>(value.clone()) {
+        match reply {
+            KnownReply::AreaObservation(reply) => area_observation(&reply),
+            KnownReply::InsideObservation(reply) => inside_observation(&reply),
+            KnownReply::SimpleObservation(reply) => simple_observation(&reply, &myself),
+            KnownReply::SimpleReply(reply) => simple_reply(&reply),
+        }
+    } else {
+        html! {
+            <div class="entry unknown">
+                { props.entry.value.to_string() }
+            </div>
         }
     }
 }
 
 pub enum Msg {
-    Ignored,
     UpdateHistory(std::rc::Rc<SessionHistory>),
 }
 
@@ -292,7 +273,6 @@ impl Component for History {
 
                 true
             }
-            _ => false,
         }
     }
 
