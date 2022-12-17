@@ -20,6 +20,10 @@ pub trait KeySequence: Send + Sync {
     fn new_key(&self) -> EntityKey;
 }
 
+pub trait IdentityFactory: Send + Sync {
+    fn new_identity(&self) -> Identity;
+}
+
 pub struct StandardPerformer {
     infra: RefCell<Option<Rc<dyn Infrastructure>>>,
     discoverying: bool,
@@ -200,7 +204,11 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new(storage: Rc<dyn EntityStorage>, keys: &Arc<dyn KeySequence>) -> Result<Self> {
+    pub fn new(
+        storage: Rc<dyn EntityStorage>,
+        keys: &Arc<dyn KeySequence>,
+        identities: &Arc<dyn IdentityFactory>,
+    ) -> Result<Self> {
         trace!("session-new");
 
         let opened = Instant::now();
@@ -214,6 +222,7 @@ impl Session {
             Rc::clone(&entity_map),
             Rc::clone(&performer),
             Arc::clone(keys),
+            Arc::clone(identities),
             Rc::clone(&raised),
         );
 
@@ -504,6 +513,10 @@ impl Infrastructure for Session {
         self.infra.new_key()
     }
 
+    fn new_identity(&self) -> Identity {
+        self.infra.new_identity()
+    }
+
     fn chain(&self, living: &EntityPtr, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
         self.infra.chain(living, action)
     }
@@ -528,6 +541,7 @@ impl SessionTrait for Session {}
 pub struct Domain {
     storage_factory: Box<dyn EntityStorageFactory>,
     keys: Arc<dyn KeySequence>,
+    identities: Arc<dyn IdentityFactory>,
 }
 
 impl Domain {
@@ -543,6 +557,13 @@ impl Domain {
             } else {
                 Arc::new(RandomKeys {})
             },
+            identities: if deterministic_keys {
+                Arc::new(DeterministicIdentities {
+                    sequence: AtomicU64::new(0),
+                })
+            } else {
+                Arc::new(RandomIdentities {})
+            },
         }
     }
 
@@ -551,7 +572,7 @@ impl Domain {
 
         let storage = self.storage_factory.create_storage()?;
 
-        Session::new(storage, &self.keys)
+        Session::new(storage, &self.keys, &self.identities)
     }
 }
 
@@ -577,5 +598,26 @@ struct RandomKeys {}
 impl KeySequence for RandomKeys {
     fn new_key(&self) -> EntityKey {
         EntityKey::default()
+    }
+}
+
+struct DeterministicIdentities {
+    sequence: AtomicU64,
+}
+
+impl IdentityFactory for DeterministicIdentities {
+    fn new_identity(&self) -> Identity {
+        let unique = self.sequence.fetch_add(1, Ordering::Relaxed);
+        let public = format!("Public#{}", unique);
+        let private = format!("Private#{}", unique);
+        Identity::new(public, private)
+    }
+}
+
+struct RandomIdentities {}
+
+impl IdentityFactory for RandomIdentities {
+    fn new_identity(&self) -> Identity {
+        Identity::default()
     }
 }

@@ -8,7 +8,7 @@ use crate::kernel::*;
 use crate::plugins::tools;
 use crate::storage::{EntityStorage, PersistedEntity};
 
-use super::KeySequence;
+use super::{IdentityFactory, KeySequence};
 
 pub struct LoadedEntity {
     pub key: EntityKey,
@@ -235,6 +235,7 @@ pub struct DomainInfrastructure {
     entities: Rc<Entities>,
     performer: Rc<dyn Performer>,
     keys: Arc<dyn KeySequence>,
+    identities: Arc<dyn IdentityFactory>,
     raised: Rc<RefCell<Vec<Box<dyn DomainEvent>>>>,
 }
 
@@ -244,6 +245,7 @@ impl DomainInfrastructure {
         entity_map: Rc<EntityMap>,
         performer: Rc<dyn Performer>,
         keys: Arc<dyn KeySequence>,
+        identities: Arc<dyn IdentityFactory>,
         raised: Rc<RefCell<Vec<Box<dyn DomainEvent>>>>,
     ) -> Rc<Self> {
         let entities = Entities::new(entity_map, storage);
@@ -251,6 +253,7 @@ impl DomainInfrastructure {
             entities,
             performer,
             keys,
+            identities,
             raised,
         })
     }
@@ -381,6 +384,10 @@ impl Infrastructure for DomainInfrastructure {
 
     fn new_key(&self) -> EntityKey {
         self.keys.new_key()
+    }
+
+    fn new_identity(&self) -> Identity {
+        self.identities.new_identity()
     }
 
     fn raise(&self, event: Box<dyn DomainEvent>) -> Result<()> {

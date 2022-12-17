@@ -265,11 +265,31 @@ pub struct Identity {
     signature: Option<String>, // TODO Why does this happen in the model?
 }
 
+impl Identity {
+    pub fn new(public: String, private: String) -> Self {
+        Self {
+            py_object: String::default(),
+            private,
+            public,
+            signature: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct Kind {
     #[serde(rename = "py/object")]
     py_object: String,
     identity: Identity,
+}
+
+impl Kind {
+    pub fn new(identity: Identity) -> Self {
+        Self {
+            identity: identity,
+            ..Self::default()
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

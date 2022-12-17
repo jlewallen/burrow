@@ -136,10 +136,20 @@ pub mod model {
         }
     }
 
-    #[derive(Debug, Serialize, Deserialize, Default)]
+    #[derive(Debug, Serialize, Deserialize)]
     pub struct Carryable {
         kind: Kind,
         quantity: f32,
+    }
+
+    impl Default for Carryable {
+        fn default() -> Self {
+            let session = get_my_session().expect("No session in Entity::new_blank!");
+            Self {
+                kind: Kind::new(session.new_identity()),
+                quantity: Default::default(),
+            }
+        }
     }
 
     fn is_kind(entity: &EntityPtr, kind: &Kind) -> Result<bool> {
