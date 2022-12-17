@@ -1,4 +1,5 @@
 use anyhow::Result;
+use std::rc::Weak;
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 use std::time::Instant;
@@ -201,6 +202,7 @@ pub struct Session {
     infra: Rc<DomainInfrastructure>,
     performer: Rc<StandardPerformer>,
     raised: Rc<RefCell<Vec<Box<dyn DomainEvent>>>>,
+    weak: Weak<Session>,
 }
 
 impl Session {
@@ -239,15 +241,20 @@ impl Session {
             }
         }
 
-        Ok(Rc::new(Self {
-            opened,
-            infra: domain_infra,
-            storage,
-            entity_map,
-            open: AtomicBool::new(true),
-            performer: standard_performer,
-            ids,
-            raised: raised,
+        Ok(Rc::new_cyclic(move |weak| {
+            // set_my_session(Some(weak)).expect("set_my_session failed!");
+
+            Self {
+                opened,
+                infra: domain_infra,
+                storage,
+                entity_map,
+                open: AtomicBool::new(true),
+                performer: standard_performer,
+                ids,
+                raised: raised,
+                weak: Weak::clone(weak),
+            }
         }))
     }
 
