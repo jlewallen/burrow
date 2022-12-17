@@ -552,6 +552,10 @@ impl Entity {
         self.scopes.contains_key(<T as Scope>::scope_key())
     }
 
+    pub fn scope_hack<T: Scope>(&self) -> Result<Box<T>> {
+        Ok(self.load_scope::<T>()?)
+    }
+
     pub fn maybe_scope<T: Scope>(&self) -> Result<Option<OpenScope<T>>, DomainError> {
         if !self.has_scope::<T>() {
             return Ok(None);
@@ -603,7 +607,7 @@ impl Entity {
         Ok(scope)
     }
 
-    fn replace_scope<T: Scope>(&mut self, scope: &T) -> Result<()> {
+    pub fn replace_scope<T: Scope>(&mut self, scope: &T) -> Result<()> {
         let scope_key = <T as Scope>::scope_key();
 
         let _span = span!(
