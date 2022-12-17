@@ -7,11 +7,33 @@ use super::{
     carrying::model::{Containing, Location},
     moving::model::{Occupyable, Occupying},
 };
-use crate::kernel::{get_my_session, model::*};
+use crate::kernel::{get_my_session, model::*, Entry};
 use crate::kernel::{DomainOutcome, EntityPtr};
 
 pub fn is_container(item: &EntityPtr) -> bool {
     item.borrow().has_scope::<Containing>()
+}
+
+pub fn move_between_entries(from: &Entry, to: &Entry, item: &Entry) -> Result<DomainOutcome> {
+    info!("moving {:?} {:?} {:?}", item, from, to);
+
+    let mut from = from.scope_mut::<Containing>()?;
+    let mut into = to.scope_mut::<Containing>()?;
+
+    match from.stop_carrying_entry(item)? {
+        DomainOutcome::Ok => {
+            let mut item_location = item.scope_mut::<Location>()?;
+            item_location.container = Some(to.clone().into());
+
+            into.start_carrying_entry(item)?;
+            from.save()?;
+            into.save()?;
+            item_location.save()?;
+
+            Ok(DomainOutcome::Ok)
+        }
+        DomainOutcome::Nope => Ok(DomainOutcome::Nope),
+    }
 }
 
 pub fn move_between(from: &EntityPtr, to: &EntityPtr, item: &EntityPtr) -> Result<DomainOutcome> {

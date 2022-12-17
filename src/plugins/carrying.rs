@@ -145,6 +145,24 @@ pub mod model {
             Ok(DomainOutcome::Ok)
         }
 
+        pub fn start_carrying_entry(&mut self, item: &Entry) -> CarryingResult {
+            self.start_carrying(
+                &get_my_session()
+                    .expect("msg")
+                    .load_entity_by_key(&item.key)?
+                    .unwrap(),
+            )
+        }
+
+        pub fn stop_carrying_entry(&mut self, item: &Entry) -> CarryingResult {
+            self.stop_carrying(
+                &get_my_session()
+                    .expect("msg")
+                    .load_entity_by_key(&item.key)?
+                    .unwrap(),
+            )
+        }
+
         pub fn stop_carrying(&mut self, item: &EntityPtr) -> CarryingResult {
             let before = self.holding.len();
             self.holding.retain(|i| i.key != item.borrow().key);
@@ -361,10 +379,16 @@ pub mod actions {
                 Some(vessel) => {
                     if tools::is_container(&vessel) {
                         match infra.find_item(args, &self.item)? {
-                            Some(item) => match tools::move_between(&vessel, &user, &item)? {
-                                DomainOutcome::Ok => Ok(Box::new(SimpleReply::Done)),
-                                DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
-                            },
+                            Some(item) => {
+                                match tools::move_between_entries(
+                                    &vessel.try_into()?,
+                                    &user.try_into()?,
+                                    &item.try_into()?,
+                                )? {
+                                    DomainOutcome::Ok => Ok(Box::new(SimpleReply::Done)),
+                                    DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
+                                }
+                            }
                             None => Ok(Box::new(SimpleReply::NotFound)),
                         }
                     } else {
@@ -464,6 +488,7 @@ pub mod parser {
 mod tests {
     use super::parser::*;
     use super::*;
+    use crate::plugins::carrying::model::Location;
     use crate::plugins::tools;
     use crate::{
         domain::{BuildActionArgs, QuickThing},
@@ -684,7 +709,7 @@ mod tests {
         let vessel = build
             .build()?
             .named("Vessel")?
-            .holding(&vec![key])?
+            .holding(&vec![key.clone()])?
             .into_entity()?;
         let args: ActionArgs = build
             .hands(vec![QuickThing::Actual(vessel.clone())])
@@ -698,6 +723,15 @@ mod tests {
 
         assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 2);
         assert_eq!(vessel.borrow().scope::<Containing>()?.holding.len(), 0);
+        assert_eq!(
+            key.borrow()
+                .scope::<Location>()?
+                .container
+                .as_ref()
+                .unwrap()
+                .key,
+            person.key()
+        );
 
         build.close()?;
 

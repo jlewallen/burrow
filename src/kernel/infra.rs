@@ -52,6 +52,28 @@ pub struct Entry {
     pub session: Weak<dyn Infrastructure>,
 }
 
+impl TryFrom<EntityPtr> for Entry {
+    type Error = DomainError;
+
+    fn try_from(value: EntityPtr) -> Result<Self, Self::Error> {
+        Ok(Self {
+            key: value.key(),
+            session: Rc::downgrade(&get_my_session()?),
+        })
+    }
+}
+
+impl From<Entry> for LazyLoadedEntity {
+    fn from(value: Entry) -> Self {
+        let entity = get_my_session()
+            .expect("No infra")
+            .load_entity_by_key(&value.key)
+            .expect("Load failed for From to LazyLoadedEntity")
+            .expect("Missing lazy Entity reference");
+        LazyLoadedEntity::new_with_entity(entity)
+    }
+}
+
 impl Entry {
     pub fn scope<T: Scope>(&self) -> Result<OpenedScope<T>> {
         let entity = match self
