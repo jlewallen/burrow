@@ -1,13 +1,13 @@
+use anyhow::Result;
+use serde::Deserialize;
 use std::rc::Rc;
+use tracing::*;
 
 use super::{DevNullNotifier, Entry, Session};
 use crate::{
     kernel::{ActionArgs, EntityKey, EntityPtr, Infrastructure, WORLD_KEY},
     plugins::tools,
 };
-use anyhow::Result;
-use serde::Deserialize;
-use tracing::*;
 
 pub struct Build {
     infra: Rc<dyn Infrastructure>,
@@ -41,21 +41,13 @@ impl Build {
     }
 
     pub fn key(&mut self, key: &EntityKey) -> Result<&mut Self> {
-        self.entity.mutate(|e| {
-            e.set_key(key)?;
-            Ok(())
-        })?;
+        self.entity.set_key(key)?;
 
         Ok(self)
     }
 
     pub fn named(&mut self, name: &str) -> Result<&mut Self> {
-        self.entity.mutate(|e| {
-            e.set_name(name)?;
-            Ok(())
-        })?;
-
-        self.entity.modified()?;
+        self.entity.set_name(name)?;
 
         Ok(self)
     }
@@ -226,8 +218,7 @@ impl TryFrom<&mut BuildActionArgs> for ActionArgs {
         Ok((world, person, area, infra))
     }
 }
-
-pub struct Constructed {}
+struct Constructed {}
 
 impl Constructed {}
 
@@ -246,7 +237,8 @@ struct JsonPlace {
     _name: String,
 }
 
-pub fn from_json(s: &str) -> Result<Constructed> {
+#[allow(dead_code)]
+fn from_json(s: &str) -> Result<Constructed> {
     let _parsed: JsonWorld = serde_json::from_str(s)?;
     Ok(Constructed {})
 }

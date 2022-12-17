@@ -107,7 +107,7 @@ impl Entry {
 
         let entity = entity.borrow();
 
-        let scope = entity.scope_hack::<T>()?;
+        let scope = entity.load_scope::<T>()?;
 
         Ok(OpenedScope::new(scope))
     }
@@ -125,7 +125,7 @@ impl Entry {
 
         let entity = entity.borrow();
 
-        let scope = entity.scope_hack::<T>()?;
+        let scope = entity.load_scope::<T>()?;
 
         Ok(OpenedScopeMut::new(Weak::clone(&self.session), self, scope))
     }

@@ -92,13 +92,10 @@ impl StandardPerformer {
         let world = infra
             .as_ref()
             .ok_or(DomainError::NoInfrastructure)?
-            .load_entity_by_key(&WORLD_KEY)?
+            .entry(&WORLD_KEY)?
             .ok_or(DomainError::EntityNotFound)?;
 
-        let usernames: OpenScope<Usernames> = {
-            let world = world.borrow();
-            world.scope::<Usernames>()?
-        };
+        let usernames = world.scope::<Usernames>()?;
 
         let user_key = &usernames.users[name];
 
@@ -237,7 +234,7 @@ impl Session {
 
         storage.begin()?;
 
-        if let Some(world) = infra.load_entity_by_key(&WORLD_KEY)? {
+        if let Some(world) = infra.entry(&WORLD_KEY)? {
             if let Some(gid) = identifiers::model::get_gid(&world)? {
                 ids.set(&gid);
             }
@@ -266,7 +263,7 @@ impl Session {
         }
     }
 
-    pub fn scope<T: Scope>(&self, entry: &Entry) -> Result<Box<T>> {
+    pub fn scope<T: Scope>(&self, entry: &Entry) -> Result<Box<T>, DomainError> {
         let entity = match self.load_entity_by_key(&entry.key)? {
             None => panic!("How did you get an Entry for an unknown Entity?"),
             Some(entity) => entity,
@@ -276,7 +273,7 @@ impl Session {
 
         let entity = entity.borrow();
 
-        entity.scope_hack::<T>()
+        entity.load_scope::<T>()
     }
 
     pub fn save<T: Scope>(&self, entry: &Entry, scope: &Box<T>) -> Result<()> {
@@ -496,7 +493,7 @@ impl Session {
         // We may need a cleaner or even faster way of doing these loads.
         let world = self
             .infra
-            .load_entity_by_key(&WORLD_KEY)?
+            .entry(&WORLD_KEY)?
             .ok_or(DomainError::EntityNotFound)?;
 
         // Check to see if the global identifier has changed due to the creation

@@ -1,5 +1,5 @@
 pub mod model {
-    use crate::plugins::library::model::*;
+    use crate::{domain::Entry, plugins::library::model::*};
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Identifiers {
@@ -23,15 +23,13 @@ pub mod model {
         }
     }
 
-    pub fn get_gid(entity: &EntityPtr) -> Result<Option<EntityGID>> {
-        let entity = entity.borrow();
+    pub fn get_gid(entity: &Entry) -> Result<Option<EntityGID>> {
         let ids = entity.scope::<Identifiers>()?;
 
         Ok(Some(EntityGID::new(ids.gid)))
     }
 
-    pub fn set_gid(entity: &EntityPtr, value: EntityGID) -> Result<EntityGID> {
-        let mut entity = entity.borrow_mut();
+    pub fn set_gid(entity: &Entry, value: EntityGID) -> Result<EntityGID> {
         let mut ids = entity.scope_mut::<Identifiers>()?;
         ids.gid = value.clone().into();
 

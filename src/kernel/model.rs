@@ -7,11 +7,11 @@ use std::{
     cell::RefCell,
     collections::HashMap,
     fmt::{Debug, Display},
-    ops::{Deref, DerefMut, Index},
+    ops::{Deref, Index},
     rc::{Rc, Weak},
 };
 use thiserror::Error;
-use tracing::{debug, span, trace, Level};
+use tracing::*;
 
 use crate::domain::Entry;
 
@@ -93,6 +93,19 @@ impl From<&EntityGID> for u64 {
     }
 }
 
+pub enum Audience {
+    Nobody,
+    Everybody,
+    Individuals(Vec<EntityKey>),
+    Area(Entry),
+}
+
+pub trait DomainEvent: Debug {
+    fn audience(&self) -> Audience;
+
+    fn observe(&self, user: &Entry) -> Result<Box<dyn Observed>>;
+}
+
 #[derive(Debug)]
 pub enum DomainOutcome {
     Ok,
@@ -149,6 +162,16 @@ impl EntityPtr {
         self.lazy.borrow().key.clone()
     }
 
+    pub fn set_key(&self, key: &EntityKey) -> Result<()> {
+        self.mutate(|e| e.set_key(key))?;
+        self.modified()
+    }
+
+    pub fn set_name(&self, name: &str) -> Result<()> {
+        self.mutate(|e| e.set_name(name))?;
+        self.modified()
+    }
+
     pub fn modified(&self) -> Result<()> {
         let entity = self.borrow();
         let mut lazy = self.lazy.borrow_mut();
@@ -161,34 +184,8 @@ impl EntityPtr {
         Ok(())
     }
 
-    pub fn mutate<R, T: FnOnce(&mut Entity) -> Result<R>>(&self, mutator: T) -> Result<R> {
+    fn mutate<R, T: FnOnce(&mut Entity) -> Result<R>>(&self, mutator: T) -> Result<R> {
         mutator(&mut self.borrow_mut())
-    }
-
-    pub fn mutate_chained<R, T: FnOnce(&mut Entity) -> Result<()>>(
-        &self,
-        mutator: T,
-    ) -> Result<&Self> {
-        mutator(&mut self.borrow_mut())?;
-
-        Ok(self)
-    }
-
-    pub fn mutate_scope<S: Scope, R, T: FnOnce(&mut S) -> Result<R>>(
-        &self,
-        mutator: T,
-    ) -> Result<R> {
-        let mut borrowed = self.borrow_mut();
-        let mut scope = borrowed.scope_mut::<S>()?;
-        let res = mutator(&mut scope)?;
-        scope.save()?;
-        Ok(res)
-    }
-
-    pub fn read_scope<S: Scope, R, T: FnOnce(&S) -> Result<R>>(&self, mutator: T) -> Result<R> {
-        let borrowed = self.borrow();
-        let scope = borrowed.scope::<S>()?;
-        mutator(&scope)
     }
 }
 
@@ -231,19 +228,6 @@ impl Deref for EntityPtr {
     fn deref(&self) -> &Self::Target {
         self.entity.as_ref()
     }
-}
-
-pub enum Audience {
-    Nobody,
-    Everybody,
-    Individuals(Vec<EntityKey>),
-    Area(Entry),
-}
-
-pub trait DomainEvent: Debug {
-    fn audience(&self) -> Audience;
-
-    fn observe(&self, user: &Entry) -> Result<Box<dyn Observed>>;
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -554,29 +538,7 @@ impl Entity {
         self.scopes.contains_key(<T as Scope>::scope_key())
     }
 
-    pub fn scope_hack<T: Scope>(&self) -> Result<Box<T>> {
-        Ok(self.load_scope::<T>()?)
-    }
-
-    pub fn maybe_scope<T: Scope>(&self) -> Result<Option<OpenScope<T>>, DomainError> {
-        if !self.has_scope::<T>() {
-            return Ok(None);
-        }
-        let scope = self.load_scope::<T>()?;
-        Ok(Some(OpenScope::new(scope)))
-    }
-
-    pub fn scope<T: Scope>(&self) -> Result<OpenScope<T>, DomainError> {
-        let scope = self.load_scope::<T>()?;
-        Ok(OpenScope::new(scope))
-    }
-
-    pub fn scope_mut<T: Scope>(&mut self) -> Result<OpenScopeMut<T>, DomainError> {
-        let scope = self.load_scope::<T>()?;
-        Ok(OpenScopeMut::new(self, scope))
-    }
-
-    fn load_scope<T: Scope>(&self) -> Result<Box<T>, DomainError> {
+    pub fn load_scope<T: Scope>(&self) -> Result<Box<T>, DomainError> {
         let scope_key = <T as Scope>::scope_key();
 
         let _load_scope_span = span!(
@@ -628,69 +590,6 @@ impl Entity {
             .insert(scope_key.to_string(), ScopeValue::Json(value));
 
         Ok(())
-    }
-}
-
-pub struct OpenScope<T: Scope> {
-    target: Box<T>,
-}
-
-impl<T: Scope> OpenScope<T> {
-    pub fn new(target: Box<T>) -> Self {
-        trace!("scope-open {:?}", target);
-
-        Self { target }
-    }
-}
-
-impl<T: Scope> Deref for OpenScope<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        self.target.as_ref()
-    }
-}
-
-pub struct OpenScopeMut<'me, T: Scope> {
-    owner: &'me mut Entity,
-    target: Box<T>,
-}
-
-impl<'me, T: Scope> OpenScopeMut<'me, T> {
-    pub fn new(owner: &'me mut Entity, target: Box<T>) -> Self {
-        trace!("scope-open {:?}", target);
-
-        Self { owner, target }
-    }
-
-    pub fn save(&mut self) -> Result<()> {
-        self.owner.replace_scope(self.target.as_ref())?;
-
-        Ok(())
-    }
-}
-
-impl<'me, T: Scope> Drop for OpenScopeMut<'me, T> {
-    fn drop(&mut self) {
-        // TODO Check for unsaved changes to this scope and possibly warn the
-        // user, this would require them to intentionally discard  any unsaved
-        // changes. Not being able to bubble an error up makes doing anything
-        // elaborate in here a bad idea.
-        trace!("scope-dropped {:?}", self.target);
-    }
-}
-
-impl<'me, T: Scope> Deref for OpenScopeMut<'me, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        self.target.as_ref()
-    }
-}
-
-impl<'me, T: Scope> DerefMut for OpenScopeMut<'me, T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.target.as_mut()
     }
 }
 
