@@ -133,8 +133,8 @@ impl StandardPerformer {
         let _span = span!(Level::DEBUG, "D").entered();
         let mut discovered: Vec<EntityKey> = vec![];
         if self.discoverying {
-            for entity in entities {
-                eval::discover(entity, &mut discovered)?;
+            for entity in &entities {
+                eval::discover(&entity, &mut discovered)?;
             }
             info!("discovered {:?}", discovered);
         }
