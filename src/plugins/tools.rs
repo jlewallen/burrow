@@ -20,12 +20,12 @@ pub fn move_between(from: &Entry, to: &Entry, item: &Entry) -> Result<DomainOutc
     let mut from = from.scope_mut::<Containing>()?;
     let mut into = to.scope_mut::<Containing>()?;
 
-    match from.stop_carrying_entry(item)? {
+    match from.stop_carrying(item)? {
         DomainOutcome::Ok => {
             let mut location = item.scope_mut::<Location>()?;
             location.container = Some(to.try_into()?);
 
-            into.start_carrying_entry(item)?;
+            into.start_carrying(item)?;
             from.save()?;
             into.save()?;
             location.save()?;
@@ -42,12 +42,12 @@ pub fn navigate_between(from: &Entry, to: &Entry, item: &Entry) -> Result<Domain
     let mut from = from.scope_mut::<Occupyable>()?;
     let mut into = to.scope_mut::<Occupyable>()?;
 
-    match from.stop_occupying_entry(item)? {
+    match from.stop_occupying(item)? {
         DomainOutcome::Ok => {
             let mut location = item.scope_mut::<Occupying>()?;
             location.area = to.try_into()?;
 
-            into.start_occupying_entry(item)?;
+            into.start_occupying(item)?;
             into.save()?;
             from.save()?;
             location.save()?;
@@ -76,7 +76,7 @@ pub fn area_of(living: &Entry) -> Result<EntityPtr> {
 pub fn set_container(container: &Entry, items: &Vec<Entry>) -> Result<()> {
     let mut containing = container.scope_mut::<Containing>()?;
     for item in items {
-        containing.start_carrying_entry(item)?;
+        containing.start_carrying(item)?;
         let mut location = item.scope_mut::<Location>()?;
         location.container = Some(container.try_into()?);
         location.save()?;
@@ -87,7 +87,7 @@ pub fn set_container(container: &Entry, items: &Vec<Entry>) -> Result<()> {
 pub fn set_occupying(area: &Entry, living: &Vec<Entry>) -> Result<()> {
     let mut occupyable = area.scope_mut::<Occupyable>()?;
     for item in living {
-        occupyable.start_occupying_entry(item)?;
+        occupyable.start_occupying(item)?;
         let mut occupying = item.scope_mut::<Occupying>()?;
         occupying.area = area.try_into()?;
         occupying.save()?;

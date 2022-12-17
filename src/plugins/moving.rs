@@ -73,18 +73,9 @@ pub mod model {
     }
 
     impl Occupyable {
-        pub fn stop_occupying_entry(&mut self, item: &Entry) -> Result<DomainOutcome> {
-            self.stop_occupying(
-                &get_my_session()
-                    .expect("Expected Entry in stop_occupying")
-                    .load_entity_by_key(&item.key)?
-                    .unwrap(),
-            )
-        }
-
-        pub fn stop_occupying(&mut self, item: &EntityPtr) -> Result<DomainOutcome> {
+        pub fn stop_occupying(&mut self, item: &Entry) -> Result<DomainOutcome> {
             let before = self.occupied.len();
-            self.occupied.retain(|i| i.key != item.borrow().key);
+            self.occupied.retain(|i| i.key != item.key());
             let after = self.occupied.len();
             if before == after {
                 return Ok(DomainOutcome::Nope);
@@ -93,16 +84,7 @@ pub mod model {
             Ok(DomainOutcome::Ok)
         }
 
-        pub fn start_occupying_entry(&mut self, item: &Entry) -> Result<DomainOutcome> {
-            self.start_occupying(
-                &get_my_session()
-                    .expect("Expected Entry in start_occupying")
-                    .load_entity_by_key(&item.key)?
-                    .unwrap(),
-            )
-        }
-
-        pub fn start_occupying(&mut self, item: &EntityPtr) -> Result<DomainOutcome> {
+        pub fn start_occupying(&mut self, item: &Entry) -> Result<DomainOutcome> {
             self.occupied.push(item.into());
 
             Ok(DomainOutcome::Ok)

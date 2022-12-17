@@ -118,18 +118,17 @@ pub mod model {
     }
 
     impl Containing {
-        pub fn start_carrying(&mut self, item: &EntityPtr) -> CarryingResult {
-            let carryable = item.borrow().scope::<Carryable>()?;
+        pub fn start_carrying(&mut self, item: &Entry) -> CarryingResult {
+            let carryable = item.scope::<Carryable>()?;
 
             let holding = self
                 .holding
                 .iter()
-                .map(|h| h.into_entity())
+                .map(|h| h.into_entry())
                 .collect::<Result<Vec<_>, DomainError>>()?;
 
             for held in holding {
                 if is_kind(&held, &carryable.kind)? {
-                    let mut held = held.borrow_mut();
                     let mut combining = held.scope_mut::<Carryable>()?;
 
                     combining.increase_quantity(carryable.quantity)?;
@@ -140,32 +139,14 @@ pub mod model {
                 }
             }
 
-            self.holding.push(item.clone().into());
+            self.holding.push(item.try_into()?);
 
             Ok(DomainOutcome::Ok)
         }
 
-        pub fn start_carrying_entry(&mut self, item: &Entry) -> CarryingResult {
-            self.start_carrying(
-                &get_my_session()
-                    .expect("msg")
-                    .load_entity_by_key(&item.key)?
-                    .unwrap(),
-            )
-        }
-
-        pub fn stop_carrying_entry(&mut self, item: &Entry) -> CarryingResult {
-            self.stop_carrying(
-                &get_my_session()
-                    .expect("msg")
-                    .load_entity_by_key(&item.key)?
-                    .unwrap(),
-            )
-        }
-
-        pub fn stop_carrying(&mut self, item: &EntityPtr) -> CarryingResult {
+        pub fn stop_carrying(&mut self, item: &Entry) -> CarryingResult {
             let before = self.holding.len();
-            self.holding.retain(|i| i.key != item.borrow().key);
+            self.holding.retain(|i| i.key != item.key());
             let after = self.holding.len();
             if before == after {
                 return Ok(DomainOutcome::Nope);
@@ -181,6 +162,10 @@ pub mod model {
         quantity: f32,
     }
 
+    fn is_kind(entity: &Entry, kind: &Kind) -> Result<bool> {
+        Ok(*entity.scope::<Carryable>()?.kind() == *kind)
+    }
+
     impl Default for Carryable {
         fn default() -> Self {
             let session = get_my_session().expect("No session in Entity::new_blank!");
@@ -189,10 +174,6 @@ pub mod model {
                 quantity: Default::default(),
             }
         }
-    }
-
-    fn is_kind(entity: &EntityPtr, kind: &Kind) -> Result<bool> {
-        Ok(*entity.borrow().scope::<Carryable>()?.kind() == *kind)
     }
 
     impl Carryable {
