@@ -12,7 +12,7 @@ impl ParsesActions for CarryingPlugin {
 }
 
 pub mod model {
-    use crate::plugins::{library::model::*, looking::model::Observe, tools};
+    use crate::plugins::{library::model::*, looking::model::Observe};
 
     pub type CarryingResult = Result<DomainOutcome>;
 
@@ -119,6 +119,27 @@ pub mod model {
 
     impl Containing {
         pub fn start_carrying(&mut self, item: &EntityPtr) -> CarryingResult {
+            let carryable = item.borrow().scope::<Carryable>()?;
+
+            let holding = self
+                .holding
+                .iter()
+                .map(|h| h.into_entity())
+                .collect::<Result<Vec<_>, DomainError>>()?;
+
+            for held in holding {
+                if is_kind(&held, &carryable.kind)? {
+                    let mut held = held.borrow_mut();
+                    let mut combining = held.scope_mut::<Carryable>()?;
+
+                    combining.increase_quantity(carryable.quantity)?;
+
+                    combining.save()?;
+
+                    return Ok(DomainOutcome::Ok);
+                }
+            }
+
             self.holding.push(item.clone().into());
 
             Ok(DomainOutcome::Ok)
@@ -443,7 +464,7 @@ pub mod parser {
 mod tests {
     use super::parser::*;
     use super::*;
-    use crate::plugins::{log_test, tools};
+    use crate::plugins::tools;
     use crate::{
         domain::{BuildActionArgs, QuickThing},
         plugins::carrying::model::Containing,
