@@ -80,7 +80,7 @@ impl Build {
 pub struct BuildActionArgs {
     hands: Vec<QuickThing>,
     ground: Vec<QuickThing>,
-    session: Session,
+    session: Rc<Session>,
 }
 
 pub enum QuickThing {
@@ -114,7 +114,7 @@ impl QuickThing {
 }
 
 impl BuildActionArgs {
-    pub fn new_in_session(session: Session) -> Result<Self> {
+    pub fn new_in_session(session: Rc<Session>) -> Result<Self> {
         Ok(Self {
             hands: Vec::new(),
             ground: Vec::new(),

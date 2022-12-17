@@ -56,7 +56,7 @@ impl Debug for Entry {
 }
 
 pub struct BetterSession {
-    session: Session,
+    session: Rc<Session>,
     weak: Weak<BetterSession>,
 }
 

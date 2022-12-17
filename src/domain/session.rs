@@ -208,7 +208,7 @@ impl Session {
         storage: Rc<dyn EntityStorage>,
         keys: &Arc<dyn KeySequence>,
         identities: &Arc<dyn IdentityFactory>,
-    ) -> Result<Self> {
+    ) -> Result<Rc<Self>> {
         trace!("session-new");
 
         let opened = Instant::now();
@@ -239,7 +239,7 @@ impl Session {
             }
         }
 
-        Ok(Self {
+        Ok(Rc::new(Self {
             opened,
             infra: domain_infra,
             storage,
@@ -248,7 +248,7 @@ impl Session {
             performer: standard_performer,
             ids,
             raised: raised,
-        })
+        }))
     }
 
     pub fn infra(&self) -> Rc<dyn Infrastructure> {
@@ -567,7 +567,7 @@ impl Domain {
         }
     }
 
-    pub fn open_session(&self) -> Result<Session> {
+    pub fn open_session(&self) -> Result<Rc<Session>> {
         info!("session-open");
 
         let storage = self.storage_factory.create_storage()?;
