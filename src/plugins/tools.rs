@@ -7,14 +7,14 @@ use super::{
     carrying::model::{Containing, Location},
     moving::model::{Occupyable, Occupying},
 };
-use crate::kernel::{get_my_session, model::*, Entry};
+use crate::kernel::{model::*, Entry};
 use crate::kernel::{DomainOutcome, EntityPtr};
 
-pub fn is_container(item: &EntityPtr) -> bool {
-    item.borrow().has_scope::<Containing>()
+pub fn is_container(item: &Entry) -> Result<bool> {
+    item.has_scope::<Containing>()
 }
 
-pub fn move_between_entries(from: &Entry, to: &Entry, item: &Entry) -> Result<DomainOutcome> {
+pub fn move_between(from: &Entry, to: &Entry, item: &Entry) -> Result<DomainOutcome> {
     info!("moving {:?} {:?} {:?}", item, from, to);
 
     let mut from = from.scope_mut::<Containing>()?;
@@ -22,13 +22,13 @@ pub fn move_between_entries(from: &Entry, to: &Entry, item: &Entry) -> Result<Do
 
     match from.stop_carrying_entry(item)? {
         DomainOutcome::Ok => {
-            let mut item_location = item.scope_mut::<Location>()?;
-            item_location.container = Some(to.clone().into());
+            let mut location = item.scope_mut::<Location>()?;
+            location.container = Some(to.try_into()?);
 
             into.start_carrying_entry(item)?;
             from.save()?;
             into.save()?;
-            item_location.save()?;
+            location.save()?;
 
             Ok(DomainOutcome::Ok)
         }
@@ -36,57 +36,21 @@ pub fn move_between_entries(from: &Entry, to: &Entry, item: &Entry) -> Result<Do
     }
 }
 
-pub fn move_between(from: &EntityPtr, to: &EntityPtr, item: &EntityPtr) -> Result<DomainOutcome> {
-    info!("moving {:?} {:?} {:?}", item, from, to);
-
-    let mut from = from.borrow_mut();
-    let mut from_container = from.scope_mut::<Containing>()?;
-
-    match from_container.stop_carrying(item)? {
-        DomainOutcome::Ok => {
-            item.mutate(|item| {
-                let mut item_location = item.scope_mut::<Location>()?;
-                item_location.container = Some(to.clone().into());
-                item_location.save()
-            })?;
-
-            let mut to = to.borrow_mut();
-            let mut into_container = to.scope_mut::<Containing>()?;
-
-            into_container.start_carrying(item)?;
-            into_container.save()?;
-            from_container.save()?;
-
-            Ok(DomainOutcome::Ok)
-        }
-        DomainOutcome::Nope => Ok(DomainOutcome::Nope),
-    }
-}
-
-pub fn navigate_between(
-    from: &EntityPtr,
-    to: &EntityPtr,
-    item: &EntityPtr,
-) -> Result<DomainOutcome> {
-    let mut from = from.borrow_mut();
-    let mut from_container = from.scope_mut::<Occupyable>()?;
-
+pub fn navigate_between(from: &Entry, to: &Entry, item: &Entry) -> Result<DomainOutcome> {
     info!("navigating {:?}", item);
 
-    match from_container.stop_occupying(item.clone())? {
+    let mut from = from.scope_mut::<Occupyable>()?;
+    let mut into = to.scope_mut::<Occupyable>()?;
+
+    match from.stop_occupying_entry(item)? {
         DomainOutcome::Ok => {
-            item.mutate(|item| {
-                let mut item_location = item.scope_mut::<Occupying>()?;
-                item_location.area = to.clone().into();
-                item_location.save()
-            })?;
+            let mut location = item.scope_mut::<Occupying>()?;
+            location.area = to.try_into()?;
 
-            let mut to = to.borrow_mut();
-            let mut into_container = to.scope_mut::<Occupyable>()?;
-
-            into_container.start_occupying(item)?;
-            into_container.save()?;
-            from_container.save()?;
+            into.start_occupying_entry(item)?;
+            into.save()?;
+            from.save()?;
+            location.save()?;
 
             Ok(DomainOutcome::Ok)
         }
@@ -94,8 +58,7 @@ pub fn navigate_between(
     }
 }
 
-pub fn container_of(item: &EntityPtr) -> Result<EntityPtr> {
-    let item = item.borrow();
+pub fn container_of(item: &Entry) -> Result<EntityPtr> {
     let location = item.scope::<Location>()?;
     if let Some(container) = &location.container {
         Ok(container.into_entity()?)
@@ -104,19 +67,16 @@ pub fn container_of(item: &EntityPtr) -> Result<EntityPtr> {
     }
 }
 
-pub fn area_of(living: &EntityPtr) -> Result<EntityPtr> {
-    let from = living.borrow();
-    let occupying = from.scope::<Occupying>()?;
+pub fn area_of(living: &Entry) -> Result<EntityPtr> {
+    let occupying = living.scope::<Occupying>()?;
 
     Ok(occupying.area.into_entity()?)
 }
 
-pub fn set_container(container: &EntityPtr, items: &Vec<EntityPtr>) -> Result<()> {
-    let mut editing = container.borrow_mut();
-    let mut containing = editing.scope_mut::<Containing>()?;
+pub fn set_container(container: &Entry, items: &Vec<Entry>) -> Result<()> {
+    let mut containing = container.scope_mut::<Containing>()?;
     for item in items {
-        containing.start_carrying(item)?;
-        let mut item = item.borrow_mut();
+        containing.start_carrying_entry(item)?;
         let mut location = item.scope_mut::<Location>()?;
         location.container = Some(container.try_into()?);
         location.save()?;
@@ -124,12 +84,10 @@ pub fn set_container(container: &EntityPtr, items: &Vec<EntityPtr>) -> Result<()
     containing.save()
 }
 
-pub fn set_occupying(area: &EntityPtr, living: &Vec<EntityPtr>) -> Result<()> {
-    let mut editing = area.borrow_mut();
-    let mut occupyable = editing.scope_mut::<Occupyable>()?;
+pub fn set_occupying(area: &Entry, living: &Vec<Entry>) -> Result<()> {
+    let mut occupyable = area.scope_mut::<Occupyable>()?;
     for item in living {
-        occupyable.start_occupying(item)?;
-        let mut item = item.borrow_mut();
+        occupyable.start_occupying_entry(item)?;
         let mut occupying = item.scope_mut::<Occupying>()?;
         occupying.area = area.try_into()?;
         occupying.save()?;
@@ -137,28 +95,27 @@ pub fn set_occupying(area: &EntityPtr, living: &Vec<EntityPtr>) -> Result<()> {
     occupyable.save()
 }
 
-pub fn contained_by(container: &EntityPtr) -> Result<Vec<EntityPtr>> {
-    let mut entities: Vec<EntityPtr> = vec![];
-    let container = container.borrow();
+pub fn contained_by(container: &Entry) -> Result<Vec<Entry>> {
+    let mut entities: Vec<Entry> = vec![];
     if let Ok(containing) = container.scope::<Containing>() {
         for entity in &containing.holding {
-            entities.push(entity.into_entity()?);
+            entities.push(entity.into_entry()?);
         }
     }
 
     Ok(entities)
 }
 
-pub fn leads_to<'a>(route: &'a EntityPtr, area: &'a EntityPtr) -> Result<&'a EntityPtr> {
-    let mut building = route.borrow_mut();
-    let mut exit = building.scope_mut::<Exit>()?;
-    exit.area = area.into();
+pub fn leads_to<'a>(route: &'a Entry, area: &'a Entry) -> Result<&'a Entry> {
+    let mut exit = route.scope_mut::<Exit>()?;
+    exit.area = area.try_into()?;
+    exit.save()?;
 
     Ok(route)
 }
 
-pub fn get_occupant_keys(area: &EntityPtr) -> Result<Vec<EntityKey>> {
-    let occupyable = area.borrow().scope::<Occupyable>()?;
+pub fn get_occupant_keys(area: &Entry) -> Result<Vec<EntityKey>> {
+    let occupyable = area.scope::<Occupyable>()?;
 
     Ok(occupyable
         .occupied
@@ -167,55 +124,61 @@ pub fn get_occupant_keys(area: &EntityPtr) -> Result<Vec<EntityKey>> {
         .collect::<Vec<EntityKey>>())
 }
 
-pub fn new_entity() -> Result<EntityPtr> {
+pub fn new_entity() -> Result<Entry> {
+    todo!()
+    /*
     let entity = EntityPtr::new_blank();
     get_my_session()?.add_entity(&entity)?;
 
     Ok(entity)
+    */
 }
 
-pub fn new_entity_from_template_ptr(template: &EntityPtr) -> Result<EntityPtr> {
-    let entity = EntityPtr::new(Entity::new_from(&template.borrow())?);
+pub fn new_entity_from_template_ptr(_template: &Entry) -> Result<Entry> {
+    todo!()
+    /*
+    let entity = EntityPtr::new(Entity::new_from(&template)?);
     get_my_session()?.add_entity(&entity)?;
 
     Ok(entity)
+    */
 }
 
-pub fn new_entity_from_template(template: &Entity) -> Result<EntityPtr> {
+pub fn new_entity_from_template(_template: &Entity) -> Result<Entry> {
+    todo!()
+    /*
     let entity = EntityPtr::new(Entity::new_from(template)?);
     get_my_session()?.add_entity(&entity)?;
 
     Ok(entity)
+    */
 }
 
-pub fn set_quantity(entity: &EntityPtr, quantity: f32) -> Result<&EntityPtr> {
-    entity.mutate(|e| {
-        let mut carryable = e.scope_mut::<Carryable>()?;
-        carryable.set_quantity(quantity)?;
-        carryable.save()
-    })?;
+pub fn set_quantity(entity: &Entry, quantity: f32) -> Result<&Entry> {
+    let mut carryable = entity.scope_mut::<Carryable>()?;
+    carryable.set_quantity(quantity)?;
+    carryable.save()?;
 
     Ok(entity)
 }
 
-pub fn separate(entity: EntityPtr, quantity: f32) -> Result<(EntityPtr, EntityPtr)> {
-    let kind = entity.mutate(|e| {
-        let mut carryable = e.scope_mut::<Carryable>()?;
+pub fn separate(entity: Entry, quantity: f32) -> Result<(Entry, Entry)> {
+    let kind = {
+        let mut carryable = entity.scope_mut::<Carryable>()?;
         carryable.decrease_quantity(quantity)?;
-        Ok(carryable.kind().clone())
-    })?;
+        carryable.save()?;
+        carryable.kind().clone()
+    };
 
     let separated = new_entity_from_template_ptr(&entity)?;
 
-    separated.mutate(|creating| {
-        let mut carryable = creating.scope_mut::<Carryable>()?;
+    let mut carryable = separated.scope_mut::<Carryable>()?;
 
-        // TODO Would be nice if we could pass this in and avoid creating one
-        // unnecessarily. See comments in Entity::new_from
-        carryable.set_kind(&kind);
-        carryable.set_quantity(quantity)?;
-        carryable.save()
-    })?;
+    // TODO Would be nice if we could pass this in and avoid creating one
+    // unnecessarily. See comments in Entity::new_from
+    carryable.set_kind(&kind);
+    carryable.set_quantity(quantity)?;
+    carryable.save()?;
 
     Ok((entity, separated))
 }

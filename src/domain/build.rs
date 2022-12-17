@@ -2,8 +2,8 @@ use std::rc::Rc;
 
 use super::{DevNullNotifier, Session};
 use crate::{
-    kernel::{ActionArgs, EntityKey, EntityPtr, Infrastructure, WORLD_KEY},
-    plugins::{moving::model::Exit, tools},
+    kernel::{ActionArgs, EntityKey, EntityPtr, Entry, Infrastructure, WORLD_KEY},
+    plugins::tools,
 };
 use anyhow::Result;
 use serde::Deserialize;
@@ -11,6 +11,7 @@ use tracing::*;
 
 pub struct Build {
     infra: Rc<dyn Infrastructure>,
+    entry: Option<Entry>,
     entity: EntityPtr,
 }
 
@@ -19,18 +20,36 @@ impl Build {
         let infra = session.infra();
         let entity = EntityPtr::new_blank();
 
-        Ok(Self { infra, entity })
+        Ok(Self {
+            infra,
+            entity,
+            entry: None,
+        })
     }
 
-    pub fn key(&self, key: &EntityKey) -> Result<&Self> {
-        let mut entity = self.entity.borrow_mut();
+    fn entry(&mut self) -> Result<Entry> {
+        let entry = match &self.entry {
+            Some(entry) => entry.clone(),
+            None => {
+                self.infra.add_entity(&self.entity)?;
+                self.infra
+                    .entry(&self.entity.key())?
+                    .expect("Missing newly added entity")
+            }
+        };
+        Ok(entry)
+    }
 
-        entity.set_key(key)?;
+    pub fn key(&mut self, key: &EntityKey) -> Result<&mut Self> {
+        self.entity.mutate(|e| {
+            e.set_key(key)?;
+            Ok(())
+        })?;
 
         Ok(self)
     }
 
-    pub fn named(&self, name: &str) -> Result<&Self> {
+    pub fn named(&mut self, name: &str) -> Result<&mut Self> {
         self.entity.mutate(|e| {
             e.set_name(name)?;
             Ok(())
@@ -41,39 +60,32 @@ impl Build {
         Ok(self)
     }
 
-    pub fn of_quantity(&self, quantity: f32) -> Result<&Self> {
-        tools::set_quantity(&self.entity, quantity)?;
+    pub fn of_quantity(&mut self, quantity: f32) -> Result<&mut Self> {
+        tools::set_quantity(&self.entry()?, quantity)?;
 
         Ok(self)
     }
 
-    pub fn leads_to(&self, area: EntityPtr) -> Result<&Self> {
-        let mut entity = self.entity.borrow_mut();
-        let mut exit = entity.scope_mut::<Exit>()?;
-
-        exit.area = area.into();
-
-        exit.save()?;
+    pub fn leads_to(&mut self, area: Entry) -> Result<&mut Self> {
+        tools::leads_to(&self.entry()?, &area)?;
 
         Ok(self)
     }
 
-    pub fn occupying(&self, living: &Vec<EntityPtr>) -> Result<&Self> {
-        tools::set_occupying(&self.entity, living)?;
+    pub fn occupying(&mut self, living: &Vec<Entry>) -> Result<&mut Self> {
+        tools::set_occupying(&self.entry()?, living)?;
 
         Ok(self)
     }
 
-    pub fn holding(&self, items: &Vec<EntityPtr>) -> Result<&Self> {
-        tools::set_container(&self.entity, items)?;
+    pub fn holding(&mut self, items: &Vec<Entry>) -> Result<&mut Self> {
+        tools::set_container(&self.entry()?, items)?;
 
         Ok(self)
     }
 
-    pub fn into_entity(&self) -> Result<EntityPtr> {
-        self.infra.add_entity(&self.entity)?;
-
-        Ok(self.entity.clone())
+    pub fn into_entry(&mut self) -> Result<Entry> {
+        Ok(self.entry()?)
     }
 }
 
@@ -88,25 +100,25 @@ pub enum QuickThing {
     Multiple(&'static str, f32),
     Place(&'static str),
     Route(&'static str, Box<QuickThing>),
-    Actual(EntityPtr),
+    Actual(Entry),
 }
 
 impl QuickThing {
-    pub fn make(&self, session: &Session) -> Result<EntityPtr> {
+    pub fn make(&self, session: &Session) -> Result<Entry> {
         match self {
-            QuickThing::Object(name) => Ok(Build::new(session)?.named(name)?.into_entity()?),
+            QuickThing::Object(name) => Ok(Build::new(session)?.named(name)?.into_entry()?),
             QuickThing::Multiple(name, quantity) => Ok(Build::new(session)?
                 .named(name)?
                 .of_quantity(*quantity)?
-                .into_entity()?),
-            QuickThing::Place(name) => Ok(Build::new(session)?.named(name)?.into_entity()?),
+                .into_entry()?),
+            QuickThing::Place(name) => Ok(Build::new(session)?.named(name)?.into_entry()?),
             QuickThing::Route(name, area) => {
                 let area = area.make(session)?;
 
                 Ok(Build::new(session)?
                     .named(name)?
                     .leads_to(area)?
-                    .into_entity()?)
+                    .into_entry()?)
             }
             QuickThing::Actual(ep) => Ok(ep.clone()),
         }
@@ -138,7 +150,7 @@ impl BuildActionArgs {
         Build::new(&self.session)
     }
 
-    pub fn make(&mut self, q: QuickThing) -> Result<EntityPtr> {
+    pub fn make(&mut self, q: QuickThing) -> Result<Entry> {
         q.make(&self.session)
     }
 
@@ -180,7 +192,7 @@ impl TryFrom<&mut BuildActionArgs> for ActionArgs {
         let world = Build::new(&builder.session)?
             .key(&WORLD_KEY)?
             .named("World")?
-            .into_entity()?;
+            .into_entry()?;
 
         let person = Build::new(&builder.session)?
             .named("Living")?
@@ -189,9 +201,9 @@ impl TryFrom<&mut BuildActionArgs> for ActionArgs {
                     .hands
                     .iter()
                     .map(|i| -> Result<_> { i.make(&builder.session) })
-                    .collect::<Result<Vec<EntityPtr>>>()?,
+                    .collect::<Result<Vec<_>>>()?,
             )?
-            .into_entity()?;
+            .into_entry()?;
 
         let area = Build::new(&builder.session)?
             .named("Welcome Area")?
@@ -203,7 +215,7 @@ impl TryFrom<&mut BuildActionArgs> for ActionArgs {
                     .map(|i| -> Result<_> { i.make(&builder.session) })
                     .collect::<Result<Vec<_>>>()?,
             )?
-            .into_entity()?;
+            .into_entry()?;
 
         for entity in [&world, &person, &area] {
             trace!("{:?}", entity);

@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::kernel::{Action, Entity, EntityKey, EvaluationError};
+use crate::kernel::{Action, EntityKey, Entry, EvaluationError};
 use crate::plugins;
 
 use super::library::parser::ParsesActions;
@@ -27,7 +27,7 @@ pub fn evaluate(i: &str) -> Result<Option<Box<dyn Action>>, EvaluationError> {
     }
 }
 
-pub fn discover(source: &Entity, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
+pub fn discover(source: &Entry, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
     plugins::looking::model::discover(source, entity_keys)?;
     plugins::carrying::model::discover(source, entity_keys)?;
     plugins::moving::model::discover(source, entity_keys)?;

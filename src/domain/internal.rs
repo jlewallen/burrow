@@ -11,6 +11,7 @@ use crate::storage::{EntityStorage, PersistedEntity};
 
 use super::{IdentityFactory, KeySequence};
 
+#[derive(Debug)]
 pub struct LoadedEntity {
     pub key: EntityKey,
     pub entity: EntityPtr,
@@ -54,6 +55,8 @@ impl Maps {
     }
 
     fn add_entity(&mut self, loaded: LoadedEntity) -> Result<()> {
+        info!("adding {:?}", loaded);
+
         self.by_gid.insert(
             loaded
                 .gid
@@ -229,7 +232,7 @@ impl Entities {
 }
 
 pub trait Performer {
-    fn perform(&self, user: &EntityPtr, action: Box<dyn Action>) -> Result<Box<dyn Reply>>;
+    fn perform(&self, user: &Entry, action: Box<dyn Action>) -> Result<Box<dyn Reply>>;
 }
 
 pub struct DomainInfrastructure {
@@ -265,7 +268,7 @@ impl DomainInfrastructure {
         &self,
         haystack: &EntityRelationshipSet,
         item: &Item,
-    ) -> Result<Option<EntityPtr>> {
+    ) -> Result<Option<Entry>> {
         match item {
             Item::Named(name) => {
                 debug!("item:haystack {:?}", haystack);
@@ -274,17 +277,17 @@ impl DomainInfrastructure {
                 for entity in &haystack.entities {
                     match entity {
                         EntityRelationship::Contained(e) => {
-                            if matches_description(&e.borrow(), name) {
+                            if matches_description(&e, name) {
                                 return Ok(Some(e.clone()));
                             }
                         }
                         EntityRelationship::Ground(e) => {
-                            if matches_description(&e.borrow(), name) {
+                            if matches_description(&e, name) {
                                 return Ok(Some(e.clone()));
                             }
                         }
                         EntityRelationship::Holding(e) => {
-                            if matches_description(&e.borrow(), name) {
+                            if matches_description(&e, name) {
                                 return Ok(Some(e.clone()));
                             }
                         }
@@ -315,7 +318,7 @@ impl DomainInfrastructure {
             }
             Item::GID(gid) => {
                 if let Some(e) = self.load_entity_by_gid(gid)? {
-                    Ok(Some(e))
+                    Ok(Some(e.try_into()?))
                 } else {
                     Ok(None)
                 }
@@ -346,7 +349,7 @@ fn matches_string_description(incoming: &str, desc: &str) -> bool {
 
 /// Determines if an entity matches a user's description of that entity, given
 /// no other context at all.
-fn matches_description(entity: &Entity, desc: &str) -> bool {
+fn matches_description(entity: &Entry, desc: &str) -> bool {
     if let Some(name) = entity.name() {
         matches_string_description(&name, desc)
     } else {
@@ -365,7 +368,7 @@ impl FindsItems for DomainInfrastructure {
         }
     }
 
-    fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<EntityPtr>> {
+    fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<Entry>> {
         let _loading_span = span!(Level::INFO, "finding", i = format!("{:?}", item)).entered();
 
         info!("finding");
@@ -387,11 +390,15 @@ impl Infrastructure for DomainInfrastructure {
         }
     }
 
-    fn add_entity(&self, entity: &EntityPtr) -> Result<()> {
-        self.entities.add_entity(entity)
+    fn add_entity(&self, entity: &EntityPtr) -> Result<Entry> {
+        self.entities.add_entity(entity)?;
+
+        Ok(self
+            .entry(&entity.key())?
+            .expect("Newly added entity has no Entry"))
     }
 
-    fn chain(&self, living: &EntityPtr, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
+    fn chain(&self, living: &Entry, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
         self.performer.perform(living, action)
     }
 
@@ -412,16 +419,16 @@ impl Infrastructure for DomainInfrastructure {
 
 #[derive(Debug, Clone)]
 enum EntityRelationship {
-    World(EntityPtr),
-    User(EntityPtr),
-    Area(EntityPtr),
-    Holding(EntityPtr),
-    Ground(EntityPtr),
+    World(Entry),
+    User(Entry),
+    Area(Entry),
+    Holding(Entry),
+    Ground(Entry),
     /// Items is nearby, inside something else. Considering renaming this and
     /// others to better indicate how far removed they are. For example,
     /// containers in the area vs containers that are being held.
-    Contained(EntityPtr),
-    Exit(String, EntityPtr),
+    Contained(Entry),
+    Exit(String, Entry),
 }
 
 #[derive(Debug)]
@@ -479,13 +486,13 @@ impl EntityRelationshipSet {
         let mut expanded = self.entities.clone();
 
         for entity in &self.entities {
-            if let EntityRelationship::Ground(ground) = entity {
-                let item = ground.borrow();
+            if let EntityRelationship::Ground(item) = entity {
                 if let Some(exit) = item.maybe_scope::<Exit>()? {
                     expanded.push(EntityRelationship::Exit(
                         item.name()
+                            .map(|v| v.to_string())
                             .ok_or_else(|| anyhow!("Route name is required"))?,
-                        exit.area.into_entity()?,
+                        exit.area.into_entry()?,
                     ));
                 }
             }

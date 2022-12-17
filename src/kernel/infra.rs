@@ -3,7 +3,7 @@ use std::{
     cell::RefCell,
     rc::{Rc, Weak},
 };
-use tracing::{info, trace};
+use tracing::*;
 
 use super::{
     Action, ActionArgs, DomainError, DomainEvent, EntityGID, EntityKey, EntityPtr, EntityRef,
@@ -63,8 +63,8 @@ impl TryFrom<EntityPtr> for Entry {
     }
 }
 
-impl From<Entry> for LazyLoadedEntity {
-    fn from(value: Entry) -> Self {
+impl From<&Entry> for LazyLoadedEntity {
+    fn from(value: &Entry) -> Self {
         let entity = get_my_session()
             .expect("No infra")
             .load_entity_by_key(&value.key)
@@ -75,7 +75,50 @@ impl From<Entry> for LazyLoadedEntity {
 }
 
 impl Entry {
-    pub fn scope<T: Scope>(&self) -> Result<OpenedScope<T>> {
+    pub fn new_for_session(session: &Rc<dyn Infrastructure>) -> Self {
+        Self {
+            key: EntityKey::default(),
+            session: Rc::downgrade(session),
+        }
+    }
+
+    pub fn key(&self) -> EntityKey {
+        self.key.clone()
+    }
+
+    pub fn name(&self) -> Option<String> {
+        let entity = match self
+            .session
+            .upgrade()
+            .expect("No infra")
+            .load_entity_by_key(&self.key)
+            .expect("Temporary load for 'name' failed")
+        {
+            None => panic!("How did you get an Entry for an unknown Entity?"),
+            Some(entity) => entity,
+        };
+        let entity = entity.borrow();
+
+        entity.name()
+    }
+
+    pub fn desc(&self) -> Option<String> {
+        let entity = match self
+            .session
+            .upgrade()
+            .expect("No infra")
+            .load_entity_by_key(&self.key)
+            .expect("Temporary load for 'name' failed")
+        {
+            None => panic!("How did you get an Entry for an unknown Entity?"),
+            Some(entity) => entity,
+        };
+        let entity = entity.borrow();
+
+        entity.desc()
+    }
+
+    pub fn has_scope<T: Scope>(&self) -> Result<bool> {
         let entity = match self
             .session
             .upgrade()
@@ -86,7 +129,21 @@ impl Entry {
             Some(entity) => entity,
         };
 
-        info!("{:?} scope", entity);
+        let entity = entity.borrow();
+
+        Ok(entity.has_scope::<T>())
+    }
+
+    pub fn scope<T: Scope>(&self) -> Result<OpenedScope<T>> {
+        let entity = match self
+            .session
+            .upgrade()
+            .expect("No infra")
+            .load_entity_by_key(&self.key)?
+        {
+            None => panic!("How did you get an Entry for an unknown Entity?"),
+            Some(entity) => entity,
+        };
 
         let entity = entity.borrow();
 
@@ -106,13 +163,18 @@ impl Entry {
             Some(entity) => entity,
         };
 
-        info!("{:?} scope", entity);
-
         let entity = entity.borrow();
 
         let scope = entity.scope_hack::<T>()?;
 
         Ok(OpenedScopeMut::new(Weak::clone(&self.session), self, scope))
+    }
+
+    pub fn maybe_scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError> {
+        if !self.has_scope::<T>()? {
+            return Ok(None);
+        }
+        Ok(Some(self.scope::<T>()?))
     }
 }
 
@@ -213,13 +275,9 @@ impl<T: Scope> std::ops::DerefMut for OpenedScopeMut<T> {
 pub trait FindsItems {
     fn entry(&self, key: &EntityKey) -> Result<Option<Entry>>;
 
-    fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<EntityPtr>>;
+    fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<Entry>>;
 
-    fn find_optional_item(
-        &self,
-        args: ActionArgs,
-        item: Option<Item>,
-    ) -> Result<Option<EntityPtr>> {
+    fn find_optional_item(&self, args: ActionArgs, item: Option<Item>) -> Result<Option<Entry>> {
         if let Some(item) = item {
             self.find_item(args, &item)
         } else {
@@ -241,13 +299,13 @@ pub trait Infrastructure: LoadEntities + FindsItems {
         }
     }
 
-    fn add_entity(&self, entity: &EntityPtr) -> Result<()>;
+    fn add_entity(&self, entity: &EntityPtr) -> Result<Entry>;
 
-    fn add_entities(&self, entities: &Vec<&EntityPtr>) -> Result<()> {
-        for entity in entities {
-            self.add_entity(entity)?;
-        }
-        Ok(())
+    fn add_entities(&self, entities: &Vec<&EntityPtr>) -> Result<Vec<Entry>> {
+        entities
+            .iter()
+            .map(|e| self.add_entity(e))
+            .collect::<Result<Vec<_>>>()
     }
 
     fn new_key(&self) -> EntityKey;
@@ -256,7 +314,7 @@ pub trait Infrastructure: LoadEntities + FindsItems {
 
     fn raise(&self, event: Box<dyn DomainEvent>) -> Result<()>;
 
-    fn chain(&self, living: &EntityPtr, action: Box<dyn Action>) -> Result<Box<dyn Reply>>;
+    fn chain(&self, living: &Entry, action: Box<dyn Action>) -> Result<Box<dyn Reply>>;
 }
 
 pub trait Needs<T> {

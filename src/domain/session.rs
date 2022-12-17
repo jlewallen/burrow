@@ -57,7 +57,7 @@ impl StandardPerformer {
                 .as_ref()
                 .ok_or(DomainError::NoInfrastructure)?
                 .clone();
-            action.perform((world, user, area, infra))?
+            action.perform((world.try_into()?, user.try_into()?, area.try_into()?, infra))?
         };
 
         Ok(reply)
@@ -83,7 +83,7 @@ impl StandardPerformer {
         }
     }
 
-    fn evaluate_name(&self, name: &str) -> Result<(EntityPtr, EntityPtr, EntityPtr), DomainError> {
+    fn evaluate_name(&self, name: &str) -> Result<(Entry, Entry, Entry), DomainError> {
         let _span = span!(Level::DEBUG, "L").entered();
 
         let infra = self.infra.borrow();
@@ -107,13 +107,10 @@ impl StandardPerformer {
             .load_entity_by_key(user_key)?
             .ok_or(DomainError::EntityNotFound)?;
 
-        self.evaluate_living(&living)
+        self.evaluate_living(&living.try_into()?)
     }
 
-    fn evaluate_living(
-        &self,
-        living: &EntityPtr,
-    ) -> Result<(EntityPtr, EntityPtr, EntityPtr), DomainError> {
+    fn evaluate_living(&self, living: &Entry) -> Result<(Entry, Entry, Entry), DomainError> {
         let world = self
             .infra
             .borrow()
@@ -122,23 +119,22 @@ impl StandardPerformer {
             .load_entity_by_key(&WORLD_KEY)?
             .ok_or(DomainError::EntityNotFound)?;
 
-        let area: EntityPtr = {
-            let user = living.borrow();
-            let occupying: OpenScope<Occupying> = user.scope::<Occupying>()?;
-            occupying.area.into_entity()?
+        let area: Entry = {
+            let occupying = living.scope::<Occupying>()?;
+            occupying.area.into_entry()?
         };
 
-        info!("area {}", area.borrow());
+        info!("area {:?}", &area);
 
-        Ok((world, living.clone(), area))
+        Ok((world.try_into()?, living.clone(), area))
     }
 
-    fn discover_from(&self, entities: Vec<&EntityPtr>) -> Result<Vec<EntityKey>> {
+    fn discover_from(&self, entities: Vec<&Entry>) -> Result<Vec<EntityKey>> {
         let _span = span!(Level::DEBUG, "D").entered();
         let mut discovered: Vec<EntityKey> = vec![];
         if self.discoverying {
-            for entity in &entities {
-                eval::discover(&entity.borrow(), &mut discovered)?;
+            for entity in entities {
+                eval::discover(entity, &mut discovered)?;
             }
             info!("discovered {:?}", discovered);
         }
@@ -147,7 +143,7 @@ impl StandardPerformer {
 }
 
 impl Performer for StandardPerformer {
-    fn perform(&self, living: &EntityPtr, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
+    fn perform(&self, living: &Entry, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
         info!("performing {:?}", action);
 
         let (world, living, area) = self.evaluate_living(living)?;
@@ -162,7 +158,12 @@ impl Performer for StandardPerformer {
                 .as_ref()
                 .ok_or(DomainError::NoInfrastructure)?
                 .clone();
-            action.perform((world, living, area, infra))?
+            action.perform((
+                world.try_into()?,
+                living.try_into()?,
+                area.try_into()?,
+                infra,
+            ))?
         };
 
         event!(Level::INFO, "done");
@@ -347,7 +348,7 @@ impl Session {
             for key in audience_keys {
                 let user = self.load_entity_by_key(&key)?.unwrap();
                 debug!(%key, "observing {:?}", user);
-                let observed = event.observe(&user)?;
+                let observed = event.observe(&user.try_into()?)?;
                 let rc: Rc<dyn Observed> = observed.into();
                 notifier.notify(&key, &rc)?;
             }
@@ -528,7 +529,7 @@ impl Drop for Session {
 }
 
 impl FindsItems for Session {
-    fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<EntityPtr>> {
+    fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<Entry>> {
         self.infra.find_item(args, item)
     }
 
@@ -542,7 +543,7 @@ impl Infrastructure for Session {
         self.infra.ensure_entity(entity_ref)
     }
 
-    fn add_entity(&self, entity: &EntityPtr) -> Result<()> {
+    fn add_entity(&self, entity: &EntityPtr) -> Result<Entry> {
         self.infra.add_entity(entity)
     }
 
@@ -554,7 +555,7 @@ impl Infrastructure for Session {
         self.infra.new_identity()
     }
 
-    fn chain(&self, living: &EntityPtr, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
+    fn chain(&self, living: &Entry, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
         self.infra.chain(living, action)
     }
 

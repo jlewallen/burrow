@@ -19,14 +19,14 @@ pub mod model {
     #[derive(Debug)]
     pub enum CarryingEvent {
         ItemHeld {
-            living: EntityPtr,
-            item: EntityPtr,
-            area: EntityPtr,
+            living: Entry,
+            item: Entry,
+            area: Entry,
         },
         ItemDropped {
-            living: EntityPtr,
-            item: EntityPtr,
-            area: EntityPtr,
+            living: Entry,
+            item: Entry,
+            area: Entry,
         },
     }
 
@@ -46,7 +46,7 @@ pub mod model {
             }
         }
 
-        fn observe(&self, user: &EntityPtr) -> Result<Box<dyn Observed>> {
+        fn observe(&self, user: &Entry) -> Result<Box<dyn Observed>> {
             Ok(match self {
                 CarryingEvent::ItemHeld {
                     living,
@@ -249,7 +249,7 @@ pub mod model {
         }
     }
 
-    pub fn discover(source: &Entity, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
+    pub fn discover(source: &Entry, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
         if let Ok(containing) = source.scope::<Containing>() {
             entity_keys.extend(containing.holding.iter().map(|er| er.key.clone()))
         }
@@ -276,7 +276,11 @@ pub mod actions {
             let (_, user, area, infra) = args.clone();
 
             match infra.find_item(args, &self.item)? {
-                Some(holding) => match tools::move_between(&area, &user, &holding)? {
+                Some(holding) => match tools::move_between(
+                    &area.clone().try_into()?,
+                    &user.clone().try_into()?,
+                    &holding.clone().try_into()?,
+                )? {
                     DomainOutcome::Ok => Ok(Box::new(reply_done(CarryingEvent::ItemHeld {
                         living: user,
                         item: holding,
@@ -306,7 +310,11 @@ pub mod actions {
 
             match &self.maybe_item {
                 Some(item) => match infra.find_item(args, item)? {
-                    Some(dropping) => match tools::move_between(&user, &area, &dropping)? {
+                    Some(dropping) => match tools::move_between(
+                        &user.clone().try_into()?,
+                        &area.clone().try_into()?,
+                        &dropping.clone().try_into()?,
+                    )? {
                         DomainOutcome::Ok => {
                             Ok(Box::new(reply_done(CarryingEvent::ItemDropped {
                                 living: user,
@@ -342,9 +350,13 @@ pub mod actions {
             match infra.find_item(args.clone(), &self.item)? {
                 Some(item) => match infra.find_item(args, &self.vessel)? {
                     Some(vessel) => {
-                        if tools::is_container(&vessel) {
+                        if tools::is_container(&vessel)? {
                             let from = tools::container_of(&item)?;
-                            match tools::move_between(&from, &vessel, &item)? {
+                            match tools::move_between(
+                                &from.try_into()?,
+                                &vessel.try_into()?,
+                                &item.try_into()?,
+                            )? {
                                 DomainOutcome::Ok => Ok(Box::new(SimpleReply::Done)),
                                 DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
                             }
@@ -377,10 +389,10 @@ pub mod actions {
 
             match infra.find_item(args.clone(), &self.vessel)? {
                 Some(vessel) => {
-                    if tools::is_container(&vessel) {
+                    if tools::is_container(&vessel)? {
                         match infra.find_item(args, &self.item)? {
                             Some(item) => {
-                                match tools::move_between_entries(
+                                match tools::move_between(
                                     &vessel.try_into()?,
                                     &user.try_into()?,
                                     &item.try_into()?,
@@ -508,8 +520,8 @@ mod tests {
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
-        assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
-        assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 0);
+        assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
+        assert_eq!(area.scope::<Containing>()?.holding.len(), 0);
 
         build.close()?;
 
@@ -530,8 +542,8 @@ mod tests {
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
-        assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
-        assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 1);
+        assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
+        assert_eq!(area.scope::<Containing>()?.holding.len(), 1);
 
         build.close()?;
 
@@ -544,10 +556,10 @@ mod tests {
         let mut build = BuildActionArgs::new()?;
         let same_kind = build.make(QuickThing::Object("Cool Rake"))?;
         tools::set_quantity(&same_kind, 2.0)?;
-        let (first, second) = tools::separate(same_kind, 1.0)?;
+        let (first, second) = tools::separate(same_kind.try_into()?, 1.0)?;
         let args: ActionArgs = build
-            .ground(vec![QuickThing::Actual(first.clone())])
-            .hands(vec![QuickThing::Actual(second.clone())])
+            .ground(vec![QuickThing::Actual(first.try_into()?)])
+            .hands(vec![QuickThing::Actual(second.try_into()?)])
             .try_into()?;
 
         let action = try_parsing(HoldActionParser {}, "hold rake")?;
@@ -556,8 +568,8 @@ mod tests {
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
-        assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
-        assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 0);
+        assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
+        assert_eq!(area.scope::<Containing>()?.holding.len(), 0);
 
         build.close()?;
 
@@ -577,8 +589,8 @@ mod tests {
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
-        assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
-        assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 1);
+        assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
+        assert_eq!(area.scope::<Containing>()?.holding.len(), 1);
 
         build.close()?;
 
@@ -598,8 +610,8 @@ mod tests {
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
-        assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
-        assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 1);
+        assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
+        assert_eq!(area.scope::<Containing>()?.holding.len(), 1);
 
         build.close()?;
 
@@ -619,8 +631,8 @@ mod tests {
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
-        assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
-        assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 0);
+        assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
+        assert_eq!(area.scope::<Containing>()?.holding.len(), 0);
 
         build.close()?;
 
@@ -640,8 +652,8 @@ mod tests {
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
-        assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 0);
-        assert_eq!(area.borrow().scope::<Containing>()?.holding.len(), 1);
+        assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
+        assert_eq!(area.scope::<Containing>()?.holding.len(), 1);
 
         build.close()?;
 
@@ -651,11 +663,11 @@ mod tests {
     #[test]
     fn it_fails_to_puts_item_in_non_containers() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let vessel = build.build()?.named("Not A Vessel")?.into_entity()?;
+        let vessel = build.build()?.named("Not A Vessel")?.into_entry()?;
         let args: ActionArgs = build
             .hands(vec![
                 QuickThing::Object("key"),
-                QuickThing::Actual(vessel.clone()),
+                QuickThing::Actual(vessel.clone().try_into()?),
             ])
             .try_into()?;
 
@@ -665,8 +677,8 @@ mod tests {
 
         insta::assert_json_snapshot!(reply.to_json()?);
 
-        assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 2);
-        assert_eq!(vessel.borrow().scope::<Containing>()?.holding.len(), 0);
+        assert_eq!(person.scope::<Containing>()?.holding.len(), 2);
+        assert_eq!(vessel.scope::<Containing>()?.holding.len(), 0);
 
         build.close()?;
 
@@ -680,11 +692,11 @@ mod tests {
             .build()?
             .named("Vessel")?
             .holding(&vec![])?
-            .into_entity()?;
+            .into_entry()?;
         let args: ActionArgs = build
             .hands(vec![
                 QuickThing::Object("key"),
-                QuickThing::Actual(vessel.clone()),
+                QuickThing::Actual(vessel.clone().try_into()?),
             ])
             .try_into()?;
 
@@ -694,8 +706,8 @@ mod tests {
 
         insta::assert_json_snapshot!(reply.to_json()?);
 
-        assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 1);
-        assert_eq!(vessel.borrow().scope::<Containing>()?.holding.len(), 1);
+        assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
+        assert_eq!(vessel.scope::<Containing>()?.holding.len(), 1);
 
         build.close()?;
 
@@ -705,12 +717,12 @@ mod tests {
     #[test]
     fn it_takes_items_out_of_containers() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let key = build.build()?.named("Key")?.into_entity()?;
+        let key = build.build()?.named("Key")?.into_entry()?;
         let vessel = build
             .build()?
             .named("Vessel")?
             .holding(&vec![key.clone()])?
-            .into_entity()?;
+            .into_entry()?;
         let args: ActionArgs = build
             .hands(vec![QuickThing::Actual(vessel.clone())])
             .try_into()?;
@@ -721,15 +733,10 @@ mod tests {
 
         insta::assert_json_snapshot!(reply.to_json()?);
 
-        assert_eq!(person.borrow().scope::<Containing>()?.holding.len(), 2);
-        assert_eq!(vessel.borrow().scope::<Containing>()?.holding.len(), 0);
+        assert_eq!(person.scope::<Containing>()?.holding.len(), 2);
+        assert_eq!(vessel.scope::<Containing>()?.holding.len(), 0);
         assert_eq!(
-            key.borrow()
-                .scope::<Location>()?
-                .container
-                .as_ref()
-                .unwrap()
-                .key,
+            key.scope::<Location>()?.container.as_ref().unwrap().key,
             person.key()
         );
 

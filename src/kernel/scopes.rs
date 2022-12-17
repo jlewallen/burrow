@@ -9,7 +9,7 @@ use super::ReplyResult;
 
 pub type EvaluationResult = Result<Box<dyn Action>, EvaluationError>;
 
-pub type ActionArgs = (EntityPtr, EntityPtr, EntityPtr, Rc<dyn Infrastructure>);
+pub type ActionArgs = (Entry, Entry, Entry, Rc<dyn Infrastructure>);
 
 pub trait Action: Debug {
     fn perform(&self, args: ActionArgs) -> ReplyResult;

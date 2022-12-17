@@ -235,13 +235,13 @@ pub enum Audience {
     Nobody,
     Everybody,
     Individuals(Vec<EntityKey>),
-    Area(EntityPtr),
+    Area(Entry),
 }
 
 pub trait DomainEvent: Debug {
     fn audience(&self) -> Audience;
 
-    fn observe(&self, user: &EntityPtr) -> Result<Box<dyn Observed>>;
+    fn observe(&self, user: &Entry) -> Result<Box<dyn Observed>>;
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -737,6 +737,11 @@ impl LazyLoadedEntity {
             },
             None => Err(DomainError::DanglingEntity),
         }
+    }
+
+    pub fn into_entry(&self) -> Result<Entry, DomainError> {
+        let session = get_my_session()?;
+        Ok(session.entry(&self.key)?.expect("No Entry for Entity"))
     }
 }
 

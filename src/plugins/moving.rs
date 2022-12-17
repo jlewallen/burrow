@@ -13,8 +13,8 @@ pub mod model {
 
     #[derive(Debug)]
     pub enum MovingEvent {
-        Left { living: EntityPtr, area: EntityPtr },
-        Arrived { living: EntityPtr, area: EntityPtr },
+        Left { living: Entry, area: Entry },
+        Arrived { living: Entry, area: Entry },
     }
 
     impl DomainEvent for MovingEvent {
@@ -25,7 +25,7 @@ pub mod model {
             }
         }
 
-        fn observe(&self, user: &EntityPtr) -> Result<Box<dyn Observed>> {
+        fn observe(&self, user: &Entry) -> Result<Box<dyn Observed>> {
             Ok(match self {
                 Self::Left {
                     living,
@@ -73,7 +73,16 @@ pub mod model {
     }
 
     impl Occupyable {
-        pub fn stop_occupying(&mut self, item: EntityPtr) -> Result<DomainOutcome> {
+        pub fn stop_occupying_entry(&mut self, item: &Entry) -> Result<DomainOutcome> {
+            self.stop_occupying(
+                &get_my_session()
+                    .expect("Expected Entry in stop_occupying")
+                    .load_entity_by_key(&item.key)?
+                    .unwrap(),
+            )
+        }
+
+        pub fn stop_occupying(&mut self, item: &EntityPtr) -> Result<DomainOutcome> {
             let before = self.occupied.len();
             self.occupied.retain(|i| i.key != item.borrow().key);
             let after = self.occupied.len();
@@ -82,6 +91,15 @@ pub mod model {
             }
 
             Ok(DomainOutcome::Ok)
+        }
+
+        pub fn start_occupying_entry(&mut self, item: &Entry) -> Result<DomainOutcome> {
+            self.start_occupying(
+                &get_my_session()
+                    .expect("Expected Entry in start_occupying")
+                    .load_entity_by_key(&item.key)?
+                    .unwrap(),
+            )
         }
 
         pub fn start_occupying(&mut self, item: &EntityPtr) -> Result<DomainOutcome> {
@@ -163,7 +181,7 @@ pub mod model {
         }
     }
 
-    pub fn discover(source: &Entity, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
+    pub fn discover(source: &Entry, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
         if let Ok(occupyable) = source.scope::<Occupyable>() {
             // Pretty sure this clone should be unnecessary.
             entity_keys.extend(occupyable.occupied.iter().map(|er| er.key.clone()));
@@ -198,21 +216,27 @@ pub mod actions {
             let (_, living, area, infra) = args.clone();
 
             match infra.find_item(args, &self.item)? {
-                Some(to_area) => match tools::navigate_between(&area, &to_area, &living)? {
-                    DomainOutcome::Ok => {
-                        get_my_session()?.raise(Box::new(MovingEvent::Left {
-                            living: living.clone(),
-                            area: area,
-                        }))?;
-                        get_my_session()?.raise(Box::new(MovingEvent::Arrived {
-                            living: living.clone(),
-                            area: to_area,
-                        }))?;
+                Some(to_area) => {
+                    match tools::navigate_between(
+                        &area.clone().try_into()?,
+                        &to_area.clone().try_into()?,
+                        &living.clone().try_into()?,
+                    )? {
+                        DomainOutcome::Ok => {
+                            get_my_session()?.raise(Box::new(MovingEvent::Left {
+                                living: living.clone(),
+                                area: area,
+                            }))?;
+                            get_my_session()?.raise(Box::new(MovingEvent::Arrived {
+                                living: living.clone(),
+                                area: to_area,
+                            }))?;
 
-                        infra.chain(&living, Box::new(LookAction {}))
+                            infra.chain(&living, Box::new(LookAction {}))
+                        }
+                        DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
                     }
-                    DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
-                },
+                }
                 None => Ok(Box::new(SimpleReply::NotFound)),
             }
         }

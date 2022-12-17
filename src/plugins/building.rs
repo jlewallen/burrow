@@ -25,7 +25,7 @@ pub mod model {
         }
     }
 
-    pub fn discover(_source: &Entity, _entity_keys: &mut [EntityKey]) -> Result<()> {
+    pub fn discover(_source: &Entry, _entity_keys: &mut [EntityKey]) -> Result<()> {
         Ok(())
     }
 }
@@ -76,23 +76,25 @@ pub mod actions {
                 self.outgoing, self.returning, self.new_area
             );
 
-            let (_, user, area, infra) = args.clone();
+            let (_, living, area, infra) = args.clone();
 
             let new_area = EntityPtr::new_named(&self.new_area, &self.new_area)?;
             let returning = EntityPtr::new_named(&self.returning, &self.returning)?;
+            let outgoing = EntityPtr::new_named(&self.outgoing, &self.outgoing)?;
+            let added = infra.add_entities(&vec![&new_area, &returning, &outgoing])?;
+            let new_area = added[0].clone();
+            let returning = added[1].clone();
+            let outgoing = added[2].clone();
+
             tools::leads_to(&returning, &area)?;
             tools::set_container(&new_area, &vec![returning.clone()])?;
 
-            let outgoing = EntityPtr::new_named(&self.outgoing, &self.outgoing)?;
             tools::leads_to(&outgoing, &new_area)?;
             tools::set_container(&area, &vec![outgoing.clone()])?;
 
-            infra.add_entities(&vec![&new_area, &returning, &outgoing])?;
-
-            info!("entity {:?} {:?} {:?}", outgoing, returning, new_area);
-
-            match tools::navigate_between(&area, &new_area, &user)? {
-                DomainOutcome::Ok => infra.chain(&user, Box::new(LookAction {})),
+            // TODO Chain to GoAction?
+            match tools::navigate_between(&area, &new_area, &living)? {
+                DomainOutcome::Ok => infra.chain(&living, Box::new(LookAction {})),
                 DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
             }
         }
@@ -117,7 +119,7 @@ pub mod actions {
 
             infra.add_entities(&vec![&new_item])?;
 
-            tools::set_container(&user, &vec![new_item])?;
+            tools::set_container(&user, &vec![new_item.try_into()?])?;
 
             Ok(Box::new(SimpleReply::Done))
         }
@@ -265,12 +267,12 @@ mod tests {
 
         // Not the best way of finding the constructed area.
         let destination = infra
-            .load_entity_by_gid(&EntityGID::new(4))?
+            .load_entity_by_gid(&EntityGID::new(7))?
             .ok_or(DomainError::EntityNotFound)?;
 
         assert_eq!(
             reply.to_json()?,
-            new_area_observation(&living, &destination)?.to_json()?
+            new_area_observation(&living, &destination.try_into()?)?.to_json()?
         );
 
         Ok(())
@@ -287,7 +289,7 @@ mod tests {
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
-        assert_eq!(living.borrow().scope::<Containing>()?.holding.len(), 1);
+        assert_eq!(living.scope::<Containing>()?.holding.len(), 1);
 
         Ok(())
     }

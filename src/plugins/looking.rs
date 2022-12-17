@@ -21,32 +21,28 @@ pub mod model {
     }
 
     pub trait Observe<T> {
-        fn observe(&self, user: &EntityPtr) -> Result<T>;
+        fn observe(&self, user: &Entry) -> Result<T>;
     }
 
-    impl Observe<ObservedEntity> for &EntityPtr {
-        fn observe(&self, _user: &EntityPtr) -> Result<ObservedEntity> {
-            let e = self.borrow();
-            let name = e.name();
+    impl Observe<ObservedEntity> for &Entry {
+        fn observe(&self, _user: &Entry) -> Result<ObservedEntity> {
+            let name = self.name();
             let qualified = name.as_ref().map(|n| qualify_name(1.0, &n));
 
             Ok(ObservedEntity {
-                key: e.key.to_string(),
-                name: name,
+                key: self.key.to_string(),
+                name: name.map(|v| v.to_string()),
                 qualified: qualified,
-                desc: e.desc(),
+                desc: self.desc().map(|v| v.to_string()),
             })
         }
     }
 
-    pub fn new_inside_observation(
-        user: &EntityPtr,
-        vessel: &EntityPtr,
-    ) -> Result<InsideObservation> {
+    pub fn new_inside_observation(user: &Entry, vessel: &Entry) -> Result<InsideObservation> {
         let mut items = vec![];
-        if let Ok(containing) = vessel.borrow().scope::<Containing>() {
+        if let Ok(containing) = vessel.scope::<Containing>() {
             for lazy_entity in &containing.holding {
-                let entity = &lazy_entity.into_entity()?;
+                let entity = &lazy_entity.into_entry()?;
                 items.push(entity.observe(user)?);
             }
         }
@@ -57,34 +53,34 @@ pub mod model {
         })
     }
 
-    pub fn new_area_observation(user: &EntityPtr, area: &EntityPtr) -> Result<AreaObservation> {
+    pub fn new_area_observation(user: &Entry, area: &Entry) -> Result<AreaObservation> {
         // I feel like there's a lot of unnecessary copying going on here.
 
         let mut living: Vec<ObservedEntity> = vec![];
-        if let Ok(occupyable) = area.borrow().scope::<Occupyable>() {
+        if let Ok(occupyable) = area.scope::<Occupyable>() {
             for entity in &occupyable.occupied {
-                living.push((&entity.into_entity()?).observe(user)?);
+                living.push((&entity.into_entry()?).observe(user)?);
             }
         }
 
         let mut items = vec![];
-        if let Ok(containing) = area.borrow().scope::<Containing>() {
+        if let Ok(containing) = area.scope::<Containing>() {
             for entity in &containing.holding {
-                items.push((&entity.into_entity()?).observe(user)?);
+                items.push((&entity.into_entry()?).observe(user)?);
             }
         }
 
         let mut carrying = vec![];
-        if let Ok(containing) = user.borrow().scope::<Containing>() {
+        if let Ok(containing) = user.scope::<Containing>() {
             for entity in &containing.holding {
-                carrying.push((&entity.into_entity()?).observe(user)?);
+                carrying.push((&entity.into_entry()?).observe(user)?);
             }
         }
 
         let mut routes = vec![];
-        if let Ok(movement) = user.borrow().scope::<Movement>() {
+        if let Ok(movement) = user.scope::<Movement>() {
             for route in &movement.routes {
-                routes.push((&route.area.into_entity()?).observe(user)?);
+                routes.push((&route.area.into_entry()?).observe(user)?);
             }
         };
 
@@ -98,7 +94,7 @@ pub mod model {
         })
     }
 
-    pub fn discover(_source: &Entity, _entity_keys: &mut [EntityKey]) -> Result<()> {
+    pub fn discover(_source: &Entry, _entity_keys: &mut [EntityKey]) -> Result<()> {
         Ok(())
     }
 }
@@ -139,7 +135,7 @@ pub mod actions {
 
             match infra.find_item(args, &self.item)? {
                 Some(target) => {
-                    if tools::is_container(&target) {
+                    if tools::is_container(&target)? {
                         Ok(Box::new(new_inside_observation(&user, &target)?))
                     } else {
                         Ok(Box::new(SimpleReply::Impossible))
@@ -290,7 +286,7 @@ mod tests {
             .build()?
             .named("Vessel")?
             .holding(&vec![build.make(QuickThing::Object("Key"))?])?
-            .into_entity()?;
+            .into_entry()?;
         let args: ActionArgs = build.hands(vec![QuickThing::Actual(vessel)]).try_into()?;
 
         let action = try_parsing(LookActionParser {}, "look inside vessel")?;
