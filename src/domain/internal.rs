@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use std::rc::Weak;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::{cell::RefCell, collections::HashMap, fmt::Debug, rc::Rc};
@@ -237,6 +238,7 @@ pub struct DomainInfrastructure {
     keys: Arc<dyn KeySequence>,
     identities: Arc<dyn IdentityFactory>,
     raised: Rc<RefCell<Vec<Box<dyn DomainEvent>>>>,
+    weak: Weak<DomainInfrastructure>,
 }
 
 impl DomainInfrastructure {
@@ -249,12 +251,13 @@ impl DomainInfrastructure {
         raised: Rc<RefCell<Vec<Box<dyn DomainEvent>>>>,
     ) -> Rc<Self> {
         let entities = Entities::new(entity_map, storage);
-        Rc::new(DomainInfrastructure {
+        Rc::new_cyclic(|weak| Self {
             entities,
             performer,
             keys,
             identities,
             raised,
+            weak: Weak::clone(weak),
         })
     }
 
@@ -352,6 +355,16 @@ fn matches_description(entity: &Entity, desc: &str) -> bool {
 }
 
 impl FindsItems for DomainInfrastructure {
+    fn entry(&self, key: &EntityKey) -> Result<Option<Entry>> {
+        match self.load_entity_by_key(key)? {
+            Some(_) => Ok(Some(Entry {
+                key: key.clone(),
+                session: Weak::clone(&self.weak) as Weak<dyn Infrastructure>,
+            })),
+            None => Ok(None),
+        }
+    }
+
     fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<EntityPtr>> {
         let _loading_span = span!(Level::INFO, "finding", i = format!("{:?}", item)).entered();
 

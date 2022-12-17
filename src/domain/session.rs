@@ -202,7 +202,7 @@ pub struct Session {
     infra: Rc<DomainInfrastructure>,
     performer: Rc<StandardPerformer>,
     raised: Rc<RefCell<Vec<Box<dyn DomainEvent>>>>,
-    weak: Weak<Session>,
+    _weak: Weak<Session>,
 }
 
 impl Session {
@@ -241,21 +241,47 @@ impl Session {
             }
         }
 
-        Ok(Rc::new_cyclic(move |weak| {
-            // set_my_session(Some(weak)).expect("set_my_session failed!");
-
-            Self {
-                opened,
-                infra: domain_infra,
-                storage,
-                entity_map,
-                open: AtomicBool::new(true),
-                performer: standard_performer,
-                ids,
-                raised: raised,
-                weak: Weak::clone(weak),
-            }
+        Ok(Rc::new_cyclic(move |weak| Self {
+            opened,
+            infra: domain_infra,
+            storage,
+            entity_map,
+            open: AtomicBool::new(true),
+            performer: standard_performer,
+            ids,
+            raised: raised,
+            _weak: Weak::clone(weak),
         }))
+    }
+
+    pub fn entry(&self, key: &EntityKey) -> Result<Option<Entry>> {
+        match self.load_entity_by_key(key)? {
+            Some(_) => Ok(Some(Entry {
+                key: key.clone(),
+                session: Rc::downgrade(&self.infra) as Weak<dyn Infrastructure>,
+            })),
+            None => Ok(None),
+        }
+    }
+
+    pub fn scope<T: Scope>(&self, entry: &Entry) -> Result<Box<T>> {
+        let entity = match self.load_entity_by_key(&entry.key)? {
+            None => panic!("How did you get an Entry for an unknown Entity?"),
+            Some(entity) => entity,
+        };
+
+        info!("{:?} scope", entity);
+
+        let entity = entity.borrow();
+
+        entity.scope_hack::<T>()
+    }
+
+    pub fn save<T: Scope>(&self, entry: &Entry, scope: &Box<T>) -> Result<()> {
+        let entity = self.load_entity_by_key(&entry.key)?.unwrap();
+        let mut entity = entity.borrow_mut();
+
+        entity.replace_scope::<T>(scope)
     }
 
     pub fn infra(&self) -> Rc<dyn Infrastructure> {
@@ -504,6 +530,10 @@ impl Drop for Session {
 impl FindsItems for Session {
     fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<EntityPtr>> {
         self.infra.find_item(args, item)
+    }
+
+    fn entry(&self, key: &EntityKey) -> Result<Option<Entry>> {
+        self.infra.entry(key)
     }
 }
 
