@@ -8,6 +8,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use crate::domain::DevNullNotifier;
 
 pub mod domain;
+pub mod hacking;
 pub mod kernel;
 pub mod plugins;
 pub mod serve;
@@ -32,6 +33,7 @@ struct Cli {
 enum Commands {
     Serve(serve::Command),
     Shell(shell::Command),
+    Hacking,
     Eval,
 }
 
@@ -65,6 +67,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let cli = Cli::parse();
 
     match &cli.command {
+        Some(Commands::Hacking) => Ok(hacking::execute_command()?),
         Some(Commands::Serve(cmd)) => Ok(serve::execute_command(cmd)?),
         Some(Commands::Shell(cmd)) => Ok(shell::execute_command(cmd)?),
         Some(Commands::Eval) => {
