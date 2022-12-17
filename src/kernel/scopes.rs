@@ -6,6 +6,7 @@ use std::{fmt::Debug, rc::Rc};
 use super::infra::*;
 use super::model::*;
 use super::ReplyResult;
+use crate::domain::Entry;
 
 pub type EvaluationResult = Result<Box<dyn Action>, EvaluationError>;
 

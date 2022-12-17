@@ -7,7 +7,8 @@ use super::{
     carrying::model::{Containing, Location},
     moving::model::{Occupyable, Occupying},
 };
-use crate::kernel::{model::*, Entry};
+use crate::domain::Entry;
+use crate::kernel::model::*;
 use crate::kernel::{DomainOutcome, EntityPtr};
 
 pub fn is_container(item: &Entry) -> Result<bool> {

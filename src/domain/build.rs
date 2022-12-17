@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
-use super::{DevNullNotifier, Session};
+use super::{DevNullNotifier, Entry, Session};
 use crate::{
-    kernel::{ActionArgs, EntityKey, EntityPtr, Entry, Infrastructure, WORLD_KEY},
+    kernel::{ActionArgs, EntityKey, EntityPtr, Infrastructure, WORLD_KEY},
     plugins::tools,
 };
 use anyhow::Result;

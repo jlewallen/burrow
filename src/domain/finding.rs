@@ -1,5 +1,6 @@
+use super::Entry;
 use crate::{
-    kernel::{ActionArgs, Entry, Item},
+    kernel::{ActionArgs, Item},
     plugins::tools,
 };
 use anyhow::{anyhow, Result};

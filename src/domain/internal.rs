@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::{cell::RefCell, collections::HashMap, fmt::Debug, rc::Rc};
 use tracing::*;
 
-use super::{EntityRelationshipSet, IdentityFactory, KeySequence};
+use super::{EntityRelationshipSet, Entry, IdentityFactory, KeySequence};
 use crate::kernel::*;
 use crate::storage::{EntityStorage, PersistedEntity};
 
@@ -280,7 +280,7 @@ impl DomainInfrastructure {
     }
 }
 
-impl LoadEntities for DomainInfrastructure {
+impl Infrastructure for DomainInfrastructure {
     fn load_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
         self.entities.prepare_entity_by_key(key)
     }
@@ -288,9 +288,7 @@ impl LoadEntities for DomainInfrastructure {
     fn load_entity_by_gid(&self, gid: &EntityGID) -> Result<Option<EntityPtr>> {
         self.entities.prepare_entity_by_gid(gid)
     }
-}
 
-impl FindsItems for DomainInfrastructure {
     fn entry(&self, key: &EntityKey) -> Result<Option<Entry>> {
         match self.load_entity_by_key(key)? {
             Some(_) => Ok(Some(Entry {
@@ -310,9 +308,6 @@ impl FindsItems for DomainInfrastructure {
 
         self.find_item_in_set(&haystack, item)
     }
-}
-
-impl Infrastructure for DomainInfrastructure {
     fn ensure_entity(&self, entity_ref: &LazyLoadedEntity) -> Result<LazyLoadedEntity> {
         if entity_ref.has_entity() {
             Ok(entity_ref.clone())

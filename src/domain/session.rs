@@ -12,6 +12,7 @@ use std::{
 use tracing::{debug, event, info, span, trace, warn, Level};
 
 use super::internal::{DomainInfrastructure, EntityMap, GlobalIds, LoadedEntity, Performer};
+use super::Entry;
 use crate::plugins::tools;
 use crate::plugins::{identifiers, moving::model::Occupying, users::model::Usernames};
 use crate::storage::{EntityStorage, EntityStorageFactory, PersistedEntity};
@@ -528,7 +529,15 @@ impl Drop for Session {
     }
 }
 
-impl FindsItems for Session {
+impl Infrastructure for Session {
+    fn load_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
+        self.infra.load_entity_by_key(key)
+    }
+
+    fn load_entity_by_gid(&self, gid: &EntityGID) -> Result<Option<EntityPtr>> {
+        self.infra.load_entity_by_gid(gid)
+    }
+
     fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<Entry>> {
         self.infra.find_item(args, item)
     }
@@ -536,9 +545,7 @@ impl FindsItems for Session {
     fn entry(&self, key: &EntityKey) -> Result<Option<Entry>> {
         self.infra.entry(key)
     }
-}
 
-impl Infrastructure for Session {
     fn ensure_entity(&self, entity_ref: &LazyLoadedEntity) -> Result<LazyLoadedEntity> {
         self.infra.ensure_entity(entity_ref)
     }
@@ -563,18 +570,6 @@ impl Infrastructure for Session {
         self.infra.raise(event)
     }
 }
-
-impl LoadEntities for Session {
-    fn load_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
-        self.infra.load_entity_by_key(key)
-    }
-
-    fn load_entity_by_gid(&self, gid: &EntityGID) -> Result<Option<EntityPtr>> {
-        self.infra.load_entity_by_gid(gid)
-    }
-}
-
-impl SessionTrait for Session {}
 
 pub struct Domain {
     storage_factory: Box<dyn EntityStorageFactory>,
