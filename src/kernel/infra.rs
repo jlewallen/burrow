@@ -1,12 +1,10 @@
-use anyhow::Result;
-use std::{cell::RefCell, rc::Rc};
-
-use crate::domain::Entry;
-
 use super::{
     Action, ActionArgs, DomainError, DomainEvent, EntityGID, EntityKey, EntityPtr, EntityRef,
     Identity, Item, LazyLoadedEntity, Reply,
 };
+use crate::domain::Entry;
+use anyhow::Result;
+use std::{cell::RefCell, rc::Rc};
 
 thread_local! {
     #[allow(unused)]

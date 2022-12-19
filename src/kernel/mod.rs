@@ -6,8 +6,7 @@ pub mod scopes;
 pub use english::*;
 pub use infra::*;
 pub use model::*;
-pub use scopes::*;
-
 pub use replies::*;
+pub use scopes::*;
 
 pub type ReplyResult = anyhow::Result<Box<dyn Reply>>;

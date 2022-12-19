@@ -151,16 +151,8 @@ struct Entities {
     storage: Rc<dyn EntityStorage>,
 }
 
-impl Debug for Entities {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Entities").finish()
-    }
-}
-
 impl Entities {
     pub fn new(entities: Rc<EntityMap>, storage: Rc<dyn EntityStorage>) -> Rc<Self> {
-        trace!("entities-new");
-
         Rc::new(Self { entities, storage })
     }
 
@@ -308,6 +300,7 @@ impl Infrastructure for DomainInfrastructure {
 
         self.find_item_in_set(&haystack, item)
     }
+
     fn ensure_entity(&self, entity_ref: &LazyLoadedEntity) -> Result<LazyLoadedEntity> {
         if entity_ref.has_entity() {
             Ok(entity_ref.clone())
