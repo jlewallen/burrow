@@ -262,7 +262,7 @@ impl DomainInfrastructure {
         match item {
             Item::Gid(gid) => {
                 if let Some(e) = self.entry_by_gid(gid)? {
-                    Ok(Some(e.try_into()?))
+                    Ok(Some(e))
                 } else {
                     Ok(None)
                 }

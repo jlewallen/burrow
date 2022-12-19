@@ -272,7 +272,7 @@ mod tests {
 
         assert_eq!(
             reply.to_json()?,
-            new_area_observation(&living, &destination.try_into()?)?.to_json()?
+            new_area_observation(&living, &destination)?.to_json()?
         );
 
         Ok(())

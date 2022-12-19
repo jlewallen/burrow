@@ -520,10 +520,10 @@ mod tests {
         let mut build = BuildActionArgs::new()?;
         let same_kind = build.make(QuickThing::Object("Cool Rake"))?;
         tools::set_quantity(&same_kind, 2.0)?;
-        let (first, second) = tools::separate(same_kind.try_into()?, 1.0)?;
+        let (first, second) = tools::separate(same_kind, 1.0)?;
         let args: ActionArgs = build
-            .ground(vec![QuickThing::Actual(first.try_into()?)])
-            .hands(vec![QuickThing::Actual(second.try_into()?)])
+            .ground(vec![QuickThing::Actual(first)])
+            .hands(vec![QuickThing::Actual(second)])
             .try_into()?;
 
         let action = try_parsing(HoldActionParser {}, "hold rake")?;
@@ -631,7 +631,7 @@ mod tests {
         let args: ActionArgs = build
             .hands(vec![
                 QuickThing::Object("key"),
-                QuickThing::Actual(vessel.clone().try_into()?),
+                QuickThing::Actual(vessel.clone()),
             ])
             .try_into()?;
 
@@ -660,7 +660,7 @@ mod tests {
         let args: ActionArgs = build
             .hands(vec![
                 QuickThing::Object("key"),
-                QuickThing::Actual(vessel.clone().try_into()?),
+                QuickThing::Actual(vessel.clone()),
             ])
             .try_into()?;
 
