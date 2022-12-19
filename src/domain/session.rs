@@ -520,8 +520,8 @@ impl Infrastructure for Session {
         self.infra.load_entity_by_key(key)
     }
 
-    fn load_entity_by_gid(&self, gid: &EntityGID) -> Result<Option<EntityPtr>> {
-        self.infra.load_entity_by_gid(gid)
+    fn entry_by_gid(&self, gid: &EntityGID) -> Result<Option<Entry>> {
+        self.infra.entry_by_gid(gid)
     }
 
     fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<Entry>> {

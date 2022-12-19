@@ -261,7 +261,7 @@ impl DomainInfrastructure {
     ) -> Result<Option<Entry>> {
         match item {
             Item::GID(gid) => {
-                if let Some(e) = self.load_entity_by_gid(gid)? {
+                if let Some(e) = self.entry_by_gid(gid)? {
                     Ok(Some(e.try_into()?))
                 } else {
                     Ok(None)
@@ -277,8 +277,12 @@ impl Infrastructure for DomainInfrastructure {
         self.entities.prepare_entity_by_key(key)
     }
 
-    fn load_entity_by_gid(&self, gid: &EntityGID) -> Result<Option<EntityPtr>> {
-        self.entities.prepare_entity_by_gid(gid)
+    fn entry_by_gid(&self, gid: &EntityGID) -> Result<Option<Entry>> {
+        if let Some(e) = self.entities.prepare_entity_by_gid(gid)? {
+            self.entry(&e.key())
+        } else {
+            Ok(None)
+        }
     }
 
     fn entry(&self, key: &EntityKey) -> Result<Option<Entry>> {

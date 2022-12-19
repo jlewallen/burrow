@@ -1,6 +1,6 @@
 use super::{
-    Action, ActionArgs, DomainError, DomainEvent, EntityGID, EntityKey, EntityPtr, EntityRef,
-    Identity, Item, LazyLoadedEntity, Reply,
+    Action, ActionArgs, DomainError, DomainEvent, EntityGID, EntityKey, EntityPtr, Identity, Item,
+    LazyLoadedEntity, Reply,
 };
 use crate::domain::Entry;
 use anyhow::Result;
@@ -35,11 +35,7 @@ pub fn get_my_session() -> Result<Rc<dyn Infrastructure>> {
 pub trait Infrastructure {
     fn load_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>>;
 
-    fn load_entity_by_gid(&self, gid: &EntityGID) -> Result<Option<EntityPtr>>;
-
-    fn load_entity_by_ref(&self, entity_ref: &EntityRef) -> Result<Option<EntityPtr>> {
-        self.load_entity_by_key(&entity_ref.key)
-    }
+    fn entry_by_gid(&self, gid: &EntityGID) -> Result<Option<Entry>>;
 
     fn entry(&self, key: &EntityKey) -> Result<Option<Entry>>;
 

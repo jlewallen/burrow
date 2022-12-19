@@ -267,7 +267,7 @@ mod tests {
 
         // Not the best way of finding the constructed area.
         let destination = infra
-            .load_entity_by_gid(&EntityGID::new(7))?
+            .entry_by_gid(&EntityGID::new(7))?
             .ok_or(DomainError::EntityNotFound)?;
 
         assert_eq!(
