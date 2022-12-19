@@ -71,7 +71,7 @@ pub mod model {
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Location {
-        pub container: Option<LazyLoadedEntity>,
+        pub container: Option<EntityRef>,
     }
 
     impl Scope for Location {
@@ -93,7 +93,7 @@ pub mod model {
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Containing {
-        pub holding: Vec<LazyLoadedEntity>,
+        pub holding: Vec<EntityRef>,
         pub capacity: Option<u32>,
         pub produces: HashMap<String, String>,
     }

@@ -123,7 +123,7 @@ pub enum Item {
 #[derive(Clone)]
 pub struct EntityPtr {
     entity: Rc<RefCell<Entity>>,
-    lazy: RefCell<LazyLoadedEntity>,
+    lazy: RefCell<EntityRef>,
 }
 
 impl EntityPtr {
@@ -133,7 +133,7 @@ impl EntityPtr {
 
     pub fn new(e: Entity) -> Self {
         let brand_new = Rc::new(RefCell::new(e));
-        let lazy = LazyLoadedEntity::new_from_raw(&brand_new);
+        let lazy = EntityRef::new_from_raw(&brand_new);
 
         Self {
             entity: brand_new,
@@ -191,7 +191,7 @@ impl EntityPtr {
 
 impl From<Rc<RefCell<Entity>>> for EntityPtr {
     fn from(ep: Rc<RefCell<Entity>>) -> Self {
-        let lazy = LazyLoadedEntity::new_from_raw(&ep);
+        let lazy = EntityRef::new_from_raw(&ep);
 
         Self {
             entity: Rc::clone(&ep),
@@ -228,18 +228,6 @@ impl Deref for EntityPtr {
     fn deref(&self) -> &Self::Target {
         self.entity.as_ref()
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct EntityRef {
-    #[serde(rename = "py/object")]
-    py_object: String,
-    #[serde(rename = "py/ref")]
-    py_ref: String,
-    pub key: EntityKey,
-    #[serde(rename = "klass")]
-    class: String,
-    name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
@@ -432,8 +420,8 @@ pub struct Entity {
     py_object: String,
     pub key: EntityKey,
     version: Version,
-    parent: Option<LazyLoadedEntity>,
-    creator: Option<LazyLoadedEntity>,
+    parent: Option<EntityRef>,
+    creator: Option<EntityRef>,
     identity: Identity,
     #[serde(rename = "klass")]
     class: EntityClass,
@@ -594,7 +582,7 @@ impl Entity {
 }
 
 #[derive(Clone, Serialize, Deserialize, Default)]
-pub struct LazyLoadedEntity {
+pub struct EntityRef {
     #[serde(rename = "py/object")]
     py_object: String,
     #[serde(rename = "py/ref")]
@@ -608,7 +596,7 @@ pub struct LazyLoadedEntity {
     entity: Option<Weak<RefCell<Entity>>>,
 }
 
-impl LazyLoadedEntity {
+impl EntityRef {
     pub fn new_with_entity(entity: EntityPtr) -> Self {
         Self::new_from_raw(&entity.entity)
     }
@@ -646,9 +634,9 @@ impl LazyLoadedEntity {
     }
 }
 
-impl Debug for LazyLoadedEntity {
+impl Debug for EntityRef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("LazyLoadedEntity")
+        f.debug_struct("EntityRef")
             .field("key", &self.key)
             .field("name", &self.name)
             .field("gid", &self.gid)
@@ -656,13 +644,13 @@ impl Debug for LazyLoadedEntity {
     }
 }
 
-impl From<EntityPtr> for LazyLoadedEntity {
+impl From<EntityPtr> for EntityRef {
     fn from(entity: EntityPtr) -> Self {
         entity.lazy.borrow().clone()
     }
 }
 
-impl From<&EntityPtr> for LazyLoadedEntity {
+impl From<&EntityPtr> for EntityRef {
     fn from(entity: &EntityPtr) -> Self {
         entity.lazy.borrow().clone()
     }

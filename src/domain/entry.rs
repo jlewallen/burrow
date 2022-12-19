@@ -3,7 +3,7 @@ use std::rc::{Rc, Weak};
 use tracing::trace;
 
 use crate::kernel::{
-    get_my_session, DomainError, EntityKey, EntityPtr, Infrastructure, LazyLoadedEntity, Scope,
+    get_my_session, DomainError, EntityKey, EntityPtr, EntityRef, Infrastructure, Scope,
 };
 
 #[derive(Clone)]
@@ -23,14 +23,14 @@ impl TryFrom<EntityPtr> for Entry {
     }
 }
 
-impl From<&Entry> for LazyLoadedEntity {
+impl From<&Entry> for EntityRef {
     fn from(value: &Entry) -> Self {
         let entity = get_my_session()
             .expect("No infra")
             .load_entity_by_key(&value.key)
-            .expect("Load failed for From to LazyLoadedEntity")
+            .expect("Load failed for From to EntityRef")
             .expect("Missing lazy Entity reference");
-        LazyLoadedEntity::new_with_entity(entity)
+        EntityRef::new_with_entity(entity)
     }
 }
 
@@ -138,10 +138,10 @@ impl Entry {
     }
 }
 
-impl TryFrom<LazyLoadedEntity> for Option<Entry> {
+impl TryFrom<EntityRef> for Option<Entry> {
     type Error = DomainError;
 
-    fn try_from(value: LazyLoadedEntity) -> Result<Self, Self::Error> {
+    fn try_from(value: EntityRef) -> Result<Self, Self::Error> {
         let session = get_my_session().expect("No active better session");
         Ok(session.entry(&value.key)?)
     }

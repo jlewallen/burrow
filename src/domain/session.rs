@@ -532,7 +532,7 @@ impl Infrastructure for Session {
         self.infra.entry(key)
     }
 
-    fn ensure_entity(&self, entity_ref: &LazyLoadedEntity) -> Result<LazyLoadedEntity> {
+    fn ensure_entity(&self, entity_ref: &EntityRef) -> Result<EntityRef> {
         self.infra.ensure_entity(entity_ref)
     }
 

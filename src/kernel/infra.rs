@@ -1,6 +1,6 @@
 use super::{
-    Action, ActionArgs, DomainError, DomainEvent, EntityGid, EntityKey, EntityPtr, Identity, Item,
-    LazyLoadedEntity, Reply,
+    Action, ActionArgs, DomainError, DomainEvent, EntityGid, EntityKey, EntityPtr, EntityRef,
+    Identity, Item, Reply,
 };
 use crate::domain::Entry;
 use anyhow::Result;
@@ -53,12 +53,9 @@ pub trait Infrastructure {
             Ok(None)
         }
     }
-    fn ensure_entity(&self, entity_ref: &LazyLoadedEntity) -> Result<LazyLoadedEntity>;
+    fn ensure_entity(&self, entity_ref: &EntityRef) -> Result<EntityRef>;
 
-    fn ensure_optional_entity(
-        &self,
-        entity_ref: &Option<LazyLoadedEntity>,
-    ) -> Result<Option<LazyLoadedEntity>> {
+    fn ensure_optional_entity(&self, entity_ref: &Option<EntityRef>) -> Result<Option<EntityRef>> {
         match entity_ref {
             Some(e) => Ok(Some(self.ensure_entity(e)?)),
             None => Ok(None),

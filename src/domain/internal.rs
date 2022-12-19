@@ -305,7 +305,7 @@ impl Infrastructure for DomainInfrastructure {
         self.find_item_in_set(&haystack, item)
     }
 
-    fn ensure_entity(&self, entity_ref: &LazyLoadedEntity) -> Result<LazyLoadedEntity> {
+    fn ensure_entity(&self, entity_ref: &EntityRef) -> Result<EntityRef> {
         if entity_ref.has_entity() {
             Ok(entity_ref.clone())
         } else if let Some(entity) = self.load_entity_by_key(&entity_ref.key)? {

@@ -48,7 +48,7 @@ pub mod model {
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Occupying {
-        pub area: LazyLoadedEntity,
+        pub area: EntityRef,
     }
 
     impl Scope for Occupying {
@@ -71,7 +71,7 @@ pub mod model {
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Occupyable {
         pub acls: Acls,
-        pub occupied: Vec<LazyLoadedEntity>,
+        pub occupied: Vec<EntityRef>,
         pub occupancy: u32,
     }
 
@@ -117,7 +117,7 @@ pub mod model {
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Exit {
-        pub area: LazyLoadedEntity,
+        pub area: EntityRef,
     }
 
     impl Scope for Exit {
@@ -139,7 +139,7 @@ pub mod model {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct AreaRoute {
-        pub area: LazyLoadedEntity,
+        pub area: EntityRef,
     }
 
     #[derive(Debug, Serialize, Deserialize, Default)]
