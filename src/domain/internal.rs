@@ -14,13 +14,13 @@ pub struct LoadedEntity {
     pub key: EntityKey,
     pub entity: EntityPtr,
     pub version: u64,
-    pub gid: Option<EntityGID>,
+    pub gid: Option<EntityGid>,
     pub serialized: Option<String>,
 }
 
 struct Maps {
     by_key: HashMap<EntityKey, LoadedEntity>,
-    by_gid: HashMap<EntityGID, EntityKey>,
+    by_gid: HashMap<EntityGid, EntityKey>,
 }
 
 impl Maps {
@@ -44,7 +44,7 @@ impl Maps {
         }
     }
 
-    fn lookup_entity_by_gid(&self, gid: &EntityGID) -> Result<Option<EntityPtr>> {
+    fn lookup_entity_by_gid(&self, gid: &EntityGid) -> Result<Option<EntityPtr>> {
         if let Some(k) = self.by_gid.get(gid) {
             Ok(self.lookup_entity_by_key(k)?)
         } else {
@@ -112,7 +112,7 @@ impl EntityMap {
         self.maps.borrow().lookup_entity_by_key(key)
     }
 
-    pub fn lookup_entity_by_gid(&self, gid: &EntityGID) -> Result<Option<EntityPtr>> {
+    pub fn lookup_entity_by_gid(&self, gid: &EntityGid) -> Result<Option<EntityPtr>> {
         self.maps.borrow().lookup_entity_by_gid(gid)
     }
 
@@ -205,7 +205,7 @@ impl Entities {
         }
     }
 
-    fn prepare_entity_by_gid(&self, gid: &EntityGID) -> Result<Option<EntityPtr>> {
+    fn prepare_entity_by_gid(&self, gid: &EntityGid) -> Result<Option<EntityPtr>> {
         if let Some(e) = self.entities.lookup_entity_by_gid(gid)? {
             return Ok(Some(e));
         }
@@ -260,7 +260,7 @@ impl DomainInfrastructure {
         item: &Item,
     ) -> Result<Option<Entry>> {
         match item {
-            Item::GID(gid) => {
+            Item::Gid(gid) => {
                 if let Some(e) = self.entry_by_gid(gid)? {
                     Ok(Some(e.try_into()?))
                 } else {
@@ -277,7 +277,7 @@ impl Infrastructure for DomainInfrastructure {
         self.entities.prepare_entity_by_key(key)
     }
 
-    fn entry_by_gid(&self, gid: &EntityGID) -> Result<Option<Entry>> {
+    fn entry_by_gid(&self, gid: &EntityGid) -> Result<Option<Entry>> {
         if let Some(e) = self.entities.prepare_entity_by_gid(gid)? {
             self.entry(&e.key())
         } else {
@@ -354,15 +354,15 @@ impl GlobalIds {
         })
     }
 
-    pub fn gid(&self) -> EntityGID {
-        EntityGID::new(self.gid.load(Ordering::Relaxed))
+    pub fn gid(&self) -> EntityGid {
+        EntityGid::new(self.gid.load(Ordering::Relaxed))
     }
 
-    pub fn set(&self, gid: &EntityGID) {
+    pub fn set(&self, gid: &EntityGid) {
         self.gid.store(gid.into(), Ordering::Relaxed);
     }
 
-    pub fn get(&self) -> EntityGID {
-        EntityGID::new(self.gid.fetch_add(1, Ordering::Relaxed) + 1)
+    pub fn get(&self) -> EntityGid {
+        EntityGid::new(self.gid.fetch_add(1, Ordering::Relaxed) + 1)
     }
 }

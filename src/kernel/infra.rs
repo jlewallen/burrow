@@ -1,5 +1,5 @@
 use super::{
-    Action, ActionArgs, DomainError, DomainEvent, EntityGID, EntityKey, EntityPtr, Identity, Item,
+    Action, ActionArgs, DomainError, DomainEvent, EntityGid, EntityKey, EntityPtr, Identity, Item,
     LazyLoadedEntity, Reply,
 };
 use crate::domain::Entry;
@@ -35,7 +35,7 @@ pub fn get_my_session() -> Result<Rc<dyn Infrastructure>> {
 pub trait Infrastructure {
     fn load_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>>;
 
-    fn entry_by_gid(&self, gid: &EntityGID) -> Result<Option<Entry>>;
+    fn entry_by_gid(&self, gid: &EntityGid) -> Result<Option<Entry>>;
 
     fn entry(&self, key: &EntityKey) -> Result<Option<Entry>>;
 

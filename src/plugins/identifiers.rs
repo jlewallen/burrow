@@ -23,13 +23,13 @@ pub mod model {
         }
     }
 
-    pub fn get_gid(entity: &Entry) -> Result<Option<EntityGID>> {
+    pub fn get_gid(entity: &Entry) -> Result<Option<EntityGid>> {
         let ids = entity.scope::<Identifiers>()?;
 
-        Ok(Some(EntityGID::new(ids.gid)))
+        Ok(Some(EntityGid::new(ids.gid)))
     }
 
-    pub fn set_gid(entity: &Entry, value: EntityGID) -> Result<EntityGID> {
+    pub fn set_gid(entity: &Entry, value: EntityGid) -> Result<EntityGid> {
         let mut ids = entity.scope_mut::<Identifiers>()?;
         ids.gid = value.clone().into();
 

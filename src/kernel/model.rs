@@ -63,11 +63,11 @@ impl From<EntityKey> for String {
 }
 
 #[derive(Clone, Eq, PartialEq, Hash, Serialize, Deserialize, Debug)]
-pub struct EntityGID(u64);
+pub struct EntityGid(u64);
 
-impl EntityGID {
-    pub fn new(i: u64) -> EntityGID {
-        EntityGID(i)
+impl EntityGid {
+    pub fn new(i: u64) -> EntityGid {
+        EntityGid(i)
     }
 
     pub fn gid_to_string(&self) -> String {
@@ -75,20 +75,20 @@ impl EntityGID {
     }
 }
 
-impl Display for EntityGID {
+impl Display for EntityGid {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-impl From<EntityGID> for u64 {
-    fn from(gid: EntityGID) -> Self {
+impl From<EntityGid> for u64 {
+    fn from(gid: EntityGid) -> Self {
         gid.0
     }
 }
 
-impl From<&EntityGID> for u64 {
-    fn from(gid: &EntityGID) -> Self {
+impl From<&EntityGid> for u64 {
+    fn from(gid: &EntityGid) -> Self {
         gid.0
     }
 }
@@ -116,7 +116,7 @@ pub enum DomainOutcome {
 pub enum Item {
     Named(String),
     Route(String),
-    GID(EntityGID),
+    Gid(EntityGid),
     Contained(Box<Item>),
 }
 
@@ -510,11 +510,11 @@ impl Entity {
         Ok(())
     }
 
-    pub fn gid(&self) -> Option<EntityGID> {
-        self.props.u64_property(GID_PROPERTY).map(EntityGID)
+    pub fn gid(&self) -> Option<EntityGid> {
+        self.props.u64_property(GID_PROPERTY).map(EntityGid)
     }
 
-    pub fn set_gid(&mut self, gid: EntityGID) -> Result<()> {
+    pub fn set_gid(&mut self, gid: EntityGid) -> Result<()> {
         self.props.set_u64_property(GID_PROPERTY, gid.into())
     }
 
@@ -603,7 +603,7 @@ pub struct LazyLoadedEntity {
     #[serde(rename = "klass")]
     class: String,
     name: String,
-    gid: Option<EntityGID>,
+    gid: Option<EntityGid>,
     #[serde(skip)]
     entity: Option<Weak<RefCell<Entity>>>,
 }

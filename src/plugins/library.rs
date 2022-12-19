@@ -44,7 +44,7 @@ pub mod parser {
 
     pub fn gid_reference(i: &str) -> IResult<&str, Item> {
         map(preceded(tag("#"), unsigned_number), |n| {
-            Item::GID(EntityGID::new(n))
+            Item::Gid(EntityGid::new(n))
         })(i)
     }
 

@@ -488,7 +488,7 @@ impl Session {
         // Check to see if the global identifier has changed due to the creation
         // of a new entity.
         let previous_gid =
-            identifiers::model::get_gid(&world)?.unwrap_or_else(|| EntityGID::new(0));
+            identifiers::model::get_gid(&world)?.unwrap_or_else(|| EntityGid::new(0));
         let new_gid = self.ids.gid();
         if previous_gid != new_gid {
             info!(%previous_gid, %new_gid, "gid:changed");
@@ -520,7 +520,7 @@ impl Infrastructure for Session {
         self.infra.load_entity_by_key(key)
     }
 
-    fn entry_by_gid(&self, gid: &EntityGID) -> Result<Option<Entry>> {
+    fn entry_by_gid(&self, gid: &EntityGid) -> Result<Option<Entry>> {
         self.infra.entry_by_gid(gid)
     }
 

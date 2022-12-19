@@ -1,11 +1,11 @@
-use crate::kernel::{EntityGID, EntityKey};
+use crate::kernel::{EntityGid, EntityKey};
 use anyhow::Result;
 use std::rc::Rc;
 use tracing::*;
 
 pub trait EntityStorage {
     fn load_by_key(&self, key: &EntityKey) -> Result<Option<PersistedEntity>>;
-    fn load_by_gid(&self, gid: &EntityGID) -> Result<Option<PersistedEntity>>;
+    fn load_by_gid(&self, gid: &EntityGid) -> Result<Option<PersistedEntity>>;
     fn save(&self, entity: &PersistedEntity) -> Result<()>;
     fn begin(&self) -> Result<()>;
     fn rollback(&self, benign: bool) -> Result<()>;
@@ -94,7 +94,7 @@ pub mod sqlite {
             )
         }
 
-        fn load_by_gid(&self, gid: &EntityGID) -> Result<Option<PersistedEntity>> {
+        fn load_by_gid(&self, gid: &EntityGid) -> Result<Option<PersistedEntity>> {
             self.single_query(
                 "SELECT key, gid, version, serialized FROM entities WHERE gid = ?;",
                 [gid.gid_to_string()],
