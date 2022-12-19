@@ -272,7 +272,7 @@ pub struct Kind {
 impl Kind {
     pub fn new(identity: Identity) -> Self {
         Self {
-            identity: identity,
+            identity,
             ..Self::default()
         }
     }
@@ -550,7 +550,7 @@ impl Entity {
         .entered();
 
         if !self.scopes.contains_key(scope_key) {
-            return Ok(Box::new(Default::default()));
+            return Ok(Box::default());
         }
 
         // The call to serde_json::from_value requires owned data and we have a

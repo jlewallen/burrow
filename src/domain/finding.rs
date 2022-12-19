@@ -94,7 +94,6 @@ impl EntityRelationshipSet {
                 if let Some(exit) = item.maybe_scope::<Exit>()? {
                     expanded.push(EntityRelationship::Exit(
                         item.name()
-                            .map(|v| v.to_string())
                             .ok_or_else(|| anyhow!("Route name is required"))?,
                         exit.area.into_entry()?,
                     ));
@@ -114,17 +113,17 @@ impl EntityRelationshipSet {
                 for entity in &self.entities {
                     match entity {
                         EntityRelationship::Contained(e) => {
-                            if matches_description(&e, name) {
+                            if matches_description(e, name) {
                                 return Ok(Some(e.clone()));
                             }
                         }
                         EntityRelationship::Ground(e) => {
-                            if matches_description(&e, name) {
+                            if matches_description(e, name) {
                                 return Ok(Some(e.clone()));
                             }
                         }
                         EntityRelationship::Holding(e) => {
-                            if matches_description(&e, name) {
+                            if matches_description(e, name) {
                                 return Ok(Some(e.clone()));
                             }
                         }

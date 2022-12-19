@@ -28,13 +28,13 @@ pub mod model {
     impl Observe<ObservedEntity> for &Entry {
         fn observe(&self, _user: &Entry) -> Result<ObservedEntity> {
             let name = self.name();
-            let qualified = name.as_ref().map(|n| qualify_name(1.0, &n));
+            let qualified = name.as_ref().map(|n| qualify_name(1.0, n));
 
             Ok(ObservedEntity {
                 key: self.key.to_string(),
-                name: name.map(|v| v.to_string()),
-                qualified: qualified,
-                desc: self.desc().map(|v| v.to_string()),
+                name,
+                qualified,
+                desc: self.desc(),
             })
         }
     }

@@ -201,27 +201,21 @@ pub mod actions {
             let (_, living, area, infra) = args.clone();
 
             match infra.find_item(args, &self.item)? {
-                Some(to_area) => {
-                    match tools::navigate_between(
-                        &area.clone().try_into()?,
-                        &to_area.clone().try_into()?,
-                        &living.clone().try_into()?,
-                    )? {
-                        DomainOutcome::Ok => {
-                            get_my_session()?.raise(Box::new(MovingEvent::Left {
-                                living: living.clone(),
-                                area: area,
-                            }))?;
-                            get_my_session()?.raise(Box::new(MovingEvent::Arrived {
-                                living: living.clone(),
-                                area: to_area,
-                            }))?;
+                Some(to_area) => match tools::navigate_between(&area, &to_area, &living)? {
+                    DomainOutcome::Ok => {
+                        get_my_session()?.raise(Box::new(MovingEvent::Left {
+                            living: living.clone(),
+                            area,
+                        }))?;
+                        get_my_session()?.raise(Box::new(MovingEvent::Arrived {
+                            living: living.clone(),
+                            area: to_area,
+                        }))?;
 
-                            infra.chain(&living, Box::new(LookAction {}))
-                        }
-                        DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
+                        infra.chain(&living, Box::new(LookAction {}))
                     }
-                }
+                    DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
+                },
                 None => Ok(Box::new(SimpleReply::NotFound)),
             }
         }

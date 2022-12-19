@@ -90,7 +90,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                 }
 
-                session.close(&DevNullNotifier::new())?
+                session.close(&DevNullNotifier::default())?
             }
 
             {
@@ -104,7 +104,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                 }
 
-                session.close(&DevNullNotifier::new())?
+                session.close(&DevNullNotifier::default())?
             }
 
             Ok(())

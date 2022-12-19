@@ -1,6 +1,7 @@
 mod internal;
 
 pub mod build;
+#[allow(clippy::module_inception)]
 pub mod domain;
 pub mod entry;
 pub mod finding;

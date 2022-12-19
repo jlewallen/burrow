@@ -67,7 +67,7 @@ impl AppState {
 
         let maybe_key = session.find_name_key(name)?;
 
-        session.close(&DevNullNotifier::new())?;
+        session.close(&DevNullNotifier::default())?;
 
         Ok(maybe_key)
     }
@@ -227,11 +227,9 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
         while let Ok(server_message) = rx.recv().await {
             match &server_message {
                 ServerMessage::Notify(key, _) => {
-                    if our_key == *key {
-                        if broadcasting_tx.send(server_message).is_err() {
-                            warn!("broadcasting:tx:error");
-                            break;
-                        }
+                    if our_key == *key && broadcasting_tx.send(server_message).is_err() {
+                        warn!("broadcasting:tx:error");
+                        break;
                     }
                 }
                 ignoring => warn!("brodcasted:ignoring {:?}", ignoring),

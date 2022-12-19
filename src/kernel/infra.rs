@@ -73,7 +73,7 @@ pub trait Infrastructure {
 
     fn add_entity(&self, entity: &EntityPtr) -> Result<Entry>;
 
-    fn add_entities(&self, entities: &Vec<&EntityPtr>) -> Result<Vec<Entry>> {
+    fn add_entities(&self, entities: &[&EntityPtr]) -> Result<Vec<Entry>> {
         entities
             .iter()
             .map(|e| self.add_entity(e))

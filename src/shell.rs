@@ -15,17 +15,12 @@ pub struct Command {
     username: String,
 }
 
+#[derive(Default)]
 pub struct QueuedNotifier {
     queue: RefCell<Vec<(EntityKey, Rc<dyn replies::Observed>)>>,
 }
 
 impl QueuedNotifier {
-    pub fn new() -> Self {
-        Self {
-            queue: RefCell::new(Vec::new()),
-        }
-    }
-
     pub fn forward(&self, receiver: &impl Notifier) -> Result<()> {
         let mut queue = self.queue.borrow_mut();
 
@@ -75,7 +70,7 @@ fn find_user_key(domain: &Domain, name: &str) -> Result<Option<EntityKey>> {
 
     let maybe_key = session.find_name_key(name)?;
 
-    session.close(&DevNullNotifier::new())?;
+    session.close(&DevNullNotifier::default())?;
 
     Ok(maybe_key)
 }
@@ -109,7 +104,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
 
                 let rendered = renderer.render(reply)?;
 
-                let notifier = QueuedNotifier::new();
+                let notifier = QueuedNotifier::default();
 
                 session.close(&notifier)?;
 

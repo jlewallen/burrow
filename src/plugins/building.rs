@@ -21,7 +21,7 @@ pub mod model {
 
     impl ToJson for EditorReply {
         fn to_json(&self) -> Result<Value, serde_json::Error> {
-            Ok(serde_json::to_value(self)?)
+            serde_json::to_value(self)
         }
     }
 
@@ -81,16 +81,16 @@ pub mod actions {
             let new_area = EntityPtr::new_named(&self.new_area, &self.new_area)?;
             let returning = EntityPtr::new_named(&self.returning, &self.returning)?;
             let outgoing = EntityPtr::new_named(&self.outgoing, &self.outgoing)?;
-            let added = infra.add_entities(&vec![&new_area, &returning, &outgoing])?;
+            let added = infra.add_entities(&[&new_area, &returning, &outgoing])?;
             let new_area = added[0].clone();
             let returning = added[1].clone();
             let outgoing = added[2].clone();
 
             tools::leads_to(&returning, &area)?;
-            tools::set_container(&new_area, &vec![returning.clone()])?;
+            tools::set_container(&new_area, &vec![returning])?;
 
             tools::leads_to(&outgoing, &new_area)?;
-            tools::set_container(&area, &vec![outgoing.clone()])?;
+            tools::set_container(&area, &vec![outgoing])?;
 
             // TODO Chain to GoAction?
             match tools::navigate_between(&area, &new_area, &living)? {
@@ -117,7 +117,7 @@ pub mod actions {
 
             let new_item = EntityPtr::new_named(&self.name, &self.name)?;
 
-            infra.add_entities(&vec![&new_item])?;
+            infra.add_entities(&[&new_item])?;
 
             tools::set_container(&user, &vec![new_item.try_into()?])?;
 

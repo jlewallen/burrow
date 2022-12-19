@@ -77,7 +77,7 @@ impl Build {
     }
 
     pub fn into_entry(&mut self) -> Result<Entry> {
-        Ok(self.entry()?)
+        self.entry()
     }
 }
 
@@ -170,7 +170,7 @@ impl BuildActionArgs {
     }
 
     pub fn close(&mut self) -> Result<&mut Self> {
-        self.session.close(&DevNullNotifier::new())?;
+        self.session.close(&DevNullNotifier::default())?;
         Ok(self)
     }
 }

@@ -57,7 +57,7 @@ impl StandardPerformer {
                 .as_ref()
                 .ok_or(DomainError::NoInfrastructure)?
                 .clone();
-            action.perform((world.try_into()?, user.try_into()?, area.try_into()?, infra))?
+            action.perform((world, user, area, infra))?
         };
 
         Ok(reply)
@@ -131,7 +131,7 @@ impl StandardPerformer {
         let mut discovered: Vec<EntityKey> = vec![];
         if self.discoverying {
             for entity in &entities {
-                eval::discover(&entity, &mut discovered)?;
+                eval::discover(entity, &mut discovered)?;
             }
             info!("discovered {:?}", discovered);
         }
@@ -155,12 +155,7 @@ impl Performer for StandardPerformer {
                 .as_ref()
                 .ok_or(DomainError::NoInfrastructure)?
                 .clone();
-            action.perform((
-                world.try_into()?,
-                living.try_into()?,
-                area.try_into()?,
-                infra,
-            ))?
+            action.perform((world, living, area, infra))?
         };
 
         event!(Level::INFO, "done");
@@ -177,13 +172,8 @@ pub trait Notifier {
     fn notify(&self, audience: &EntityKey, observed: &Rc<dyn Observed>) -> Result<()>;
 }
 
+#[derive(Default)]
 pub struct DevNullNotifier {}
-
-impl DevNullNotifier {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
 
 impl Notifier for DevNullNotifier {
     fn notify(&self, _audience: &EntityKey, _observed: &Rc<dyn Observed>) -> Result<()> {
@@ -247,7 +237,7 @@ impl Session {
             open: AtomicBool::new(true),
             performer: standard_performer,
             ids,
-            raised: raised,
+            raised,
             _weak: Weak::clone(weak),
         }))
     }
@@ -275,7 +265,7 @@ impl Session {
         entity.load_scope::<T>()
     }
 
-    pub fn save<T: Scope>(&self, entry: &Entry, scope: &Box<T>) -> Result<()> {
+    pub fn save<T: Scope>(&self, entry: &Entry, scope: &T) -> Result<()> {
         let entity = self.load_entity_by_key(&entry.key)?.unwrap();
         let mut entity = entity.borrow_mut();
 
@@ -288,7 +278,7 @@ impl Session {
 
     pub fn find_name_key(&self, user_name: &str) -> Result<Option<EntityKey>, DomainError> {
         if !self.open.load(Ordering::Relaxed) {
-            return Err(DomainError::SessionClosed.into());
+            return Err(DomainError::SessionClosed);
         }
 
         self.performer.find_name_key(user_name)

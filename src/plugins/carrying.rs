@@ -185,9 +185,7 @@ pub mod model {
         }
 
         pub fn decrease_quantity(&mut self, q: f32) -> Result<&mut Self, DomainError> {
-            if q < 1.0 {
-                Err(DomainError::Impossible)
-            } else if q > self.quantity {
+            if q < 1.0 || q > self.quantity {
                 Err(DomainError::Impossible)
             } else {
                 self.quantity -= q;
@@ -260,15 +258,11 @@ pub mod actions {
             let (_, user, area, infra) = args.clone();
 
             match infra.find_item(args, &self.item)? {
-                Some(holding) => match tools::move_between(
-                    &area.clone().try_into()?,
-                    &user.clone().try_into()?,
-                    &holding.clone().try_into()?,
-                )? {
+                Some(holding) => match tools::move_between(&area, &user, &holding)? {
                     DomainOutcome::Ok => Ok(Box::new(reply_done(CarryingEvent::ItemHeld {
                         living: user,
                         item: holding,
-                        area: area,
+                        area,
                     })?)),
                     DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
                 },
@@ -294,16 +288,12 @@ pub mod actions {
 
             match &self.maybe_item {
                 Some(item) => match infra.find_item(args, item)? {
-                    Some(dropping) => match tools::move_between(
-                        &user.clone().try_into()?,
-                        &area.clone().try_into()?,
-                        &dropping.clone().try_into()?,
-                    )? {
+                    Some(dropping) => match tools::move_between(&user, &area, &dropping)? {
                         DomainOutcome::Ok => {
                             Ok(Box::new(reply_done(CarryingEvent::ItemDropped {
                                 living: user,
                                 item: dropping,
-                                area: area,
+                                area,
                             })?))
                         }
                         DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
@@ -336,11 +326,7 @@ pub mod actions {
                     Some(vessel) => {
                         if tools::is_container(&vessel)? {
                             let from = tools::container_of(&item)?;
-                            match tools::move_between(
-                                &from.try_into()?,
-                                &vessel.try_into()?,
-                                &item.try_into()?,
-                            )? {
+                            match tools::move_between(&from.try_into()?, &vessel, &item)? {
                                 DomainOutcome::Ok => Ok(Box::new(SimpleReply::Done)),
                                 DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
                             }
@@ -375,16 +361,10 @@ pub mod actions {
                 Some(vessel) => {
                     if tools::is_container(&vessel)? {
                         match infra.find_item(args, &self.item)? {
-                            Some(item) => {
-                                match tools::move_between(
-                                    &vessel.try_into()?,
-                                    &user.try_into()?,
-                                    &item.try_into()?,
-                                )? {
-                                    DomainOutcome::Ok => Ok(Box::new(SimpleReply::Done)),
-                                    DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
-                                }
-                            }
+                            Some(item) => match tools::move_between(&vessel, &user, &item)? {
+                                DomainOutcome::Ok => Ok(Box::new(SimpleReply::Done)),
+                                DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
+                            },
                             None => Ok(Box::new(SimpleReply::NotFound)),
                         }
                     } else {
