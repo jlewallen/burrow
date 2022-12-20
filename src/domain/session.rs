@@ -29,7 +29,7 @@ pub struct Session {
     infra: Rc<DomainInfrastructure>,
     performer: Rc<StandardPerformer>,
     raised: Rc<RefCell<Vec<Box<dyn DomainEvent>>>>,
-    _weak: Weak<Session>,
+    weak: Weak<Session>,
 }
 
 impl Session {
@@ -58,8 +58,6 @@ impl Session {
         let infra = domain_infra.clone() as InfrastructureRef;
         standard_performer.initialize(infra.clone());
 
-        set_my_session(Some(&infra))?;
-
         storage.begin()?;
 
         if let Some(world) = infra.entry(&WORLD_KEY)? {
@@ -68,7 +66,7 @@ impl Session {
             }
         }
 
-        Ok(Rc::new_cyclic(move |weak| Self {
+        let session = Rc::new_cyclic(move |weak: &Weak<Session>| Self {
             opened,
             infra: domain_infra,
             storage,
@@ -77,12 +75,26 @@ impl Session {
             performer: standard_performer,
             ids,
             raised,
-            _weak: Weak::clone(weak),
-        }))
+            weak: Weak::clone(weak),
+        });
+
+        session.set_session()?;
+
+        Ok(session)
+    }
+
+    fn set_session(&self) -> Result<()> {
+        let infra: Rc<dyn Infrastructure> = self
+            .weak
+            .upgrade()
+            .ok_or_else(|| DomainError::NoInfrastructure)?;
+        set_my_session(Some(&infra))?;
+
+        Ok(())
     }
 
     pub fn entry(&self, key: &EntityKey) -> Result<Option<Entry>> {
-        match self.load_entity_by_key(key)? {
+        match self.infra.load_entity_by_key(key)? {
             Some(_) => Ok(Some(Entry {
                 key: key.clone(),
                 session: Rc::downgrade(&self.infra) as Weak<dyn Infrastructure>,
@@ -92,10 +104,7 @@ impl Session {
     }
 
     pub fn scope<T: Scope>(&self, entry: &Entry) -> Result<Box<T>, DomainError> {
-        let entity = match self.load_entity_by_key(&entry.key)? {
-            None => panic!("How did you get an Entry for an unknown Entity?"),
-            Some(entity) => entity,
-        };
+        let entity = entry.entity()?;
 
         info!("{:?} scope", entity);
 
@@ -105,7 +114,7 @@ impl Session {
     }
 
     pub fn save<T: Scope>(&self, entry: &Entry, scope: &T) -> Result<()> {
-        let entity = self.load_entity_by_key(&entry.key)?.unwrap();
+        let entity = self.infra.load_entity_by_key(&entry.key)?.unwrap();
         let mut entity = entity.borrow_mut();
 
         entity.replace_scope::<T>(scope)
@@ -136,7 +145,8 @@ impl Session {
             Ok(i) => Ok(i),
             Err(original_err) => {
                 if let Err(_rollback_err) = self.storage.rollback(false) {
-                    panic!("error rolling back");
+                    // TODO Include thiat this failed as part of the error.
+                    panic!("TODO error rolling back");
                 }
 
                 self.open.store(false, Ordering::Relaxed);
@@ -167,12 +177,12 @@ impl Session {
             return Ok(());
         }
 
-        info!(%npending ,"session:raising");
+        info!(%npending, "session:raising");
 
         for event in pending.iter() {
             let audience_keys = self.get_audience_keys(&event.audience())?;
             for key in audience_keys {
-                let user = self.load_entity_by_key(&key)?.unwrap();
+                let user = self.infra.load_entity_by_key(&key)?.unwrap();
                 debug!(%key, "observing {:?}", user);
                 let observed = event.observe(&user.try_into()?)?;
                 let rc: Rc<dyn Observed> = observed.into();
