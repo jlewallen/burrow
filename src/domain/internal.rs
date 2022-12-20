@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::{cell::RefCell, collections::HashMap, fmt::Debug, rc::Rc};
 use tracing::*;
 
-use super::{EntityRelationshipSet, Entry, IdentityFactory, KeySequence};
+use super::{EntityRelationshipSet, Entry, Sequence};
 use crate::kernel::*;
 use crate::storage::{EntityStorage, PersistedEntity};
 
@@ -228,8 +228,8 @@ pub trait Performer {
 pub struct DomainInfrastructure {
     entities: Rc<Entities>,
     performer: Rc<dyn Performer>,
-    keys: Arc<dyn KeySequence>,
-    identities: Arc<dyn IdentityFactory>,
+    keys: Arc<dyn Sequence<EntityKey>>,
+    identities: Arc<dyn Sequence<Identity>>,
     raised: Rc<RefCell<Vec<Box<dyn DomainEvent>>>>,
     weak: Weak<DomainInfrastructure>,
 }
@@ -239,8 +239,8 @@ impl DomainInfrastructure {
         storage: Rc<dyn EntityStorage>,
         entity_map: Rc<EntityMap>,
         performer: Rc<dyn Performer>,
-        keys: Arc<dyn KeySequence>,
-        identities: Arc<dyn IdentityFactory>,
+        keys: Arc<dyn Sequence<EntityKey>>,
+        identities: Arc<dyn Sequence<Identity>>,
         raised: Rc<RefCell<Vec<Box<dyn DomainEvent>>>>,
     ) -> Rc<Self> {
         let entities = Entities::new(entity_map, storage);
@@ -328,11 +328,11 @@ impl Infrastructure for DomainInfrastructure {
     }
 
     fn new_key(&self) -> EntityKey {
-        self.keys.new_key()
+        self.keys.following()
     }
 
     fn new_identity(&self) -> Identity {
-        self.identities.new_identity()
+        self.identities.following()
     }
 
     fn raise(&self, event: Box<dyn DomainEvent>) -> Result<()> {

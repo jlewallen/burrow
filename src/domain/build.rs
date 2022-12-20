@@ -1,5 +1,4 @@
 use anyhow::Result;
-use serde::Deserialize;
 use std::rc::Rc;
 use tracing::*;
 
@@ -27,19 +26,6 @@ impl Build {
         })
     }
 
-    fn entry(&mut self) -> Result<Entry> {
-        let entry = match &self.entry {
-            Some(entry) => entry.clone(),
-            None => {
-                self.infra.add_entity(&self.entity)?;
-                self.infra
-                    .entry(&self.entity.key())?
-                    .expect("Missing newly added entity")
-            }
-        };
-        Ok(entry)
-    }
-
     pub fn key(&mut self, key: &EntityKey) -> Result<&mut Self> {
         self.entity.set_key(key)?;
 
@@ -52,32 +38,41 @@ impl Build {
         Ok(self)
     }
 
+    pub fn into_entry(&mut self) -> Result<Entry> {
+        let entry = match &self.entry {
+            Some(entry) => entry.clone(),
+            None => {
+                self.infra.add_entity(&self.entity)?;
+                self.infra
+                    .entry(&self.entity.key())?
+                    .expect("Bug: Missing newly added entity")
+            }
+        };
+        Ok(entry)
+    }
+
     pub fn of_quantity(&mut self, quantity: f32) -> Result<&mut Self> {
-        tools::set_quantity(&self.entry()?, quantity)?;
+        tools::set_quantity(&self.into_entry()?, quantity)?;
 
         Ok(self)
     }
 
     pub fn leads_to(&mut self, area: Entry) -> Result<&mut Self> {
-        tools::leads_to(&self.entry()?, &area)?;
+        tools::leads_to(&self.into_entry()?, &area)?;
 
         Ok(self)
     }
 
     pub fn occupying(&mut self, living: &Vec<Entry>) -> Result<&mut Self> {
-        tools::set_occupying(&self.entry()?, living)?;
+        tools::set_occupying(&self.into_entry()?, living)?;
 
         Ok(self)
     }
 
     pub fn holding(&mut self, items: &Vec<Entry>) -> Result<&mut Self> {
-        tools::set_container(&self.entry()?, items)?;
+        tools::set_container(&self.into_entry()?, items)?;
 
         Ok(self)
-    }
-
-    pub fn into_entry(&mut self) -> Result<Entry> {
-        self.entry()
     }
 }
 
@@ -217,28 +212,4 @@ impl TryFrom<&mut BuildActionArgs> for ActionArgs {
 
         Ok((world, person, area, infra))
     }
-}
-struct Constructed {}
-
-impl Constructed {}
-
-#[derive(Deserialize)]
-struct JsonWorld {
-    _ground: Vec<JsonItem>,
-}
-
-#[derive(Deserialize)]
-struct JsonItem {
-    _name: String,
-}
-
-#[derive(Deserialize)]
-struct JsonPlace {
-    _name: String,
-}
-
-#[allow(dead_code)]
-fn from_json(s: &str) -> Result<Constructed> {
-    let _parsed: JsonWorld = serde_json::from_str(s)?;
-    Ok(Constructed {})
 }

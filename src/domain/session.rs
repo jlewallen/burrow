@@ -11,19 +11,11 @@ use std::{
 use tracing::{debug, event, info, span, trace, warn, Level};
 
 use super::internal::{DomainInfrastructure, EntityMap, GlobalIds, LoadedEntity, Performer};
-use super::Entry;
+use super::{Entry, Sequence};
 use crate::plugins::tools;
 use crate::plugins::{identifiers, moving::model::Occupying, users::model::Usernames};
 use crate::storage::{EntityStorage, PersistedEntity};
 use crate::{kernel::*, plugins::eval};
-
-pub trait KeySequence: Send + Sync {
-    fn new_key(&self) -> EntityKey;
-}
-
-pub trait IdentityFactory: Send + Sync {
-    fn new_identity(&self) -> Identity;
-}
 
 pub struct StandardPerformer {
     infra: RefCell<Option<InfrastructureRef>>,
@@ -196,8 +188,8 @@ pub struct Session {
 impl Session {
     pub fn new(
         storage: Rc<dyn EntityStorage>,
-        keys: &Arc<dyn KeySequence>,
-        identities: &Arc<dyn IdentityFactory>,
+        keys: &Arc<dyn Sequence<EntityKey>>,
+        identities: &Arc<dyn Sequence<Identity>>,
     ) -> Result<Rc<Self>> {
         trace!("session-new");
 
