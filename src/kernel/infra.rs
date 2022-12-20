@@ -11,7 +11,7 @@ thread_local! {
     static SESSION: RefCell<Option<std::rc::Weak<dyn Infrastructure>>> = RefCell::new(None)
 }
 
-pub fn set_my_session(session: Option<&Rc<dyn Infrastructure>>) -> Result<()> {
+pub fn set_my_session(session: Option<&InfrastructureRef>) -> Result<()> {
     SESSION.with(|s| {
         *s.borrow_mut() = match session {
             Some(session) => Some(Rc::downgrade(session)),
@@ -22,7 +22,7 @@ pub fn set_my_session(session: Option<&Rc<dyn Infrastructure>>) -> Result<()> {
     })
 }
 
-pub fn get_my_session() -> Result<Rc<dyn Infrastructure>> {
+pub fn get_my_session() -> Result<InfrastructureRef> {
     SESSION.with(|s| match &*s.borrow() {
         Some(s) => match s.upgrade() {
             Some(s) => Ok(s),
@@ -31,6 +31,8 @@ pub fn get_my_session() -> Result<Rc<dyn Infrastructure>> {
         None => Err(DomainError::NoInfrastructure.into()),
     })
 }
+
+pub type InfrastructureRef = Rc<dyn Infrastructure>;
 
 pub trait Infrastructure {
     fn load_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>>;
@@ -78,8 +80,4 @@ pub trait Infrastructure {
     fn raise(&self, event: Box<dyn DomainEvent>) -> Result<()>;
 
     fn chain(&self, living: &Entry, action: Box<dyn Action>) -> Result<Box<dyn Reply>>;
-}
-
-pub trait Needs<T> {
-    fn supply(&mut self, resource: &T) -> Result<()>;
 }

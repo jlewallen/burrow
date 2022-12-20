@@ -15,7 +15,7 @@ use tracing::*;
 
 use crate::domain::Entry;
 
-use super::{infra::*, Scope};
+use super::{infra::*, Needs, Scope};
 
 pub static WORLD_KEY: Lazy<EntityKey> = Lazy::new(|| EntityKey("world".to_string()));
 
@@ -440,8 +440,8 @@ impl Display for Entity {
     }
 }
 
-impl Needs<Rc<dyn Infrastructure>> for Entity {
-    fn supply(&mut self, infra: &Rc<dyn Infrastructure>) -> Result<()> {
+impl Needs<InfrastructureRef> for Entity {
+    fn supply(&mut self, infra: &InfrastructureRef) -> Result<()> {
         self.parent = infra.ensure_optional_entity(&self.parent)?;
         self.creator = infra.ensure_optional_entity(&self.creator)?;
         Ok(())

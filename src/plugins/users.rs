@@ -6,8 +6,8 @@ pub mod model {
         pub users: HashMap<String, EntityKey>,
     }
 
-    impl Needs<Rc<dyn Infrastructure>> for Usernames {
-        fn supply(&mut self, _infra: &Rc<dyn Infrastructure>) -> Result<()> {
+    impl Needs<InfrastructureRef> for Usernames {
+        fn supply(&mut self, _infra: &InfrastructureRef) -> Result<()> {
             Ok(())
         }
     }

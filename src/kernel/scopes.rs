@@ -1,7 +1,7 @@
 use anyhow::Result;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
-use std::{fmt::Debug, rc::Rc};
+use std::fmt::Debug;
 
 use super::infra::*;
 use super::model::*;
@@ -10,7 +10,7 @@ use crate::domain::Entry;
 
 pub type EvaluationResult = Result<Box<dyn Action>, EvaluationError>;
 
-pub type ActionArgs = (Entry, Entry, Entry, Rc<dyn Infrastructure>);
+pub type ActionArgs = (Entry, Entry, Entry, InfrastructureRef);
 
 pub trait Action: Debug {
     fn perform(&self, args: ActionArgs) -> ReplyResult;
@@ -20,10 +20,14 @@ pub trait Action: Debug {
         Self: Sized;
 }
 
-pub trait Scope: Debug + Default + Needs<Rc<dyn Infrastructure>> + DeserializeOwned {
+pub trait Scope: Default + Needs<InfrastructureRef> + DeserializeOwned + Debug {
     fn scope_key() -> &'static str
     where
         Self: Sized;
 
     fn serialize(&self) -> Result<Value>;
+}
+
+pub trait Needs<T> {
+    fn supply(&mut self, resource: &T) -> Result<()>;
 }

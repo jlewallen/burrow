@@ -3,7 +3,8 @@ use std::rc::{Rc, Weak};
 use tracing::trace;
 
 use crate::kernel::{
-    get_my_session, DomainError, EntityKey, EntityPtr, EntityRef, Infrastructure, Scope,
+    get_my_session, DomainError, EntityKey, EntityPtr, EntityRef, Infrastructure,
+    InfrastructureRef, Scope,
 };
 
 #[derive(Clone)]
@@ -35,7 +36,7 @@ impl From<&Entry> for EntityRef {
 }
 
 impl Entry {
-    pub fn new_for_session(session: &Rc<dyn Infrastructure>) -> Self {
+    pub fn new_for_session(session: &InfrastructureRef) -> Self {
         Self {
             key: EntityKey::default(),
             session: Rc::downgrade(session),

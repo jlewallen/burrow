@@ -84,8 +84,8 @@ pub mod model {
         }
     }
 
-    impl Needs<Rc<dyn Infrastructure>> for Location {
-        fn supply(&mut self, infra: &Rc<dyn Infrastructure>) -> Result<()> {
+    impl Needs<InfrastructureRef> for Location {
+        fn supply(&mut self, infra: &InfrastructureRef) -> Result<()> {
             self.container = infra.ensure_optional_entity(&self.container)?;
             Ok(())
         }
@@ -108,8 +108,8 @@ pub mod model {
         }
     }
 
-    impl Needs<Rc<dyn Infrastructure>> for Containing {
-        fn supply(&mut self, infra: &Rc<dyn Infrastructure>) -> Result<()> {
+    impl Needs<InfrastructureRef> for Containing {
+        fn supply(&mut self, infra: &InfrastructureRef) -> Result<()> {
             self.holding = self
                 .holding
                 .iter()
@@ -225,8 +225,8 @@ pub mod model {
         }
     }
 
-    impl Needs<Rc<dyn Infrastructure>> for Carryable {
-        fn supply(&mut self, _infra: &Rc<dyn Infrastructure>) -> Result<()> {
+    impl Needs<InfrastructureRef> for Carryable {
+        fn supply(&mut self, _infra: &InfrastructureRef) -> Result<()> {
             Ok(())
         }
     }

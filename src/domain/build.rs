@@ -5,12 +5,12 @@ use tracing::*;
 
 use super::{DevNullNotifier, Entry, Session};
 use crate::{
-    kernel::{ActionArgs, EntityKey, EntityPtr, Infrastructure, WORLD_KEY},
+    kernel::{ActionArgs, EntityKey, EntityPtr, InfrastructureRef, WORLD_KEY},
     plugins::tools,
 };
 
 pub struct Build {
-    infra: Rc<dyn Infrastructure>,
+    infra: InfrastructureRef,
     entry: Option<Entry>,
     entity: EntityPtr,
 }

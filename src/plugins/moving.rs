@@ -61,8 +61,8 @@ pub mod model {
         }
     }
 
-    impl Needs<Rc<dyn Infrastructure>> for Occupying {
-        fn supply(&mut self, infra: &Rc<dyn Infrastructure>) -> Result<()> {
+    impl Needs<InfrastructureRef> for Occupying {
+        fn supply(&mut self, infra: &InfrastructureRef) -> Result<()> {
             self.area = infra.ensure_entity(&self.area)?;
             Ok(())
         }
@@ -104,8 +104,8 @@ pub mod model {
         }
     }
 
-    impl Needs<Rc<dyn Infrastructure>> for Occupyable {
-        fn supply(&mut self, infra: &Rc<dyn Infrastructure>) -> Result<()> {
+    impl Needs<InfrastructureRef> for Occupyable {
+        fn supply(&mut self, infra: &InfrastructureRef) -> Result<()> {
             self.occupied = self
                 .occupied
                 .iter()
@@ -130,8 +130,8 @@ pub mod model {
         }
     }
 
-    impl Needs<Rc<dyn Infrastructure>> for Exit {
-        fn supply(&mut self, infra: &Rc<dyn Infrastructure>) -> Result<()> {
+    impl Needs<InfrastructureRef> for Exit {
+        fn supply(&mut self, infra: &InfrastructureRef) -> Result<()> {
             self.area = infra.ensure_entity(&self.area)?;
             Ok(())
         }
@@ -157,8 +157,8 @@ pub mod model {
         }
     }
 
-    impl Needs<Rc<dyn Infrastructure>> for Movement {
-        fn supply(&mut self, infra: &Rc<dyn Infrastructure>) -> Result<()> {
+    impl Needs<InfrastructureRef> for Movement {
+        fn supply(&mut self, infra: &InfrastructureRef) -> Result<()> {
             for route in self.routes.iter_mut() {
                 route.area = infra.ensure_entity(&route.area)?;
             }

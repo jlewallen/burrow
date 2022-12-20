@@ -26,16 +26,16 @@ pub trait IdentityFactory: Send + Sync {
 }
 
 pub struct StandardPerformer {
-    infra: RefCell<Option<Rc<dyn Infrastructure>>>,
+    infra: RefCell<Option<InfrastructureRef>>,
     discoverying: bool,
 }
 
 impl StandardPerformer {
-    pub fn initialize(&self, infra: Rc<dyn Infrastructure>) {
+    pub fn initialize(&self, infra: InfrastructureRef) {
         *self.infra.borrow_mut() = Some(infra);
     }
 
-    pub fn new(infra: Option<Rc<dyn Infrastructure>>) -> Rc<Self> {
+    pub fn new(infra: Option<InfrastructureRef>) -> Rc<Self> {
         Rc::new(StandardPerformer {
             infra: RefCell::new(infra),
             discoverying: false,
@@ -216,7 +216,7 @@ impl Session {
             Rc::clone(&raised),
         );
 
-        let infra = domain_infra.clone() as Rc<dyn Infrastructure>;
+        let infra = domain_infra.clone() as InfrastructureRef;
         standard_performer.initialize(infra.clone());
 
         set_my_session(Some(&infra))?;
@@ -272,8 +272,8 @@ impl Session {
         entity.replace_scope::<T>(scope)
     }
 
-    pub fn infra(&self) -> Rc<dyn Infrastructure> {
-        self.infra.clone() as Rc<dyn Infrastructure>
+    pub fn infra(&self) -> InfrastructureRef {
+        self.infra.clone() as InfrastructureRef
     }
 
     pub fn find_name_key(&self, user_name: &str) -> Result<Option<EntityKey>, DomainError> {
