@@ -6,13 +6,20 @@ use tracing::*;
 use crate::kernel::*;
 use crate::storage::{EntityStorage, PersistedEntity};
 
-#[derive(Debug)]
 pub struct LoadedEntity {
     pub key: EntityKey,
     pub entity: EntityPtr,
     pub version: u64,
     pub gid: Option<EntityGid>,
     pub serialized: Option<String>,
+}
+
+impl Debug for LoadedEntity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LoadedEntity")
+            .field("entity", &self.entity)
+            .finish()
+    }
 }
 
 struct Maps {
@@ -50,7 +57,7 @@ impl Maps {
     }
 
     fn add_entity(&mut self, loaded: LoadedEntity) -> Result<()> {
-        info!("adding {:?}", loaded);
+        debug!("adding {:?}", loaded);
 
         self.by_gid.insert(
             loaded
