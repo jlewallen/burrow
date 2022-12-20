@@ -10,9 +10,9 @@ use std::{
 };
 use tracing::{debug, info, span, trace, warn, Level};
 
-use super::internal::{DomainInfrastructure, EntityMap, GlobalIds, LoadedEntity, Performer};
+use super::internal::{Entities, EntityMap, GlobalIds, LoadedEntity};
 use super::perform::StandardPerformer;
-use super::{Entry, Notifier, Sequence};
+use super::{EntityRelationshipSet, Entry, Notifier, Sequence};
 use crate::kernel::*;
 use crate::plugins::identifiers;
 use crate::plugins::tools;
@@ -26,10 +26,12 @@ pub struct Session {
     storage: Rc<dyn EntityStorage>,
     entity_map: Rc<EntityMap>,
     ids: Rc<GlobalIds>,
-    infra: Rc<DomainInfrastructure>,
     performer: Rc<StandardPerformer>,
     raised: Rc<RefCell<Vec<Box<dyn DomainEvent>>>>,
     weak: Weak<Session>,
+    entities: Rc<Entities>,
+    keys: Arc<dyn Sequence<EntityKey>>,
+    identities: Arc<dyn Sequence<Identity>>,
 }
 
 impl Session {
@@ -43,61 +45,48 @@ impl Session {
         let opened = Instant::now();
         let ids = GlobalIds::new();
         let entity_map = EntityMap::new(Rc::clone(&ids));
-        let standard_performer = StandardPerformer::new(None);
-        let performer = standard_performer.clone() as Rc<dyn Performer>;
         let raised = Rc::new(RefCell::new(Vec::new()));
-        let domain_infra = DomainInfrastructure::new(
-            Rc::clone(&storage),
-            Rc::clone(&entity_map),
-            Rc::clone(&performer),
-            Arc::clone(keys),
-            Arc::clone(identities),
-            Rc::clone(&raised),
-        );
-
-        let infra = domain_infra.clone() as InfrastructureRef;
-        standard_performer.initialize(infra.clone());
 
         storage.begin()?;
 
-        if let Some(world) = infra.entry(&WORLD_KEY)? {
+        let session = Rc::new_cyclic(|weak: &Weak<Session>| Self {
+            opened,
+            storage: Rc::clone(&storage),
+            entity_map: Rc::clone(&entity_map),
+            open: AtomicBool::new(true),
+            performer: StandardPerformer::new(weak),
+            ids: Rc::clone(&ids),
+            raised,
+            weak: Weak::clone(weak),
+            entities: Entities::new(entity_map, storage),
+            keys: Arc::clone(keys),
+            identities: Arc::clone(identities),
+        });
+
+        session.set_session()?;
+
+        if let Some(world) = session.entry(&WORLD_KEY)? {
             if let Some(gid) = identifiers::model::get_gid(&world)? {
                 ids.set(&gid);
             }
         }
 
-        let session = Rc::new_cyclic(move |weak: &Weak<Session>| Self {
-            opened,
-            infra: domain_infra,
-            storage,
-            entity_map,
-            open: AtomicBool::new(true),
-            performer: standard_performer,
-            ids,
-            raised,
-            weak: Weak::clone(weak),
-        });
-
-        session.set_session()?;
-
         Ok(session)
     }
 
     fn set_session(&self) -> Result<()> {
-        let infra: Rc<dyn Infrastructure> = self
-            .weak
-            .upgrade()
-            .ok_or_else(|| DomainError::NoInfrastructure)?;
+        let infra: Rc<dyn Infrastructure> =
+            self.weak.upgrade().ok_or(DomainError::NoInfrastructure)?;
         set_my_session(Some(&infra))?;
 
         Ok(())
     }
 
     pub fn entry(&self, key: &EntityKey) -> Result<Option<Entry>> {
-        match self.infra.load_entity_by_key(key)? {
+        match self.load_entity_by_key(key)? {
             Some(_) => Ok(Some(Entry {
                 key: key.clone(),
-                session: Rc::downgrade(&self.infra) as Weak<dyn Infrastructure>,
+                session: Weak::clone(&self.weak) as Weak<dyn Infrastructure>,
             })),
             None => Ok(None),
         }
@@ -114,14 +103,10 @@ impl Session {
     }
 
     pub fn save<T: Scope>(&self, entry: &Entry, scope: &T) -> Result<()> {
-        let entity = self.infra.load_entity_by_key(&entry.key)?.unwrap();
+        let entity = self.load_entity_by_key(&entry.key)?.unwrap();
         let mut entity = entity.borrow_mut();
 
         entity.replace_scope::<T>(scope)
-    }
-
-    pub fn infra(&self) -> InfrastructureRef {
-        self.infra.clone() as InfrastructureRef
     }
 
     pub fn find_name_key(&self, user_name: &str) -> Result<Option<EntityKey>, DomainError> {
@@ -145,7 +130,7 @@ impl Session {
             Ok(i) => Ok(i),
             Err(original_err) => {
                 if let Err(_rollback_err) = self.storage.rollback(false) {
-                    // TODO Include thiat this failed as part of the error.
+                    // TODO Include that this failed as part of the error.
                     panic!("TODO error rolling back");
                 }
 
@@ -182,7 +167,7 @@ impl Session {
         for event in pending.iter() {
             let audience_keys = self.get_audience_keys(&event.audience())?;
             for key in audience_keys {
-                let user = self.infra.load_entity_by_key(&key)?.unwrap();
+                let user = self.load_entity_by_key(&key)?.unwrap();
                 debug!(%key, "observing {:?}", user);
                 let observed = event.observe(&user.try_into()?)?;
                 let rc: Rc<dyn Observed> = observed.into();
@@ -327,10 +312,7 @@ impl Session {
 
     fn save_modified_ids(&self) -> Result<()> {
         // We may need a cleaner or even faster way of doing these loads.
-        let world = self
-            .infra
-            .entry(&WORLD_KEY)?
-            .ok_or(DomainError::EntityNotFound)?;
+        let world = self.entry(&WORLD_KEY)?.ok_or(DomainError::EntityNotFound)?;
 
         // Check to see if the global identifier has changed due to the creation
         // of a new entity.
@@ -346,47 +328,86 @@ impl Session {
 
         Ok(())
     }
+
+    fn find_item_in_set(
+        &self,
+        haystack: &EntityRelationshipSet,
+        item: &Item,
+    ) -> Result<Option<Entry>> {
+        match item {
+            Item::Gid(gid) => self.entry_by_gid(gid),
+            _ => haystack.find_item(item),
+        }
+    }
 }
 
 impl Infrastructure for Session {
     fn load_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
-        self.infra.load_entity_by_key(key)
+        self.entities.prepare_entity_by_key(key)
     }
 
     fn entry_by_gid(&self, gid: &EntityGid) -> Result<Option<Entry>> {
-        self.infra.entry_by_gid(gid)
-    }
-
-    fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<Entry>> {
-        self.infra.find_item(args, item)
+        if let Some(e) = self.entities.prepare_entity_by_gid(gid)? {
+            self.entry(&e.key())
+        } else {
+            Ok(None)
+        }
     }
 
     fn entry(&self, key: &EntityKey) -> Result<Option<Entry>> {
-        self.infra.entry(key)
+        match self.load_entity_by_key(key)? {
+            Some(_) => Ok(Some(Entry {
+                key: key.clone(),
+                session: Weak::clone(&self.weak) as Weak<dyn Infrastructure>,
+            })),
+            None => Ok(None),
+        }
+    }
+
+    fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<Entry>> {
+        let _loading_span = span!(Level::INFO, "finding", i = format!("{:?}", item)).entered();
+
+        info!("finding");
+
+        let haystack = EntityRelationshipSet::new_from_action(args).expand()?;
+
+        self.find_item_in_set(&haystack, item)
     }
 
     fn ensure_entity(&self, entity_ref: &EntityRef) -> Result<EntityRef, DomainError> {
-        self.infra.ensure_entity(entity_ref)
+        if entity_ref.has_entity() {
+            Ok(entity_ref.clone())
+        } else if let Some(entity) = self.load_entity_by_key(&entity_ref.key)? {
+            Ok(entity.into())
+        } else {
+            Err(DomainError::EntityNotFound)
+        }
     }
 
     fn add_entity(&self, entity: &EntityPtr) -> Result<Entry> {
-        self.infra.add_entity(entity)
-    }
+        self.entities.add_entity(entity)?;
 
-    fn new_key(&self) -> EntityKey {
-        self.infra.new_key()
-    }
-
-    fn new_identity(&self) -> Identity {
-        self.infra.new_identity()
+        Ok(self
+            .entry(&entity.key())?
+            .expect("Bug: Newly added entity has no Entry"))
     }
 
     fn chain(&self, living: &Entry, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
-        self.infra.chain(living, action)
+        self.performer.perform(living, action)
+    }
+
+    fn new_key(&self) -> EntityKey {
+        self.keys.following()
+    }
+
+    fn new_identity(&self) -> Identity {
+        self.identities.following()
     }
 
     fn raise(&self, event: Box<dyn DomainEvent>) -> Result<()> {
-        self.infra.raise(event)
+        self.raised.borrow_mut().push(event);
+
+        Ok(())
     }
 }
 

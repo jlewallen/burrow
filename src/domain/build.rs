@@ -9,18 +9,17 @@ use crate::{
 };
 
 pub struct Build {
-    infra: InfrastructureRef,
+    session: InfrastructureRef,
     entry: Option<Entry>,
     entity: EntityPtr,
 }
 
 impl Build {
-    pub fn new(session: &Session) -> Result<Self> {
-        let infra = session.infra();
+    pub fn new(session: &Rc<Session>) -> Result<Self> {
         let entity = EntityPtr::new_blank();
 
         Ok(Self {
-            infra,
+            session: session.clone(),
             entity,
             entry: None,
         })
@@ -42,8 +41,8 @@ impl Build {
         let entry = match &self.entry {
             Some(entry) => entry.clone(),
             None => {
-                self.infra.add_entity(&self.entity)?;
-                self.infra
+                self.session.add_entity(&self.entity)?;
+                self.session
                     .entry(&self.entity.key())?
                     .expect("Bug: Missing newly added entity")
             }
@@ -91,7 +90,7 @@ pub enum QuickThing {
 }
 
 impl QuickThing {
-    pub fn make(&self, session: &Session) -> Result<Entry> {
+    pub fn make(&self, session: &Rc<Session>) -> Result<Entry> {
         match self {
             QuickThing::Object(name) => Ok(Build::new(session)?.named(name)?.into_entry()?),
             QuickThing::Multiple(name, quantity) => Ok(Build::new(session)?
@@ -174,8 +173,6 @@ impl TryFrom<&mut BuildActionArgs> for ActionArgs {
     type Error = anyhow::Error;
 
     fn try_from(builder: &mut BuildActionArgs) -> Result<Self, Self::Error> {
-        let infra = builder.session.infra();
-
         let world = Build::new(&builder.session)?
             .key(&WORLD_KEY)?
             .named("World")?
@@ -210,6 +207,8 @@ impl TryFrom<&mut BuildActionArgs> for ActionArgs {
 
         builder.session.flush()?;
 
-        Ok((world, person, area, infra))
+        let session: InfrastructureRef = Rc::clone(&builder.session) as InfrastructureRef;
+
+        Ok((world, person, area, session))
     }
 }

@@ -1,25 +1,21 @@
 use anyhow::Result;
-use std::{cell::RefCell, rc::Rc};
+use std::rc::Rc;
+use std::rc::Weak;
 use tracing::{debug, event, info, span, Level};
 
-use super::internal::Performer;
-use super::Entry;
+use super::{Entry, Session};
 use crate::plugins::{moving::model::Occupying, users::model::Usernames};
 use crate::{kernel::*, plugins::eval};
 
 pub struct StandardPerformer {
-    infra: RefCell<Option<InfrastructureRef>>,
+    infra: Weak<Session>,
     discoverying: bool,
 }
 
 impl StandardPerformer {
-    pub fn initialize(&self, infra: InfrastructureRef) {
-        *self.infra.borrow_mut() = Some(infra);
-    }
-
-    pub fn new(infra: Option<InfrastructureRef>) -> Rc<Self> {
+    pub fn new(infra: &Weak<Session>) -> Rc<Self> {
         Rc::new(StandardPerformer {
-            infra: RefCell::new(infra),
+            infra: Weak::clone(infra),
             discoverying: false,
         })
     }
@@ -33,12 +29,7 @@ impl StandardPerformer {
 
         let reply = {
             let _span = span!(Level::INFO, "A").entered();
-            let infra = self
-                .infra
-                .borrow()
-                .as_ref()
-                .ok_or(DomainError::NoInfrastructure)?
-                .clone();
+            let infra = self.infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
             action.perform((world, user, area, infra))?
         };
 
@@ -68,11 +59,9 @@ impl StandardPerformer {
     fn evaluate_name(&self, name: &str) -> Result<(Entry, Entry, Entry), DomainError> {
         let _span = span!(Level::DEBUG, "L").entered();
 
-        let infra = self.infra.borrow();
+        let infra = self.infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
 
         let world = infra
-            .as_ref()
-            .ok_or(DomainError::NoInfrastructure)?
             .entry(&WORLD_KEY)?
             .ok_or(DomainError::EntityNotFound)?;
 
@@ -81,8 +70,6 @@ impl StandardPerformer {
         let user_key = &usernames.users[name];
 
         let living = infra
-            .as_ref()
-            .ok_or(DomainError::NoInfrastructure)?
             .load_entity_by_key(user_key)?
             .ok_or(DomainError::EntityNotFound)?;
 
@@ -92,8 +79,7 @@ impl StandardPerformer {
     fn evaluate_living(&self, living: &Entry) -> Result<(Entry, Entry, Entry), DomainError> {
         let world = self
             .infra
-            .borrow()
-            .as_ref()
+            .upgrade()
             .ok_or(DomainError::NoInfrastructure)?
             .load_entity_by_key(&WORLD_KEY)?
             .ok_or(DomainError::EntityNotFound)?;
@@ -119,10 +105,8 @@ impl StandardPerformer {
         }
         Ok(discovered)
     }
-}
 
-impl Performer for StandardPerformer {
-    fn perform(&self, living: &Entry, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
+    pub fn perform(&self, living: &Entry, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
         info!("performing {:?}", action);
 
         let (world, living, area) = self.evaluate_living(living)?;
@@ -131,12 +115,7 @@ impl Performer for StandardPerformer {
 
         let reply = {
             let _span = span!(Level::INFO, "A").entered();
-            let infra = self
-                .infra
-                .borrow()
-                .as_ref()
-                .ok_or(DomainError::NoInfrastructure)?
-                .clone();
+            let infra = self.infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
             action.perform((world, living, area, infra))?
         };
 
