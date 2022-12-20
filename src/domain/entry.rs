@@ -47,85 +47,50 @@ impl Entry {
         self.key.clone()
     }
 
-    pub fn name(&self) -> Option<String> {
-        let entity = match self
+    pub fn entity(&self) -> Result<EntityPtr> {
+        match self
             .session
             .upgrade()
-            .expect("No infra")
-            .load_entity_by_key(&self.key)
-            .expect("Temporary load for 'name' failed")
+            .expect("Bug: No infra")
+            .load_entity_by_key(&self.key)?
         {
-            None => panic!("How did you get an Entry for an unknown Entity?"),
-            Some(entity) => entity,
-        };
-        let entity = entity.borrow();
-
-        entity.name()
+            None => panic!("Bug: Entry has no Session Entity!"),
+            Some(entity) => Ok(entity),
+        }
     }
 
-    pub fn desc(&self) -> Option<String> {
-        let entity = match self
-            .session
-            .upgrade()
-            .expect("No infra")
-            .load_entity_by_key(&self.key)
-            .expect("Temporary load for 'name' failed")
-        {
-            None => panic!("How did you get an Entry for an unknown Entity?"),
-            Some(entity) => entity,
-        };
+    pub fn name(&self) -> Result<Option<String>> {
+        let entity = self.entity()?;
         let entity = entity.borrow();
 
-        entity.desc()
+        Ok(entity.name())
+    }
+
+    pub fn desc(&self) -> Result<Option<String>> {
+        let entity = self.entity()?;
+        let entity = entity.borrow();
+
+        Ok(entity.desc())
     }
 
     pub fn has_scope<T: Scope>(&self) -> Result<bool> {
-        let entity = match self
-            .session
-            .upgrade()
-            .expect("No infra")
-            .load_entity_by_key(&self.key)?
-        {
-            None => panic!("How did you get an Entry for an unknown Entity?"),
-            Some(entity) => entity,
-        };
-
+        let entity = self.entity()?;
         let entity = entity.borrow();
 
         Ok(entity.has_scope::<T>())
     }
 
     pub fn scope<T: Scope>(&self) -> Result<OpenedScope<T>> {
-        let entity = match self
-            .session
-            .upgrade()
-            .expect("No infra")
-            .load_entity_by_key(&self.key)?
-        {
-            None => panic!("How did you get an Entry for an unknown Entity?"),
-            Some(entity) => entity,
-        };
-
+        let entity = self.entity()?;
         let entity = entity.borrow();
-
         let scope = entity.load_scope::<T>()?;
 
         Ok(OpenedScope::new(scope))
     }
 
     pub fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeMut<T>> {
-        let entity = match self
-            .session
-            .upgrade()
-            .expect("No infra")
-            .load_entity_by_key(&self.key)?
-        {
-            None => panic!("How did you get an Entry for an unknown Entity?"),
-            Some(entity) => entity,
-        };
-
+        let entity = self.entity()?;
         let entity = entity.borrow();
-
         let scope = entity.load_scope::<T>()?;
 
         Ok(OpenedScopeMut::new(Weak::clone(&self.session), self, scope))
@@ -135,6 +100,7 @@ impl Entry {
         if !self.has_scope::<T>()? {
             return Ok(None);
         }
+
         Ok(Some(self.scope::<T>()?))
     }
 }

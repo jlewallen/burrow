@@ -7,17 +7,16 @@ use anyhow::{anyhow, Result};
 use tracing::{debug, info};
 
 pub fn matches_string_description(incoming: &str, desc: &str) -> bool {
-    // TODO We can do this more efficiently.
     incoming.to_lowercase().contains(&desc.to_lowercase())
 }
 
 /// Determines if an entity matches a user's description of that entity, given
 /// no other context at all.
-pub fn matches_description(entity: &Entry, desc: &str) -> bool {
-    if let Some(name) = entity.name() {
-        matches_string_description(&name, desc)
+pub fn matches_description(entity: &Entry, desc: &str) -> Result<bool> {
+    if let Some(name) = entity.name()? {
+        Ok(matches_string_description(&name, desc))
     } else {
-        false
+        Ok(false)
     }
 }
 
@@ -93,7 +92,7 @@ impl EntityRelationshipSet {
             if let EntityRelationship::Ground(item) = entity {
                 if let Some(exit) = item.maybe_scope::<Exit>()? {
                     expanded.push(EntityRelationship::Exit(
-                        item.name()
+                        item.name()?
                             .ok_or_else(|| anyhow!("Route name is required"))?,
                         exit.area.into_entry()?,
                     ));
@@ -113,17 +112,17 @@ impl EntityRelationshipSet {
                 for entity in &self.entities {
                     match entity {
                         EntityRelationship::Contained(e) => {
-                            if matches_description(e, name) {
+                            if matches_description(e, name)? {
                                 return Ok(Some(e.clone()));
                             }
                         }
                         EntityRelationship::Ground(e) => {
-                            if matches_description(e, name) {
+                            if matches_description(e, name)? {
                                 return Ok(Some(e.clone()));
                             }
                         }
                         EntityRelationship::Holding(e) => {
-                            if matches_description(e, name) {
+                            if matches_description(e, name)? {
                                 return Ok(Some(e.clone()));
                             }
                         }
