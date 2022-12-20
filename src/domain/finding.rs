@@ -6,18 +6,19 @@ use crate::{
 use anyhow::{anyhow, Result};
 use tracing::{debug, info};
 
-pub fn matches_string_description(incoming: &str, desc: &str) -> bool {
-    incoming.to_lowercase().contains(&desc.to_lowercase())
-}
-
 /// Determines if an entity matches a user's description of that entity, given
 /// no other context at all.
+/// TODO Not very excited about this returning Result.
 pub fn matches_description(entity: &Entry, desc: &str) -> Result<bool> {
     if let Some(name) = entity.name()? {
-        Ok(matches_string_description(&name, desc))
+        Ok(matches_string(&name, desc))
     } else {
         Ok(false)
     }
+}
+
+pub fn matches_string(haystack: &str, desc: &str) -> bool {
+    haystack.to_lowercase().contains(&desc.to_lowercase())
 }
 
 #[derive(Debug, Clone)]
@@ -140,7 +141,7 @@ impl EntityRelationshipSet {
                 for entity in &haystack.entities {
                     match entity {
                         EntityRelationship::Exit(route_name, area) => {
-                            if matches_string_description(route_name, name) {
+                            if matches_string(route_name, name) {
                                 info!("found: {:?} -> {:?}", route_name, area);
                                 return Ok(Some(area.clone()));
                             }

@@ -1,8 +1,14 @@
 use anyhow::{anyhow, Result};
-use std::rc::Weak;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
-use std::{cell::RefCell, collections::HashMap, fmt::Debug, rc::Rc};
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
+};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    fmt::Debug,
+    rc::{Rc, Weak},
+};
 use tracing::*;
 
 use super::{EntityRelationshipSet, Entry, Sequence};
@@ -122,15 +128,10 @@ impl EntityMap {
     }
 
     fn assign_gid_if_necessary(&self, mut loaded: &mut LoadedEntity) {
-        match &loaded.gid {
-            Some(gid) => gid.clone(),
-            None => {
-                let gid = self.ids.get();
-                let loaded = &mut loaded;
-                loaded.gid = Some(gid.clone());
-                gid
-            }
-        };
+        if loaded.gid.is_none() {
+            let loaded = &mut loaded;
+            loaded.gid = Some(self.ids.get());
+        }
     }
 
     pub fn foreach_entity_mut<R, T: Fn(&mut LoadedEntity) -> Result<R>>(
@@ -260,13 +261,7 @@ impl DomainInfrastructure {
         item: &Item,
     ) -> Result<Option<Entry>> {
         match item {
-            Item::Gid(gid) => {
-                if let Some(e) = self.entry_by_gid(gid)? {
-                    Ok(Some(e))
-                } else {
-                    Ok(None)
-                }
-            }
+            Item::Gid(gid) => self.entry_by_gid(gid),
             _ => haystack.find_item(item),
         }
     }
@@ -305,13 +300,13 @@ impl Infrastructure for DomainInfrastructure {
         self.find_item_in_set(&haystack, item)
     }
 
-    fn ensure_entity(&self, entity_ref: &EntityRef) -> Result<EntityRef> {
+    fn ensure_entity(&self, entity_ref: &EntityRef) -> Result<EntityRef, DomainError> {
         if entity_ref.has_entity() {
             Ok(entity_ref.clone())
         } else if let Some(entity) = self.load_entity_by_key(&entity_ref.key)? {
             Ok(entity.into())
         } else {
-            Err(anyhow!("Entity not found"))
+            Err(DomainError::EntityNotFound)
         }
     }
 
@@ -320,7 +315,7 @@ impl Infrastructure for DomainInfrastructure {
 
         Ok(self
             .entry(&entity.key())?
-            .expect("Newly added entity has no Entry"))
+            .expect("Bug: Newly added entity has no Entry"))
     }
 
     fn chain(&self, living: &Entry, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {

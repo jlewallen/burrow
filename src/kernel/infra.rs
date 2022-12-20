@@ -6,32 +6,6 @@ use crate::domain::Entry;
 use anyhow::Result;
 use std::{cell::RefCell, rc::Rc};
 
-thread_local! {
-    #[allow(unused)]
-    static SESSION: RefCell<Option<std::rc::Weak<dyn Infrastructure>>> = RefCell::new(None)
-}
-
-pub fn set_my_session(session: Option<&InfrastructureRef>) -> Result<()> {
-    SESSION.with(|s| {
-        *s.borrow_mut() = match session {
-            Some(session) => Some(Rc::downgrade(session)),
-            None => None,
-        };
-
-        Ok(())
-    })
-}
-
-pub fn get_my_session() -> Result<InfrastructureRef> {
-    SESSION.with(|s| match &*s.borrow() {
-        Some(s) => match s.upgrade() {
-            Some(s) => Ok(s),
-            None => Err(DomainError::ExpiredInfrastructure.into()),
-        },
-        None => Err(DomainError::NoInfrastructure.into()),
-    })
-}
-
 pub type InfrastructureRef = Rc<dyn Infrastructure>;
 
 pub trait Infrastructure {
@@ -55,7 +29,7 @@ pub trait Infrastructure {
             Ok(None)
         }
     }
-    fn ensure_entity(&self, entity_ref: &EntityRef) -> Result<EntityRef>;
+    fn ensure_entity(&self, entity_ref: &EntityRef) -> Result<EntityRef, DomainError>;
 
     fn ensure_optional_entity(&self, entity_ref: &Option<EntityRef>) -> Result<Option<EntityRef>> {
         match entity_ref {
@@ -80,4 +54,30 @@ pub trait Infrastructure {
     fn raise(&self, event: Box<dyn DomainEvent>) -> Result<()>;
 
     fn chain(&self, living: &Entry, action: Box<dyn Action>) -> Result<Box<dyn Reply>>;
+}
+
+thread_local! {
+    #[allow(unused)]
+    static SESSION: RefCell<Option<std::rc::Weak<dyn Infrastructure>>> = RefCell::new(None)
+}
+
+pub fn set_my_session(session: Option<&InfrastructureRef>) -> Result<()> {
+    SESSION.with(|s| {
+        *s.borrow_mut() = match session {
+            Some(session) => Some(Rc::downgrade(session)),
+            None => None,
+        };
+
+        Ok(())
+    })
+}
+
+pub fn get_my_session() -> Result<InfrastructureRef> {
+    SESSION.with(|s| match &*s.borrow() {
+        Some(s) => match s.upgrade() {
+            Some(s) => Ok(s),
+            None => Err(DomainError::ExpiredInfrastructure.into()),
+        },
+        None => Err(DomainError::NoInfrastructure.into()),
+    })
 }

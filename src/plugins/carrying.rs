@@ -114,7 +114,7 @@ pub mod model {
                 .holding
                 .iter()
                 .map(|r| infra.ensure_entity(r))
-                .collect::<Result<Vec<_>>>()?;
+                .collect::<Result<Vec<_>, DomainError>>()?;
 
             Ok(())
         }
