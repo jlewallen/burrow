@@ -8,7 +8,7 @@ use super::{
     moving::model::{Occupyable, Occupying},
 };
 use crate::domain::Entry;
-use crate::kernel::model::*;
+use crate::kernel::{get_my_session, model::*};
 use crate::kernel::{DomainOutcome, EntityPtr};
 
 pub fn is_container(item: &Entry) -> Result<bool> {
@@ -125,34 +125,10 @@ pub fn get_occupant_keys(area: &Entry) -> Result<Vec<EntityKey>> {
         .collect::<Vec<EntityKey>>())
 }
 
-pub fn new_entity() -> Result<Entry> {
-    todo!()
-    /*
-    let entity = EntityPtr::new_blank();
-    get_my_session()?.add_entity(&entity)?;
-
-    Ok(entity)
-    */
-}
-
-pub fn new_entity_from_template_ptr(_template: &Entry) -> Result<Entry> {
-    todo!()
-    /*
-    let entity = EntityPtr::new(Entity::new_from(&template)?);
-    get_my_session()?.add_entity(&entity)?;
-
-    Ok(entity)
-    */
-}
-
-pub fn new_entity_from_template(_template: &Entity) -> Result<Entry> {
-    todo!()
-    /*
-    let entity = EntityPtr::new(Entity::new_from(template)?);
-    get_my_session()?.add_entity(&entity)?;
-
-    Ok(entity)
-    */
+pub fn new_entity_from_template_ptr(template_entry: &Entry) -> Result<Entry> {
+    let template = template_entry.entity()?;
+    let entity = EntityPtr::new(Entity::new_from(&template.borrow())?);
+    get_my_session()?.add_entity(&entity)
 }
 
 pub fn set_quantity(entity: &Entry, quantity: f32) -> Result<&Entry> {

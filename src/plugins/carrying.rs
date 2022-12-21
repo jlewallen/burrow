@@ -128,7 +128,7 @@ pub mod model {
                 .holding
                 .iter()
                 .map(|h| h.into_entry())
-                .collect::<Result<Vec<_>, DomainError>>()?;
+                .collect::<Result<Vec<_>, _>>()?;
 
             for held in holding {
                 if is_kind(&held, &carryable.kind)? {
@@ -147,13 +147,37 @@ pub mod model {
             Ok(DomainOutcome::Ok)
         }
 
+        pub fn is_holding(&self, item: &Entry) -> Result<bool> {
+            Ok(self.holding.iter().any(|i| i.key == item.key()))
+        }
+
         pub fn stop_carrying(&mut self, item: &Entry) -> CarryingResult {
-            let before = self.holding.len();
-            self.holding.retain(|i| i.key != item.key());
-            let after = self.holding.len();
-            if before == after {
+            if !self.is_holding(item)? {
                 return Ok(DomainOutcome::Nope);
             }
+
+            self.holding = self
+                .holding
+                .iter()
+                .map(|i| -> Result<Vec<EntityRef>> {
+                    if i.key == item.key() {
+                        let mut carryable = item.scope_mut::<Carryable>()?;
+                        if carryable.quantity > 1.0 {
+                            carryable.decrease_quantity(1.0)?;
+
+                            Ok(vec![i.clone()])
+                        } else {
+                            Ok(vec![])
+                        }
+                    } else {
+                        Ok(vec![i.clone()])
+                    }
+                })
+                .collect::<Result<Vec<_>>>()?
+                .into_iter()
+                .flatten()
+                .collect::<Vec<EntityRef>>()
+                .to_vec();
 
             Ok(DomainOutcome::Ok)
         }
@@ -493,7 +517,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn it_separates_multiple_ground_items_when_held() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
         let args: ActionArgs = build
@@ -515,7 +538,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn it_combines_multiple_items_when_together_on_ground() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
         let same_kind = build.make(QuickThing::Object("Cool Rake"))?;
