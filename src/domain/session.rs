@@ -379,7 +379,7 @@ impl Infrastructure for Session {
     fn ensure_entity(&self, entity_ref: &EntityRef) -> Result<EntityRef, DomainError> {
         if entity_ref.has_entity() {
             Ok(entity_ref.clone())
-        } else if let Some(entity) = self.load_entity_by_key(&entity_ref.key)? {
+        } else if let Some(entity) = &self.load_entity_by_key(&entity_ref.key)? {
             Ok(entity.into())
         } else {
             Err(DomainError::EntityNotFound)

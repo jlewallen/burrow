@@ -645,12 +645,6 @@ impl Debug for EntityRef {
     }
 }
 
-impl From<EntityPtr> for EntityRef {
-    fn from(entity: EntityPtr) -> Self {
-        entity.lazy.borrow().clone()
-    }
-}
-
 impl From<&EntityPtr> for EntityRef {
     fn from(entity: &EntityPtr) -> Self {
         entity.lazy.borrow().clone()
