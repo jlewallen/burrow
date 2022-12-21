@@ -6,7 +6,7 @@ use crate::domain::Entry;
 use anyhow::Result;
 use std::{cell::RefCell, rc::Rc};
 
-pub type InfrastructureRef = Rc<dyn Infrastructure>;
+pub type SessionRef = Rc<dyn Infrastructure>;
 
 pub trait Infrastructure {
     fn entry_by_gid(&self, gid: &EntityGid) -> Result<Option<Entry>>;
@@ -59,7 +59,7 @@ thread_local! {
     static SESSION: RefCell<Option<std::rc::Weak<dyn Infrastructure>>> = RefCell::new(None)
 }
 
-pub fn set_my_session(session: Option<&InfrastructureRef>) -> Result<()> {
+pub fn set_my_session(session: Option<&SessionRef>) -> Result<()> {
     SESSION.with(|s| {
         *s.borrow_mut() = match session {
             Some(session) => Some(Rc::downgrade(session)),
@@ -70,7 +70,7 @@ pub fn set_my_session(session: Option<&InfrastructureRef>) -> Result<()> {
     })
 }
 
-pub fn get_my_session() -> Result<InfrastructureRef> {
+pub fn get_my_session() -> Result<SessionRef> {
     SESSION.with(|s| match &*s.borrow() {
         Some(s) => match s.upgrade() {
             Some(s) => Ok(s),

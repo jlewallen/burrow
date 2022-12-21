@@ -4,12 +4,12 @@ use tracing::*;
 
 use super::{DevNullNotifier, Entry, Session};
 use crate::{
-    kernel::{ActionArgs, EntityKey, EntityPtr, InfrastructureRef, WORLD_KEY},
+    kernel::{ActionArgs, EntityKey, EntityPtr, SessionRef, WORLD_KEY},
     plugins::tools,
 };
 
 pub struct Build {
-    session: InfrastructureRef,
+    session: SessionRef,
     entry: Option<Entry>,
     entity: EntityPtr,
 }
@@ -201,7 +201,7 @@ impl TryFrom<&mut BuildActionArgs> for ActionArgs {
 
         builder.session.flush()?;
 
-        let session: InfrastructureRef = Rc::clone(&builder.session) as InfrastructureRef;
+        let session: SessionRef = Rc::clone(&builder.session) as SessionRef;
 
         Ok((world, person, area, session))
     }

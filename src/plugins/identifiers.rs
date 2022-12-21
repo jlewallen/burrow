@@ -7,8 +7,8 @@ pub mod model {
         pub acls: Acls,
     }
 
-    impl Needs<InfrastructureRef> for Identifiers {
-        fn supply(&mut self, _infra: &InfrastructureRef) -> Result<()> {
+    impl Needs<SessionRef> for Identifiers {
+        fn supply(&mut self, _infra: &SessionRef) -> Result<()> {
             Ok(())
         }
     }

@@ -84,8 +84,8 @@ pub mod model {
         }
     }
 
-    impl Needs<InfrastructureRef> for Location {
-        fn supply(&mut self, infra: &InfrastructureRef) -> Result<()> {
+    impl Needs<SessionRef> for Location {
+        fn supply(&mut self, infra: &SessionRef) -> Result<()> {
             self.container = infra.ensure_optional_entity(&self.container)?;
             Ok(())
         }
@@ -108,8 +108,8 @@ pub mod model {
         }
     }
 
-    impl Needs<InfrastructureRef> for Containing {
-        fn supply(&mut self, infra: &InfrastructureRef) -> Result<()> {
+    impl Needs<SessionRef> for Containing {
+        fn supply(&mut self, infra: &SessionRef) -> Result<()> {
             self.holding = self
                 .holding
                 .iter()
@@ -249,8 +249,8 @@ pub mod model {
         }
     }
 
-    impl Needs<InfrastructureRef> for Carryable {
-        fn supply(&mut self, _infra: &InfrastructureRef) -> Result<()> {
+    impl Needs<SessionRef> for Carryable {
+        fn supply(&mut self, _infra: &SessionRef) -> Result<()> {
             Ok(())
         }
     }

@@ -440,8 +440,8 @@ impl Display for Entity {
     }
 }
 
-impl Needs<InfrastructureRef> for Entity {
-    fn supply(&mut self, infra: &InfrastructureRef) -> Result<()> {
+impl Needs<SessionRef> for Entity {
+    fn supply(&mut self, infra: &SessionRef) -> Result<()> {
         self.parent = infra.ensure_optional_entity(&self.parent)?;
         self.creator = infra.ensure_optional_entity(&self.creator)?;
         Ok(())
@@ -663,6 +663,8 @@ pub enum DomainError {
     Anyhow(#[source] anyhow::Error),
     #[error("No infrastructure")]
     NoInfrastructure,
+    #[error("No session")]
+    NoSession,
     #[error("Expired infrastructure")]
     ExpiredInfrastructure,
     #[error("Session closed")]

@@ -8,14 +8,14 @@ use crate::plugins::{moving::model::Occupying, users::model::Usernames};
 use crate::{kernel::*, plugins::eval};
 
 pub struct StandardPerformer {
-    infra: Weak<Session>,
+    session: Weak<Session>,
     discoverying: bool,
 }
 
 impl StandardPerformer {
-    pub fn new(infra: &Weak<Session>) -> Rc<Self> {
+    pub fn new(session: &Weak<Session>) -> Rc<Self> {
         Rc::new(StandardPerformer {
-            infra: Weak::clone(infra),
+            session: Weak::clone(session),
             discoverying: false,
         })
     }
@@ -29,8 +29,8 @@ impl StandardPerformer {
 
         let reply = {
             let _span = span!(Level::INFO, "A").entered();
-            let infra = self.infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
-            action.perform((world, user, area, infra))?
+            let session = self.session.upgrade().ok_or(DomainError::NoSession)?;
+            action.perform((world, user, area, session))?
         };
 
         Ok(reply)
@@ -59,9 +59,9 @@ impl StandardPerformer {
     fn evaluate_name(&self, name: &str) -> Result<(Entry, Entry, Entry), DomainError> {
         let _span = span!(Level::DEBUG, "L").entered();
 
-        let infra = self.infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
+        let session = self.session.upgrade().ok_or(DomainError::NoSession)?;
 
-        let world = infra
+        let world = session
             .entry(&WORLD_KEY)?
             .ok_or(DomainError::EntityNotFound)?;
 
@@ -69,15 +69,17 @@ impl StandardPerformer {
 
         let user_key = &usernames.users[name];
 
-        let living = infra.entry(user_key)?.ok_or(DomainError::EntityNotFound)?;
+        let living = session
+            .entry(user_key)?
+            .ok_or(DomainError::EntityNotFound)?;
 
         self.evaluate_living(&living)
     }
 
     fn evaluate_living(&self, living: &Entry) -> Result<(Entry, Entry, Entry), DomainError> {
-        let infra = self.infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
+        let session = self.session.upgrade().ok_or(DomainError::NoSession)?;
 
-        let world = infra
+        let world = session
             .entry(&WORLD_KEY)?
             .ok_or(DomainError::EntityNotFound)?;
 
@@ -112,8 +114,8 @@ impl StandardPerformer {
 
         let reply = {
             let _span = span!(Level::INFO, "A").entered();
-            let infra = self.infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
-            action.perform((world, living, area, infra))?
+            let session = self.session.upgrade().ok_or(DomainError::NoSession)?;
+            action.perform((world, living, area, session))?
         };
 
         event!(Level::INFO, "done");
