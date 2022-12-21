@@ -75,5 +75,11 @@ body {
     .entry {
       padding: 1em;
     }
+
+    .entry.observation.area {
+      div {
+        padding-top: 0.3em;
+      }
+    }
   }
 }
