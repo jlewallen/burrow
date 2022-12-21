@@ -38,16 +38,10 @@ impl Build {
     }
 
     pub fn into_entry(&mut self) -> Result<Entry> {
-        let entry = match &self.entry {
-            Some(entry) => entry.clone(),
-            None => {
-                self.session.add_entity(&self.entity)?;
-                self.session
-                    .entry(&self.entity.key())?
-                    .expect("Bug: Missing newly added entity")
-            }
-        };
-        Ok(entry)
+        match &self.entry {
+            Some(entry) => Ok(entry.clone()),
+            None => Ok(self.session.add_entity(&self.entity)?),
+        }
     }
 
     pub fn of_quantity(&mut self, quantity: f32) -> Result<&mut Self> {
