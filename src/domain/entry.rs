@@ -24,14 +24,11 @@ impl TryFrom<EntityPtr> for Entry {
     }
 }
 
-impl From<&Entry> for EntityRef {
-    fn from(value: &Entry) -> Self {
-        let entity = get_my_session()
-            .expect("No infra")
-            .load_entity_by_key(&value.key)
-            .expect("Load failed for From to EntityRef")
-            .expect("Missing lazy Entity reference");
-        EntityRef::new_with_entity(entity)
+impl TryFrom<&Entry> for EntityRef {
+    type Error = DomainError;
+
+    fn try_from(entry: &Entry) -> Result<Self, Self::Error> {
+        Ok(EntityRef::new_with_entity(entry.entity()?))
     }
 }
 
@@ -141,7 +138,7 @@ impl<T: Scope> std::ops::Deref for OpenedScope<T> {
 }
 
 pub struct OpenedScopeMut<T: Scope> {
-    session: Weak<dyn Infrastructure>,
+    _session: Weak<dyn Infrastructure>,
     owner: Entry,
     target: Box<T>,
 }
@@ -151,19 +148,14 @@ impl<T: Scope> OpenedScopeMut<T> {
         trace!("scope-open {:?}", target);
 
         Self {
-            session,
+            _session: session,
             owner: owner.clone(),
             target,
         }
     }
 
     pub fn save(&mut self) -> Result<()> {
-        let entity = self
-            .session
-            .upgrade()
-            .expect("No infra")
-            .load_entity_by_key(&self.owner.key)?
-            .unwrap();
+        let entity = self.owner.entity()?;
         let mut entity = entity.borrow_mut();
 
         entity.replace_scope::<T>(&self.target)

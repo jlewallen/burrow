@@ -88,7 +88,7 @@ pub mod model {
         }
 
         pub fn start_occupying(&mut self, item: &Entry) -> Result<DomainOutcome> {
-            self.occupied.push(item.into());
+            self.occupied.push(item.try_into()?);
 
             Ok(DomainOutcome::Ok)
         }

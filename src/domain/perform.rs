@@ -69,19 +69,16 @@ impl StandardPerformer {
 
         let user_key = &usernames.users[name];
 
-        let living = infra
-            .load_entity_by_key(user_key)?
-            .ok_or(DomainError::EntityNotFound)?;
+        let living = infra.entry(user_key)?.ok_or(DomainError::EntityNotFound)?;
 
-        self.evaluate_living(&living.try_into()?)
+        self.evaluate_living(&living)
     }
 
     fn evaluate_living(&self, living: &Entry) -> Result<(Entry, Entry, Entry), DomainError> {
-        let world = self
-            .infra
-            .upgrade()
-            .ok_or(DomainError::NoInfrastructure)?
-            .load_entity_by_key(&WORLD_KEY)?
+        let infra = self.infra.upgrade().ok_or(DomainError::NoInfrastructure)?;
+
+        let world = infra
+            .entry(&WORLD_KEY)?
             .ok_or(DomainError::EntityNotFound)?;
 
         let area: Entry = {
@@ -91,7 +88,7 @@ impl StandardPerformer {
 
         info!("area {:?}", &area);
 
-        Ok((world.try_into()?, living.clone(), area))
+        Ok((world, living.clone(), area))
     }
 
     fn discover_from(&self, entities: Vec<&Entry>) -> Result<Vec<EntityKey>> {
