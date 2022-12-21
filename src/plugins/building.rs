@@ -78,13 +78,12 @@ pub mod actions {
 
             let (_, living, area, infra) = args.clone();
 
-            let new_area = EntityPtr::new_named(&self.new_area, &self.new_area)?;
-            let returning = EntityPtr::new_named(&self.returning, &self.returning)?;
-            let outgoing = EntityPtr::new_named(&self.outgoing, &self.outgoing)?;
-            let added = infra.add_entities(&[&new_area, &returning, &outgoing])?;
-            let new_area = added[0].clone();
-            let returning = added[1].clone();
-            let outgoing = added[2].clone();
+            let new_area =
+                infra.add_entity(&EntityPtr::new_named(&self.new_area, &self.new_area)?)?;
+            let returning =
+                infra.add_entity(&EntityPtr::new_named(&self.returning, &self.returning)?)?;
+            let outgoing =
+                infra.add_entity(&EntityPtr::new_named(&self.outgoing, &self.outgoing)?)?;
 
             tools::leads_to(&returning, &area)?;
             tools::set_container(&new_area, &vec![returning])?;
