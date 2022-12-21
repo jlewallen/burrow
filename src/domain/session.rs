@@ -84,8 +84,9 @@ impl Session {
 
     pub fn entry(&self, key: &EntityKey) -> Result<Option<Entry>> {
         match self.load_entity_by_key(key)? {
-            Some(_) => Ok(Some(Entry {
+            Some(entity) => Ok(Some(Entry {
                 key: key.clone(),
+                entity: entity,
                 session: Weak::clone(&self.weak) as Weak<dyn Infrastructure>,
             })),
             None => Ok(None),
@@ -339,13 +340,13 @@ impl Session {
             _ => haystack.find_item(item),
         }
     }
-}
 
-impl Infrastructure for Session {
     fn load_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
         self.entities.prepare_entity_by_key(key)
     }
+}
 
+impl Infrastructure for Session {
     fn entry_by_gid(&self, gid: &EntityGid) -> Result<Option<Entry>> {
         if let Some(e) = self.entities.prepare_entity_by_gid(gid)? {
             self.entry(&e.key())
@@ -356,8 +357,9 @@ impl Infrastructure for Session {
 
     fn entry(&self, key: &EntityKey) -> Result<Option<Entry>> {
         match self.load_entity_by_key(key)? {
-            Some(_) => Ok(Some(Entry {
+            Some(entity) => Ok(Some(Entry {
                 key: key.clone(),
+                entity,
                 session: Weak::clone(&self.weak) as Weak<dyn Infrastructure>,
             })),
             None => Ok(None),

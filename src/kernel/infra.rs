@@ -9,8 +9,6 @@ use std::{cell::RefCell, rc::Rc};
 pub type InfrastructureRef = Rc<dyn Infrastructure>;
 
 pub trait Infrastructure {
-    fn load_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>>;
-
     fn entry_by_gid(&self, gid: &EntityGid) -> Result<Option<Entry>>;
 
     fn entry(&self, key: &EntityKey) -> Result<Option<Entry>>;

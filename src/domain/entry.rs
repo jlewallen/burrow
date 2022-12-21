@@ -3,13 +3,13 @@ use std::rc::{Rc, Weak};
 use tracing::trace;
 
 use crate::kernel::{
-    get_my_session, DomainError, EntityKey, EntityPtr, EntityRef, Infrastructure,
-    InfrastructureRef, Scope,
+    get_my_session, DomainError, EntityKey, EntityPtr, EntityRef, Infrastructure, Scope,
 };
 
 #[derive(Clone)]
 pub struct Entry {
     pub key: EntityKey,
+    pub entity: EntityPtr,
     pub session: Weak<dyn Infrastructure>,
 }
 
@@ -19,6 +19,7 @@ impl TryFrom<EntityPtr> for Entry {
     fn try_from(value: EntityPtr) -> Result<Self, Self::Error> {
         Ok(Self {
             key: value.key(),
+            entity: value,
             session: Rc::downgrade(&get_my_session()?),
         })
     }
@@ -33,27 +34,12 @@ impl TryFrom<&Entry> for EntityRef {
 }
 
 impl Entry {
-    pub fn new_for_session(session: &InfrastructureRef) -> Self {
-        Self {
-            key: EntityKey::default(),
-            session: Rc::downgrade(session),
-        }
-    }
-
     pub fn key(&self) -> EntityKey {
         self.key.clone()
     }
 
     pub fn entity(&self) -> Result<EntityPtr> {
-        match self
-            .session
-            .upgrade()
-            .expect("Bug: No infra")
-            .load_entity_by_key(&self.key)?
-        {
-            None => panic!("Bug: Entry has no Session Entity!"),
-            Some(entity) => Ok(entity),
-        }
+        Ok(self.entity.clone())
     }
 
     pub fn name(&self) -> Result<Option<String>> {
