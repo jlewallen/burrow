@@ -132,7 +132,7 @@ impl EntityMap {
         }
     }
 
-    pub fn foreach_entity_mut<R, T: Fn(&mut LoadedEntity) -> Result<R>>(
+    fn foreach_entity_mut<R, T: Fn(&mut LoadedEntity) -> Result<R>>(
         &self,
         each: T,
     ) -> Result<Vec<R>> {
@@ -140,7 +140,7 @@ impl EntityMap {
     }
 
     #[allow(dead_code)]
-    pub fn foreach_entity<R, T: Fn(&LoadedEntity) -> Result<R>>(&self, each: T) -> Result<Vec<R>> {
+    fn foreach_entity<R, T: Fn(&LoadedEntity) -> Result<R>>(&self, each: T) -> Result<Vec<R>> {
         self.maps.borrow().foreach_entity(each)
     }
 }
@@ -217,6 +217,17 @@ impl Entities {
         } else {
             Ok(None)
         }
+    }
+
+    pub fn foreach_entity_mut<R, T: Fn(&mut LoadedEntity) -> Result<R>>(
+        &self,
+        each: T,
+    ) -> Result<Vec<R>> {
+        self.entities.foreach_entity_mut(each)
+    }
+
+    pub fn size(&self) -> usize {
+        self.entities.size()
     }
 }
 

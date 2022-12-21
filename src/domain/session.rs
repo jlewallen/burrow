@@ -24,7 +24,6 @@ pub struct Session {
     opened: Instant,
     open: AtomicBool,
     storage: Rc<dyn EntityStorage>,
-    entity_map: Rc<EntityMap>,
     ids: Rc<GlobalIds>,
     performer: Rc<StandardPerformer>,
     raised: Rc<RefCell<Vec<Box<dyn DomainEvent>>>>,
@@ -52,7 +51,6 @@ impl Session {
         let session = Rc::new_cyclic(|weak: &Weak<Session>| Self {
             opened,
             storage: Rc::clone(&storage),
-            entity_map: Rc::clone(&entity_map),
             open: AtomicBool::new(true),
             performer: StandardPerformer::new(weak),
             ids: Rc::clone(&ids),
@@ -186,7 +184,7 @@ impl Session {
 
         self.flush_raised(notifier)?;
 
-        let nentities = self.entity_map.size();
+        let nentities = self.entities.size();
         let elapsed = self.opened.elapsed();
         let elapsed = format!("{:?}", elapsed);
 
@@ -306,7 +304,7 @@ impl Session {
 
     fn get_modified_entities(&self) -> Result<Vec<ModifiedEntity>> {
         let modified = self
-            .entity_map
+            .entities
             .foreach_entity_mut(|l| self.check_for_changes(l))?;
         Ok(modified.into_iter().flatten().collect::<Vec<_>>())
     }
