@@ -91,23 +91,6 @@ impl Session {
         }
     }
 
-    pub fn scope<T: Scope>(&self, entry: &Entry) -> Result<Box<T>, DomainError> {
-        let entity = entry.entity()?;
-
-        info!("{:?} scope", entity);
-
-        let entity = entity.borrow();
-
-        entity.load_scope::<T>()
-    }
-
-    pub fn save<T: Scope>(&self, entry: &Entry, scope: &T) -> Result<()> {
-        let entity = self.load_entity_by_key(&entry.key)?.unwrap();
-        let mut entity = entity.borrow_mut();
-
-        entity.replace_scope::<T>(scope)
-    }
-
     pub fn find_name_key(&self, user_name: &str) -> Result<Option<EntityKey>, DomainError> {
         if !self.open.load(Ordering::Relaxed) {
             return Err(DomainError::SessionClosed);

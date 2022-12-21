@@ -76,14 +76,6 @@ pub mod model {
     pub use std::rc::Rc;
     pub use std::{collections::HashMap, ops::Deref};
     pub use tracing::*;
-
-    pub trait DiscoversEntities {
-        fn discover_entities(
-            &self,
-            source: &Entity,
-            entity_keys: &mut Vec<EntityKey>,
-        ) -> Result<()>;
-    }
 }
 
 pub mod actions {
