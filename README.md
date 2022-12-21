@@ -20,6 +20,7 @@ https://github.com/jlewallen/dimsum/
 
 4. Domain events.
 5. Improve test name language. Need a more consistent style.
+6. Move from lookup_by_key/gid to generalized lookup_by<T>()
 
 ### Musings
 

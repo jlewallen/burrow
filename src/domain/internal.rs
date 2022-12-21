@@ -196,7 +196,7 @@ impl Entities {
 
         let _loading_span = span!(Level::INFO, "entity", key = key.key_to_string()).entered();
 
-        info!("loading");
+        trace!("loading");
         if let Some(persisted) = self.storage.load_by_key(key)? {
             Ok(Some(self.prepare_persisted(persisted)?))
         } else {
@@ -211,7 +211,7 @@ impl Entities {
 
         let _loading_span = span!(Level::INFO, "entity", gid = gid.gid_to_string()).entered();
 
-        info!("loading");
+        trace!("loading");
         if let Some(persisted) = self.storage.load_by_gid(gid)? {
             Ok(Some(self.prepare_persisted(persisted)?))
         } else {
