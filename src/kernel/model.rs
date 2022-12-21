@@ -629,8 +629,9 @@ impl EntityRef {
     }
 
     pub fn into_entry(&self) -> Result<Entry, DomainError> {
-        let session = get_my_session()?;
-        Ok(session.entry(&self.key)?.expect("No Entry for Entity"))
+        get_my_session()?
+            .entry(&self.key)?
+            .ok_or_else(|| DomainError::DanglingEntity)
     }
 }
 
