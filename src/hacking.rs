@@ -1,9 +1,8 @@
 use anyhow::Result;
 use tracing::info;
 
-use crate::domain::{self};
-use crate::domain::{DevNullNotifier, Entry};
-use crate::kernel::WORLD_KEY;
+use crate::domain::{domain, DevNullNotifier};
+use crate::kernel::{Entry, WORLD_KEY};
 use crate::plugins::carrying::model::{Carryable, Containing};
 use crate::plugins::moving::model::Occupying;
 use crate::plugins::users::model::Usernames;

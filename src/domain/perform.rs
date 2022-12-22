@@ -3,7 +3,7 @@ use std::rc::Rc;
 use std::rc::Weak;
 use tracing::{debug, event, info, span, Level};
 
-use super::{Entry, Session};
+use super::Session;
 use crate::plugins::{moving::model::Occupying, users::model::Usernames};
 use crate::{kernel::*, plugins::eval};
 

@@ -1,8 +1,7 @@
 use super::{
     Action, ActionArgs, DomainError, DomainEvent, EntityGid, EntityKey, EntityPtr, EntityRef,
-    Identity, Item, Reply,
+    Entry, Identity, Item, Reply,
 };
-use crate::domain::Entry;
 use anyhow::Result;
 use std::{cell::RefCell, rc::Rc};
 

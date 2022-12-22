@@ -13,9 +13,11 @@ use std::{
 use thiserror::Error;
 use tracing::*;
 
-use crate::domain::Entry;
-
 use super::{infra::*, Needs, Scope};
+
+pub mod entry;
+
+pub use entry::*;
 
 pub static WORLD_KEY: Lazy<EntityKey> = Lazy::new(|| EntityKey("world".to_string()));
 

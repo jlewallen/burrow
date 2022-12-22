@@ -1,7 +1,6 @@
 use anyhow::Result;
 
-use crate::domain::Entry;
-use crate::kernel::{Action, EntityKey, EvaluationError};
+use crate::kernel::{Action, EntityKey, Entry, EvaluationError};
 use crate::plugins;
 
 use super::library::parser::ParsesActions;

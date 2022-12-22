@@ -7,7 +7,6 @@ use super::{
     carrying::model::{Containing, Location},
     moving::model::{Occupyable, Occupying},
 };
-use crate::domain::Entry;
 use crate::kernel::{get_my_session, model::*};
 use crate::kernel::{DomainOutcome, EntityPtr};
 

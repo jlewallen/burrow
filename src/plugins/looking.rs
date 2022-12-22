@@ -9,7 +9,6 @@ impl ParsesActions for LookingPlugin {
 }
 
 pub mod model {
-    use crate::domain::Entry;
     use crate::plugins::library::model::*;
     use crate::{
         plugins::carrying::model::Containing,

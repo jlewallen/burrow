@@ -2,9 +2,9 @@ use anyhow::Result;
 use std::rc::Rc;
 use tracing::*;
 
-use super::{DevNullNotifier, Entry, Session};
+use super::{DevNullNotifier, Session};
 use crate::{
-    kernel::{ActionArgs, EntityKey, EntityPtr, SessionRef, WORLD_KEY},
+    kernel::{ActionArgs, EntityKey, EntityPtr, Entry, SessionRef, WORLD_KEY},
     plugins::tools,
 };
 

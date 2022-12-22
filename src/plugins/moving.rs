@@ -9,10 +9,7 @@ impl ParsesActions for MovingPlugin {
 }
 
 pub mod model {
-    use crate::{
-        domain::Entry,
-        plugins::{library::model::*, looking::model::Observe},
-    };
+    use crate::plugins::{library::model::*, looking::model::Observe};
 
     #[derive(Debug)]
     pub enum MovingEvent {

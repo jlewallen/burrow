@@ -12,10 +12,7 @@ impl ParsesActions for CarryingPlugin {
 }
 
 pub mod model {
-    use crate::{
-        domain::Entry,
-        plugins::{library::model::*, looking::model::Observe},
-    };
+    use crate::plugins::{library::model::*, looking::model::Observe};
 
     pub type CarryingResult = Result<DomainOutcome>;
 

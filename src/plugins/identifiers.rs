@@ -1,5 +1,5 @@
 pub mod model {
-    use crate::{domain::Entry, plugins::library::model::*};
+    use crate::plugins::library::model::*;
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Identifiers {
