@@ -195,7 +195,7 @@ pub mod model {
             let session = get_my_session().expect("No session in Entity::new_blank!");
             Self {
                 kind: Kind::new(session.new_identity()),
-                quantity: Default::default(),
+                quantity: 1.0,
             }
         }
     }
@@ -206,6 +206,8 @@ pub mod model {
         }
 
         pub fn decrease_quantity(&mut self, q: f32) -> Result<&mut Self, DomainError> {
+            self.sanity_check_quantity();
+
             if q < 1.0 || q > self.quantity {
                 Err(DomainError::Impossible)
             } else {
@@ -216,6 +218,8 @@ pub mod model {
         }
 
         pub fn increase_quantity(&mut self, q: f32) -> Result<&mut Self> {
+            self.sanity_check_quantity();
+
             self.quantity += q;
 
             Ok(self)
@@ -233,6 +237,13 @@ pub mod model {
 
         pub fn set_kind(&mut self, kind: &Kind) {
             self.kind = kind.clone();
+        }
+
+        // Migrate items that were initialized with 0 quantities.
+        fn sanity_check_quantity(&mut self) {
+            if self.quantity < 1.0 {
+                self.quantity = 1.0
+            }
         }
     }
 

@@ -130,6 +130,11 @@ pub fn new_entity_from_template_ptr(template_entry: &Entry) -> Result<Entry> {
     get_my_session()?.add_entity(&entity)
 }
 
+pub fn quantity(entity: &Entry) -> Result<f32> {
+    let carryable = entity.scope::<Carryable>()?;
+    Ok(carryable.quantity())
+}
+
 pub fn set_quantity(entity: &Entry, quantity: f32) -> Result<&Entry> {
     let mut carryable = entity.scope_mut::<Carryable>()?;
     carryable.set_quantity(quantity)?;
@@ -157,4 +162,12 @@ pub fn separate(entity: Entry, quantity: f32) -> Result<(Entry, Entry)> {
     carryable.save()?;
 
     Ok((entity, separated))
+}
+
+pub fn duplicate(entity: &Entry) -> Result<Entry> {
+    let mut carryable = entity.scope_mut::<Carryable>()?;
+    carryable.increase_quantity(1.0)?;
+    carryable.save()?;
+
+    Ok(entity.clone())
 }

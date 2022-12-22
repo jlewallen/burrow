@@ -653,6 +653,16 @@ impl From<&EntityPtr> for EntityRef {
     }
 }
 
+impl TryFrom<EntityRef> for Entry {
+    type Error = DomainError;
+
+    fn try_from(value: EntityRef) -> Result<Self, Self::Error> {
+        get_my_session()?
+            .entry(&value.key)?
+            .ok_or_else(|| DomainError::DanglingEntity)
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum DomainError {
     #[error("No such scope '{:?}' on entity '{:?}'", .0, .1)]
