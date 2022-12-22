@@ -3,9 +3,12 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 use std::fmt::Debug;
 
-use super::infra::*;
+use super::infra::SessionRef;
 use super::model::*;
-use super::ReplyResult;
+
+pub use replies::*;
+
+pub type ReplyResult = anyhow::Result<Box<dyn Reply>>;
 
 pub type EvaluationResult = Result<Box<dyn Action>, EvaluationError>;
 

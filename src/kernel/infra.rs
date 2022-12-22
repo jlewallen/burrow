@@ -1,7 +1,8 @@
-use super::{
-    Action, ActionArgs, DomainError, DomainEvent, EntityGid, EntityKey, EntityPtr, EntityRef,
-    Entry, Identity, Item, Reply,
+use super::model::{
+    DomainError, DomainEvent, EntityGid, EntityKey, EntityPtr, EntityRef, Entry, Identity, Item,
 };
+use super::scopes::{Action, ActionArgs, Reply};
+
 use anyhow::Result;
 use std::{cell::RefCell, rc::Rc};
 

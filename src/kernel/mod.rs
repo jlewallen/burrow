@@ -8,5 +8,3 @@ pub use infra::*;
 pub use model::*;
 pub use replies::*;
 pub use scopes::*;
-
-pub type ReplyResult = anyhow::Result<Box<dyn Reply>>;
