@@ -15,14 +15,14 @@ pub type EvaluationResult = Result<Box<dyn Action>, EvaluationError>;
 pub type ActionArgs = (Entry, Entry, Entry, SessionRef);
 
 pub trait Action: Debug {
-    fn perform(&self, args: ActionArgs) -> ReplyResult;
-
     fn is_read_only() -> bool
     where
         Self: Sized;
+
+    fn perform(&self, args: ActionArgs) -> ReplyResult;
 }
 
-pub trait Scope: Default + Needs<SessionRef> + DeserializeOwned + Debug {
+pub trait Scope: Needs<SessionRef> + DeserializeOwned + Default + Debug {
     fn scope_key() -> &'static str
     where
         Self: Sized;
