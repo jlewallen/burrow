@@ -7,6 +7,7 @@ pub trait EntityStorage {
     fn load_by_key(&self, key: &EntityKey) -> Result<Option<PersistedEntity>>;
     fn load_by_gid(&self, gid: &EntityGid) -> Result<Option<PersistedEntity>>;
     fn save(&self, entity: &PersistedEntity) -> Result<()>;
+    fn delete(&self, entity: &PersistedEntity) -> Result<()>;
     fn begin(&self) -> Result<()>;
     fn rollback(&self, benign: bool) -> Result<()>;
     fn commit(&self) -> Result<()>;
@@ -136,6 +137,18 @@ pub mod sqlite {
             } else {
                 Ok(())
             }
+        }
+
+        fn delete(&self, entity: &PersistedEntity) -> Result<()> {
+            debug!(%entity.key,  "deleting");
+
+            let mut stmt = self
+                .conn
+                .prepare("DELETE FROM entities WHERE key = ?1 AND version = ?2")?;
+
+            stmt.execute((&entity.key, &entity.version))?;
+
+            Ok(())
         }
 
         fn begin(&self) -> Result<()> {
@@ -295,6 +308,30 @@ pub mod sqlite {
             s.commit()?;
 
             s.load_by_key(&EntityKey::new("world"))?;
+
+            Ok(())
+        }
+
+        #[test]
+        fn it_deletes_entity() -> Result<()> {
+            let s = get_storage()?;
+
+            s.save(&PersistedEntity {
+                key: "world".to_string(),
+                gid: 1,
+                version: 1,
+                serialized: "{}".to_string(),
+            })?;
+
+            let p1 = s.load_by_key(&EntityKey::new("world"))?.unwrap();
+
+            assert_eq!(1, p1.version);
+
+            s.delete(&p1)?;
+
+            let p2 = s.load_by_key(&EntityKey::new("world"))?;
+
+            assert!(p2.is_none());
 
             Ok(())
         }

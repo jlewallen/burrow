@@ -7,6 +7,7 @@ impl ParsesActions for BuildingPlugin {
         try_parsing(parser::EditActionParser {}, i)
             .or_else(|_| try_parsing(parser::DuplicateActionParser {}, i))
             .or_else(|_| try_parsing(parser::BidirectionalDigActionParser {}, i))
+            .or_else(|_| try_parsing(parser::ObliterateActionParser {}, i))
             .or_else(|_| try_parsing(parser::MakeItemParser {}, i))
     }
 }
@@ -86,6 +87,32 @@ pub mod actions {
     }
 
     #[derive(Debug)]
+    pub struct ObliterateAction {
+        pub item: Item,
+    }
+
+    impl Action for ObliterateAction {
+        fn is_read_only() -> bool {
+            false
+        }
+
+        fn perform(&self, args: ActionArgs) -> ReplyResult {
+            info!("obliterate {:?}!", self.item);
+
+            let (_, _, _, infra) = args.clone();
+
+            match infra.find_item(args, &self.item)? {
+                Some(obliterating) => {
+                    info!("obliterate {:?}", obliterating);
+                    _ = tools::obliterate(&obliterating)?;
+                    Ok(Box::new(SimpleReply::Done))
+                }
+                None => Ok(Box::new(SimpleReply::NotFound)),
+            }
+        }
+    }
+
+    #[derive(Debug)]
     pub struct BidirectionalDigAction {
         pub outgoing: String,
         pub returning: String,
@@ -155,7 +182,9 @@ pub mod actions {
 pub mod parser {
     use crate::plugins::library::parser::*;
 
-    use super::actions::{BidirectionalDigAction, DuplicateAction, EditAction, MakeItemAction};
+    use super::actions::{
+        BidirectionalDigAction, DuplicateAction, EditAction, MakeItemAction, ObliterateAction,
+    };
 
     pub struct MakeItemParser {}
 
@@ -195,6 +224,19 @@ pub mod parser {
             let (_, action) = map(
                 preceded(pair(tag("duplicate"), spaces), noun_or_specific),
                 |item| DuplicateAction { item },
+            )(i)?;
+
+            Ok(Box::new(action))
+        }
+    }
+
+    pub struct ObliterateActionParser {}
+
+    impl ParsesActions for ObliterateActionParser {
+        fn try_parse_action(&self, i: &str) -> EvaluationResult {
+            let (_, action) = map(
+                preceded(pair(tag("obliterate"), spaces), noun_or_specific),
+                |item| ObliterateAction { item },
             )(i)?;
 
             Ok(Box::new(action))
@@ -263,6 +305,21 @@ mod tests {
     }
 
     #[test]
+    fn it_fails_to_obliterate_unknown_items() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let args: ActionArgs = build
+            .hands(vec![QuickThing::Object("Cool Broom")])
+            .try_into()?;
+
+        let action = try_parsing(ObliterateActionParser {}, "obliterate rake")?;
+        let reply = action.perform(args.clone())?;
+
+        assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+
+        Ok(())
+    }
+
+    #[test]
     fn it_edits_items_named() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
         let args: ActionArgs = build
@@ -298,6 +355,28 @@ mod tests {
             )?,
             2.0
         );
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_obliterates_items_named() -> Result<()> {
+        let mut build = BuildActionArgs::new()?;
+        let args: ActionArgs = build
+            .hands(vec![QuickThing::Object("Cool Broom")])
+            .try_into()?;
+
+        let action = try_parsing(ObliterateActionParser {}, "obliterate broom")?;
+        let reply = action.perform(args.clone())?;
+        let (_world, person, area, _) = args;
+
+        assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+        // It's not enough just to check this, but why not given how easy.
+        // Should actually verify it's deleted.
+        assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
+        assert_eq!(area.scope::<Containing>()?.holding.len(), 0);
+
+        build.flush()?;
 
         Ok(())
     }

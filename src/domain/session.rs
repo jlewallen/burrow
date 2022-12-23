@@ -31,6 +31,7 @@ pub struct Session {
     entities: Rc<Entities>,
     keys: Arc<dyn Sequence<EntityKey>>,
     identities: Arc<dyn Sequence<Identity>>,
+    destroyed: RefCell<Vec<EntityKey>>,
 }
 
 impl Session {
@@ -59,6 +60,7 @@ impl Session {
             entities: Entities::new(entity_map, storage),
             keys: Arc::clone(keys),
             identities: Arc::clone(identities),
+            destroyed: RefCell::new(Vec::new()),
         });
 
         session.set_session()?;
@@ -273,7 +275,15 @@ impl Session {
     }
 
     fn save_entity(&self, modified: &ModifiedEntity) -> Result<()> {
-        self.storage.save(&modified.0)
+        if self.is_deleted(&EntityKey::new(&modified.0.key)) {
+            self.storage.delete(&modified.0)
+        } else {
+            self.storage.save(&modified.0)
+        }
+    }
+
+    fn is_deleted(&self, key: &EntityKey) -> bool {
+        self.destroyed.borrow().contains(key)
     }
 
     fn save_modified_entities(&self) -> Result<bool> {
@@ -373,6 +383,16 @@ impl Infrastructure for Session {
         Ok(self
             .entry(&entity.key())?
             .expect("Bug: Newly added entity has no Entry"))
+    }
+
+    fn obliterate(&self, entry: &Entry) -> Result<()> {
+        let destroying = entry.entity()?;
+        let mut destroying = destroying.borrow_mut();
+        destroying.destroy()?;
+
+        self.destroyed.borrow_mut().push(entry.key());
+
+        Ok(())
     }
 
     fn chain(&self, living: &Entry, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {

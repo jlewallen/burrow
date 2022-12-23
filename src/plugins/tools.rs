@@ -171,3 +171,21 @@ pub fn duplicate(entity: &Entry) -> Result<Entry> {
 
     Ok(entity.clone())
 }
+
+pub fn obliterate(obliterating: &Entry) -> Result<()> {
+    // NOTE: It's very easy to get confused about which entity is which.
+    let location = obliterating.scope::<Location>()?;
+    if let Some(container) = &location.container {
+        let container = container.into_entry()?;
+        let mut containing = container.scope_mut::<Containing>()?;
+
+        containing.stop_carrying(&obliterating)?;
+        containing.save()?;
+
+        get_my_session()?.obliterate(obliterating)?;
+
+        Ok(())
+    } else {
+        Err(DomainError::ContainerRequired.into())
+    }
+}

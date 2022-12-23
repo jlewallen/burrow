@@ -27,6 +27,8 @@ pub static DESC_PROPERTY: &str = "desc";
 
 pub static GID_PROPERTY: &str = "gid";
 
+pub static DESTROYED_PROPERTY: &str = "destroyed";
+
 #[derive(Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct EntityKey(String);
 
@@ -510,6 +512,7 @@ impl Entity {
 
     pub fn set_version(&mut self, version: u64) -> Result<()> {
         self.version.i = version;
+
         Ok(())
     }
 
@@ -520,6 +523,13 @@ impl Entity {
     pub fn set_desc(&mut self, value: &str) -> Result<()> {
         let value: serde_json::Value = value.into();
         self.props.set_property(DESC_PROPERTY, value);
+
+        Ok(())
+    }
+
+    pub fn destroy(&mut self) -> Result<()> {
+        let value: serde_json::Value = true.into();
+        self.props.set_property(DESTROYED_PROPERTY, value);
 
         Ok(())
     }

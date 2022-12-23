@@ -45,6 +45,8 @@ pub trait Infrastructure {
             .collect::<Result<Vec<_>>>()
     }
 
+    fn obliterate(&self, entity: &Entry) -> Result<()>;
+
     fn new_key(&self) -> EntityKey;
 
     fn new_identity(&self) -> Identity;
