@@ -104,7 +104,7 @@ pub mod actions {
             match infra.find_item(args, &self.item)? {
                 Some(obliterating) => {
                     info!("obliterate {:?}", obliterating);
-                    _ = tools::obliterate(&obliterating)?;
+                    tools::obliterate(&obliterating)?;
                     Ok(Box::new(SimpleReply::Done))
                 }
                 None => Ok(Box::new(SimpleReply::NotFound)),

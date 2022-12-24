@@ -1,6 +1,5 @@
 use anyhow::Result;
 use std::rc::Rc;
-use tracing::*;
 
 use super::{DevNullNotifier, Session};
 use crate::{
@@ -16,7 +15,7 @@ pub struct Build {
 
 impl Build {
     pub fn new(session: &Rc<Session>) -> Result<Self> {
-        let entity = EntityPtr::new_blank();
+        let entity = EntityPtr::new_blank()?;
 
         Ok(Self {
             session: session.clone(),
@@ -26,22 +25,17 @@ impl Build {
     }
 
     pub fn key(&mut self, key: &EntityKey) -> Result<&mut Self> {
+        assert!(self.entry.is_none());
         self.entity.set_key(key)?;
 
         Ok(self)
     }
 
     pub fn named(&mut self, name: &str) -> Result<&mut Self> {
+        assert!(self.entry.is_none());
         self.entity.set_name(name)?;
 
         Ok(self)
-    }
-
-    pub fn into_entry(&mut self) -> Result<Entry> {
-        match &self.entry {
-            Some(entry) => Ok(entry.clone()),
-            None => Ok(self.session.add_entity(&self.entity)?),
-        }
     }
 
     pub fn of_quantity(&mut self, quantity: f32) -> Result<&mut Self> {
@@ -66,6 +60,13 @@ impl Build {
         tools::set_container(&self.into_entry()?, items)?;
 
         Ok(self)
+    }
+
+    pub fn into_entry(&mut self) -> Result<Entry> {
+        match &self.entry {
+            Some(entry) => Ok(entry.clone()),
+            None => Ok(self.session.add_entity(&self.entity)?),
+        }
     }
 }
 
@@ -136,6 +137,7 @@ impl BuildActionArgs {
 
     pub fn hands(&mut self, items: Vec<QuickThing>) -> &mut Self {
         self.hands.extend(items);
+
         self
     }
 
@@ -145,6 +147,7 @@ impl BuildActionArgs {
 
     pub fn ground(&mut self, items: Vec<QuickThing>) -> &mut Self {
         self.ground.extend(items);
+
         self
     }
 
@@ -154,11 +157,13 @@ impl BuildActionArgs {
 
     pub fn flush(&mut self) -> Result<&mut Self> {
         self.session.flush()?;
+
         Ok(self)
     }
 
     pub fn close(&mut self) -> Result<&mut Self> {
         self.session.close(&DevNullNotifier::default())?;
+
         Ok(self)
     }
 }
@@ -194,10 +199,6 @@ impl TryFrom<&mut BuildActionArgs> for ActionArgs {
                     .collect::<Result<Vec<_>>>()?,
             )?
             .into_entry()?;
-
-        for entity in [&world, &person, &area] {
-            trace!("{:?}", entity);
-        }
 
         builder.session.flush()?;
 

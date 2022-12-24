@@ -86,7 +86,7 @@ impl Session {
         match self.load_entity_by_key(key)? {
             Some(entity) => Ok(Some(Entry {
                 key: key.clone(),
-                entity: entity,
+                entity,
                 session: Weak::clone(&self.weak) as Weak<dyn Infrastructure>,
             })),
             None => Ok(None),

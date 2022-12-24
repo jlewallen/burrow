@@ -179,7 +179,7 @@ pub fn obliterate(obliterating: &Entry) -> Result<()> {
         let container = container.into_entry()?;
         let mut containing = container.scope_mut::<Containing>()?;
 
-        containing.stop_carrying(&obliterating)?;
+        containing.stop_carrying(obliterating)?;
         containing.save()?;
 
         get_my_session()?.obliterate(obliterating)?;

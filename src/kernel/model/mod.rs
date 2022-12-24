@@ -131,8 +131,8 @@ pub struct EntityPtr {
 }
 
 impl EntityPtr {
-    pub fn new_blank() -> Self {
-        Self::new(Entity::new_blank())
+    pub fn new_blank() -> Result<Self> {
+        Ok(Self::new(Entity::new_blank()?))
     }
 
     pub fn new(e: Entity) -> Self {
@@ -146,7 +146,7 @@ impl EntityPtr {
     }
 
     pub fn new_named(name: &str, desc: &str) -> Result<Self> {
-        let brand_new = Self::new_blank();
+        let brand_new = Self::new_blank()?;
 
         brand_new.mutate(|e| {
             e.set_name(name)?;
@@ -372,19 +372,6 @@ impl Props {
         }
     }
 
-    /*
-    fn i64_property(&self, name: &str) -> Option<i64> {
-        if let Some(property) = self.property_named(name) {
-            match &property.value {
-                serde_json::Value::Number(v) => v.as_i64(),
-                _ => None,
-            }
-        } else {
-            None
-        }
-    }
-    */
-
     fn set_property(&mut self, name: &str, value: serde_json::Value) {
         self.map.insert(name.to_string(), Property::new(value));
     }
@@ -401,15 +388,6 @@ impl Props {
 
         Ok(())
     }
-
-    /*
-    fn set_i64_property(&mut self, name: &str, value: i64) -> Result<()> {
-        self.map
-            .insert(name.to_owned(), Property::new(serde_json::to_value(value)?));
-
-        Ok(())
-    }
-    */
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -460,13 +438,12 @@ impl Entity {
         }
     }
 
-    pub fn new_blank() -> Self {
-        let session = get_my_session().expect("No session in Entity::new_blank!");
-        Self::new_with_key(session.new_key())
+    pub fn new_blank() -> Result<Self> {
+        Ok(Self::new_with_key(get_my_session()?.new_key()))
     }
 
     pub fn new_from(template: &Self) -> Result<Self> {
-        let mut brand_new = Self::new_blank();
+        let mut entity = Self::new_blank()?;
 
         // TODO Allow scopes to hook into this process. For example
         // elsewhere in this commit I've wondered about how to copy 'kind'
@@ -475,18 +452,24 @@ impl Entity {
         // map of scopes in with their intended values.
 
         // TODO Customize clone to always remove GID_PROPERTY
-        brand_new.props = template.props.clone();
-        brand_new.props.remove_property(GID_PROPERTY)?;
-        brand_new.class = template.class.clone();
-        brand_new.acls = template.acls.clone();
-        brand_new.parent = template.parent.clone();
-        brand_new.creator = template.creator.clone();
+        entity.props = template.props.clone();
+        entity.props.remove_property(GID_PROPERTY)?;
+        entity.class = template.class.clone();
+        entity.acls = template.acls.clone();
+        entity.parent = template.parent.clone();
+        entity.creator = template.creator.clone();
 
-        Ok(brand_new)
+        Ok(entity)
     }
 
     pub fn set_key(&mut self, key: &EntityKey) -> Result<()> {
         self.key = key.clone();
+
+        Ok(())
+    }
+
+    pub fn set_version(&mut self, version: u64) -> Result<()> {
+        self.version.i = version;
 
         Ok(())
     }
@@ -508,12 +491,6 @@ impl Entity {
 
     pub fn set_gid(&mut self, gid: EntityGid) -> Result<()> {
         self.props.set_u64_property(GID_PROPERTY, gid.into())
-    }
-
-    pub fn set_version(&mut self, version: u64) -> Result<()> {
-        self.version.i = version;
-
-        Ok(())
     }
 
     pub fn desc(&self) -> Option<String> {
@@ -643,7 +620,7 @@ impl EntityRef {
     pub fn into_entry(&self) -> Result<Entry, DomainError> {
         get_my_session()?
             .entry(&self.key)?
-            .ok_or_else(|| DomainError::DanglingEntity)
+            .ok_or(DomainError::DanglingEntity)
     }
 }
 
@@ -669,7 +646,7 @@ impl TryFrom<EntityRef> for Entry {
     fn try_from(value: EntityRef) -> Result<Self, Self::Error> {
         get_my_session()?
             .entry(&value.key)?
-            .ok_or_else(|| DomainError::DanglingEntity)
+            .ok_or(DomainError::DanglingEntity)
     }
 }
 
