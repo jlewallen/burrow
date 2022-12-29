@@ -11,13 +11,19 @@ impl ParsesActions for LookingPlugin {
 pub mod model {
     use crate::plugins::library::model::*;
     use crate::{
-        plugins::carrying::model::Containing,
+        plugins::carrying::model::{Carryable, Containing},
         plugins::moving::model::{Movement, Occupyable},
     };
 
-    pub fn qualify_name(_quantity: f32, name: &str) -> String {
+    pub fn qualify_name(quantity: f32, name: &str) -> String {
         use indefinite::*;
-        indefinite(name)
+        use inflection::*;
+        if quantity > 1.0 {
+            let pluralized = plural::<_, String>(name);
+            format!("{} {}", quantity, &pluralized)
+        } else {
+            indefinite(name)
+        }
     }
 
     pub trait Observe<T> {
@@ -27,7 +33,8 @@ pub mod model {
     impl Observe<ObservedEntity> for &Entry {
         fn observe(&self, _user: &Entry) -> Result<ObservedEntity> {
             let name = self.name()?;
-            let qualified = name.as_ref().map(|n| qualify_name(1.0, n));
+            let carryable = self.scope::<Carryable>()?;
+            let qualified = name.as_ref().map(|n| qualify_name(carryable.quantity(), n));
 
             Ok(ObservedEntity {
                 key: self.key.to_string(),
@@ -305,8 +312,11 @@ mod tests {
         // Not going to test all of indefinite's behavior here, just build edge
         // cases in our integrating logic.
         assert_eq!(qualify_name(1.0, "box"), "a box");
+        assert_eq!(qualify_name(2.0, "box"), "2 boxes");
         assert_eq!(qualify_name(1.0, "person"), "a person");
+        assert_eq!(qualify_name(2.0, "person"), "2 people");
         assert_eq!(qualify_name(1.0, "orange"), "an orange");
+        assert_eq!(qualify_name(2.0, "orange"), "2 oranges");
         assert_eq!(qualify_name(1.0, "East Exit"), "an East Exit");
     }
 }
