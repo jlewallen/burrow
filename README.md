@@ -21,6 +21,12 @@ https://github.com/jlewallen/dimsum/
 4. Domain events.
 5. Improve test name language. Need a more consistent style.
 6. Move from lookup_by_key/gid to generalized lookup_by<T>()
+7. Eat/Drink
+8. Home/Limbo
+9. Freeze/Unfreeze
+10. Invite
+11. Wear/Remove (Clothing)
+12. Make
 
 ### Musings
 
