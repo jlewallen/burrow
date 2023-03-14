@@ -19,3 +19,9 @@ history.txt
 
 # Ignore personal vscode settings.
 .vscode
+
+# Ignore osx garbage.
+.DS_Store
+
+# Ignore vim swap files.
+*.swp
