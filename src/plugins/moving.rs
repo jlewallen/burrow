@@ -195,7 +195,7 @@ pub mod actions {
         fn perform(&self, args: ActionArgs) -> ReplyResult {
             info!("go {:?}!", self.item);
 
-            let (_, living, area, infra) = args.clone();
+            let (_, living, area, infra) = args.unpack();
 
             match infra.find_item(args, &self.item)? {
                 Some(to_area) => match tools::navigate_between(&area, &to_area, &living)? {
@@ -279,7 +279,7 @@ mod tests {
 
         let action = try_parsing(GoActionParser {}, "go east")?;
         let reply = action.perform(args.clone())?;
-        let (_, living, area, _) = args.clone();
+        let (_, living, area, _) = args.unpack();
 
         assert_eq!(
             reply.to_json()?,
@@ -304,7 +304,7 @@ mod tests {
 
         let action = try_parsing(GoActionParser {}, "go east")?;
         let reply = action.perform(args.clone())?;
-        let (_, living, area, _) = args.clone();
+        let (_, living, area, _) = args.unpack();
 
         assert_eq!(
             reply.to_json()?,
@@ -326,7 +326,7 @@ mod tests {
 
         let action = try_parsing(GoActionParser {}, "go rake")?;
         let reply = action.perform(args.clone())?;
-        let (_, _person, _area, _) = args.clone();
+        let (_, _person, _area, _) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -344,7 +344,7 @@ mod tests {
 
         let action = try_parsing(GoActionParser {}, "go rake")?;
         let reply = action.perform(args.clone())?;
-        let (_, _person, _area, _) = args.clone();
+        let (_, _person, _area, _) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 

@@ -1,5 +1,5 @@
 use crate::{
-    kernel::{ActionArgs, Entry, Item},
+    kernel::{ActionArgs, Entry, Item, Surroundings},
     plugins::tools,
 };
 use anyhow::{anyhow, Result};
@@ -40,13 +40,19 @@ pub struct EntityRelationshipSet {
 }
 
 impl EntityRelationshipSet {
-    pub fn new_from_action((world, user, area, _infra): ActionArgs) -> Self {
-        Self {
-            entities: vec![
-                EntityRelationship::World(world),
-                EntityRelationship::Area(area),
-                EntityRelationship::User(user),
-            ],
+    pub fn new_from_action(args: ActionArgs) -> Self {
+        match args.surroundings {
+            Surroundings::Living {
+                world,
+                living,
+                area,
+            } => Self {
+                entities: vec![
+                    EntityRelationship::World(world),
+                    EntityRelationship::Area(area),
+                    EntityRelationship::User(living),
+                ],
+            },
         }
     }
 

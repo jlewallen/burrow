@@ -23,14 +23,14 @@ impl StandardPerformer {
     pub fn perform_via_name(&self, name: &str, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
         info!("performing {:?}", action);
 
-        let (world, user, area) = self.evaluate_name(name)?;
+        let surroundings = self.evaluate_name(name)?;
 
-        self.discover_from(vec![&user, &area])?;
+        self.discover_from(surroundings.to_discovery_vec())?;
 
         let reply = {
             let _span = span!(Level::INFO, "A").entered();
             let session = self.session.upgrade().ok_or(DomainError::NoSession)?;
-            action.perform((world, user, area, session))?
+            action.perform(ActionArgs::new(surroundings, session))?
         };
 
         Ok(reply)
@@ -50,13 +50,17 @@ impl StandardPerformer {
 
     pub fn find_name_key(&self, name: &str) -> Result<Option<EntityKey>, DomainError> {
         match self.evaluate_name(name) {
-            Ok((_world, user, _area)) => Ok(Some(user.key())),
+            Ok(Surroundings::Living {
+                world: _world,
+                living,
+                area: _area,
+            }) => Ok(Some(living.key())),
             Err(DomainError::EntityNotFound) => Ok(None),
             Err(err) => Err(err),
         }
     }
 
-    fn evaluate_name(&self, name: &str) -> Result<(Entry, Entry, Entry), DomainError> {
+    fn evaluate_name(&self, name: &str) -> Result<Surroundings, DomainError> {
         let _span = span!(Level::DEBUG, "L").entered();
 
         let session = self.session.upgrade().ok_or(DomainError::NoSession)?;
@@ -76,7 +80,7 @@ impl StandardPerformer {
         self.evaluate_living(&living)
     }
 
-    fn evaluate_living(&self, living: &Entry) -> Result<(Entry, Entry, Entry), DomainError> {
+    fn evaluate_living(&self, living: &Entry) -> Result<Surroundings, DomainError> {
         let session = self.session.upgrade().ok_or(DomainError::NoSession)?;
 
         let world = session
@@ -90,7 +94,11 @@ impl StandardPerformer {
 
         info!("area {:?}", &area);
 
-        Ok((world, living.clone(), area))
+        Ok(Surroundings::Living {
+            world,
+            living: living.clone(),
+            area,
+        })
     }
 
     fn discover_from(&self, entities: Vec<&Entry>) -> Result<Vec<EntityKey>> {
@@ -108,14 +116,14 @@ impl StandardPerformer {
     pub fn perform(&self, living: &Entry, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
         info!("performing {:?}", action);
 
-        let (world, living, area) = self.evaluate_living(living)?;
+        let surroundings = self.evaluate_living(living)?;
 
-        self.discover_from(vec![&living, &area])?;
+        self.discover_from(surroundings.to_discovery_vec())?;
 
         let reply = {
             let _span = span!(Level::INFO, "A").entered();
             let session = self.session.upgrade().ok_or(DomainError::NoSession)?;
-            action.perform((world, living, area, session))?
+            action.perform(ActionArgs::new(surroundings, session))?
         };
 
         event!(Level::INFO, "done");

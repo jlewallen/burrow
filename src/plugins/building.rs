@@ -48,7 +48,7 @@ pub mod actions {
         fn perform(&self, args: ActionArgs) -> ReplyResult {
             info!("editing {:?}!", self.item);
 
-            let (_, _, _, infra) = args.clone();
+            let (_, _, _, infra) = args.unpack();
 
             match infra.find_item(args, &self.item)? {
                 Some(editing) => {
@@ -73,7 +73,7 @@ pub mod actions {
         fn perform(&self, args: ActionArgs) -> ReplyResult {
             info!("duplicating {:?}!", self.item);
 
-            let (_, _, _, infra) = args.clone();
+            let (_, _, _, infra) = args.unpack();
 
             match infra.find_item(args, &self.item)? {
                 Some(duplicating) => {
@@ -99,7 +99,7 @@ pub mod actions {
         fn perform(&self, args: ActionArgs) -> ReplyResult {
             info!("obliterate {:?}!", self.item);
 
-            let (_, _, _, infra) = args.clone();
+            let (_, _, _, infra) = args.unpack();
 
             match infra.find_item(args, &self.item)? {
                 Some(obliterating) => {
@@ -130,7 +130,7 @@ pub mod actions {
                 self.outgoing, self.returning, self.new_area
             );
 
-            let (_, living, area, infra) = args.clone();
+            let (_, living, area, infra) = args.unpack();
 
             let new_area =
                 infra.add_entity(&EntityPtr::new_named(&self.new_area, &self.new_area)?)?;
@@ -166,7 +166,7 @@ pub mod actions {
         fn perform(&self, args: ActionArgs) -> ReplyResult {
             info!("make-item {:?}", self.name);
 
-            let (_, user, _area, infra) = args.clone();
+            let (_, user, _area, infra) = args.unpack();
 
             let new_item = EntityPtr::new_named(&self.name, &self.name)?;
 
@@ -343,7 +343,7 @@ mod tests {
 
         let action = try_parsing(DuplicateActionParser {}, "duplicate broom")?;
         let reply = action.perform(args.clone())?;
-        let (_world, person, _area, _) = args;
+        let (_world, person, _area, _) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
         assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
@@ -368,7 +368,7 @@ mod tests {
 
         let action = try_parsing(ObliterateActionParser {}, "obliterate broom")?;
         let reply = action.perform(args.clone())?;
-        let (_world, person, area, _) = args;
+        let (_world, person, area, _) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
         // It's not enough just to check this, but why not given how easy.
@@ -421,7 +421,7 @@ mod tests {
             r#"dig "North Exit" to "South Exit" for "New Area""#,
         )?;
         let reply = action.perform(args.clone())?;
-        let (_, living, _area, infra) = args.clone();
+        let (_, living, _area, infra) = args.unpack();
 
         // Not the best way of finding the constructed area.
         let destination = infra
@@ -443,7 +443,7 @@ mod tests {
 
         let action = try_parsing(MakeItemParser {}, r#"make item "Blue Rake""#)?;
         let reply = action.perform(args.clone())?;
-        let (_, living, _area, _infra) = args.clone();
+        let (_, living, _area, _infra) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 

@@ -118,8 +118,10 @@ pub mod actions {
             true
         }
 
-        fn perform(&self, (_world, user, area, _infra): ActionArgs) -> ReplyResult {
+        fn perform(&self, args: ActionArgs) -> ReplyResult {
             info!("look!");
+
+            let (_, user, area, _) = args.unpack();
 
             Ok(Box::new(new_area_observation(&user, &area)?))
         }
@@ -138,7 +140,7 @@ pub mod actions {
         fn perform(&self, args: ActionArgs) -> ReplyResult {
             info!("look inside!");
 
-            let (_, user, _area, infra) = args.clone();
+            let (_, user, _area, infra) = args.unpack();
 
             match infra.find_item(args, &self.item)? {
                 Some(target) => {
@@ -198,7 +200,7 @@ mod tests {
 
         let action = try_parsing(LookActionParser {}, "look")?;
         let reply = action.perform(args.clone())?;
-        let (_, _person, _area, _) = args.clone();
+        let (_, _person, _area, _) = args.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
 
@@ -217,7 +219,7 @@ mod tests {
 
         let action = try_parsing(LookActionParser {}, "look")?;
         let reply = action.perform(args.clone())?;
-        let (_, _person, _area, _) = args.clone();
+        let (_, _person, _area, _) = args.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
 
@@ -238,7 +240,7 @@ mod tests {
 
         let action = try_parsing(LookActionParser {}, "look")?;
         let reply = action.perform(args.clone())?;
-        let (_, _person, _area, _) = args.clone();
+        let (_, _person, _area, _) = args.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
 
@@ -259,7 +261,7 @@ mod tests {
 
         let action = try_parsing(LookActionParser {}, "look")?;
         let reply = action.perform(args.clone())?;
-        let (_, _person, _area, _) = args.clone();
+        let (_, _person, _area, _) = args.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
 
@@ -277,7 +279,7 @@ mod tests {
 
         let action = try_parsing(LookActionParser {}, "look inside box")?;
         let reply = action.perform(args.clone())?;
-        let (_, _person, _area, _) = args.clone();
+        let (_, _person, _area, _) = args.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
 
@@ -298,7 +300,7 @@ mod tests {
 
         let action = try_parsing(LookActionParser {}, "look inside vessel")?;
         let reply = action.perform(args.clone())?;
-        let (_, _person, _area, _) = args.clone();
+        let (_, _person, _area, _) = args.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
 

@@ -287,7 +287,7 @@ pub mod actions {
         fn perform(&self, args: ActionArgs) -> ReplyResult {
             info!("hold {:?}!", self.item);
 
-            let (_, user, area, infra) = args.clone();
+            let (_, user, area, infra) = args.unpack();
 
             match infra.find_item(args, &self.item)? {
                 Some(holding) => match tools::move_between(&area, &user, &holding)? {
@@ -316,7 +316,7 @@ pub mod actions {
         fn perform(&self, args: ActionArgs) -> ReplyResult {
             info!("drop {:?}!", self.maybe_item);
 
-            let (_, user, area, infra) = args.clone();
+            let (_, user, area, infra) = args.unpack();
 
             match &self.maybe_item {
                 Some(item) => match infra.find_item(args, item)? {
@@ -351,7 +351,7 @@ pub mod actions {
         fn perform(&self, args: ActionArgs) -> ReplyResult {
             info!("put-inside {:?} -> {:?}", self.item, self.vessel);
 
-            let (_, _user, _area, infra) = args.clone();
+            let (_, _user, _area, infra) = args.unpack();
 
             match infra.find_item(args.clone(), &self.item)? {
                 Some(item) => match infra.find_item(args, &self.vessel)? {
@@ -387,7 +387,7 @@ pub mod actions {
         fn perform(&self, args: ActionArgs) -> ReplyResult {
             info!("take-out {:?} -> {:?}", self.item, self.vessel);
 
-            let (_, user, _area, infra) = args.clone();
+            let (_, user, _area, infra) = args.unpack();
 
             match infra.find_item(args.clone(), &self.vessel)? {
                 Some(vessel) => {
@@ -512,7 +512,7 @@ mod tests {
 
         let action = try_parsing(HoldActionParser {}, "hold rake")?;
         let reply = action.perform(args.clone())?;
-        let (_, person, area, _) = args.clone();
+        let (_, person, area, _) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
@@ -533,7 +533,7 @@ mod tests {
 
         let action = try_parsing(HoldActionParser {}, "hold rake")?;
         let reply = action.perform(args.clone())?;
-        let (_, person, area, _) = args.clone();
+        let (_, person, area, _) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
@@ -558,7 +558,7 @@ mod tests {
 
         let action = try_parsing(HoldActionParser {}, "hold rake")?;
         let reply = action.perform(args.clone())?;
-        let (_, person, area, _) = args.clone();
+        let (_, person, area, _) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
@@ -579,7 +579,7 @@ mod tests {
 
         let action = try_parsing(HoldActionParser {}, "hold rake")?;
         let reply = action.perform(args.clone())?;
-        let (_, person, area, _) = args.clone();
+        let (_, person, area, _) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -600,7 +600,7 @@ mod tests {
 
         let action = try_parsing(DropActionParser {}, "drop rake")?;
         let reply = action.perform(args.clone())?;
-        let (_, person, area, _) = args.clone();
+        let (_, person, area, _) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
@@ -621,7 +621,7 @@ mod tests {
 
         let action = try_parsing(DropActionParser {}, "drop rake")?;
         let reply = action.perform(args.clone())?;
-        let (_, person, area, _) = args.clone();
+        let (_, person, area, _) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -642,7 +642,7 @@ mod tests {
 
         let action = try_parsing(DropActionParser {}, "drop rake")?;
         let reply = action.perform(args.clone())?;
-        let (_, person, area, _) = args.clone();
+        let (_, person, area, _) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -667,7 +667,7 @@ mod tests {
 
         let action = try_parsing(PutInsideActionParser {}, "put key inside vessel")?;
         let reply = action.perform(args.clone())?;
-        let (_world, person, _area, _) = args;
+        let (_world, person, _area, _) = args.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
 
@@ -696,7 +696,7 @@ mod tests {
 
         let action = try_parsing(PutInsideActionParser {}, "put key inside vessel")?;
         let reply = action.perform(args.clone())?;
-        let (_world, person, _area, _) = args;
+        let (_world, person, _area, _) = args.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
 
@@ -723,7 +723,7 @@ mod tests {
 
         let action = try_parsing(TakeOutActionParser {}, "take key out of vessel")?;
         let reply = action.perform(args.clone())?;
-        let (_world, person, _area, _) = args;
+        let (_world, person, _area, _) = args.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
 

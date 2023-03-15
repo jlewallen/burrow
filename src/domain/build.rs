@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use super::{DevNullNotifier, Session};
 use crate::{
-    kernel::{ActionArgs, EntityKey, EntityPtr, Entry, SessionRef, WORLD_KEY},
+    kernel::{ActionArgs, EntityKey, EntityPtr, Entry, SessionRef, Surroundings, WORLD_KEY},
     plugins::tools,
 };
 
@@ -204,6 +204,13 @@ impl TryFrom<&mut BuildActionArgs> for ActionArgs {
 
         let session: SessionRef = Rc::clone(&builder.session) as SessionRef;
 
-        Ok((world, person, area, session))
+        Ok(ActionArgs::new(
+            Surroundings::Living {
+                world,
+                living: person,
+                area,
+            },
+            session,
+        ))
     }
 }
