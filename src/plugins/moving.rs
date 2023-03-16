@@ -9,7 +9,36 @@ impl ParsesActions for MovingPlugin {
 }
 
 pub mod model {
-    use crate::plugins::{library::model::*, looking::model::Observe};
+    use crate::{
+        domain::HookOutcome,
+        plugins::{library::model::*, looking::model::Observe},
+    };
+
+    pub trait MovingHook {
+        fn moving(&self, surroundings: &Surroundings, to: Entity) -> Result<CanMove>;
+    }
+
+    #[derive(Clone)]
+    pub enum CanMove {
+        Allow,
+        Prevent,
+    }
+
+    impl Default for CanMove {
+        fn default() -> Self {
+            Self::Allow
+        }
+    }
+
+    impl HookOutcome for CanMove {
+        fn or(&self, other: &Self) -> Self {
+            match (self, other) {
+                (_, CanMove::Prevent) => CanMove::Prevent,
+                (CanMove::Prevent, _) => CanMove::Prevent,
+                (_, _) => CanMove::Allow,
+            }
+        }
+    }
 
     #[derive(Debug)]
     pub enum MovingEvent {
