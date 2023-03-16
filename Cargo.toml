@@ -44,6 +44,8 @@ inflection = "0.1.2"
 wasmer = "3.1.1"
 wasm-bindgen = "0.2.84"
 wasmer-compiler-cranelift = "3.1.1"
+rhai = "1.12.0"
+rune = "0.12.1"
 
 [dev-dependencies]
 insta = { version = "1.21.1", features = ["yaml", "json"] }
