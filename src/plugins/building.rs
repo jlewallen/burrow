@@ -291,7 +291,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(EditActionParser {}, "edit rake")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -306,7 +306,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(DuplicateActionParser {}, "duplicate rake")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -321,7 +321,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(ObliterateActionParser {}, "obliterate rake")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -336,7 +336,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(EditActionParser {}, "edit broom")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
@@ -398,7 +398,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(EditActionParser {}, "edit #1201")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -413,7 +413,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(EditActionParser {}, "edit #1")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 

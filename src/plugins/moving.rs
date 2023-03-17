@@ -301,7 +301,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(GoActionParser {}, "go north")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 

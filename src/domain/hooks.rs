@@ -51,7 +51,7 @@ impl ManagedHooks {
         // Box<dyn Any> throws a wrench in that plan.
         let hooks = all_hooks
             .entry(<T as HooksSet>::hooks_key())
-            .or_insert_with(|| Box::new(T::default()) as Box<dyn Any>);
+            .or_insert_with(|| Box::<T>::default() as Box<dyn Any>);
         with_fn(
             hooks
                 .downcast_mut()
@@ -139,10 +139,10 @@ mod tests {
                 .instances
                 .borrow()
                 .iter()
-                .map(|h| h.before_jumping(&surroundings))
+                .map(|h| h.before_jumping(surroundings))
                 .collect::<Result<Vec<CanJump>>>()?
                 .iter()
-                .fold(CanJump::default(), |c, h| c.fold(&h)))
+                .fold(CanJump::default(), |c, h| c.fold(h)))
         }
     }
 
