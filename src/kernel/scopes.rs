@@ -10,8 +10,6 @@ pub use replies::*;
 
 pub type ReplyResult = anyhow::Result<Box<dyn Reply>>;
 
-pub type EvaluationResult = Result<Box<dyn Action>, EvaluationError>;
-
 #[derive(Debug, Clone)]
 pub enum Surroundings {
     Living {

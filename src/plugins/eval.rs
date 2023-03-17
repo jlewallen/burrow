@@ -1,29 +1,33 @@
 use anyhow::Result;
 
-use crate::kernel::{Action, EntityKey, Entry, EvaluationError};
+use crate::kernel::{Action, EntityKey, Entry, EvaluationError, Plugin};
 use crate::plugins;
-
-use super::library::parser::ParsesActions;
 
 use super::building::BuildingPlugin;
 use super::carrying::CarryingPlugin;
 use super::looking::LookingPlugin;
 use super::moving::MovingPlugin;
 
-pub fn evaluate(i: &str) -> Result<Option<Box<dyn Action>>, EvaluationError> {
-    let carrying = CarryingPlugin {};
-    let looking = LookingPlugin {};
-    let building = BuildingPlugin {};
-    let moving = MovingPlugin {};
+// TODO These should be registered on the Domain
+pub fn registered_plugins() -> Vec<Box<dyn Plugin>> {
+    vec![
+        Box::new(LookingPlugin {}),
+        Box::new(MovingPlugin {}),
+        Box::new(CarryingPlugin {}),
+        Box::new(BuildingPlugin {}),
+    ]
+}
 
-    match looking
-        .try_parse_action(i)
-        .or_else(|_| carrying.try_parse_action(i))
-        .or_else(|_| moving.try_parse_action(i))
-        .or_else(|_| building.try_parse_action(i))
+pub fn evaluate(i: &str) -> Result<Option<Box<dyn Action>>, EvaluationError> {
+    match registered_plugins()
+        .iter()
+        .map(|plugin| plugin.try_parse_action(i))
+        .filter_map(|r| r.ok())
+        .take(1)
+        .last()
     {
-        Ok(e) => Ok(Some(e)),
-        Err(_) => Ok(None),
+        Some(e) => Ok(Some(e)),
+        None => Ok(None),
     }
 }
 

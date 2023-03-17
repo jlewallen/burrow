@@ -59,10 +59,6 @@ pub mod parser {
         ))(i)
     }
 
-    pub trait ParsesActions {
-        fn try_parse_action(&self, i: &str) -> EvaluationResult;
-    }
-
     pub fn try_parsing<T: ParsesActions>(parser: T, i: &str) -> EvaluationResult {
         parser.try_parse_action(i)
     }
