@@ -32,6 +32,7 @@ pub struct Session {
     keys: Arc<dyn Sequence<EntityKey>>,
     identities: Arc<dyn Sequence<Identity>>,
     destroyed: RefCell<Vec<EntityKey>>,
+    plugins: Arc<RegisteredPlugins>,
 }
 
 impl Session {
@@ -39,6 +40,7 @@ impl Session {
         storage: Rc<dyn EntityStorage>,
         keys: &Arc<dyn Sequence<EntityKey>>,
         identities: &Arc<dyn Sequence<Identity>>,
+        plugins: &Arc<RegisteredPlugins>,
     ) -> Result<Rc<Self>> {
         trace!("session-new");
 
@@ -61,6 +63,7 @@ impl Session {
             keys: Arc::clone(keys),
             identities: Arc::clone(identities),
             destroyed: RefCell::new(Vec::new()),
+            plugins: Arc::clone(plugins),
         });
 
         session.set_session()?;
@@ -80,6 +83,11 @@ impl Session {
         set_my_session(Some(&infra))?;
 
         Ok(())
+    }
+
+    // TODO Private?
+    pub fn plugins(&self) -> &RegisteredPlugins {
+        &self.plugins
     }
 
     pub fn entry(&self, key: &EntityKey) -> Result<Option<Entry>> {

@@ -1,6 +1,10 @@
 use super::Session;
 use crate::{
-    kernel::{EntityKey, Identity},
+    kernel::{EntityKey, Identity, RegisteredPlugins},
+    plugins::{
+        building::BuildingPlugin, carrying::CarryingPlugin, looking::LookingPlugin,
+        moving::MovingPlugin,
+    },
     storage::EntityStorageFactory,
 };
 use anyhow::Result;
@@ -21,11 +25,18 @@ pub struct Domain {
     storage_factory: Box<dyn EntityStorageFactory>,
     keys: Arc<dyn Sequence<EntityKey>>,
     identities: Arc<dyn Sequence<Identity>>,
+    plugins: Arc<RegisteredPlugins>,
 }
 
 impl Domain {
     pub fn new(storage_factory: Box<dyn EntityStorageFactory>, deterministic: bool) -> Self {
         info!("domain-new");
+
+        let mut plugins: RegisteredPlugins = Default::default();
+        plugins.register::<MovingPlugin>();
+        plugins.register::<LookingPlugin>();
+        plugins.register::<CarryingPlugin>();
+        plugins.register::<BuildingPlugin>();
 
         Domain {
             storage_factory,
@@ -43,6 +54,7 @@ impl Domain {
             } else {
                 Arc::new(RandomKeys {})
             },
+            plugins: Arc::new(plugins),
         }
     }
 
@@ -51,7 +63,7 @@ impl Domain {
 
         let storage = self.storage_factory.create_storage()?;
 
-        Session::new(storage, &self.keys, &self.identities)
+        Session::new(storage, &self.keys, &self.identities, &self.plugins)
     }
 }
 

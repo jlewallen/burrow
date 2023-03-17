@@ -41,7 +41,8 @@ impl StandardPerformer {
 
         debug!("'{}'", text);
 
-        if let Some(action) = eval::evaluate(text)? {
+        let session = self.session.upgrade().ok_or(DomainError::NoSession)?;
+        if let Some(action) = eval::evaluate(session.plugins(), text)? {
             Ok(Some(self.perform_via_name(name, action)?))
         } else {
             Ok(None)
