@@ -1,5 +1,6 @@
 use crate::plugins::library::plugin::*;
 
+#[derive(Default)]
 pub struct MovingPlugin {}
 
 impl Plugin for MovingPlugin {
