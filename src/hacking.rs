@@ -2,7 +2,7 @@ use anyhow::Result;
 use tracing::info;
 
 use crate::domain::{domain, DevNullNotifier};
-use crate::kernel::{Entry, WORLD_KEY};
+use crate::kernel::Entry;
 use crate::plugins::carrying::model::{Carryable, Containing};
 use crate::plugins::moving::model::Occupying;
 use crate::plugins::users::model::Usernames;
@@ -15,7 +15,7 @@ pub fn execute_command() -> Result<()> {
     let domain = domain::Domain::new(storage_factory, false);
     let session = domain.open_session()?;
 
-    let world = session.entry(&WORLD_KEY)?.expect("No 'WORLD' entity.");
+    let world = session.world()?;
     let usernames = world.scope::<Usernames>()?;
     let user_key = &usernames.users["jlewallen"];
     let user = session.entry(user_key)?.expect("No 'USER' entity.");

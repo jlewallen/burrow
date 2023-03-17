@@ -20,6 +20,10 @@ impl StandardPerformer {
         })
     }
 
+    fn session(&self) -> Result<Rc<Session>, DomainError> {
+        self.session.upgrade().ok_or(DomainError::NoSession)
+    }
+
     pub fn perform_via_name(&self, name: &str, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
         info!("performing {:?}", action);
 
@@ -29,8 +33,7 @@ impl StandardPerformer {
 
         let reply = {
             let _span = span!(Level::INFO, "A").entered();
-            let session = self.session.upgrade().ok_or(DomainError::NoSession)?;
-            action.perform(ActionArgs::new(surroundings, session))?
+            action.perform(ActionArgs::new(surroundings, self.session()?))?
         };
 
         Ok(reply)
@@ -41,8 +44,7 @@ impl StandardPerformer {
 
         debug!("'{}'", text);
 
-        let session = self.session.upgrade().ok_or(DomainError::NoSession)?;
-        if let Some(action) = eval::evaluate(session.plugins(), text)? {
+        if let Some(action) = eval::evaluate(self.session()?.plugins(), text)? {
             Ok(Some(self.perform_via_name(name, action)?))
         } else {
             Ok(None)
@@ -64,11 +66,9 @@ impl StandardPerformer {
     fn evaluate_name(&self, name: &str) -> Result<Surroundings, DomainError> {
         let _span = span!(Level::DEBUG, "L").entered();
 
-        let session = self.session.upgrade().ok_or(DomainError::NoSession)?;
+        let session = self.session()?;
 
-        let world = session
-            .entry(&WORLD_KEY)?
-            .ok_or(DomainError::EntityNotFound)?;
+        let world = session.world()?;
 
         let usernames = world.scope::<Usernames>()?;
 
@@ -82,11 +82,9 @@ impl StandardPerformer {
     }
 
     fn evaluate_living(&self, living: &Entry) -> Result<Surroundings, DomainError> {
-        let session = self.session.upgrade().ok_or(DomainError::NoSession)?;
+        let session = self.session()?;
 
-        let world = session
-            .entry(&WORLD_KEY)?
-            .ok_or(DomainError::EntityNotFound)?;
+        let world = session.world()?;
 
         let area: Entry = {
             let occupying = living.scope::<Occupying>()?;
@@ -104,6 +102,7 @@ impl StandardPerformer {
 
     fn discover_from(&self, entities: Vec<&Entry>) -> Result<Vec<EntityKey>> {
         let _span = span!(Level::DEBUG, "D").entered();
+
         let mut discovered: Vec<EntityKey> = vec![];
         if self.discoverying {
             for entity in &entities {
@@ -111,6 +110,7 @@ impl StandardPerformer {
             }
             info!("discovered {:?}", discovered);
         }
+
         Ok(discovered)
     }
 
@@ -123,7 +123,7 @@ impl StandardPerformer {
 
         let reply = {
             let _span = span!(Level::INFO, "A").entered();
-            let session = self.session.upgrade().ok_or(DomainError::NoSession)?;
+            let session = self.session()?;
             action.perform(ActionArgs::new(surroundings, session))?
         };
 

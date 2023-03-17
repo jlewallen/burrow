@@ -90,6 +90,10 @@ impl Session {
         &self.plugins
     }
 
+    pub fn world(&self) -> Result<Entry, DomainError> {
+        self.entry(&WORLD_KEY)?.ok_or(DomainError::EntityNotFound)
+    }
+
     pub fn entry(&self, key: &EntityKey) -> Result<Option<Entry>> {
         match self.load_entity_by_key(key)? {
             Some(entity) => Ok(Some(Entry {
@@ -311,11 +315,9 @@ impl Session {
     }
 
     fn save_modified_ids(&self) -> Result<()> {
-        // We may need a cleaner or even faster way of doing these loads.
-        let world = self.entry(&WORLD_KEY)?.ok_or(DomainError::EntityNotFound)?;
-
         // Check to see if the global identifier has changed due to the creation
         // of a new entity.
+        let world = self.world()?;
         let previous_gid =
             identifiers::model::get_gid(&world)?.unwrap_or_else(|| EntityGid::new(0));
         let new_gid = self.ids.gid();
