@@ -2,6 +2,15 @@ use crate::plugins::library::plugin::*;
 
 pub struct MovingPlugin {}
 
+impl Plugin for MovingPlugin {
+    fn plugin_key() -> &'static str
+    where
+        Self: Sized,
+    {
+        "moving"
+    }
+}
+
 impl ParsesActions for MovingPlugin {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
         try_parsing(parser::GoActionParser {}, i)

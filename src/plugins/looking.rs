@@ -2,6 +2,15 @@ use crate::plugins::library::plugin::*;
 
 pub struct LookingPlugin {}
 
+impl Plugin for LookingPlugin {
+    fn plugin_key() -> &'static str
+    where
+        Self: Sized,
+    {
+        "looking"
+    }
+}
+
 impl ParsesActions for LookingPlugin {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
         try_parsing(parser::LookActionParser {}, i)
