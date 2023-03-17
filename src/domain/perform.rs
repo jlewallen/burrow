@@ -9,14 +9,12 @@ use crate::{kernel::*, plugins::eval};
 
 pub struct StandardPerformer {
     session: Weak<Session>,
-    discoverying: bool,
 }
 
 impl StandardPerformer {
     pub fn new(session: &Weak<Session>) -> Rc<Self> {
         Rc::new(StandardPerformer {
             session: Weak::clone(session),
-            discoverying: false,
         })
     }
 
@@ -28,8 +26,6 @@ impl StandardPerformer {
         info!("performing {:?}", action);
 
         let surroundings = self.evaluate_name(name)?;
-
-        self.discover_from(surroundings.to_discovery_vec())?;
 
         let reply = {
             let _span = span!(Level::INFO, "A").entered();
@@ -100,26 +96,10 @@ impl StandardPerformer {
         })
     }
 
-    fn discover_from(&self, entities: Vec<&Entry>) -> Result<Vec<EntityKey>> {
-        let _span = span!(Level::DEBUG, "D").entered();
-
-        let mut discovered: Vec<EntityKey> = vec![];
-        if self.discoverying {
-            for entity in &entities {
-                eval::discover(entity, &mut discovered)?;
-            }
-            info!("discovered {:?}", discovered);
-        }
-
-        Ok(discovered)
-    }
-
     pub fn perform(&self, living: &Entry, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
         info!("performing {:?}", action);
 
         let surroundings = self.evaluate_living(living)?;
-
-        self.discover_from(surroundings.to_discovery_vec())?;
 
         let reply = {
             let _span = span!(Level::INFO, "A").entered();

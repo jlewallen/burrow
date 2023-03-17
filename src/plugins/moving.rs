@@ -206,19 +206,6 @@ pub mod model {
             Ok(())
         }
     }
-
-    pub fn discover(source: &Entry, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
-        if let Ok(occupyable) = source.scope::<Occupyable>() {
-            // Pretty sure this clone should be unnecessary.
-            entity_keys.extend(occupyable.occupied.iter().map(|er| er.key.clone()));
-        }
-        if let Ok(movement) = source.scope::<Movement>() {
-            for route in &movement.routes {
-                entity_keys.push(route.area.key.clone());
-            }
-        }
-        Ok(())
-    }
 }
 
 pub mod actions {

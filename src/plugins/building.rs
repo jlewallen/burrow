@@ -36,10 +36,6 @@ pub mod model {
             serde_json::to_value(self)
         }
     }
-
-    pub fn discover(_source: &Entry, _entity_keys: &mut [EntityKey]) -> Result<()> {
-        Ok(())
-    }
 }
 
 pub mod actions {

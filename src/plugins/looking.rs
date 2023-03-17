@@ -110,10 +110,6 @@ pub mod model {
             routes,
         })
     }
-
-    pub fn discover(_source: &Entry, _entity_keys: &mut [EntityKey]) -> Result<()> {
-        Ok(())
-    }
 }
 
 pub mod actions {

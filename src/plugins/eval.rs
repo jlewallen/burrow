@@ -1,7 +1,6 @@
 use anyhow::Result;
 
-use crate::kernel::{Action, EntityKey, Entry, EvaluationError, RegisteredPlugins};
-use crate::plugins;
+use crate::kernel::{Action, EvaluationError, RegisteredPlugins};
 
 pub fn evaluate(
     plugins: &RegisteredPlugins,
@@ -17,12 +16,4 @@ pub fn evaluate(
         Some(e) => Ok(Some(e)),
         None => Ok(None),
     }
-}
-
-pub fn discover(source: &Entry, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
-    plugins::looking::model::discover(source, entity_keys)?;
-    plugins::carrying::model::discover(source, entity_keys)?;
-    plugins::moving::model::discover(source, entity_keys)?;
-    plugins::building::model::discover(source, entity_keys)?;
-    Ok(())
 }

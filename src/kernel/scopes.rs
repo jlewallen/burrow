@@ -19,17 +19,7 @@ pub enum Surroundings {
     },
 }
 
-impl Surroundings {
-    pub fn to_discovery_vec(&self) -> Vec<&Entry> {
-        match self {
-            Surroundings::Living {
-                world: _world,
-                living,
-                area,
-            } => vec![living, area],
-        }
-    }
-}
+impl Surroundings {}
 
 #[derive(Clone)]
 pub struct ActionArgs {

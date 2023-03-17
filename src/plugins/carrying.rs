@@ -272,13 +272,6 @@ pub mod model {
             Ok(())
         }
     }
-
-    pub fn discover(source: &Entry, entity_keys: &mut Vec<EntityKey>) -> Result<()> {
-        if let Ok(containing) = source.scope::<Containing>() {
-            entity_keys.extend(containing.holding.iter().map(|er| er.key.clone()))
-        }
-        Ok(())
-    }
 }
 
 pub mod actions {
