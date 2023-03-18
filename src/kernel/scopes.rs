@@ -19,7 +19,17 @@ pub enum Surroundings {
     },
 }
 
-impl Surroundings {}
+impl Surroundings {
+    pub fn unpack(&self) -> (Entry, Entry, Entry) {
+        match self {
+            Surroundings::Living {
+                world,
+                living,
+                area,
+            } => (world.clone(), living.clone(), area.clone()),
+        }
+    }
+}
 
 #[derive(Clone)]
 pub struct ActionArgs {
@@ -56,7 +66,7 @@ pub trait Action: Debug {
     where
         Self: Sized;
 
-    fn perform(&self, args: ActionArgs) -> ReplyResult;
+    fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult;
 }
 
 pub trait Scope: Needs<SessionRef> + DeserializeOwned + Default + Debug {

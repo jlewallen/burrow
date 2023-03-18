@@ -3,7 +3,8 @@ use crate::domain::ManagedHooks;
 use super::model::{
     DomainError, DomainEvent, EntityGid, EntityKey, EntityPtr, EntityRef, Entry, Identity, Item,
 };
-use super::scopes::{Action, ActionArgs, Reply};
+use super::scopes::{Action, Reply};
+use super::Surroundings;
 
 use anyhow::Result;
 use std::{cell::RefCell, rc::Rc};
@@ -20,11 +21,15 @@ pub trait Infrastructure {
     /// 1) Conditional needle visibility.
     /// 2) Items containing others.
     /// 3) Verb capabilities of the needle.
-    fn find_item(&self, args: &ActionArgs, item: &Item) -> Result<Option<Entry>>;
+    fn find_item(&self, surroundings: &Surroundings, item: &Item) -> Result<Option<Entry>>;
 
-    fn find_optional_item(&self, args: &ActionArgs, item: Option<Item>) -> Result<Option<Entry>> {
+    fn find_optional_item(
+        &self,
+        surroundings: &Surroundings,
+        item: Option<Item>,
+    ) -> Result<Option<Entry>> {
         if let Some(item) = item {
-            self.find_item(args, &item)
+            self.find_item(surroundings, &item)
         } else {
             Ok(None)
         }

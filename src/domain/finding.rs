@@ -1,5 +1,5 @@
 use crate::{
-    kernel::{ActionArgs, Entry, Item, Surroundings},
+    kernel::{Entry, Item, Surroundings},
     plugins::tools,
 };
 use anyhow::{anyhow, Result};
@@ -40,8 +40,8 @@ pub struct EntityRelationshipSet {
 }
 
 impl EntityRelationshipSet {
-    pub fn new_from_action(args: &ActionArgs) -> Self {
-        match &args.surroundings {
+    pub fn new_from_surroundings(surroundings: &Surroundings) -> Self {
+        match surroundings {
             Surroundings::Living {
                 world,
                 living,

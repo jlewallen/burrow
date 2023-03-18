@@ -126,10 +126,10 @@ pub mod actions {
             true
         }
 
-        fn perform(&self, args: ActionArgs) -> ReplyResult {
+        fn perform(&self, _session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             info!("look!");
 
-            let (_, user, area, _) = args.unpack();
+            let (_, user, area) = surroundings.unpack();
 
             Ok(Box::new(new_area_observation(&user, &area)?))
         }
@@ -145,12 +145,12 @@ pub mod actions {
             true
         }
 
-        fn perform(&self, args: ActionArgs) -> ReplyResult {
+        fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             info!("look inside!");
 
-            let (_, user, _area, infra) = args.unpack();
+            let (_, user, _area) = surroundings.unpack();
 
-            match infra.find_item(&args, &self.item)? {
+            match session.find_item(surroundings, &self.item)? {
                 Some(target) => {
                     if tools::is_container(&target)? {
                         Ok(Box::new(new_inside_observation(&user, &target)?))
@@ -207,7 +207,7 @@ mod tests {
         let args: ActionArgs = build.plain().try_into()?;
 
         let action = try_parsing(LookActionParser {}, "look")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_, _person, _area, _) = args.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
@@ -226,7 +226,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(LookActionParser {}, "look")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_, _person, _area, _) = args.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
@@ -247,7 +247,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(LookActionParser {}, "look")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_, _person, _area, _) = args.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
@@ -268,7 +268,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(LookActionParser {}, "look")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_, _person, _area, _) = args.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
@@ -286,7 +286,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(LookActionParser {}, "look inside box")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_, _person, _area, _) = args.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
@@ -307,7 +307,7 @@ mod tests {
         let args: ActionArgs = build.hands(vec![QuickThing::Actual(vessel)]).try_into()?;
 
         let action = try_parsing(LookActionParser {}, "look inside vessel")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_, _person, _area, _) = args.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);

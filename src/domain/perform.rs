@@ -25,7 +25,7 @@ impl StandardPerformer {
 
         let reply = {
             let _span = span!(Level::INFO, "A").entered();
-            action.perform(ActionArgs::new(surroundings, self.session()?))?
+            action.perform(self.session()?, &surroundings)?
         };
 
         Ok(reply)
@@ -103,8 +103,7 @@ impl StandardPerformer {
 
         let reply = {
             let _span = span!(Level::INFO, "A").entered();
-            let session = self.session()?;
-            action.perform(ActionArgs::new(surroundings, session))?
+            action.perform(self.session()?, &surroundings)?
         };
 
         event!(Level::INFO, "done");

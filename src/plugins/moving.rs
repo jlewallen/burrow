@@ -247,15 +247,15 @@ pub mod actions {
             false
         }
 
-        fn perform(&self, args: ActionArgs) -> ReplyResult {
+        fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             info!("go {:?}!", self.item);
 
-            let (_, living, area, infra) = args.unpack();
+            let (_, living, area) = surroundings.unpack();
 
-            match infra.find_item(&args, &self.item)? {
+            match session.find_item(surroundings, &self.item)? {
                 Some(to_area) => {
-                    let can = infra.hooks().invoke::<MovingHooks, CanMove, _>(|h| {
-                        h.before_moving.before_moving(&args.surroundings, &to_area)
+                    let can = session.hooks().invoke::<MovingHooks, CanMove, _>(|h| {
+                        h.before_moving.before_moving(surroundings, &to_area)
                     })?;
 
                     match can {
@@ -271,7 +271,7 @@ pub mod actions {
                                         area: to_area,
                                     }))?;
 
-                                    infra.chain(&living, Box::new(LookAction {}))
+                                    session.chain(&living, Box::new(LookAction {}))
                                 }
                                 DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
                             }
@@ -324,7 +324,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(GoActionParser {}, "go north")?;
-        let reply = action.perform(args)?;
+        let reply = action.perform(args.session, &args.surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -344,7 +344,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(GoActionParser {}, "go east")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_, living, area, _) = args.unpack();
 
         assert_eq!(
@@ -369,7 +369,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(GoActionParser {}, "go east")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_, living, area, _) = args.unpack();
 
         assert_eq!(
@@ -391,7 +391,7 @@ mod tests {
         let args: ActionArgs = build.plain().try_into()?;
 
         let action = try_parsing(GoActionParser {}, "go rake")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_, _person, _area, _) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
@@ -409,7 +409,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(GoActionParser {}, "go rake")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_, _person, _area, _) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);

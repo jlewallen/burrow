@@ -53,12 +53,10 @@ pub mod actions {
             true
         }
 
-        fn perform(&self, args: ActionArgs) -> ReplyResult {
+        fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             info!("editing {:?}!", self.item);
 
-            let (_, _, _, infra) = args.unpack();
-
-            match infra.find_item(&args, &self.item)? {
+            match session.find_item(surroundings, &self.item)? {
                 Some(editing) => {
                     info!("editing {:?}", editing);
                     Ok(Box::new(SimpleReply::Done))
@@ -78,12 +76,10 @@ pub mod actions {
             false
         }
 
-        fn perform(&self, args: ActionArgs) -> ReplyResult {
+        fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             info!("duplicating {:?}!", self.item);
 
-            let (_, _, _, infra) = args.unpack();
-
-            match infra.find_item(&args, &self.item)? {
+            match session.find_item(surroundings, &self.item)? {
                 Some(duplicating) => {
                     info!("duplicating {:?}", duplicating);
                     _ = tools::duplicate(&duplicating)?;
@@ -104,12 +100,10 @@ pub mod actions {
             false
         }
 
-        fn perform(&self, args: ActionArgs) -> ReplyResult {
+        fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             info!("obliterate {:?}!", self.item);
 
-            let (_, _, _, infra) = args.unpack();
-
-            match infra.find_item(&args, &self.item)? {
+            match session.find_item(surroundings, &self.item)? {
                 Some(obliterating) => {
                     info!("obliterate {:?}", obliterating);
                     tools::obliterate(&obliterating)?;
@@ -132,20 +126,20 @@ pub mod actions {
             false
         }
 
-        fn perform(&self, args: ActionArgs) -> ReplyResult {
+        fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             info!(
                 "bidirectional-dig {:?} <-> {:?} '{:?}'",
                 self.outgoing, self.returning, self.new_area
             );
 
-            let (_, living, area, infra) = args.unpack();
+            let (_, living, area) = surroundings.unpack();
 
             let new_area =
-                infra.add_entity(&EntityPtr::new_named(&self.new_area, &self.new_area)?)?;
+                session.add_entity(&EntityPtr::new_named(&self.new_area, &self.new_area)?)?;
             let returning =
-                infra.add_entity(&EntityPtr::new_named(&self.returning, &self.returning)?)?;
+                session.add_entity(&EntityPtr::new_named(&self.returning, &self.returning)?)?;
             let outgoing =
-                infra.add_entity(&EntityPtr::new_named(&self.outgoing, &self.outgoing)?)?;
+                session.add_entity(&EntityPtr::new_named(&self.outgoing, &self.outgoing)?)?;
 
             tools::leads_to(&returning, &area)?;
             tools::set_container(&new_area, &vec![returning])?;
@@ -155,7 +149,7 @@ pub mod actions {
 
             // TODO Chain to GoAction?
             match tools::navigate_between(&area, &new_area, &living)? {
-                DomainOutcome::Ok => infra.chain(&living, Box::new(LookAction {})),
+                DomainOutcome::Ok => session.chain(&living, Box::new(LookAction {})),
                 DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
             }
         }
@@ -171,14 +165,14 @@ pub mod actions {
             false
         }
 
-        fn perform(&self, args: ActionArgs) -> ReplyResult {
+        fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             info!("make-item {:?}", self.name);
 
-            let (_, user, _area, infra) = args.unpack();
+            let (_, user, _area) = surroundings.unpack();
 
             let new_item = EntityPtr::new_named(&self.name, &self.name)?;
 
-            infra.add_entities(&[&new_item])?;
+            session.add_entities(&[&new_item])?;
 
             tools::set_container(&user, &vec![new_item.try_into()?])?;
 
@@ -290,7 +284,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(EditActionParser {}, "edit rake")?;
-        let reply = action.perform(args)?;
+        let reply = action.perform(args.session, &args.surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -305,7 +299,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(DuplicateActionParser {}, "duplicate rake")?;
-        let reply = action.perform(args)?;
+        let reply = action.perform(args.session, &args.surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -320,7 +314,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(ObliterateActionParser {}, "obliterate rake")?;
-        let reply = action.perform(args)?;
+        let reply = action.perform(args.session, &args.surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -335,7 +329,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(EditActionParser {}, "edit broom")?;
-        let reply = action.perform(args)?;
+        let reply = action.perform(args.session, &args.surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
@@ -350,7 +344,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(DuplicateActionParser {}, "duplicate broom")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_world, person, _area, _) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
@@ -375,7 +369,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(ObliterateActionParser {}, "obliterate broom")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_world, person, area, _) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
@@ -397,7 +391,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(EditActionParser {}, "edit #1201")?;
-        let reply = action.perform(args)?;
+        let reply = action.perform(args.session, &args.surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -412,7 +406,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(EditActionParser {}, "edit #1")?;
-        let reply = action.perform(args)?;
+        let reply = action.perform(args.session, &args.surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
@@ -428,7 +422,7 @@ mod tests {
             BidirectionalDigActionParser {},
             r#"dig "North Exit" to "South Exit" for "New Area""#,
         )?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_, living, _area, infra) = args.unpack();
 
         // Not the best way of finding the constructed area.
@@ -450,7 +444,7 @@ mod tests {
         let args: ActionArgs = build.plain().try_into()?;
 
         let action = try_parsing(MakeItemParser {}, r#"make item "Blue Rake""#)?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_, living, _area, _infra) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);

@@ -370,12 +370,12 @@ impl Infrastructure for Session {
         }
     }
 
-    fn find_item(&self, args: &ActionArgs, item: &Item) -> Result<Option<Entry>> {
+    fn find_item(&self, surroundings: &Surroundings, item: &Item) -> Result<Option<Entry>> {
         let _loading_span = span!(Level::INFO, "finding", i = format!("{:?}", item)).entered();
 
         info!("finding");
 
-        let haystack = EntityRelationshipSet::new_from_action(&args).expand()?;
+        let haystack = EntityRelationshipSet::new_from_surroundings(surroundings).expand()?;
 
         self.find_item_in_set(&haystack, item)
     }

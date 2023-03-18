@@ -289,12 +289,12 @@ pub mod actions {
             false
         }
 
-        fn perform(&self, args: ActionArgs) -> ReplyResult {
+        fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             info!("hold {:?}!", self.item);
 
-            let (_, user, area, infra) = args.unpack();
+            let (_, user, area) = surroundings.unpack();
 
-            match infra.find_item(&args, &self.item)? {
+            match session.find_item(surroundings, &self.item)? {
                 Some(holding) => match tools::move_between(&area, &user, &holding)? {
                     DomainOutcome::Ok => Ok(Box::new(reply_done(CarryingEvent::ItemHeld {
                         living: user,
@@ -318,13 +318,13 @@ pub mod actions {
             false
         }
 
-        fn perform(&self, args: ActionArgs) -> ReplyResult {
+        fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             info!("drop {:?}!", self.maybe_item);
 
-            let (_, user, area, infra) = args.unpack();
+            let (_, user, area) = surroundings.unpack();
 
             match &self.maybe_item {
-                Some(item) => match infra.find_item(&args, item)? {
+                Some(item) => match session.find_item(surroundings, item)? {
                     Some(dropping) => match tools::move_between(&user, &area, &dropping)? {
                         DomainOutcome::Ok => {
                             Ok(Box::new(reply_done(CarryingEvent::ItemDropped {
@@ -353,13 +353,13 @@ pub mod actions {
             false
         }
 
-        fn perform(&self, args: ActionArgs) -> ReplyResult {
+        fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             info!("put-inside {:?} -> {:?}", self.item, self.vessel);
 
-            let (_, _user, _area, infra) = args.unpack();
+            let (_, _user, _area) = surroundings.unpack();
 
-            match infra.find_item(&args, &self.item)? {
-                Some(item) => match infra.find_item(&args, &self.vessel)? {
+            match session.find_item(surroundings, &self.item)? {
+                Some(item) => match session.find_item(surroundings, &self.vessel)? {
                     Some(vessel) => {
                         if tools::is_container(&vessel)? {
                             let from = tools::container_of(&item)?;
@@ -389,15 +389,15 @@ pub mod actions {
             false
         }
 
-        fn perform(&self, args: ActionArgs) -> ReplyResult {
+        fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             info!("take-out {:?} -> {:?}", self.item, self.vessel);
 
-            let (_, user, _area, infra) = args.unpack();
+            let (_, user, _area) = surroundings.unpack();
 
-            match infra.find_item(&args, &self.vessel)? {
+            match session.find_item(surroundings, &self.vessel)? {
                 Some(vessel) => {
                     if tools::is_container(&vessel)? {
-                        match infra.find_item(&args, &self.item)? {
+                        match session.find_item(surroundings, &self.item)? {
                             Some(item) => match tools::move_between(&vessel, &user, &item)? {
                                 DomainOutcome::Ok => Ok(Box::new(SimpleReply::Done)),
                                 DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
@@ -516,7 +516,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(HoldActionParser {}, "hold rake")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_, person, area, _) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
@@ -537,7 +537,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(HoldActionParser {}, "hold rake")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_, person, area, _) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
@@ -562,7 +562,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(HoldActionParser {}, "hold rake")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_, person, area, _) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
@@ -583,7 +583,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(HoldActionParser {}, "hold rake")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_, person, area, _) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
@@ -604,7 +604,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(DropActionParser {}, "drop rake")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_, person, area, _) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
@@ -625,7 +625,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(DropActionParser {}, "drop rake")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_, person, area, _) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
@@ -646,7 +646,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(DropActionParser {}, "drop rake")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_, person, area, _) = args.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
@@ -671,7 +671,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(PutInsideActionParser {}, "put key inside vessel")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_world, person, _area, _) = args.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
@@ -700,7 +700,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(PutInsideActionParser {}, "put key inside vessel")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_world, person, _area, _) = args.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
@@ -727,7 +727,7 @@ mod tests {
             .try_into()?;
 
         let action = try_parsing(TakeOutActionParser {}, "take key out of vessel")?;
-        let reply = action.perform(args.clone())?;
+        let reply = action.perform(args.session.clone(), &args.surroundings)?;
         let (_world, person, _area, _) = args.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
