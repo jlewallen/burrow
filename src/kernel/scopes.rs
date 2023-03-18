@@ -31,36 +31,6 @@ impl Surroundings {
     }
 }
 
-#[derive(Clone)]
-pub struct ActionArgs {
-    pub surroundings: Surroundings,
-    pub session: SessionRef,
-}
-
-impl ActionArgs {
-    pub fn new(surroundings: Surroundings, session: SessionRef) -> Self {
-        Self {
-            surroundings,
-            session,
-        }
-    }
-
-    pub fn unpack(&self) -> (Entry, Entry, Entry, SessionRef) {
-        match &self.surroundings {
-            Surroundings::Living {
-                world,
-                living,
-                area,
-            } => (
-                world.clone(),
-                living.clone(),
-                area.clone(),
-                self.session.clone(),
-            ),
-        }
-    }
-}
-
 pub trait Action: Debug {
     fn is_read_only() -> bool
     where
