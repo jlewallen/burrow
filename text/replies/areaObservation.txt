@@ -9,9 +9,9 @@
 {%- set described_here = all_here %}
 
 Also here is {% for item in all_here -%}
-{%- if loop.first %}{%- else -%}{%- if loop.last %} and {% else %}, {% endif -%}{%- endif -%} a {{ item.name }} {%- endfor -%}.
+{%- if loop.first %}{%- else -%}{%- if loop.last %} and {% else %}, {% endif -%}{%- endif -%} {{ item.qualified }} {%- endfor -%}.
 
 {% if areaObservation.carrying -%}
 You are carrying {% for item in areaObservation.carrying -%}
-{%- if loop.first %}{%- else -%}{%- if loop.last %} and {% else %}, {% endif -%}{%- endif -%} a {{ item.name }} {%- endfor -%}.
+{%- if loop.first %}{%- else -%}{%- if loop.last %} and {% else %}, {% endif -%}{%- endif -%} {{ item.qualified }} {%- endfor -%}.
 {%- endif %}
