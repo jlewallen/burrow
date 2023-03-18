@@ -9,6 +9,26 @@ use crate::plugins::users::model::Usernames;
 use crate::storage;
 use crate::text::Renderer;
 
+pub fn set_containing_quantities_to_1(thing: Entry) -> Result<()> {
+    let holding = thing
+        .scope::<Containing>()?
+        .holding
+        .iter()
+        .map(|i| -> Result<Option<Entry>> { Ok(i.clone().try_into()?) }) // TODO Annoying clone
+        .collect::<Result<Vec<_>>>()?;
+
+    for held in holding.iter() {
+        if let Some(item) = &held {
+            let mut carryable = item.scope_mut::<Carryable>()?;
+            info!("{:?} quantity = {}", item, carryable.quantity());
+            carryable.set_quantity(1.0)?;
+            carryable.save()?;
+        }
+    }
+
+    Ok(())
+}
+
 pub fn execute_command() -> Result<()> {
     let _renderer = Renderer::new()?;
     let storage_factory = storage::sqlite::Factory::new("world.sqlite3")?;
@@ -23,23 +43,11 @@ pub fn execute_command() -> Result<()> {
     let occupying = user.scope::<Occupying>()?;
     let area: Option<Entry> = occupying.area.clone().try_into()?; // TODO Annoying clone
 
-    let holding = user
-        .scope::<Containing>()?
-        .holding
-        .iter()
-        .map(|i| -> Result<Option<Entry>> { Ok(i.clone().try_into()?) }) // TODO Annoying clone
-        .collect::<Result<Vec<_>>>()?;
-
-    if let Some(item) = &holding[0] {
-        let mut carryable = item.scope_mut::<Carryable>()?;
-        info!("quantity = {}", carryable.quantity());
-        carryable.set_quantity(1.0)?;
-        carryable.save()?;
+    if let Some(area) = area {
+        set_containing_quantities_to_1(area)?;
     }
 
-    info!("{:?}", holding[0]);
-    info!("{:?}", user);
-    info!("{:?}", area);
+    set_containing_quantities_to_1(user)?;
 
     session.close(&DevNullNotifier {})?;
 
