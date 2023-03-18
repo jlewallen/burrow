@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use super::{DevNullNotifier, Session};
 use crate::{
-    kernel::{ActionArgs, EntityKey, EntityPtr, Entry, SessionRef, Surroundings, WORLD_KEY},
+    kernel::{EntityKey, EntityPtr, Entry, SessionRef, Surroundings, WORLD_KEY},
     plugins::tools,
 };
 
@@ -107,14 +107,6 @@ impl QuickThing {
 }
 
 impl BuildActionArgs {
-    pub fn new_in_session(session: Rc<Session>) -> Result<Self> {
-        Ok(Self {
-            hands: Vec::new(),
-            ground: Vec::new(),
-            session,
-        })
-    }
-
     pub fn new() -> Result<Self> {
         let storage_factory = crate::storage::sqlite::Factory::new(":memory:")?;
         let domain = crate::domain::Domain::new(storage_factory, true);
@@ -127,7 +119,19 @@ impl BuildActionArgs {
         })
     }
 
-    pub fn build(&mut self) -> Result<Build> {
+    pub fn new_in_session(session: Rc<Session>) -> Result<Self> {
+        Ok(Self {
+            hands: Vec::new(),
+            ground: Vec::new(),
+            session,
+        })
+    }
+
+    pub fn plain(&mut self) -> &mut Self {
+        self
+    }
+
+    pub fn entity(&mut self) -> Result<Build> {
         Build::new(&self.session)
     }
 
@@ -141,18 +145,57 @@ impl BuildActionArgs {
         self
     }
 
-    pub fn route(&mut self, route_name: &'static str, destination: QuickThing) -> &mut Self {
-        self.ground(vec![QuickThing::Route(route_name, Box::new(destination))])
-    }
-
     pub fn ground(&mut self, items: Vec<QuickThing>) -> &mut Self {
         self.ground.extend(items);
 
         self
     }
 
-    pub fn plain(&mut self) -> &mut Self {
-        self
+    pub fn route(&mut self, route_name: &'static str, destination: QuickThing) -> &mut Self {
+        self.ground(vec![QuickThing::Route(route_name, Box::new(destination))])
+    }
+
+    pub fn build(&mut self) -> Result<(SessionRef, Surroundings)> {
+        let world = Build::new(&self.session)?
+            .key(&WORLD_KEY)?
+            .named("World")?
+            .into_entry()?;
+
+        let person = Build::new(&self.session)?
+            .named("Living")?
+            .holding(
+                &self
+                    .hands
+                    .iter()
+                    .map(|i| -> Result<_> { i.make(&self.session) })
+                    .collect::<Result<Vec<_>>>()?,
+            )?
+            .into_entry()?;
+
+        let area = Build::new(&self.session)?
+            .named("Welcome Area")?
+            .occupying(&vec![person.clone()])?
+            .holding(
+                &self
+                    .ground
+                    .iter()
+                    .map(|i| -> Result<_> { i.make(&self.session) })
+                    .collect::<Result<Vec<_>>>()?,
+            )?
+            .into_entry()?;
+
+        self.session.flush()?;
+
+        let session: SessionRef = Rc::clone(&self.session) as SessionRef;
+
+        Ok((
+            session,
+            Surroundings::Living {
+                world,
+                living: person,
+                area,
+            },
+        ))
     }
 
     pub fn flush(&mut self) -> Result<&mut Self> {
@@ -167,7 +210,7 @@ impl BuildActionArgs {
         Ok(self)
     }
 }
-
+/*
 impl TryFrom<&mut BuildActionArgs> for ActionArgs {
     type Error = anyhow::Error;
 
@@ -214,3 +257,4 @@ impl TryFrom<&mut BuildActionArgs> for ActionArgs {
         ))
     }
 }
+*/

@@ -279,12 +279,12 @@ mod tests {
     #[test]
     fn it_fails_to_edit_unknown_items() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Broom")])
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(EditActionParser {}, "edit rake")?;
-        let reply = action.perform(args.session, &args.surroundings)?;
+        let reply = action.perform(session, &surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -294,12 +294,12 @@ mod tests {
     #[test]
     fn it_fails_to_duplicate_unknown_items() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Broom")])
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(DuplicateActionParser {}, "duplicate rake")?;
-        let reply = action.perform(args.session, &args.surroundings)?;
+        let reply = action.perform(session, &surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -309,12 +309,12 @@ mod tests {
     #[test]
     fn it_fails_to_obliterate_unknown_items() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .hands(vec![QuickThing::Object("Cool Broom")])
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(ObliterateActionParser {}, "obliterate rake")?;
-        let reply = action.perform(args.session, &args.surroundings)?;
+        let reply = action.perform(session, &surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -324,12 +324,12 @@ mod tests {
     #[test]
     fn it_edits_items_named() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Broom")])
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(EditActionParser {}, "edit broom")?;
-        let reply = action.perform(args.session, &args.surroundings)?;
+        let reply = action.perform(session, &surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
@@ -339,13 +339,13 @@ mod tests {
     #[test]
     fn it_duplicates_items_named() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .hands(vec![QuickThing::Object("Cool Broom")])
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(DuplicateActionParser {}, "duplicate broom")?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_world, person, _area, _) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_world, person, _area) = surroundings.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
         assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
@@ -364,13 +364,13 @@ mod tests {
     #[test]
     fn it_obliterates_items_named() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .hands(vec![QuickThing::Object("Cool Broom")])
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(ObliterateActionParser {}, "obliterate broom")?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_world, person, area, _) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_world, person, area) = surroundings.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
         // It's not enough just to check this, but why not given how easy.
@@ -386,12 +386,12 @@ mod tests {
     #[test]
     fn it_fails_to_edit_items_by_missing_gid() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Broom")])
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(EditActionParser {}, "edit #1201")?;
-        let reply = action.perform(args.session, &args.surroundings)?;
+        let reply = action.perform(session, &surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -401,12 +401,12 @@ mod tests {
     #[test]
     fn it_edits_items_by_gid() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Broom")])
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(EditActionParser {}, "edit #1")?;
-        let reply = action.perform(args.session, &args.surroundings)?;
+        let reply = action.perform(session, &surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
@@ -416,17 +416,17 @@ mod tests {
     #[test]
     fn it_digs_bidirectionally() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build.plain().try_into()?;
+        let (session, surroundings) = build.plain().build()?;
 
         let action = try_parsing(
             BidirectionalDigActionParser {},
             r#"dig "North Exit" to "South Exit" for "New Area""#,
         )?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_, living, _area, infra) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_, living, _area) = surroundings.unpack();
 
         // Not the best way of finding the constructed area.
-        let destination = infra
+        let destination = session
             .entry_by_gid(&EntityGid::new(7))?
             .ok_or(DomainError::EntityNotFound)?;
 
@@ -441,11 +441,11 @@ mod tests {
     #[test]
     fn it_makes_items() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build.plain().try_into()?;
+        let (session, surroundings) = build.plain().build()?;
 
         let action = try_parsing(MakeItemParser {}, r#"make item "Blue Rake""#)?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_, living, _area, _infra) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_, living, _area) = surroundings.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 

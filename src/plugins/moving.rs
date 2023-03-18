@@ -318,13 +318,13 @@ mod tests {
         let mut build = BuildActionArgs::new()?;
         let east = build.make(QuickThing::Place("East Place"))?;
         let west = build.make(QuickThing::Place("West Place"))?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .route("East", QuickThing::Actual(east))
             .route("Wast", QuickThing::Actual(west))
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(GoActionParser {}, "go north")?;
-        let reply = action.perform(args.session, &args.surroundings)?;
+        let reply = action.perform(session, &surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -338,14 +338,14 @@ mod tests {
         let mut build = BuildActionArgs::new()?;
         let east = build.make(QuickThing::Place("East Place"))?;
         let west = build.make(QuickThing::Place("West Place"))?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .route("East", QuickThing::Actual(east.clone()))
             .route("Wast", QuickThing::Actual(west))
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(GoActionParser {}, "go east")?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_, living, area, _) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_, living, area) = surroundings.unpack();
 
         assert_eq!(
             reply.to_json()?,
@@ -364,13 +364,13 @@ mod tests {
     fn it_goes_through_routes_when_one_nearby() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
         let destination = build.make(QuickThing::Place("Place"))?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .route("East", QuickThing::Actual(destination.clone()))
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(GoActionParser {}, "go east")?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_, living, area, _) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_, living, area) = surroundings.unpack();
 
         assert_eq!(
             reply.to_json()?,
@@ -388,11 +388,11 @@ mod tests {
     #[test]
     fn it_fails_to_go_unknown_items() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build.plain().try_into()?;
+        let (session, surroundings) = build.plain().build()?;
 
         let action = try_parsing(GoActionParser {}, "go rake")?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_, _person, _area, _) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_, _person, _area) = surroundings.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -404,13 +404,13 @@ mod tests {
     #[test]
     fn it_fails_to_go_non_routes() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Rake")])
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(GoActionParser {}, "go rake")?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_, _person, _area, _) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_, _person, _area) = surroundings.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 

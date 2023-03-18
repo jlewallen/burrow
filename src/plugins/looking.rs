@@ -204,11 +204,11 @@ mod tests {
     #[test]
     fn it_looks_in_empty_area() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build.plain().try_into()?;
+        let (session, surroundings) = build.plain().build()?;
 
         let action = try_parsing(LookActionParser {}, "look")?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_, _person, _area, _) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_, _person, _area) = surroundings.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
 
@@ -220,14 +220,14 @@ mod tests {
     #[test]
     fn it_looks_in_area_with_items_on_ground() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Rake")])
             .ground(vec![QuickThing::Object("Boring Shovel")])
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(LookActionParser {}, "look")?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_, _person, _area, _) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_, _person, _area) = surroundings.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
 
@@ -240,15 +240,15 @@ mod tests {
     fn it_looks_in_area_with_items_on_ground_and_a_route() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
         let destination = build.make(QuickThing::Place("Place"))?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Rake")])
             .ground(vec![QuickThing::Object("Boring Shovel")])
             .route("East Exit", QuickThing::Actual(destination))
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(LookActionParser {}, "look")?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_, _person, _area, _) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_, _person, _area) = surroundings.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
 
@@ -261,15 +261,15 @@ mod tests {
     fn it_looks_in_area_with_items_on_ground_and_holding_items() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
         let destination = build.make(QuickThing::Place("Place"))?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Boring Shovel")])
             .hands(vec![QuickThing::Object("Cool Rake")])
             .route("East Exit", QuickThing::Actual(destination))
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(LookActionParser {}, "look")?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_, _person, _area, _) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_, _person, _area) = surroundings.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
 
@@ -281,13 +281,11 @@ mod tests {
     #[test]
     fn it_fails_to_look_inside_non_containers() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build
-            .hands(vec![QuickThing::Object("Not A Box")])
-            .try_into()?;
+        let (session, surroundings) = build.hands(vec![QuickThing::Object("Not A Box")]).build()?;
 
         let action = try_parsing(LookActionParser {}, "look inside box")?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_, _person, _area, _) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_, _person, _area) = surroundings.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
 
@@ -300,15 +298,15 @@ mod tests {
     fn it_looks_inside_containers() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
         let vessel = build
-            .build()?
+            .entity()?
             .named("Vessel")?
             .holding(&vec![build.make(QuickThing::Object("Key"))?])?
             .into_entry()?;
-        let args: ActionArgs = build.hands(vec![QuickThing::Actual(vessel)]).try_into()?;
+        let (session, surroundings) = build.hands(vec![QuickThing::Actual(vessel)]).build()?;
 
         let action = try_parsing(LookActionParser {}, "look inside vessel")?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_, _person, _area, _) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_, _person, _area) = surroundings.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
 

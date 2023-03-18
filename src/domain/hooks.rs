@@ -79,10 +79,7 @@ impl ManagedHooks {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        domain::BuildActionArgs,
-        kernel::{ActionArgs, Surroundings},
-    };
+    use crate::{domain::BuildActionArgs, kernel::Surroundings};
     use anyhow::Result;
     use std::sync::atomic::{AtomicI32, Ordering};
 
@@ -165,9 +162,9 @@ mod tests {
     #[test]
     fn it_should_do_nothing_on_empty_hook() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build.plain().try_into()?;
+        let (_session, surroundings) = build.plain().build()?;
         let jumping: Hooks<Box<dyn BeforeJumpingHook>> = Hooks::new();
-        assert_eq!(jumping.before_jumping(&args.surroundings)?, CanJump::Allow);
+        assert_eq!(jumping.before_jumping(&surroundings)?, CanJump::Allow);
 
         Ok(())
     }
@@ -175,15 +172,12 @@ mod tests {
     #[test]
     fn it_should_return_single_hook_outcome() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build.plain().try_into()?;
+        let (_session, surroundings) = build.plain().build()?;
         let jumping: Hooks<Box<dyn BeforeJumpingHook>> = Hooks::new();
         jumping.register(Box::new(FailsEveryOtherTime {
             counter: AtomicI32::new(0),
         }));
-        assert_eq!(
-            jumping.before_jumping(&args.surroundings)?,
-            CanJump::Prevent
-        );
+        assert_eq!(jumping.before_jumping(&surroundings)?, CanJump::Prevent);
 
         Ok(())
     }
@@ -191,17 +185,14 @@ mod tests {
     #[test]
     fn it_should_fold_multiple_hook_outcomes() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build.plain().try_into()?;
+        let (_session, surroundings) = build.plain().build()?;
         let jumping: Hooks<Box<dyn BeforeJumpingHook>> = Hooks::new();
         jumping.register(Box::new(FailsEveryOtherTime {
             counter: AtomicI32::new(0),
         }));
         jumping.register(Box::new(AlwaysAllow {}));
-        assert_eq!(
-            jumping.before_jumping(&args.surroundings)?,
-            CanJump::Prevent
-        );
-        assert_eq!(jumping.before_jumping(&args.surroundings)?, CanJump::Allow);
+        assert_eq!(jumping.before_jumping(&surroundings)?, CanJump::Prevent);
+        assert_eq!(jumping.before_jumping(&surroundings)?, CanJump::Allow);
 
         Ok(())
     }
@@ -209,7 +200,7 @@ mod tests {
     #[test]
     fn it_should_allow_easy_registration_of_new_hooks() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let _args: ActionArgs = build.plain().try_into()?;
+        let (_session, _surroundings) = build.plain().build()?;
         let managed_hooks = ManagedHooks::new();
 
         managed_hooks.with::<JumpingHooks, _>(|h| {

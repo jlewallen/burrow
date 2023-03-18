@@ -511,13 +511,13 @@ mod tests {
     #[test]
     fn it_holds_unheld_items() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Rake")])
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(HoldActionParser {}, "hold rake")?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_, person, area, _) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_, person, area) = surroundings.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
@@ -532,13 +532,13 @@ mod tests {
     #[test]
     fn it_separates_multiple_ground_items_when_held() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .ground(vec![QuickThing::Multiple("Cool Rake", 2.0)])
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(HoldActionParser {}, "hold rake")?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_, person, area, _) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_, person, area) = surroundings.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
@@ -556,14 +556,14 @@ mod tests {
         let same_kind = build.make(QuickThing::Object("Cool Rake"))?;
         tools::set_quantity(&same_kind, 2.0)?;
         let (first, second) = tools::separate(same_kind, 1.0)?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .ground(vec![QuickThing::Actual(first)])
             .hands(vec![QuickThing::Actual(second)])
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(HoldActionParser {}, "hold rake")?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_, person, area, _) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_, person, area) = surroundings.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
@@ -578,13 +578,13 @@ mod tests {
     #[test]
     fn it_fails_to_hold_unknown_items() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Broom")])
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(HoldActionParser {}, "hold rake")?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_, person, area, _) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_, person, area) = surroundings.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -599,13 +599,11 @@ mod tests {
     #[test]
     fn it_drops_held_items() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build
-            .hands(vec![QuickThing::Object("Cool Rake")])
-            .try_into()?;
+        let (session, surroundings) = build.hands(vec![QuickThing::Object("Cool Rake")]).build()?;
 
         let action = try_parsing(DropActionParser {}, "drop rake")?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_, person, area, _) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_, person, area) = surroundings.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
@@ -620,13 +618,13 @@ mod tests {
     #[test]
     fn it_fails_to_drop_unknown_items() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .hands(vec![QuickThing::Object("Cool Broom")])
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(DropActionParser {}, "drop rake")?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_, person, area, _) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_, person, area) = surroundings.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -641,13 +639,13 @@ mod tests {
     #[test]
     fn it_fails_to_drop_unheld_items() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Broom")])
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(DropActionParser {}, "drop rake")?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_, person, area, _) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_, person, area) = surroundings.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
 
@@ -662,17 +660,17 @@ mod tests {
     #[test]
     fn it_fails_to_puts_item_in_non_containers() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let vessel = build.build()?.named("Not A Vessel")?.into_entry()?;
-        let args: ActionArgs = build
+        let vessel = build.entity()?.named("Not A Vessel")?.into_entry()?;
+        let (session, surroundings) = build
             .hands(vec![
                 QuickThing::Object("key"),
                 QuickThing::Actual(vessel.clone()),
             ])
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(PutInsideActionParser {}, "put key inside vessel")?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_world, person, _area, _) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_world, person, _area) = surroundings.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
 
@@ -688,20 +686,20 @@ mod tests {
     fn it_puts_items_in_containers() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
         let vessel = build
-            .build()?
+            .entity()?
             .named("Vessel")?
             .holding(&vec![])?
             .into_entry()?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .hands(vec![
                 QuickThing::Object("key"),
                 QuickThing::Actual(vessel.clone()),
             ])
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(PutInsideActionParser {}, "put key inside vessel")?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_world, person, _area, _) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_world, person, _area) = surroundings.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
 
@@ -716,19 +714,19 @@ mod tests {
     #[test]
     fn it_takes_items_out_of_containers() -> Result<()> {
         let mut build = BuildActionArgs::new()?;
-        let key = build.build()?.named("Key")?.into_entry()?;
+        let key = build.entity()?.named("Key")?.into_entry()?;
         let vessel = build
-            .build()?
+            .entity()?
             .named("Vessel")?
             .holding(&vec![key.clone()])?
             .into_entry()?;
-        let args: ActionArgs = build
+        let (session, surroundings) = build
             .hands(vec![QuickThing::Actual(vessel.clone())])
-            .try_into()?;
+            .build()?;
 
         let action = try_parsing(TakeOutActionParser {}, "take key out of vessel")?;
-        let reply = action.perform(args.session.clone(), &args.surroundings)?;
-        let (_world, person, _area, _) = args.unpack();
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_world, person, _area) = surroundings.unpack();
 
         insta::assert_json_snapshot!(reply.to_json()?);
 
