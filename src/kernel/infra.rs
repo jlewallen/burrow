@@ -66,7 +66,6 @@ pub trait Infrastructure {
 }
 
 thread_local! {
-    #[allow(unused)]
     static SESSION: RefCell<Option<std::rc::Weak<dyn Infrastructure>>> = RefCell::new(None)
 }
 
