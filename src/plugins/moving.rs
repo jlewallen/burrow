@@ -30,9 +30,10 @@ pub mod model {
         fn before_moving(&self, surroundings: &Surroundings, to_area: &Entry) -> Result<CanMove>;
     }
 
-    impl BeforeMovingHook for Hooks<Box<dyn BeforeMovingHook>> {
+    impl BeforeMovingHook for MovingHooks {
         fn before_moving(&self, surroundings: &Surroundings, to_area: &Entry) -> Result<CanMove> {
             Ok(self
+                .before_moving
                 .instances
                 .borrow()
                 .iter()
@@ -47,9 +48,10 @@ pub mod model {
         fn after_move(&self, surroundings: &Surroundings, from_area: &Entry) -> Result<()>;
     }
 
-    impl AfterMoveHook for Hooks<Box<dyn AfterMoveHook>> {
+    impl AfterMoveHook for MovingHooks {
         fn after_move(&self, surroundings: &Surroundings, from_area: &Entry) -> Result<()> {
-            self.instances
+            self.after_move
+                .instances
                 .borrow()
                 .iter()
                 .map(|h| h.after_move(surroundings, from_area))
@@ -269,7 +271,7 @@ pub mod actions {
             match session.find_item(surroundings, &self.item)? {
                 Some(to_area) => {
                     let can = session.hooks().invoke::<MovingHooks, CanMove, _>(|h| {
-                        h.before_moving.before_moving(surroundings, &to_area)
+                        h.before_moving(surroundings, &to_area)
                     })?;
 
                     match can {
@@ -277,14 +279,14 @@ pub mod actions {
                             match tools::navigate_between(&area, &to_area, &living)? {
                                 DomainOutcome::Ok => {
                                     session.hooks().invoke::<MovingHooks, (), _>(|h| {
-                                        h.after_move.after_move(surroundings, &area)
+                                        h.after_move(surroundings, &area)
                                     })?;
 
-                                    get_my_session()?.raise(Box::new(MovingEvent::Left {
+                                    session.raise(Box::new(MovingEvent::Left {
                                         living: living.clone(),
                                         area,
                                     }))?;
-                                    get_my_session()?.raise(Box::new(MovingEvent::Arrived {
+                                    session.raise(Box::new(MovingEvent::Arrived {
                                         living: living.clone(),
                                         area: to_area,
                                     }))?;
