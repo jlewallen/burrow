@@ -27,11 +27,7 @@ pub mod model {
     };
 
     pub trait BeforeMovingHook {
-        fn before_moving(&self, surroundings: &Surroundings, to: &Entry) -> Result<CanMove>;
-    }
-
-    pub trait AfterMoveHook {
-        fn after_move(&self, surroundings: &Surroundings, from: &Entry) -> Result<()>;
+        fn before_moving(&self, surroundings: &Surroundings, to_area: &Entry) -> Result<CanMove>;
     }
 
     impl BeforeMovingHook for Hooks<Box<dyn BeforeMovingHook>> {
@@ -44,6 +40,22 @@ pub mod model {
                 .collect::<Result<Vec<CanMove>>>()?
                 .iter()
                 .fold(CanMove::default(), |c, h| c.fold(h)))
+        }
+    }
+
+    pub trait AfterMoveHook {
+        fn after_move(&self, surroundings: &Surroundings, from_area: &Entry) -> Result<()>;
+    }
+
+    impl AfterMoveHook for Hooks<Box<dyn AfterMoveHook>> {
+        fn after_move(&self, surroundings: &Surroundings, from_area: &Entry) -> Result<()> {
+            self.instances
+                .borrow()
+                .iter()
+                .map(|h| h.after_move(surroundings, from_area))
+                .collect::<Result<Vec<()>>>()?;
+
+            Ok(())
         }
     }
 
@@ -235,7 +247,9 @@ pub mod model {
 pub mod actions {
     use crate::plugins::library::actions::*;
     use crate::plugins::looking::actions::*;
-    use crate::plugins::moving::model::{BeforeMovingHook, CanMove, MovingEvent, MovingHooks};
+    use crate::plugins::moving::model::{
+        AfterMoveHook, BeforeMovingHook, CanMove, MovingEvent, MovingHooks,
+    };
 
     #[derive(Debug)]
     pub struct GoAction {
@@ -262,6 +276,10 @@ pub mod actions {
                         CanMove::Allow => {
                             match tools::navigate_between(&area, &to_area, &living)? {
                                 DomainOutcome::Ok => {
+                                    session.hooks().invoke::<MovingHooks, (), _>(|h| {
+                                        h.after_move.after_move(surroundings, &area)
+                                    })?;
+
                                     get_my_session()?.raise(Box::new(MovingEvent::Left {
                                         living: living.clone(),
                                         area,
