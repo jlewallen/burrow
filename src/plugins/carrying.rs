@@ -24,7 +24,7 @@ impl ParsesActions for CarryingPlugin {
 }
 
 pub mod model {
-    use crate::plugins::{library::model::*, looking::model::Observe};
+    use crate::plugins::{library::model::*, looking::model::Observe, tools};
 
     pub type CarryingResult = Result<DomainOutcome>;
 
@@ -160,24 +160,13 @@ pub mod model {
             Ok(self.holding.iter().any(|i| i.key == item.key()))
         }
 
-        pub fn stop_carrying(&mut self, item: &Entry) -> CarryingResult {
-            if !self.is_holding(item)? {
-                return Ok(DomainOutcome::Nope);
-            }
-
+        fn remove_item(&mut self, item: &Entry) -> CarryingResult {
             self.holding = self
                 .holding
                 .iter()
                 .map(|i| -> Result<Vec<EntityRef>> {
                     if i.key == item.key() {
-                        let mut carryable = item.scope_mut::<Carryable>()?;
-                        if carryable.quantity > 1.0 {
-                            carryable.decrease_quantity(1.0)?;
-
-                            Ok(vec![i.clone()])
-                        } else {
-                            Ok(vec![])
-                        }
+                        Ok(vec![])
                     } else {
                         Ok(vec![i.clone()])
                     }
@@ -189,6 +178,23 @@ pub mod model {
                 .to_vec();
 
             Ok(DomainOutcome::Ok)
+        }
+
+        pub fn stop_carrying(&mut self, item: &Entry) -> Result<Option<Entry>> {
+            if !self.is_holding(item)? {
+                return Ok(None);
+            }
+
+            let carryable = item.scope_mut::<Carryable>()?;
+            if carryable.quantity > 1.0 {
+                let (_original, separated) = tools::separate(item, 1.0)?;
+
+                Ok(Some(separated))
+            } else {
+                self.remove_item(item)?;
+
+                Ok(Some(item.clone()))
+            }
         }
     }
 
@@ -499,6 +505,8 @@ pub mod parser {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use super::parser::*;
     use super::*;
     use crate::plugins::carrying::model::Location;
@@ -515,9 +523,12 @@ mod tests {
             .ground(vec![QuickThing::Object("Cool Rake")])
             .build()?;
 
+        let (_, person, area) = surroundings.unpack();
+        assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
+        assert_eq!(area.scope::<Containing>()?.holding.len(), 1);
+
         let action = try_parsing(HoldActionParser {}, "hold rake")?;
         let reply = action.perform(session.clone(), &surroundings)?;
-        let (_, person, area) = surroundings.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
@@ -536,14 +547,24 @@ mod tests {
             .ground(vec![QuickThing::Multiple("Cool Rake", 2.0)])
             .build()?;
 
+        let (_, person, area) = surroundings.unpack();
+        assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
+        assert_eq!(area.scope::<Containing>()?.holding.len(), 1);
+
         let action = try_parsing(HoldActionParser {}, "hold rake")?;
         let reply = action.perform(session.clone(), &surroundings)?;
-        let (_, person, area) = surroundings.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
-        assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
-        assert_eq!(area.scope::<Containing>()?.holding.len(), 1);
+        let held = &person.scope::<Containing>()?.holding;
+        let ground = &area.scope::<Containing>()?.holding;
+        assert_eq!(held.len(), 1);
+        assert_eq!(ground.len(), 1);
+
+        let held_keys: HashSet<_> = held.iter().map(|i| i.key.clone()).collect();
+        let ground_keys: HashSet<_> = ground.iter().map(|i| i.key.clone()).collect();
+        let common_keys: HashSet<_> = held_keys.intersection(&ground_keys).collect();
+        assert_eq!(common_keys.len(), 0);
 
         build.close()?;
 
@@ -555,15 +576,18 @@ mod tests {
         let mut build = BuildActionArgs::new()?;
         let same_kind = build.make(QuickThing::Object("Cool Rake"))?;
         tools::set_quantity(&same_kind, 2.0)?;
-        let (first, second) = tools::separate(same_kind, 1.0)?;
+        let (first, second) = tools::separate(&same_kind, 1.0)?;
         let (session, surroundings) = build
-            .ground(vec![QuickThing::Actual(first)])
+            .ground(vec![QuickThing::Actual(first.clone())])
             .hands(vec![QuickThing::Actual(second)])
             .build()?;
 
+        let (_, person, area) = surroundings.unpack();
+        assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
+        assert_eq!(area.scope::<Containing>()?.holding.len(), 1);
+
         let action = try_parsing(HoldActionParser {}, "hold rake")?;
         let reply = action.perform(session.clone(), &surroundings)?;
-        let (_, person, area) = surroundings.unpack();
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 

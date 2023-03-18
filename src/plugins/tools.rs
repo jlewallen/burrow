@@ -21,18 +21,18 @@ pub fn move_between(from: &Entry, to: &Entry, item: &Entry) -> Result<DomainOutc
     let mut into = to.scope_mut::<Containing>()?;
 
     match from.stop_carrying(item)? {
-        DomainOutcome::Ok => {
+        Some(removed) => {
             let mut location = item.scope_mut::<Location>()?;
             location.container = Some(to.try_into()?);
 
-            into.start_carrying(item)?;
+            into.start_carrying(&removed)?;
             from.save()?;
             into.save()?;
             location.save()?;
 
             Ok(DomainOutcome::Ok)
         }
-        DomainOutcome::Nope => Ok(DomainOutcome::Nope),
+        None => Ok(DomainOutcome::Nope),
     }
 }
 
@@ -143,7 +143,7 @@ pub fn set_quantity(entity: &Entry, quantity: f32) -> Result<&Entry> {
     Ok(entity)
 }
 
-pub fn separate(entity: Entry, quantity: f32) -> Result<(Entry, Entry)> {
+pub fn separate(entity: &Entry, quantity: f32) -> Result<(&Entry, Entry)> {
     let kind = {
         let mut carryable = entity.scope_mut::<Carryable>()?;
         carryable.decrease_quantity(quantity)?;
