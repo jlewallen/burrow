@@ -10,6 +10,8 @@ impl Plugin for MovingPlugin {
     {
         "moving"
     }
+
+    fn register_hooks(&self, _hooks: &crate::domain::ManagedHooks) {}
 }
 
 impl ParsesActions for MovingPlugin {
@@ -20,22 +22,44 @@ impl ParsesActions for MovingPlugin {
 
 pub mod model {
     use crate::{
-        domain::{HookOutcome, Hooks},
+        domain::{HookOutcome, Hooks, HooksSet},
         plugins::{library::model::*, looking::model::Observe},
     };
 
     pub trait BeforeMovingHook {
-        fn before_moving(&self, surroundings: &Surroundings, to: Entity) -> Result<CanMove>;
+        fn before_moving(&self, surroundings: &Surroundings, to: &Entry) -> Result<CanMove>;
     }
 
     pub trait AfterMoveHook {
-        fn after_move(&self, surroundings: &Surroundings, from: Entity) -> Result<()>;
+        fn after_move(&self, surroundings: &Surroundings, from: &Entry) -> Result<()>;
+    }
+
+    impl BeforeMovingHook for Hooks<Box<dyn BeforeMovingHook>> {
+        fn before_moving(&self, surroundings: &Surroundings, to_area: &Entry) -> Result<CanMove> {
+            Ok(self
+                .instances
+                .borrow()
+                .iter()
+                .map(|h| h.before_moving(surroundings, to_area))
+                .collect::<Result<Vec<CanMove>>>()?
+                .iter()
+                .fold(CanMove::default(), |c, h| c.fold(h)))
+        }
     }
 
     #[derive(Default)]
     pub struct MovingHooks {
         pub before_moving: Hooks<Box<dyn BeforeMovingHook>>,
         pub after_move: Hooks<Box<dyn AfterMoveHook>>,
+    }
+
+    impl HooksSet for MovingHooks {
+        fn hooks_key() -> &'static str
+        where
+            Self: Sized,
+        {
+            "moving"
+        }
     }
 
     #[derive(Clone, Default)]
@@ -211,7 +235,7 @@ pub mod model {
 pub mod actions {
     use crate::plugins::library::actions::*;
     use crate::plugins::looking::actions::*;
-    use crate::plugins::moving::model::MovingEvent;
+    use crate::plugins::moving::model::{BeforeMovingHook, CanMove, MovingEvent, MovingHooks};
 
     #[derive(Debug)]
     pub struct GoAction {
@@ -228,22 +252,33 @@ pub mod actions {
 
             let (_, living, area, infra) = args.unpack();
 
-            match infra.find_item(args, &self.item)? {
-                Some(to_area) => match tools::navigate_between(&area, &to_area, &living)? {
-                    DomainOutcome::Ok => {
-                        get_my_session()?.raise(Box::new(MovingEvent::Left {
-                            living: living.clone(),
-                            area,
-                        }))?;
-                        get_my_session()?.raise(Box::new(MovingEvent::Arrived {
-                            living: living.clone(),
-                            area: to_area,
-                        }))?;
+            match infra.find_item(&args, &self.item)? {
+                Some(to_area) => {
+                    let can = infra.hooks().invoke::<MovingHooks, CanMove, _>(|h| {
+                        h.before_moving.before_moving(&args.surroundings, &to_area)
+                    })?;
 
-                        infra.chain(&living, Box::new(LookAction {}))
+                    match can {
+                        CanMove::Allow => {
+                            match tools::navigate_between(&area, &to_area, &living)? {
+                                DomainOutcome::Ok => {
+                                    get_my_session()?.raise(Box::new(MovingEvent::Left {
+                                        living: living.clone(),
+                                        area,
+                                    }))?;
+                                    get_my_session()?.raise(Box::new(MovingEvent::Arrived {
+                                        living: living.clone(),
+                                        area: to_area,
+                                    }))?;
+
+                                    infra.chain(&living, Box::new(LookAction {}))
+                                }
+                                DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
+                            }
+                        }
+                        CanMove::Prevent => Ok(Box::new(SimpleReply::Prevented)),
                     }
-                    DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
-                },
+                }
                 None => Ok(Box::new(SimpleReply::NotFound)),
             }
         }

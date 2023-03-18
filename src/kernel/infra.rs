@@ -1,3 +1,5 @@
+use crate::domain::ManagedHooks;
+
 use super::model::{
     DomainError, DomainEvent, EntityGid, EntityKey, EntityPtr, EntityRef, Entry, Identity, Item,
 };
@@ -18,9 +20,9 @@ pub trait Infrastructure {
     /// 1) Conditional needle visibility.
     /// 2) Items containing others.
     /// 3) Verb capabilities of the needle.
-    fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<Entry>>;
+    fn find_item(&self, args: &ActionArgs, item: &Item) -> Result<Option<Entry>>;
 
-    fn find_optional_item(&self, args: ActionArgs, item: Option<Item>) -> Result<Option<Entry>> {
+    fn find_optional_item(&self, args: &ActionArgs, item: Option<Item>) -> Result<Option<Entry>> {
         if let Some(item) = item {
             self.find_item(args, &item)
         } else {
@@ -54,6 +56,8 @@ pub trait Infrastructure {
     fn raise(&self, event: Box<dyn DomainEvent>) -> Result<()>;
 
     fn chain(&self, living: &Entry, action: Box<dyn Action>) -> Result<Box<dyn Reply>>;
+
+    fn hooks(&self) -> &ManagedHooks;
 }
 
 thread_local! {

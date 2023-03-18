@@ -1,4 +1,4 @@
-use crate::plugins::library::plugin::*;
+use crate::{domain::ManagedHooks, plugins::library::plugin::*};
 
 #[derive(Default)]
 pub struct CarryingPlugin {}
@@ -10,6 +10,8 @@ impl Plugin for CarryingPlugin {
     {
         "carrying"
     }
+
+    fn register_hooks(&self, _hooks: &ManagedHooks) {}
 }
 
 impl ParsesActions for CarryingPlugin {
@@ -292,7 +294,7 @@ pub mod actions {
 
             let (_, user, area, infra) = args.unpack();
 
-            match infra.find_item(args, &self.item)? {
+            match infra.find_item(&args, &self.item)? {
                 Some(holding) => match tools::move_between(&area, &user, &holding)? {
                     DomainOutcome::Ok => Ok(Box::new(reply_done(CarryingEvent::ItemHeld {
                         living: user,
@@ -322,7 +324,7 @@ pub mod actions {
             let (_, user, area, infra) = args.unpack();
 
             match &self.maybe_item {
-                Some(item) => match infra.find_item(args, item)? {
+                Some(item) => match infra.find_item(&args, item)? {
                     Some(dropping) => match tools::move_between(&user, &area, &dropping)? {
                         DomainOutcome::Ok => {
                             Ok(Box::new(reply_done(CarryingEvent::ItemDropped {
@@ -356,8 +358,8 @@ pub mod actions {
 
             let (_, _user, _area, infra) = args.unpack();
 
-            match infra.find_item(args.clone(), &self.item)? {
-                Some(item) => match infra.find_item(args, &self.vessel)? {
+            match infra.find_item(&args, &self.item)? {
+                Some(item) => match infra.find_item(&args, &self.vessel)? {
                     Some(vessel) => {
                         if tools::is_container(&vessel)? {
                             let from = tools::container_of(&item)?;
@@ -392,10 +394,10 @@ pub mod actions {
 
             let (_, user, _area, infra) = args.unpack();
 
-            match infra.find_item(args.clone(), &self.vessel)? {
+            match infra.find_item(&args, &self.vessel)? {
                 Some(vessel) => {
                     if tools::is_container(&vessel)? {
-                        match infra.find_item(args, &self.item)? {
+                        match infra.find_item(&args, &self.item)? {
                             Some(item) => match tools::move_between(&vessel, &user, &item)? {
                                 DomainOutcome::Ok => Ok(Box::new(SimpleReply::Done)),
                                 DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),

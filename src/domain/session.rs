@@ -13,6 +13,7 @@ use tracing::{debug, info, span, trace, warn, Level};
 use super::internal::{Entities, EntityMap, GlobalIds, LoadedEntity};
 use super::perform::StandardPerformer;
 use super::{EntityRelationshipSet, Notifier, Sequence};
+use crate::domain::ManagedHooks;
 use crate::kernel::*;
 use crate::plugins::identifiers;
 use crate::plugins::tools;
@@ -33,6 +34,7 @@ pub struct Session {
     identities: Arc<dyn Sequence<Identity>>,
     destroyed: RefCell<Vec<EntityKey>>,
     plugins: Arc<RegisteredPlugins>,
+    hooks: ManagedHooks,
 }
 
 impl Session {
@@ -48,6 +50,7 @@ impl Session {
         let ids = GlobalIds::new();
         let entity_map = EntityMap::new(Rc::clone(&ids));
         let raised = Rc::new(RefCell::new(Vec::new()));
+        let hooks = plugins.hooks();
 
         storage.begin()?;
 
@@ -64,6 +67,7 @@ impl Session {
             identities: Arc::clone(identities),
             destroyed: RefCell::new(Vec::new()),
             plugins: Arc::clone(plugins),
+            hooks,
         });
 
         session.set_session()?;
@@ -85,7 +89,6 @@ impl Session {
         Ok(())
     }
 
-    // TODO Private?
     pub fn plugins(&self) -> &RegisteredPlugins {
         &self.plugins
     }
@@ -367,12 +370,12 @@ impl Infrastructure for Session {
         }
     }
 
-    fn find_item(&self, args: ActionArgs, item: &Item) -> Result<Option<Entry>> {
+    fn find_item(&self, args: &ActionArgs, item: &Item) -> Result<Option<Entry>> {
         let _loading_span = span!(Level::INFO, "finding", i = format!("{:?}", item)).entered();
 
         info!("finding");
 
-        let haystack = EntityRelationshipSet::new_from_action(args).expand()?;
+        let haystack = EntityRelationshipSet::new_from_action(&args).expand()?;
 
         self.find_item_in_set(&haystack, item)
     }
@@ -421,6 +424,10 @@ impl Infrastructure for Session {
         self.raised.borrow_mut().push(event);
 
         Ok(())
+    }
+
+    fn hooks(&self) -> &ManagedHooks {
+        &self.hooks
     }
 }
 

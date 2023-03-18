@@ -5,7 +5,7 @@ pub trait HookOutcome {
 }
 
 pub struct Hooks<T> {
-    instances: RefCell<Vec<T>>,
+    pub instances: RefCell<Vec<T>>, // TODO Move fold call into member
 }
 
 impl<T> Default for Hooks<T> {
@@ -41,9 +41,9 @@ impl ManagedHooks {
         Self::default()
     }
 
-    pub fn with<T, F>(&self, with_fn: F)
+    pub fn with<T, F>(&self, with_fn: F) -> anyhow::Result<()>
     where
-        F: Fn(&mut T),
+        F: Fn(&mut T) -> anyhow::Result<()>,
         T: HooksSet + Default + 'static,
     {
         let mut all_hooks = self.hooks.borrow_mut();
@@ -52,11 +52,27 @@ impl ManagedHooks {
         let hooks = all_hooks
             .entry(<T as HooksSet>::hooks_key())
             .or_insert_with(|| Box::<T>::default() as Box<dyn Any>);
-        with_fn(
-            hooks
-                .downcast_mut()
-                .expect("Hooks of unexpected type, duplicate hooks_key?"),
-        );
+        let hooks = hooks
+            .downcast_mut()
+            .expect("Hooks of unexpected type, duplicate hooks_key?");
+        with_fn(hooks)
+    }
+
+    pub fn invoke<T, V, F>(&self, with_fn: F) -> anyhow::Result<V>
+    where
+        F: Fn(&mut T) -> anyhow::Result<V>,
+        T: HooksSet + Default + 'static,
+    {
+        let mut all_hooks = self.hooks.borrow_mut();
+        // Would love to use .or_default here, only the 'as' call to produce a
+        // Box<dyn Any> throws a wrench in that plan.
+        let hooks = all_hooks
+            .entry(<T as HooksSet>::hooks_key())
+            .or_insert_with(|| Box::<T>::default() as Box<dyn Any>);
+        let hooks = hooks
+            .downcast_mut()
+            .expect("Hooks of unexpected type, duplicate hooks_key?");
+        with_fn(hooks)
     }
 }
 
@@ -198,11 +214,13 @@ mod tests {
 
         managed_hooks.with::<JumpingHooks, _>(|h| {
             h.before_jumping.register(Box::new(AlwaysAllow {}));
-        });
+            Ok(())
+        })?;
 
         managed_hooks.with::<JumpingHooks, _>(|h| {
             h.before_jumping.register(Box::new(AlwaysAllow {}));
-        });
+            Ok(())
+        })?;
 
         Ok(())
     }

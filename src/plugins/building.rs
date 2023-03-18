@@ -1,4 +1,4 @@
-use crate::plugins::library::plugin::*;
+use crate::{domain::ManagedHooks, plugins::library::plugin::*};
 
 #[derive(Default)]
 pub struct BuildingPlugin {}
@@ -10,6 +10,8 @@ impl Plugin for BuildingPlugin {
     {
         "building"
     }
+
+    fn register_hooks(&self, _hooks: &ManagedHooks) {}
 }
 
 impl ParsesActions for BuildingPlugin {
@@ -56,7 +58,7 @@ pub mod actions {
 
             let (_, _, _, infra) = args.unpack();
 
-            match infra.find_item(args, &self.item)? {
+            match infra.find_item(&args, &self.item)? {
                 Some(editing) => {
                     info!("editing {:?}", editing);
                     Ok(Box::new(SimpleReply::Done))
@@ -81,7 +83,7 @@ pub mod actions {
 
             let (_, _, _, infra) = args.unpack();
 
-            match infra.find_item(args, &self.item)? {
+            match infra.find_item(&args, &self.item)? {
                 Some(duplicating) => {
                     info!("duplicating {:?}", duplicating);
                     _ = tools::duplicate(&duplicating)?;
@@ -107,7 +109,7 @@ pub mod actions {
 
             let (_, _, _, infra) = args.unpack();
 
-            match infra.find_item(args, &self.item)? {
+            match infra.find_item(&args, &self.item)? {
                 Some(obliterating) => {
                     info!("obliterate {:?}", obliterating);
                     tools::obliterate(&obliterating)?;

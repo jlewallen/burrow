@@ -40,17 +40,17 @@ pub struct EntityRelationshipSet {
 }
 
 impl EntityRelationshipSet {
-    pub fn new_from_action(args: ActionArgs) -> Self {
-        match args.surroundings {
+    pub fn new_from_action(args: &ActionArgs) -> Self {
+        match &args.surroundings {
             Surroundings::Living {
                 world,
                 living,
                 area,
             } => Self {
                 entities: vec![
-                    EntityRelationship::World(world),
-                    EntityRelationship::Area(area),
-                    EntityRelationship::User(living),
+                    EntityRelationship::World(world.clone()),
+                    EntityRelationship::Area(area.clone()),
+                    EntityRelationship::User(living.clone()),
                 ],
             },
         }

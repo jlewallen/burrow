@@ -15,6 +15,7 @@ pub enum SimpleReply {
     NotFound,
     What,
     Impossible,
+    Prevented,
 }
 
 impl ToJson for SimpleReply {

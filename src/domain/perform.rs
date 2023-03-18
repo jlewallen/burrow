@@ -18,10 +18,6 @@ impl StandardPerformer {
         })
     }
 
-    fn session(&self) -> Result<Rc<Session>, DomainError> {
-        self.session.upgrade().ok_or(DomainError::NoSession)
-    }
-
     pub fn perform_via_name(&self, name: &str, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
         info!("performing {:?}", action);
 
@@ -57,6 +53,10 @@ impl StandardPerformer {
             Err(DomainError::EntityNotFound) => Ok(None),
             Err(err) => Err(err),
         }
+    }
+
+    fn session(&self) -> Result<Rc<Session>, DomainError> {
+        self.session.upgrade().ok_or(DomainError::NoSession)
     }
 
     fn evaluate_name(&self, name: &str) -> Result<Surroundings, DomainError> {

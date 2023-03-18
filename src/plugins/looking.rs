@@ -10,6 +10,8 @@ impl Plugin for LookingPlugin {
     {
         "looking"
     }
+
+    fn register_hooks(&self, _hooks: &crate::domain::ManagedHooks) {}
 }
 
 impl ParsesActions for LookingPlugin {
@@ -148,7 +150,7 @@ pub mod actions {
 
             let (_, user, _area, infra) = args.unpack();
 
-            match infra.find_item(args, &self.item)? {
+            match infra.find_item(&args, &self.item)? {
                 Some(target) => {
                     if tools::is_container(&target)? {
                         Ok(Box::new(new_inside_observation(&user, &target)?))
