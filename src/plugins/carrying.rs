@@ -165,7 +165,7 @@ pub mod model {
         }
 
         pub fn is_holding(&self, item: &Entry) -> Result<bool> {
-            Ok(self.holding.iter().any(|i| i.key == item.key()))
+            Ok(self.holding.iter().any(|i| i.key == *item.key()))
         }
 
         fn remove_item(&mut self, item: &Entry) -> CarryingResult {
@@ -173,7 +173,7 @@ pub mod model {
                 .holding
                 .iter()
                 .map(|i| -> Result<Vec<EntityRef>> {
-                    if i.key == item.key() {
+                    if i.key == *item.key() {
                         Ok(vec![])
                     } else {
                         Ok(vec![i.clone()])
@@ -766,7 +766,7 @@ mod tests {
         assert_eq!(vessel.scope::<Containing>()?.holding.len(), 0);
         assert_eq!(
             key.scope::<Location>()?.container.as_ref().unwrap().key,
-            person.key()
+            *person.key()
         );
 
         build.close()?;

@@ -159,10 +159,6 @@ impl EntityPtr {
         Ok(brand_new)
     }
 
-    pub fn downgrade(&self) -> Weak<RefCell<Entity>> {
-        Rc::downgrade(&self.entity)
-    }
-
     pub fn key(&self) -> EntityKey {
         self.lazy.borrow().key.clone()
     }

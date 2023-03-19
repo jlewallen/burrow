@@ -404,7 +404,7 @@ impl Infrastructure for Session {
         let mut destroying = destroying.borrow_mut();
         destroying.destroy()?;
 
-        self.destroyed.borrow_mut().push(entry.key());
+        self.destroyed.borrow_mut().push(entry.key().clone());
 
         Ok(())
     }

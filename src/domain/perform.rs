@@ -49,7 +49,7 @@ impl StandardPerformer {
                 world: _world,
                 living,
                 area: _area,
-            }) => Ok(Some(living.key())),
+            }) => Ok(Some(living.key().clone())),
             Err(DomainError::EntityNotFound) => Ok(None),
             Err(err) => Err(err),
         }
