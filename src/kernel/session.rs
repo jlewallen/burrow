@@ -7,9 +7,9 @@ use super::model::{
 use super::scopes::{Action, Reply};
 use super::{ManagedHooks, Surroundings};
 
-pub type SessionRef = Rc<dyn Infrastructure>;
+pub type SessionRef = Rc<dyn ActiveSession>;
 
-pub trait Infrastructure {
+pub trait ActiveSession {
     fn entry(&self, key: &EntityKey) -> Result<Option<Entry>>;
 
     fn entry_by_gid(&self, gid: &EntityGid) -> Result<Option<Entry>>;
@@ -61,7 +61,7 @@ pub trait Infrastructure {
 }
 
 thread_local! {
-    static SESSION: RefCell<Option<std::rc::Weak<dyn Infrastructure>>> = RefCell::new(None)
+    static SESSION: RefCell<Option<std::rc::Weak<dyn ActiveSession>>> = RefCell::new(None)
 }
 
 pub fn set_my_session(session: Option<&SessionRef>) -> Result<()> {
@@ -79,8 +79,8 @@ pub fn get_my_session() -> Result<SessionRef> {
     SESSION.with(|s| match &*s.borrow() {
         Some(s) => match s.upgrade() {
             Some(s) => Ok(s),
-            None => Err(DomainError::ExpiredInfrastructure.into()),
+            None => Err(DomainError::ExpiredSession.into()),
         },
-        None => Err(DomainError::NoInfrastructure.into()),
+        None => Err(DomainError::NoSession.into()),
     })
 }

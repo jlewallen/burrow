@@ -80,9 +80,8 @@ impl Session {
     }
 
     fn set_session(&self) -> Result<()> {
-        let infra: Rc<dyn Infrastructure> =
-            self.weak.upgrade().ok_or(DomainError::NoInfrastructure)?;
-        set_my_session(Some(&infra))?;
+        let session: Rc<dyn ActiveSession> = self.weak.upgrade().ok_or(DomainError::NoSession)?;
+        set_my_session(Some(&session))?;
 
         Ok(())
     }
@@ -100,7 +99,7 @@ impl Session {
             Some(entity) => Ok(Some(Entry::new(
                 key,
                 entity,
-                Weak::clone(&self.weak) as Weak<dyn Infrastructure>,
+                Weak::clone(&self.weak) as Weak<dyn ActiveSession>,
             ))),
             None => Ok(None),
         }
@@ -347,7 +346,7 @@ impl Session {
     }
 }
 
-impl Infrastructure for Session {
+impl ActiveSession for Session {
     fn entry_by_gid(&self, gid: &EntityGid) -> Result<Option<Entry>> {
         if let Some(e) = self.entities.prepare_entity_by_gid(gid)? {
             self.entry(&e.key())
@@ -362,7 +361,7 @@ impl Infrastructure for Session {
             Some(entity) => Ok(Some(Entry::new(
                 key,
                 entity,
-                Weak::clone(&self.weak) as Weak<dyn Infrastructure>,
+                Weak::clone(&self.weak) as Weak<dyn ActiveSession>,
             ))),
             None => Ok(None),
         }

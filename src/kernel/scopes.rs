@@ -3,7 +3,7 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 use std::fmt::Debug;
 
-use super::{infra::SessionRef, Surroundings};
+use super::{session::SessionRef, Surroundings};
 
 pub use replies::*;
 

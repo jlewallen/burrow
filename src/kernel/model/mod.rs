@@ -18,7 +18,7 @@ pub mod entry;
 
 pub use entry::*;
 
-use super::{infra::*, Needs, Scope};
+use super::{session::*, Needs, Scope};
 
 pub static WORLD_KEY: Lazy<EntityKey> = Lazy::new(|| EntityKey("world".to_string()));
 
@@ -418,9 +418,9 @@ impl Display for Entity {
 }
 
 impl Needs<SessionRef> for Entity {
-    fn supply(&mut self, infra: &SessionRef) -> Result<()> {
-        self.parent = infra.ensure_optional_entity(&self.parent)?;
-        self.creator = infra.ensure_optional_entity(&self.creator)?;
+    fn supply(&mut self, session: &SessionRef) -> Result<()> {
+        self.parent = session.ensure_optional_entity(&self.parent)?;
+        self.creator = session.ensure_optional_entity(&self.creator)?;
         Ok(())
     }
 }
@@ -655,12 +655,10 @@ pub enum DomainError {
     DanglingEntity,
     #[error("Anyhow error")]
     Anyhow(#[source] anyhow::Error),
-    #[error("No infrastructure")]
-    NoInfrastructure,
     #[error("No session")]
     NoSession,
-    #[error("Expired infrastructure")]
-    ExpiredInfrastructure,
+    #[error("Expired session")]
+    ExpiredSession,
     #[error("Session closed")]
     SessionClosed,
     #[error("Container required")]

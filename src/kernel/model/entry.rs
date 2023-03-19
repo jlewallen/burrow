@@ -3,19 +3,19 @@ use std::rc::{Rc, Weak};
 use tracing::trace;
 
 use crate::kernel::{
-    get_my_session, DomainError, EntityGid, EntityKey, EntityPtr, EntityRef, Infrastructure, Scope,
+    get_my_session, ActiveSession, DomainError, EntityGid, EntityKey, EntityPtr, EntityRef, Scope,
 };
 
 #[derive(Clone)]
 pub struct Entry {
     key: EntityKey,
     entity: EntityPtr,
-    session: Weak<dyn Infrastructure>,
+    session: Weak<dyn ActiveSession>,
     debug: Option<String>,
 }
 
 impl Entry {
-    pub fn new(key: &EntityKey, entity: EntityPtr, session: Weak<dyn Infrastructure>) -> Self {
+    pub fn new(key: &EntityKey, entity: EntityPtr, session: Weak<dyn ActiveSession>) -> Self {
         let debug = Some(format!("{:?}", entity));
 
         Self {
@@ -148,13 +148,13 @@ impl<T: Scope> std::ops::Deref for OpenedScope<T> {
 }
 
 pub struct OpenedScopeMut<T: Scope> {
-    _session: Weak<dyn Infrastructure>,
+    _session: Weak<dyn ActiveSession>,
     owner: Entry,
     target: Box<T>,
 }
 
 impl<T: Scope> OpenedScopeMut<T> {
-    pub fn new(session: Weak<dyn Infrastructure>, owner: &Entry, target: Box<T>) -> Self {
+    pub fn new(session: Weak<dyn ActiveSession>, owner: &Entry, target: Box<T>) -> Self {
         trace!("scope-open {:?}", target);
 
         Self {
