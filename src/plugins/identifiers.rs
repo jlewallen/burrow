@@ -8,7 +8,7 @@ pub mod model {
     }
 
     impl Needs<SessionRef> for Identifiers {
-        fn supply(&mut self, _infra: &SessionRef) -> Result<()> {
+        fn supply(&mut self, _session: &SessionRef) -> Result<()> {
             Ok(())
         }
     }

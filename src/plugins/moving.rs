@@ -138,8 +138,8 @@ pub mod model {
     }
 
     impl Needs<SessionRef> for Occupying {
-        fn supply(&mut self, infra: &SessionRef) -> Result<()> {
-            self.area = infra.ensure_entity(&self.area)?;
+        fn supply(&mut self, session: &SessionRef) -> Result<()> {
+            self.area = session.ensure_entity(&self.area)?;
             Ok(())
         }
     }
@@ -181,11 +181,11 @@ pub mod model {
     }
 
     impl Needs<SessionRef> for Occupyable {
-        fn supply(&mut self, infra: &SessionRef) -> Result<()> {
+        fn supply(&mut self, session: &SessionRef) -> Result<()> {
             self.occupied = self
                 .occupied
                 .iter()
-                .map(|r| infra.ensure_entity(r).unwrap())
+                .map(|r| session.ensure_entity(r).unwrap())
                 .collect();
             Ok(())
         }
@@ -207,8 +207,8 @@ pub mod model {
     }
 
     impl Needs<SessionRef> for Exit {
-        fn supply(&mut self, infra: &SessionRef) -> Result<()> {
-            self.area = infra.ensure_entity(&self.area)?;
+        fn supply(&mut self, session: &SessionRef) -> Result<()> {
+            self.area = session.ensure_entity(&self.area)?;
             Ok(())
         }
     }
@@ -234,9 +234,9 @@ pub mod model {
     }
 
     impl Needs<SessionRef> for Movement {
-        fn supply(&mut self, infra: &SessionRef) -> Result<()> {
+        fn supply(&mut self, session: &SessionRef) -> Result<()> {
             for route in self.routes.iter_mut() {
-                route.area = infra.ensure_entity(&route.area)?;
+                route.area = session.ensure_entity(&route.area)?;
             }
             Ok(())
         }

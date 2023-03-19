@@ -7,7 +7,7 @@ pub mod model {
     }
 
     impl Needs<SessionRef> for Usernames {
-        fn supply(&mut self, _infra: &SessionRef) -> Result<()> {
+        fn supply(&mut self, _session: &SessionRef) -> Result<()> {
             Ok(())
         }
     }

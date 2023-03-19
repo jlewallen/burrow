@@ -178,7 +178,7 @@ impl Entities {
         trace!("parsing");
         let mut loaded: Entity = serde_json::from_str(&persisted.serialized)?;
 
-        trace!("infrastructure");
+        trace!("session");
         let session = get_my_session()?;
         loaded.supply(&session)?;
 
