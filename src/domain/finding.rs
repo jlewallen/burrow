@@ -173,8 +173,8 @@ impl EntityRelationshipSet {
         order: &dyn Fn(&EntityRelationship) -> u32,
     ) -> Result<EntityRelationshipSet> {
         let mut entities = self.entities.clone();
-        entities.sort_by(|a, b| order(a).cmp(&order(b)));
-        Ok(Self { entities: entities })
+        entities.sort_by_key(|a| order(a));
+        Ok(Self { entities })
     }
 }
 

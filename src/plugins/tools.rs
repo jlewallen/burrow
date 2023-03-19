@@ -151,7 +151,7 @@ pub fn separate(entity: &Entry, quantity: f32) -> Result<(&Entry, Entry)> {
         carryable.kind().clone()
     };
 
-    let separated = new_entity_from_template_ptr(&entity)?;
+    let separated = new_entity_from_template_ptr(entity)?;
 
     let mut carryable = separated.scope_mut::<Carryable>()?;
 

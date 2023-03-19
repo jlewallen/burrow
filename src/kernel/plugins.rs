@@ -29,7 +29,7 @@ impl RegisteredPlugins {
         self.plugins.push(Box::<P>::default())
     }
 
-    pub fn hooks(self: &Self) -> ManagedHooks {
+    pub fn hooks(&self) -> ManagedHooks {
         let hooks = ManagedHooks::default();
         for plugin in self.plugins.iter() {
             plugin.register_hooks(&hooks)
@@ -37,7 +37,7 @@ impl RegisteredPlugins {
         hooks
     }
 
-    pub fn iter(self: &Self) -> impl Iterator<Item = &Box<dyn Plugin>> {
+    pub fn iter(&self) -> impl Iterator<Item = &Box<dyn Plugin>> {
         self.plugins.iter()
     }
 }
