@@ -12,7 +12,8 @@ use tracing::{debug, info, span, trace, warn, Level};
 
 use super::internal::{Entities, EntityMap, GlobalIds, LoadedEntity};
 use super::perform::StandardPerformer;
-use super::{EntityRelationshipSet, Notifier, Sequence};
+use super::sequences::Sequence;
+use super::{EntityRelationshipSet, Notifier};
 use crate::kernel::*;
 use crate::plugins::{identifiers, tools};
 use crate::storage::{EntityStorage, PersistedEntity};
@@ -24,12 +25,12 @@ pub struct Session {
     open: AtomicBool,
     storage: Rc<dyn EntityStorage>,
     ids: Rc<GlobalIds>,
+    keys: Arc<dyn Sequence<EntityKey>>,
+    identities: Arc<dyn Sequence<Identity>>,
     performer: Rc<StandardPerformer>,
     raised: Rc<RefCell<Vec<Box<dyn DomainEvent>>>>,
     weak: Weak<Session>,
     entities: Rc<Entities>,
-    keys: Arc<dyn Sequence<EntityKey>>,
-    identities: Arc<dyn Sequence<Identity>>,
     destroyed: RefCell<Vec<EntityKey>>,
     plugins: Arc<RegisteredPlugins>,
     hooks: ManagedHooks,

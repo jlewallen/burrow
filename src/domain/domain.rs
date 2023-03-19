@@ -1,15 +1,10 @@
 use anyhow::Result;
-use std::{
-    rc::Rc,
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Arc,
-    },
-};
+use std::{rc::Rc, sync::Arc};
 use tracing::info;
 
-use super::Session;
+use super::{sequences::Sequence, Session};
 use crate::{
+    domain::sequences::{make_identities, make_keys},
     kernel::{EntityKey, Identity, RegisteredPlugins},
     plugins::{
         building::BuildingPlugin, carrying::CarryingPlugin, looking::LookingPlugin,
@@ -17,10 +12,6 @@ use crate::{
     },
     storage::EntityStorageFactory,
 };
-
-pub trait Sequence<T>: Send + Sync {
-    fn following(&self) -> T;
-}
 
 pub struct Domain {
     storage_factory: Box<dyn EntityStorageFactory>,
@@ -41,20 +32,8 @@ impl Domain {
 
         Domain {
             storage_factory,
-            keys: if deterministic {
-                Arc::new(DeterministicKeys {
-                    sequence: AtomicU64::new(0),
-                })
-            } else {
-                Arc::new(RandomKeys {})
-            },
-            identities: if deterministic {
-                Arc::new(DeterministicKeys {
-                    sequence: AtomicU64::new(0),
-                })
-            } else {
-                Arc::new(RandomKeys {})
-            },
+            keys: make_keys(deterministic),
+            identities: make_identities(deterministic),
             plugins: Arc::new(plugins),
         }
     }
@@ -65,41 +44,5 @@ impl Domain {
         let storage = self.storage_factory.create_storage()?;
 
         Session::new(storage, &self.keys, &self.identities, &self.plugins)
-    }
-}
-
-struct DeterministicKeys {
-    sequence: AtomicU64,
-}
-
-impl Sequence<EntityKey> for DeterministicKeys {
-    fn following(&self) -> EntityKey {
-        EntityKey::new(&format!(
-            "E-{}",
-            self.sequence.fetch_add(1, Ordering::Relaxed)
-        ))
-    }
-}
-
-impl Sequence<Identity> for DeterministicKeys {
-    fn following(&self) -> Identity {
-        let unique = self.sequence.fetch_add(1, Ordering::Relaxed);
-        let public = format!("Public#{}", unique);
-        let private = format!("Private#{}", unique);
-        Identity::new(public, private)
-    }
-}
-
-struct RandomKeys {}
-
-impl Sequence<EntityKey> for RandomKeys {
-    fn following(&self) -> EntityKey {
-        EntityKey::default()
-    }
-}
-
-impl Sequence<Identity> for RandomKeys {
-    fn following(&self) -> Identity {
-        Identity::default()
     }
 }
