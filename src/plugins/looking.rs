@@ -197,13 +197,13 @@ mod tests {
     use super::parser::LookActionParser;
     use super::*;
     use crate::{
-        domain::{BuildActionArgs, QuickThing},
+        domain::{BuildSurroundings, QuickThing},
         plugins::library::plugin::try_parsing,
     };
 
     #[test]
     fn it_looks_in_empty_area() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build.plain().build()?;
 
         let action = try_parsing(LookActionParser {}, "look")?;
@@ -219,7 +219,7 @@ mod tests {
 
     #[test]
     fn it_looks_in_area_with_items_on_ground() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Rake")])
             .ground(vec![QuickThing::Object("Boring Shovel")])
@@ -238,7 +238,7 @@ mod tests {
 
     #[test]
     fn it_looks_in_area_with_items_on_ground_and_a_route() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let destination = build.make(QuickThing::Place("Place"))?;
         let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Rake")])
@@ -259,7 +259,7 @@ mod tests {
 
     #[test]
     fn it_looks_in_area_with_items_on_ground_and_holding_items() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let destination = build.make(QuickThing::Place("Place"))?;
         let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Boring Shovel")])
@@ -280,7 +280,7 @@ mod tests {
 
     #[test]
     fn it_fails_to_look_inside_non_containers() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build.hands(vec![QuickThing::Object("Not A Box")]).build()?;
 
         let action = try_parsing(LookActionParser {}, "look inside box")?;
@@ -296,7 +296,7 @@ mod tests {
 
     #[test]
     fn it_looks_inside_containers() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let vessel = build
             .entity()?
             .named("Vessel")?

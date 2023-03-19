@@ -70,12 +70,6 @@ impl Build {
     }
 }
 
-pub struct BuildActionArgs {
-    hands: Vec<QuickThing>,
-    ground: Vec<QuickThing>,
-    session: Rc<Session>,
-}
-
 pub enum QuickThing {
     Object(&'static str),
     Multiple(&'static str, f32),
@@ -106,7 +100,13 @@ impl QuickThing {
     }
 }
 
-impl BuildActionArgs {
+pub struct BuildSurroundings {
+    hands: Vec<QuickThing>,
+    ground: Vec<QuickThing>,
+    session: Rc<Session>,
+}
+
+impl BuildSurroundings {
     pub fn new() -> Result<Self> {
         let storage_factory = crate::storage::sqlite::Factory::new(":memory:")?;
         let domain = crate::domain::Domain::new(storage_factory, true);

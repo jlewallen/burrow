@@ -326,13 +326,13 @@ mod tests {
     use super::parser::*;
     use super::*;
     use crate::{
-        domain::{BuildActionArgs, QuickThing},
+        domain::{BuildSurroundings, QuickThing},
         plugins::{looking::model::new_area_observation, tools},
     };
 
     #[test]
     fn it_goes_ignores_bad_matches() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let east = build.make(QuickThing::Place("East Place"))?;
         let west = build.make(QuickThing::Place("West Place"))?;
         let (session, surroundings) = build
@@ -352,7 +352,7 @@ mod tests {
 
     #[test]
     fn it_goes_through_correct_route_when_two_nearby() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let east = build.make(QuickThing::Place("East Place"))?;
         let west = build.make(QuickThing::Place("West Place"))?;
         let (session, surroundings) = build
@@ -379,7 +379,7 @@ mod tests {
 
     #[test]
     fn it_goes_through_routes_when_one_nearby() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let destination = build.make(QuickThing::Place("Place"))?;
         let (session, surroundings) = build
             .route("East", QuickThing::Actual(destination.clone()))
@@ -404,7 +404,7 @@ mod tests {
 
     #[test]
     fn it_fails_to_go_unknown_items() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build.plain().build()?;
 
         let action = try_parsing(GoActionParser {}, "go rake")?;
@@ -420,7 +420,7 @@ mod tests {
 
     #[test]
     fn it_fails_to_go_non_routes() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Rake")])
             .build()?;

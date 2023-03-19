@@ -42,12 +42,6 @@ pub mod model {
         },
     }
 
-    #[derive(Debug)]
-    pub enum AfterCarry {
-        Ok,
-        Combined,
-    }
-
     impl DomainEvent for CarryingEvent {
         fn audience(&self) -> Audience {
             match self {
@@ -522,13 +516,13 @@ mod tests {
     use crate::plugins::carrying::model::Location;
     use crate::plugins::tools;
     use crate::{
-        domain::{BuildActionArgs, QuickThing},
+        domain::{BuildSurroundings, QuickThing},
         plugins::carrying::model::Containing,
     };
 
     #[test]
     fn it_holds_unheld_items() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Rake")])
             .build()?;
@@ -552,7 +546,7 @@ mod tests {
 
     #[test]
     fn it_separates_multiple_ground_items_when_held() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build
             .ground(vec![QuickThing::Multiple("Cool Rake", 2.0)])
             .build()?;
@@ -583,7 +577,7 @@ mod tests {
 
     #[test]
     fn it_combines_multiple_items_when_together_on_ground() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let same_kind = build.make(QuickThing::Object("Cool Rake"))?;
         tools::set_quantity(&same_kind, 2.0)?;
         let (first, second) = tools::separate(&same_kind, 1.0)?;
@@ -611,7 +605,7 @@ mod tests {
 
     #[test]
     fn it_fails_to_hold_unknown_items() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Broom")])
             .build()?;
@@ -632,7 +626,7 @@ mod tests {
 
     #[test]
     fn it_drops_held_items() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build.hands(vec![QuickThing::Object("Cool Rake")]).build()?;
 
         let action = try_parsing(DropActionParser {}, "drop rake")?;
@@ -651,7 +645,7 @@ mod tests {
 
     #[test]
     fn it_fails_to_drop_unknown_items() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build
             .hands(vec![QuickThing::Object("Cool Broom")])
             .build()?;
@@ -672,7 +666,7 @@ mod tests {
 
     #[test]
     fn it_fails_to_drop_unheld_items() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Broom")])
             .build()?;
@@ -693,7 +687,7 @@ mod tests {
 
     #[test]
     fn it_fails_to_puts_item_in_non_containers() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let vessel = build.entity()?.named("Not A Vessel")?.into_entry()?;
         let (session, surroundings) = build
             .hands(vec![
@@ -718,7 +712,7 @@ mod tests {
 
     #[test]
     fn it_puts_items_in_containers() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let vessel = build
             .entity()?
             .named("Vessel")?
@@ -747,7 +741,7 @@ mod tests {
 
     #[test]
     fn it_takes_items_out_of_containers() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let key = build.entity()?.named("Key")?.into_entry()?;
         let vessel = build
             .entity()?

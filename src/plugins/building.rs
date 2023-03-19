@@ -272,13 +272,13 @@ mod tests {
     use super::parser::*;
     use super::*;
     use crate::{
-        domain::{BuildActionArgs, QuickThing},
+        domain::{BuildSurroundings, QuickThing},
         plugins::{carrying::model::Containing, looking::model::new_area_observation, tools},
     };
 
     #[test]
     fn it_fails_to_edit_unknown_items() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Broom")])
             .build()?;
@@ -293,7 +293,7 @@ mod tests {
 
     #[test]
     fn it_fails_to_duplicate_unknown_items() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Broom")])
             .build()?;
@@ -308,7 +308,7 @@ mod tests {
 
     #[test]
     fn it_fails_to_obliterate_unknown_items() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build
             .hands(vec![QuickThing::Object("Cool Broom")])
             .build()?;
@@ -323,7 +323,7 @@ mod tests {
 
     #[test]
     fn it_edits_items_named() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Broom")])
             .build()?;
@@ -338,7 +338,7 @@ mod tests {
 
     #[test]
     fn it_duplicates_items_named() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build
             .hands(vec![QuickThing::Object("Cool Broom")])
             .build()?;
@@ -363,7 +363,7 @@ mod tests {
 
     #[test]
     fn it_obliterates_items_named() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build
             .hands(vec![QuickThing::Object("Cool Broom")])
             .build()?;
@@ -385,7 +385,7 @@ mod tests {
 
     #[test]
     fn it_fails_to_edit_items_by_missing_gid() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Broom")])
             .build()?;
@@ -400,7 +400,7 @@ mod tests {
 
     #[test]
     fn it_edits_items_by_gid() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Broom")])
             .build()?;
@@ -415,7 +415,7 @@ mod tests {
 
     #[test]
     fn it_digs_bidirectionally() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build.plain().build()?;
 
         let action = try_parsing(
@@ -440,7 +440,7 @@ mod tests {
 
     #[test]
     fn it_makes_items() -> Result<()> {
-        let mut build = BuildActionArgs::new()?;
+        let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build.plain().build()?;
 
         let action = try_parsing(MakeItemParser {}, r#"make item "Blue Rake""#)?;

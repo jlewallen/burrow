@@ -30,6 +30,7 @@ pub trait ActiveSession {
             Ok(None)
         }
     }
+
     fn ensure_entity(&self, entity_ref: &EntityRef) -> Result<EntityRef, DomainError>;
 
     fn ensure_optional_entity(&self, entity_ref: &Option<EntityRef>) -> Result<Option<EntityRef>> {
