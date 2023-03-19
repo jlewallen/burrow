@@ -1,6 +1,5 @@
 pub mod building;
 pub mod carrying;
-pub mod eval;
 pub mod identifiers;
 pub mod library;
 pub mod looking;

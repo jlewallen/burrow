@@ -35,7 +35,17 @@ impl RegisteredPlugins {
         hooks
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &Box<dyn Plugin>> {
-        self.plugins.iter()
+    pub fn evaluate(&self, i: &str) -> Result<Option<Box<dyn Action>>, EvaluationError> {
+        match self
+            .plugins
+            .iter()
+            .map(|plugin| plugin.try_parse_action(i))
+            .filter_map(|r| r.ok())
+            .take(1)
+            .last()
+        {
+            Some(e) => Ok(Some(e)),
+            None => Ok(None),
+        }
     }
 }

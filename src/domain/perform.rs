@@ -5,7 +5,7 @@ use tracing::{debug, event, info, span, Level};
 
 use super::Session;
 use crate::kernel::*;
-use crate::plugins::{eval, moving::model::Occupying, users::model::Usernames};
+use crate::plugins::{moving::model::Occupying, users::model::Usernames};
 
 pub struct StandardPerformer {
     session: Weak<Session>,
@@ -36,7 +36,8 @@ impl StandardPerformer {
 
         debug!("'{}'", text);
 
-        if let Some(action) = eval::evaluate(self.session()?.plugins(), text)? {
+        let session = self.session()?;
+        if let Some(action) = session.plugins().evaluate(text)? {
             Ok(Some(self.perform_via_name(name, action)?))
         } else {
             Ok(None)
