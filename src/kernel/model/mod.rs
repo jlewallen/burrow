@@ -180,7 +180,7 @@ impl EntityPtr {
         self.modified()
     }
 
-    pub fn modified(&self) -> Result<()> {
+    fn modified(&self) -> Result<()> {
         let entity = self.borrow();
         let mut lazy = self.lazy.borrow_mut();
         if let Some(name) = entity.name() {
@@ -463,6 +463,10 @@ impl Entity {
         Ok(entity)
     }
 
+    pub fn key(&self) -> &EntityKey {
+        &self.key
+    }
+
     pub fn set_key(&mut self, key: &EntityKey) -> Result<()> {
         self.key = key.clone();
 
@@ -477,10 +481,6 @@ impl Entity {
 
     pub fn name(&self) -> Option<String> {
         self.props.string_property(NAME_PROPERTY)
-    }
-
-    pub fn key(&self) -> &EntityKey {
-        &self.key
     }
 
     pub fn set_name(&mut self, value: &str) -> Result<()> {
@@ -581,7 +581,7 @@ pub struct EntityRef {
     py_object: String,
     #[serde(rename = "py/ref")]
     py_ref: String,
-    pub key: EntityKey,
+    key: EntityKey,
     #[serde(rename = "klass")]
     class: String,
     name: String,
@@ -606,6 +606,10 @@ impl EntityRef {
             gid: shared_entity.gid(),
             entity: Some(Rc::downgrade(entity)),
         }
+    }
+
+    pub fn key(&self) -> &EntityKey {
+        &self.key
     }
 
     pub fn has_entity(&self) -> bool {

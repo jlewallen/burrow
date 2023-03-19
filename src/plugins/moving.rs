@@ -154,7 +154,7 @@ pub mod model {
     impl Occupyable {
         pub fn stop_occupying(&mut self, item: &Entry) -> Result<DomainOutcome> {
             let before = self.occupied.len();
-            self.occupied.retain(|i| i.key != *item.key());
+            self.occupied.retain(|i| *i.key() != *item.key());
             let after = self.occupied.len();
             if before == after {
                 return Ok(DomainOutcome::Nope);

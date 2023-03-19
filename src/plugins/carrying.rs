@@ -159,7 +159,7 @@ pub mod model {
         }
 
         pub fn is_holding(&self, item: &Entry) -> Result<bool> {
-            Ok(self.holding.iter().any(|i| i.key == *item.key()))
+            Ok(self.holding.iter().any(|i| *i.key() == *item.key()))
         }
 
         fn remove_item(&mut self, item: &Entry) -> CarryingResult {
@@ -167,7 +167,7 @@ pub mod model {
                 .holding
                 .iter()
                 .map(|i| -> Result<Vec<EntityRef>> {
-                    if i.key == *item.key() {
+                    if *i.key() == *item.key() {
                         Ok(vec![])
                     } else {
                         Ok(vec![i.clone()])
@@ -565,8 +565,8 @@ mod tests {
         assert_eq!(held.len(), 1);
         assert_eq!(ground.len(), 1);
 
-        let held_keys: HashSet<_> = held.iter().map(|i| i.key.clone()).collect();
-        let ground_keys: HashSet<_> = ground.iter().map(|i| i.key.clone()).collect();
+        let held_keys: HashSet<_> = held.iter().map(|i| i.key().clone()).collect();
+        let ground_keys: HashSet<_> = ground.iter().map(|i| i.key().clone()).collect();
         let common_keys: HashSet<_> = held_keys.intersection(&ground_keys).collect();
         assert_eq!(common_keys.len(), 0);
 
@@ -761,7 +761,7 @@ mod tests {
         assert_eq!(person.scope::<Containing>()?.holding.len(), 2);
         assert_eq!(vessel.scope::<Containing>()?.holding.len(), 0);
         assert_eq!(
-            key.scope::<Location>()?.container.as_ref().unwrap().key,
+            *key.scope::<Location>()?.container.as_ref().unwrap().key(),
             *person.key()
         );
 

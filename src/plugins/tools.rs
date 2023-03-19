@@ -117,7 +117,7 @@ pub fn get_occupant_keys(area: &Entry) -> Result<Vec<EntityKey>> {
     Ok(occupyable
         .occupied
         .iter()
-        .map(|e| e.key.clone())
+        .map(|e| e.key().clone())
         .collect::<Vec<EntityKey>>())
 }
 
