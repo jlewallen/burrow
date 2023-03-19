@@ -8,9 +8,9 @@ use crate::kernel::{
 
 #[derive(Clone)]
 pub struct Entry {
-    pub key: EntityKey,
-    pub entity: EntityPtr,
-    pub session: Weak<dyn Infrastructure>,
+    key: EntityKey,
+    entity: EntityPtr,
+    session: Weak<dyn Infrastructure>,
 }
 
 impl TryFrom<EntityPtr> for Entry {
@@ -34,6 +34,14 @@ impl TryFrom<&Entry> for EntityRef {
 }
 
 impl Entry {
+    pub fn new(key: &EntityKey, entity: EntityPtr, session: Weak<dyn Infrastructure>) -> Self {
+        Self {
+            key: key.clone(),
+            entity,
+            session,
+        }
+    }
+
     pub fn key(&self) -> EntityKey {
         self.key.clone()
     }

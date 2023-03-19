@@ -99,11 +99,11 @@ impl Session {
 
     pub fn entry(&self, key: &EntityKey) -> Result<Option<Entry>> {
         match self.load_entity_by_key(key)? {
-            Some(entity) => Ok(Some(Entry {
-                key: key.clone(),
+            Some(entity) => Ok(Some(Entry::new(
+                &key,
                 entity,
-                session: Weak::clone(&self.weak) as Weak<dyn Infrastructure>,
-            })),
+                Weak::clone(&self.weak) as Weak<dyn Infrastructure>,
+            ))),
             None => Ok(None),
         }
     }
@@ -361,11 +361,12 @@ impl Infrastructure for Session {
 
     fn entry(&self, key: &EntityKey) -> Result<Option<Entry>> {
         match self.load_entity_by_key(key)? {
-            Some(entity) => Ok(Some(Entry {
-                key: key.clone(),
+            // TODO There are two alls like this.
+            Some(entity) => Ok(Some(Entry::new(
+                &key,
                 entity,
-                session: Weak::clone(&self.weak) as Weak<dyn Infrastructure>,
-            })),
+                Weak::clone(&self.weak) as Weak<dyn Infrastructure>,
+            ))),
             None => Ok(None),
         }
     }

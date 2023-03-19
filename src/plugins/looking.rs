@@ -49,7 +49,7 @@ pub mod model {
             let qualified = name.as_ref().map(|n| qualify_name(carryable.quantity(), n));
 
             Ok(ObservedEntity {
-                key: self.key.to_string(),
+                key: self.key().to_string(),
                 name,
                 qualified,
                 desc: self.desc()?,
