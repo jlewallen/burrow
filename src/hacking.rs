@@ -2,7 +2,7 @@ use anyhow::Result;
 use tracing::info;
 
 use crate::domain::{domain, DevNullNotifier};
-use crate::kernel::{ActiveSession, Entry};
+use crate::kernel::{ActiveSession, Entry, LookupBy};
 use crate::plugins::carrying::model::{Carryable, Containing};
 use crate::plugins::moving::model::Occupying;
 use crate::plugins::users::model::Usernames;
@@ -38,7 +38,9 @@ pub fn execute_command() -> Result<()> {
     let world = session.world()?;
     let usernames = world.scope::<Usernames>()?;
     let user_key = &usernames.users["jlewallen"];
-    let user = session.entry(user_key)?.expect("No 'USER' entity.");
+    let user = session
+        .entry(&LookupBy::Key(user_key))?
+        .expect("No 'USER' entity.");
 
     let occupying = user.scope::<Occupying>()?;
     let area: Option<Entry> = occupying.area.clone().try_into()?; // TODO Annoying clone

@@ -71,7 +71,7 @@ impl Session {
 
         session.set_session()?;
 
-        if let Some(world) = session.entry(&WORLD_KEY)? {
+        if let Some(world) = session.entry(&LookupBy::Key(&WORLD_KEY))? {
             if let Some(gid) = identifiers::model::get_gid(&world)? {
                 ids.set(&gid);
             }
@@ -92,7 +92,8 @@ impl Session {
     }
 
     pub fn world(&self) -> Result<Entry, DomainError> {
-        self.entry(&WORLD_KEY)?.ok_or(DomainError::EntityNotFound)
+        self.entry(&LookupBy::Key(&WORLD_KEY))?
+            .ok_or(DomainError::EntityNotFound)
     }
 
     pub fn find_name_key(&self, user_name: &str) -> Result<Option<EntityKey>, DomainError> {
@@ -153,7 +154,7 @@ impl Session {
         for event in pending.iter() {
             let audience_keys = self.get_audience_keys(&event.audience())?;
             for key in audience_keys {
-                let user = self.load_entity_by_key(&key)?.unwrap();
+                let user = self.load_entity(&LookupBy::Key(&key))?.unwrap();
                 debug!(%key, "observing {:?}", user);
                 let observed = event.observe(&user.try_into()?)?;
                 let rc: Rc<dyn Observed> = observed.into();
@@ -326,29 +327,31 @@ impl Session {
         item: &Item,
     ) -> Result<Option<Entry>> {
         match item {
-            Item::Gid(gid) => self.entry_by_gid(gid),
+            Item::Gid(gid) => self.entry(&LookupBy::Gid(gid)),
             _ => haystack.find_item(item),
         }
     }
 
-    fn load_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
-        self.entities.prepare_entity_by_key(key)
+    fn load_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
+        self.entities.prepare_entity(lookup)
     }
 }
 
 impl ActiveSession for Session {
+    /*
     fn entry_by_gid(&self, gid: &EntityGid) -> Result<Option<Entry>> {
-        if let Some(e) = self.entities.prepare_entity_by_gid(gid)? {
+        if let Some(e) = self.entities.prepare_entity(&LookupBy::Gid(gid.clone()))? {
             self.entry(&e.key())
         } else {
             Ok(None)
         }
     }
+    */
 
-    fn entry(&self, key: &EntityKey) -> Result<Option<Entry>> {
-        match self.load_entity_by_key(key)? {
+    fn entry(&self, lookup: &LookupBy) -> Result<Option<Entry>> {
+        match self.load_entity(lookup)? {
             Some(entity) => Ok(Some(Entry::new(
-                key,
+                &entity.key(),
                 entity,
                 Weak::clone(&self.weak) as Weak<dyn ActiveSession>,
             ))),
@@ -369,7 +372,7 @@ impl ActiveSession for Session {
     fn ensure_entity(&self, entity_ref: &EntityRef) -> Result<EntityRef, DomainError> {
         if entity_ref.has_entity() {
             Ok(entity_ref.clone())
-        } else if let Some(entity) = &self.load_entity_by_key(&entity_ref.key)? {
+        } else if let Some(entity) = &self.load_entity(&LookupBy::Key(&entity_ref.key))? {
             Ok(entity.into())
         } else {
             Err(DomainError::EntityNotFound)
@@ -380,7 +383,7 @@ impl ActiveSession for Session {
         self.entities.add_entity(entity)?;
 
         Ok(self
-            .entry(&entity.key())?
+            .entry(&LookupBy::Key(&entity.key()))?
             .expect("Bug: Newly added entity has no Entry"))
     }
 

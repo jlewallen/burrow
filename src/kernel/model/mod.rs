@@ -98,6 +98,12 @@ impl From<&EntityGid> for u64 {
     }
 }
 
+#[derive(Debug)]
+pub enum LookupBy<'a> {
+    Key(&'a EntityKey),
+    Gid(&'a EntityGid),
+}
+
 pub enum Audience {
     Nobody,
     Everybody,
@@ -614,7 +620,7 @@ impl EntityRef {
 
     pub fn into_entry(&self) -> Result<Entry, DomainError> {
         get_my_session()?
-            .entry(&self.key)?
+            .entry(&LookupBy::Key(&self.key))?
             .ok_or(DomainError::DanglingEntity)
     }
 }
@@ -640,7 +646,7 @@ impl TryFrom<EntityRef> for Entry {
 
     fn try_from(value: EntityRef) -> Result<Self, Self::Error> {
         get_my_session()?
-            .entry(&value.key)?
+            .entry(&LookupBy::Key(&value.key))?
             .ok_or(DomainError::DanglingEntity)
     }
 }

@@ -72,7 +72,7 @@ impl StandardPerformer {
         let user_key = &usernames.users[name];
 
         let living = session
-            .entry(user_key)?
+            .entry(&LookupBy::Key(user_key))?
             .ok_or(DomainError::EntityNotFound)?;
 
         self.evaluate_living(&living)

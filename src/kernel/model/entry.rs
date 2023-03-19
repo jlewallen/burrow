@@ -3,7 +3,8 @@ use std::rc::{Rc, Weak};
 use tracing::trace;
 
 use crate::kernel::{
-    get_my_session, ActiveSession, DomainError, EntityGid, EntityKey, EntityPtr, EntityRef, Scope,
+    get_my_session, ActiveSession, DomainError, EntityGid, EntityKey, EntityPtr, EntityRef,
+    LookupBy, Scope,
 };
 
 #[derive(Clone)]
@@ -113,7 +114,7 @@ impl TryFrom<EntityRef> for Option<Entry> {
 
     fn try_from(value: EntityRef) -> Result<Self, Self::Error> {
         let session = get_my_session().expect("No active better session");
-        Ok(session.entry(&value.key)?)
+        Ok(session.entry(&LookupBy::Key(&value.key))?)
     }
 }
 

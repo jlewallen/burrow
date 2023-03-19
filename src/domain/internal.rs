@@ -40,20 +40,23 @@ impl Maps {
         self.by_key.len()
     }
 
-    fn lookup_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
-        if let Some(e) = self.by_key.get(key) {
-            trace!(%key, "existing");
-            Ok(Some(e.entity.clone()))
-        } else {
-            Ok(None)
-        }
-    }
-
-    fn lookup_entity_by_gid(&self, gid: &EntityGid) -> Result<Option<EntityPtr>> {
-        if let Some(k) = self.by_gid.get(gid) {
-            Ok(self.lookup_entity_by_key(k)?)
-        } else {
-            Ok(None)
+    fn lookup_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
+        match lookup {
+            LookupBy::Key(key) => {
+                if let Some(e) = self.by_key.get(key) {
+                    trace!(%key, "existing");
+                    Ok(Some(e.entity.clone()))
+                } else {
+                    Ok(None)
+                }
+            }
+            LookupBy::Gid(gid) => {
+                if let Some(k) = self.by_gid.get(gid) {
+                    Ok(self.lookup_entity(&LookupBy::Key(k))?)
+                } else {
+                    Ok(None)
+                }
+            }
         }
     }
 
@@ -113,17 +116,8 @@ impl EntityMap {
         self.maps.borrow().size()
     }
 
-    pub fn lookup_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
-        self.maps.borrow().lookup_entity_by_key(key)
-    }
-
-    pub fn lookup_entity_by_gid(&self, gid: &EntityGid) -> Result<Option<EntityPtr>> {
-        self.maps.borrow().lookup_entity_by_gid(gid)
-    }
-
-    pub fn add_entity(&self, mut loaded: LoadedEntity) -> Result<()> {
-        self.assign_gid_if_necessary(&mut loaded)?;
-        self.maps.borrow_mut().add_entity(loaded)
+    pub fn lookup_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
+        self.maps.borrow().lookup_entity(lookup)
     }
 
     fn assign_gid_if_necessary(&self, mut loaded: &mut LoadedEntity) -> Result<()> {
@@ -135,6 +129,11 @@ impl EntityMap {
         }
 
         Ok(())
+    }
+
+    pub fn add_entity(&self, mut loaded: LoadedEntity) -> Result<()> {
+        self.assign_gid_if_necessary(&mut loaded)?;
+        self.maps.borrow_mut().add_entity(loaded)
     }
 
     fn foreach_entity_mut<R, T: Fn(&mut LoadedEntity) -> Result<R>>(
@@ -197,30 +196,16 @@ impl Entities {
         Ok(cell)
     }
 
-    pub fn prepare_entity_by_key(&self, key: &EntityKey) -> Result<Option<EntityPtr>> {
-        if let Some(e) = self.entities.lookup_entity_by_key(key)? {
+    pub fn prepare_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
+        if let Some(e) = self.entities.lookup_entity(lookup)? {
             return Ok(Some(e));
         }
 
-        let _loading_span = span!(Level::INFO, "entity", key = key.key_to_string()).entered();
+        let _loading_span =
+            span!(Level::INFO, "entity", lookup = format!("{:?}", lookup)).entered();
 
         trace!("loading");
-        if let Some(persisted) = self.storage.load_by_key(key)? {
-            Ok(Some(self.prepare_persisted(persisted)?))
-        } else {
-            Ok(None)
-        }
-    }
-
-    pub fn prepare_entity_by_gid(&self, gid: &EntityGid) -> Result<Option<EntityPtr>> {
-        if let Some(e) = self.entities.lookup_entity_by_gid(gid)? {
-            return Ok(Some(e));
-        }
-
-        let _loading_span = span!(Level::INFO, "entity", gid = gid.gid_to_string()).entered();
-
-        trace!("loading");
-        if let Some(persisted) = self.storage.load_by_gid(gid)? {
+        if let Some(persisted) = self.storage.load(lookup)? {
             Ok(Some(self.prepare_persisted(persisted)?))
         } else {
             Ok(None)

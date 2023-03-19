@@ -1,11 +1,11 @@
-use crate::kernel::{EntityGid, EntityKey};
 use anyhow::Result;
 use std::rc::Rc;
 use tracing::*;
 
+use crate::kernel::{EntityGid, EntityKey, LookupBy};
+
 pub trait EntityStorage {
-    fn load_by_key(&self, key: &EntityKey) -> Result<Option<PersistedEntity>>;
-    fn load_by_gid(&self, gid: &EntityGid) -> Result<Option<PersistedEntity>>;
+    fn load(&self, lookup: &LookupBy) -> Result<Option<PersistedEntity>>;
     fn save(&self, entity: &PersistedEntity) -> Result<()>;
     fn delete(&self, entity: &PersistedEntity) -> Result<()>;
     fn begin(&self) -> Result<()>;
@@ -85,9 +85,7 @@ pub mod sqlite {
                 _ => Ok(None),
             }
         }
-    }
 
-    impl EntityStorage for SqliteStorage {
         fn load_by_key(&self, key: &EntityKey) -> Result<Option<PersistedEntity>> {
             self.single_query(
                 "SELECT key, gid, version, serialized FROM entities WHERE key = ?;",
@@ -100,6 +98,15 @@ pub mod sqlite {
                 "SELECT key, gid, version, serialized FROM entities WHERE gid = ?;",
                 [gid.gid_to_string()],
             )
+        }
+    }
+
+    impl EntityStorage for SqliteStorage {
+        fn load(&self, lookup: &LookupBy) -> Result<Option<PersistedEntity>> {
+            match lookup {
+                LookupBy::Key(key) => self.load_by_key(key),
+                LookupBy::Gid(gid) => self.load_by_gid(gid),
+            }
         }
 
         fn save(&self, entity: &PersistedEntity) -> Result<()> {
@@ -213,7 +220,7 @@ pub mod sqlite {
         fn it_queries_for_entity_by_missing_key() -> Result<()> {
             let s = get_storage()?;
 
-            assert!(s.load_by_key(&EntityKey::new("world"))?.is_none());
+            assert!(s.load(&LookupBy::Key(&EntityKey::new("world")))?.is_none());
 
             Ok(())
         }
@@ -241,7 +248,7 @@ pub mod sqlite {
                 serialized: "{}".to_string(),
             })?;
 
-            s.load_by_key(&EntityKey::new("world"))?;
+            s.load(&LookupBy::Key(&EntityKey::new("world")))?;
 
             Ok(())
         }
@@ -257,7 +264,7 @@ pub mod sqlite {
                 serialized: "{}".to_string(),
             })?;
 
-            let mut p1 = s.load_by_key(&EntityKey::new("world"))?.unwrap();
+            let mut p1 = s.load(&LookupBy::Key(&EntityKey::new("world")))?.unwrap();
 
             assert_eq!(1, p1.version);
 
@@ -265,7 +272,7 @@ pub mod sqlite {
 
             s.save(&p1)?;
 
-            let p2 = s.load_by_key(&EntityKey::new("world"))?.unwrap();
+            let p2 = s.load(&LookupBy::Key(&EntityKey::new("world")))?.unwrap();
 
             assert_eq!(2, p2.version);
 
@@ -287,7 +294,7 @@ pub mod sqlite {
 
             s.rollback(true)?;
 
-            assert!(s.load_by_key(&EntityKey::new("world"))?.is_none());
+            assert!(s.load(&LookupBy::Key(&EntityKey::new("world")))?.is_none());
 
             Ok(())
         }
@@ -307,7 +314,7 @@ pub mod sqlite {
 
             s.commit()?;
 
-            s.load_by_key(&EntityKey::new("world"))?;
+            s.load(&LookupBy::Key(&EntityKey::new("world")))?;
 
             Ok(())
         }
@@ -323,13 +330,13 @@ pub mod sqlite {
                 serialized: "{}".to_string(),
             })?;
 
-            let p1 = s.load_by_key(&EntityKey::new("world"))?.unwrap();
+            let p1 = s.load(&LookupBy::Key(&EntityKey::new("world")))?.unwrap();
 
             assert_eq!(1, p1.version);
 
             s.delete(&p1)?;
 
-            let p2 = s.load_by_key(&EntityKey::new("world"))?;
+            let p2 = s.load(&LookupBy::Key(&EntityKey::new("world")))?;
 
             assert!(p2.is_none());
 

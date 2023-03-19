@@ -2,17 +2,15 @@ use anyhow::Result;
 use std::{cell::RefCell, rc::Rc};
 
 use super::model::{
-    DomainError, DomainEvent, EntityGid, EntityKey, EntityPtr, EntityRef, Entry, Identity, Item,
+    DomainError, DomainEvent, EntityKey, EntityPtr, EntityRef, Entry, Identity, Item,
 };
 use super::scopes::{Action, Reply};
-use super::{ManagedHooks, Surroundings};
+use super::{LookupBy, ManagedHooks, Surroundings};
 
 pub type SessionRef = Rc<dyn ActiveSession>;
 
 pub trait ActiveSession {
-    fn entry(&self, key: &EntityKey) -> Result<Option<Entry>>;
-
-    fn entry_by_gid(&self, gid: &EntityGid) -> Result<Option<Entry>>;
+    fn entry(&self, key: &LookupBy) -> Result<Option<Entry>>;
 
     /// I think this will eventually need to return or take a construct that's
     /// builder-like so callers can take more control. Things to consider are:
