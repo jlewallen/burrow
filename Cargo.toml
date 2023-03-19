@@ -49,10 +49,3 @@ rune = "0.12.1"
 
 [dev-dependencies]
 insta = { version = "1.21.1", features = ["yaml", "json"] }
-
-[workspace]
-members = [
-    "./user/basic-example"
-]
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
