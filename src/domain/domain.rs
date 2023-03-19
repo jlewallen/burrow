@@ -1,12 +1,3 @@
-use super::Session;
-use crate::{
-    kernel::{EntityKey, Identity, RegisteredPlugins},
-    plugins::{
-        building::BuildingPlugin, carrying::CarryingPlugin, looking::LookingPlugin,
-        moving::MovingPlugin,
-    },
-    storage::EntityStorageFactory,
-};
 use anyhow::Result;
 use std::{
     rc::Rc,
@@ -16,6 +7,16 @@ use std::{
     },
 };
 use tracing::info;
+
+use super::Session;
+use crate::{
+    kernel::{EntityKey, Identity, RegisteredPlugins},
+    plugins::{
+        building::BuildingPlugin, carrying::CarryingPlugin, looking::LookingPlugin,
+        moving::MovingPlugin,
+    },
+    storage::EntityStorageFactory,
+};
 
 pub trait Sequence<T>: Send + Sync {
     fn following(&self) -> T;

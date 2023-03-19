@@ -1,7 +1,6 @@
 use anyhow::Result;
 use nanoid::nanoid;
 use once_cell::sync::Lazy;
-use replies::Observed;
 use serde::{Deserialize, Serialize};
 use std::{
     cell::RefCell,
@@ -12,6 +11,8 @@ use std::{
 };
 use thiserror::Error;
 use tracing::*;
+
+use replies::Observed;
 
 pub mod entry;
 

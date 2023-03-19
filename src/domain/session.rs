@@ -14,8 +14,7 @@ use super::internal::{Entities, EntityMap, GlobalIds, LoadedEntity};
 use super::perform::StandardPerformer;
 use super::{EntityRelationshipSet, Notifier, Sequence};
 use crate::kernel::*;
-use crate::plugins::identifiers;
-use crate::plugins::tools;
+use crate::plugins::{identifiers, tools};
 use crate::storage::{EntityStorage, PersistedEntity};
 
 struct ModifiedEntity(PersistedEntity);

@@ -3,8 +3,7 @@ use tracing::info;
 
 use super::{
     carrying::model::{Carryable, Containing, Location},
-    moving::model::Exit,
-    moving::model::{Occupyable, Occupying},
+    moving::model::{Exit, Occupyable, Occupying},
 };
 use crate::kernel::{get_my_session, model::*, DomainOutcome, EntityPtr};
 

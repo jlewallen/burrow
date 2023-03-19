@@ -1,9 +1,10 @@
+use anyhow::{anyhow, Result};
+use tracing::{debug, info};
+
 use crate::{
     kernel::{Entry, Item, Surroundings},
     plugins::tools,
 };
-use anyhow::{anyhow, Result};
-use tracing::{debug, info};
 
 /// Determines if an entity matches a user's description of that entity, given
 /// no other context at all.

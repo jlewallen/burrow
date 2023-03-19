@@ -4,8 +4,8 @@ use std::rc::Weak;
 use tracing::{debug, event, info, span, Level};
 
 use super::Session;
-use crate::plugins::{moving::model::Occupying, users::model::Usernames};
-use crate::{kernel::*, plugins::eval};
+use crate::kernel::*;
+use crate::plugins::{eval, moving::model::Occupying, users::model::Usernames};
 
 pub struct StandardPerformer {
     session: Weak<Session>,
