@@ -401,7 +401,7 @@ pub enum ScopeValue {
 pub struct Entity {
     #[serde(rename = "py/object")]
     py_object: String,
-    pub key: EntityKey,
+    key: EntityKey,
     version: Version,
     parent: Option<EntityRef>,
     creator: Option<EntityRef>,
@@ -479,6 +479,10 @@ impl Entity {
         self.props.string_property(NAME_PROPERTY)
     }
 
+    pub fn key(&self) -> &EntityKey {
+        &self.key
+    }
+
     pub fn set_name(&mut self, value: &str) -> Result<()> {
         let value: serde_json::Value = value.into();
         self.props.set_property(NAME_PROPERTY, value);
@@ -543,7 +547,7 @@ impl Entity {
         };
 
         let _prepare_span = span!(Level::DEBUG, "prepare").entered();
-        let session = get_my_session()?; // Thread local session!
+        let session = get_my_session()?;
         scope.supply(&session)?;
 
         Ok(scope)

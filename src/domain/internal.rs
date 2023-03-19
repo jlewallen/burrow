@@ -163,7 +163,7 @@ impl Entities {
         let clone = entity.clone();
         let (key, gid) = {
             let entity = entity.borrow();
-            (entity.key.clone(), entity.gid())
+            (entity.key().clone(), entity.gid())
         };
         self.entities.add_entity(LoadedEntity {
             key,
