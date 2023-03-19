@@ -1,10 +1,11 @@
 use anyhow::{anyhow, Result};
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::{cell::RefCell, collections::HashMap, fmt::Debug, rc::Rc};
 use tracing::*;
 
 use crate::kernel::*;
 use crate::storage::{EntityStorage, PersistedEntity};
+
+use super::sequences::GlobalIds;
 
 pub struct LoadedEntity {
     pub key: EntityKey,
@@ -179,7 +180,7 @@ impl Entities {
         let mut loaded: Entity = serde_json::from_str(&persisted.serialized)?;
 
         trace!("infrastructure");
-        let session = get_my_session()?; // Thread local session!
+        let session = get_my_session()?;
         loaded.supply(&session)?;
 
         let gid = loaded.gid();
@@ -188,9 +189,9 @@ impl Entities {
         self.entities.add_entity(LoadedEntity {
             key: EntityKey::new(&persisted.key),
             entity: cell.clone(),
+            serialized: Some(persisted.serialized),
             version: persisted.version + 1,
             gid,
-            serialized: Some(persisted.serialized),
         })?;
 
         Ok(cell)
@@ -235,30 +236,5 @@ impl Entities {
 
     pub fn size(&self) -> usize {
         self.entities.size()
-    }
-}
-
-#[derive(Debug)]
-pub struct GlobalIds {
-    gid: AtomicU64,
-}
-
-impl GlobalIds {
-    pub fn new() -> Rc<Self> {
-        Rc::new(Self {
-            gid: AtomicU64::new(0),
-        })
-    }
-
-    pub fn gid(&self) -> EntityGid {
-        EntityGid::new(self.gid.load(Ordering::Relaxed))
-    }
-
-    pub fn set(&self, gid: &EntityGid) {
-        self.gid.store(gid.into(), Ordering::Relaxed);
-    }
-
-    pub fn get(&self) -> EntityGid {
-        EntityGid::new(self.gid.fetch_add(1, Ordering::Relaxed) + 1)
     }
 }

@@ -2,7 +2,7 @@ use anyhow::Result;
 use tracing::info;
 
 use crate::domain::{domain, DevNullNotifier};
-use crate::kernel::Entry;
+use crate::kernel::{ActiveSession, Entry};
 use crate::plugins::carrying::model::{Carryable, Containing};
 use crate::plugins::moving::model::Occupying;
 use crate::plugins::users::model::Usernames;

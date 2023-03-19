@@ -1,9 +1,10 @@
+use std::rc::Rc;
 use std::sync::{
     atomic::{AtomicU64, Ordering},
     Arc,
 };
 
-use crate::kernel::{EntityKey, Identity};
+use crate::kernel::{EntityGid, EntityKey, Identity};
 
 pub fn make_keys(deterministic: bool) -> Arc<dyn Sequence<EntityKey>> {
     if deterministic {
@@ -62,5 +63,30 @@ impl Sequence<EntityKey> for RandomKeys {
 impl Sequence<Identity> for RandomKeys {
     fn following(&self) -> Identity {
         Identity::default()
+    }
+}
+
+#[derive(Debug)]
+pub struct GlobalIds {
+    gid: AtomicU64,
+}
+
+impl GlobalIds {
+    pub fn new() -> Rc<Self> {
+        Rc::new(Self {
+            gid: AtomicU64::new(0),
+        })
+    }
+
+    pub fn gid(&self) -> EntityGid {
+        EntityGid::new(self.gid.load(Ordering::Relaxed))
+    }
+
+    pub fn set(&self, gid: &EntityGid) {
+        self.gid.store(gid.into(), Ordering::Relaxed);
+    }
+
+    pub fn get(&self) -> EntityGid {
+        EntityGid::new(self.gid.fetch_add(1, Ordering::Relaxed) + 1)
     }
 }

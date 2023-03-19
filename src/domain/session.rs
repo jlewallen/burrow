@@ -10,9 +10,9 @@ use std::{
 };
 use tracing::{debug, info, span, trace, warn, Level};
 
-use super::internal::{Entities, EntityMap, GlobalIds, LoadedEntity};
+use super::internal::{Entities, EntityMap, LoadedEntity};
 use super::perform::StandardPerformer;
-use super::sequences::Sequence;
+use super::sequences::{GlobalIds, Sequence};
 use super::{EntityRelationshipSet, Notifier};
 use crate::kernel::*;
 use crate::plugins::{identifiers, tools};
@@ -93,17 +93,6 @@ impl Session {
 
     pub fn world(&self) -> Result<Entry, DomainError> {
         self.entry(&WORLD_KEY)?.ok_or(DomainError::EntityNotFound)
-    }
-
-    pub fn entry(&self, key: &EntityKey) -> Result<Option<Entry>> {
-        match self.load_entity_by_key(key)? {
-            Some(entity) => Ok(Some(Entry::new(
-                key,
-                entity,
-                Weak::clone(&self.weak) as Weak<dyn ActiveSession>,
-            ))),
-            None => Ok(None),
-        }
     }
 
     pub fn find_name_key(&self, user_name: &str) -> Result<Option<EntityKey>, DomainError> {
@@ -358,7 +347,6 @@ impl ActiveSession for Session {
 
     fn entry(&self, key: &EntityKey) -> Result<Option<Entry>> {
         match self.load_entity_by_key(key)? {
-            // TODO There are two alls like this.
             Some(entity) => Ok(Some(Entry::new(
                 key,
                 entity,
