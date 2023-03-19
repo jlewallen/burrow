@@ -32,6 +32,7 @@ pub mod model {
     pub fn set_gid(entity: &Entry, value: EntityGid) -> Result<EntityGid> {
         let mut ids = entity.scope_mut::<Identifiers>()?;
         ids.gid = value.clone().into();
+        ids.save()?;
 
         Ok(value)
     }

@@ -427,7 +427,7 @@ mod tests {
 
         // Not the best way of finding the constructed area.
         let destination = session
-            .entry_by_gid(&EntityGid::new(7))?
+            .entry_by_gid(&EntityGid::new(4))?
             .ok_or(DomainError::EntityNotFound)?;
 
         assert_eq!(

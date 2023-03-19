@@ -13,11 +13,11 @@ use std::{
 use thiserror::Error;
 use tracing::*;
 
-use super::{infra::*, Needs, Scope};
-
 pub mod entry;
 
 pub use entry::*;
+
+use super::{infra::*, Needs, Scope};
 
 pub static WORLD_KEY: Lazy<EntityKey> = Lazy::new(|| EntityKey("world".to_string()));
 
@@ -42,15 +42,15 @@ impl EntityKey {
     }
 }
 
-impl Debug for EntityKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("`{}`", self.0))
-    }
-}
-
 impl Default for EntityKey {
     fn default() -> Self {
         Self(nanoid!())
+    }
+}
+
+impl Debug for EntityKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "`{}`", self.0)
     }
 }
 
@@ -118,11 +118,11 @@ pub enum DomainOutcome {
 
 #[derive(Debug, Clone, Serialize, Eq, PartialEq)]
 pub enum Item {
-    Held(Box<Item>),
     Named(String),
     Route(String),
     Gid(EntityGid),
     Contained(Box<Item>),
+    Held(Box<Item>),
 }
 
 #[derive(Clone)]
@@ -207,20 +207,6 @@ impl From<Entity> for EntityPtr {
     }
 }
 
-impl Debug for EntityPtr {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let lazy = self.lazy.borrow();
-        if let Some(gid) = &lazy.gid {
-            f.write_fmt(format_args!(
-                "Entity(#{}, `{}`, {})",
-                &gid, &lazy.name, &lazy.key
-            ))
-        } else {
-            f.write_fmt(format_args!("Entity(`{}`, {})", &lazy.name, &lazy.key))
-        }
-    }
-}
-
 // This seems cleaner than implementing borrow/borrow_mut ourselves and things
 // were gnarly when I tried implementing Borrow<T> myself.
 impl Deref for EntityPtr {
@@ -228,6 +214,17 @@ impl Deref for EntityPtr {
 
     fn deref(&self) -> &Self::Target {
         self.entity.as_ref()
+    }
+}
+
+impl Debug for EntityPtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let lazy = self.lazy.borrow();
+        if let Some(gid) = &lazy.gid {
+            write!(f, "Entity(#{}, `{}`, {})", &gid, &lazy.name, &lazy.key)
+        } else {
+            write!(f, "Entity(`{}`, {})", &lazy.name, &lazy.key)
+        }
     }
 }
 

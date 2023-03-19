@@ -155,8 +155,8 @@ pub fn separate(entity: &Entry, quantity: f32) -> Result<(&Entry, Entry)> {
 
     let mut carryable = separated.scope_mut::<Carryable>()?;
 
-    // TODO Would be nice if we could pass this in and avoid creating one
-    // unnecessarily. See comments in Entity::new_from
+    // TODO Would be nice if we could pass 'Kind' in to the ctor and avoid
+    // creating one unnecessarily. See comments in Entity::new_from
     carryable.set_kind(&kind);
     carryable.set_quantity(quantity)?;
     carryable.save()?;

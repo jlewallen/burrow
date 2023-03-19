@@ -57,7 +57,7 @@ impl Maps {
     }
 
     fn add_entity(&mut self, loaded: LoadedEntity) -> Result<()> {
-        debug!("adding {:?}", loaded);
+        debug!("adding {:?} gid={:?}", loaded, loaded.gid);
 
         self.by_gid.insert(
             loaded
@@ -121,15 +121,19 @@ impl EntityMap {
     }
 
     pub fn add_entity(&self, mut loaded: LoadedEntity) -> Result<()> {
-        self.assign_gid_if_necessary(&mut loaded);
+        self.assign_gid_if_necessary(&mut loaded)?;
         self.maps.borrow_mut().add_entity(loaded)
     }
 
-    fn assign_gid_if_necessary(&self, mut loaded: &mut LoadedEntity) {
+    fn assign_gid_if_necessary(&self, mut loaded: &mut LoadedEntity) -> Result<()> {
         if loaded.gid.is_none() {
-            let loaded = &mut loaded;
-            loaded.gid = Some(self.ids.get());
+            let gid = self.ids.get();
+            info!(%loaded.key, %gid, "entity-map assigning gid");
+            loaded.gid = Some(gid.clone());
+            loaded.entity.borrow_mut().set_gid(gid)?;
         }
+
+        Ok(())
     }
 
     fn foreach_entity_mut<R, T: Fn(&mut LoadedEntity) -> Result<R>>(
@@ -157,13 +161,16 @@ impl Entities {
 
     pub fn add_entity(&self, entity: &EntityPtr) -> Result<()> {
         let clone = entity.clone();
-        let entity = entity.borrow();
+        let (key, gid) = {
+            let entity = entity.borrow();
+            (entity.key.clone(), entity.gid())
+        };
         self.entities.add_entity(LoadedEntity {
-            key: entity.key.clone(),
+            key,
             entity: clone,
             serialized: None,
             version: 1,
-            gid: entity.gid(),
+            gid,
         })
     }
 

@@ -237,7 +237,11 @@ impl Session {
             // Assign new global identifier if necessary.
             let gid = match &l.gid {
                 Some(gid) => gid.clone(),
-                None => self.ids.get(),
+                None => {
+                    let gid = self.ids.get();
+                    info!(%gid, "session assigning gid");
+                    gid
+                }
             };
             l.gid = Some(gid.clone());
 
@@ -272,11 +276,11 @@ impl Session {
     }
 
     fn save_entity_changes(&self) -> Result<()> {
-        if self.save_modified_entities()? {
-            // We only do this if we actually saved any entities, that's the
-            // only way this can possible change.
-            self.save_modified_ids()?;
+        // We have to do this before checking for modifications so that the
+        // state in the world Entity gets saved.
+        self.save_modified_ids()?;
 
+        if self.save_modified_entities()? {
             // Check for a force rollback, usually debugging purposes.
             if should_force_rollback() {
                 let _span = span!(Level::DEBUG, "FORCED").entered();
