@@ -118,6 +118,7 @@ pub enum DomainOutcome {
 
 #[derive(Debug, Clone, Serialize, Eq, PartialEq)]
 pub enum Item {
+    Held(Box<Item>),
     Named(String),
     Route(String),
     Gid(EntityGid),

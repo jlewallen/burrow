@@ -27,7 +27,7 @@ pub enum EntityRelationship {
     Area(Entry),
     Holding(Entry),
     Ground(Entry),
-    /// Items is nearby, inside something else. Considering renaming this and
+    /// Item is nearby, inside something else. Considering renaming this and
     /// others to better indicate how far removed they are. For example,
     /// containers in the area vs containers that are being held.
     Contained(Entry),
@@ -36,7 +36,7 @@ pub enum EntityRelationship {
 
 #[derive(Debug)]
 pub struct EntityRelationshipSet {
-    pub entities: Vec<EntityRelationship>,
+    entities: Vec<EntityRelationship>,
 }
 
 impl EntityRelationshipSet {
@@ -158,7 +158,34 @@ impl EntityRelationshipSet {
                 Ok(None)
             }
             Item::Contained(contained) => self.expand()?.find_item(contained),
-            _ => Ok(None),
+            Item::Held(held) => self
+                .prioritize(&|e| match e {
+                    EntityRelationship::Holding(_) => 0,
+                    _ => default_priority(e),
+                })?
+                .find_item(held),
+            Item::Gid(_) => Ok(None),
         }
+    }
+
+    fn prioritize(
+        &self,
+        order: &dyn Fn(&EntityRelationship) -> u32,
+    ) -> Result<EntityRelationshipSet> {
+        let mut entities = self.entities.clone();
+        entities.sort_by(|a, b| order(a).cmp(&order(b)));
+        Ok(Self { entities: entities })
+    }
+}
+
+fn default_priority(e: &EntityRelationship) -> u32 {
+    match e {
+        EntityRelationship::Area(_) => 1,
+        EntityRelationship::Ground(_) => 2,
+        EntityRelationship::Holding(_) => 3,
+        EntityRelationship::Contained(_) => 4,
+        EntityRelationship::Exit(_, _) => 5,
+        EntityRelationship::User(_) => 6,
+        EntityRelationship::World(_) => 7,
     }
 }

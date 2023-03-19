@@ -42,6 +42,12 @@ pub mod model {
         },
     }
 
+    #[derive(Debug)]
+    pub enum AfterCarry {
+        Ok,
+        Combined,
+    }
+
     impl DomainEvent for CarryingEvent {
         fn audience(&self) -> Audience {
             match self {
@@ -146,6 +152,8 @@ pub mod model {
                     combining.increase_quantity(carryable.quantity)?;
 
                     combining.save()?;
+
+                    get_my_session()?.obliterate(item)?;
 
                     return Ok(DomainOutcome::Ok);
                 }
@@ -442,7 +450,7 @@ pub mod parser {
         fn try_parse_action(&self, i: &str) -> EvaluationResult {
             let specific = map(separated_pair(tag("drop"), spaces, noun), |(_, target)| {
                 DropAction {
-                    maybe_item: Some(target),
+                    maybe_item: Some(Item::Held(Box::new(target))),
                 }
             });
 

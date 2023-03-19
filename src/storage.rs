@@ -140,7 +140,7 @@ pub mod sqlite {
         }
 
         fn delete(&self, entity: &PersistedEntity) -> Result<()> {
-            debug!(%entity.key,  "deleting");
+            debug!(%entity.key,  %entity.gid, "deleting");
 
             let mut stmt = self
                 .conn
