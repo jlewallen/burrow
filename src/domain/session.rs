@@ -13,7 +13,6 @@ use tracing::{debug, info, span, trace, warn, Level};
 use super::internal::{Entities, EntityMap, GlobalIds, LoadedEntity};
 use super::perform::StandardPerformer;
 use super::{EntityRelationshipSet, Notifier, Sequence};
-use crate::domain::ManagedHooks;
 use crate::kernel::*;
 use crate::plugins::identifiers;
 use crate::plugins::tools;

@@ -1,13 +1,11 @@
-use crate::domain::ManagedHooks;
+use anyhow::Result;
+use std::{cell::RefCell, rc::Rc};
 
 use super::model::{
     DomainError, DomainEvent, EntityGid, EntityKey, EntityPtr, EntityRef, Entry, Identity, Item,
 };
 use super::scopes::{Action, Reply};
-use super::Surroundings;
-
-use anyhow::Result;
-use std::{cell::RefCell, rc::Rc};
+use super::{ManagedHooks, Surroundings};
 
 pub type SessionRef = Rc<dyn Infrastructure>;
 

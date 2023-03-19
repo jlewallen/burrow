@@ -11,7 +11,7 @@ impl Plugin for MovingPlugin {
         "moving"
     }
 
-    fn register_hooks(&self, _hooks: &crate::domain::ManagedHooks) {}
+    fn register_hooks(&self, _hooks: &ManagedHooks) {}
 }
 
 impl ParsesActions for MovingPlugin {
@@ -21,10 +21,7 @@ impl ParsesActions for MovingPlugin {
 }
 
 pub mod model {
-    use crate::{
-        domain::{HookOutcome, Hooks, HooksSet},
-        plugins::{library::model::*, looking::model::Observe},
-    };
+    use crate::plugins::{library::model::*, looking::model::Observe};
 
     pub trait BeforeMovingHook {
         fn before_moving(&self, surroundings: &Surroundings, to_area: &Entry) -> Result<CanMove>;

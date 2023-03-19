@@ -1,6 +1,4 @@
-use crate::domain::ManagedHooks;
-
-use super::{model::*, Action};
+use super::{model::*, Action, ManagedHooks};
 
 pub type EvaluationResult = Result<Box<dyn Action>, EvaluationError>;
 

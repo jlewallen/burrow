@@ -1,4 +1,4 @@
-use crate::{domain::ManagedHooks, plugins::library::plugin::*};
+use crate::plugins::library::plugin::*;
 
 #[derive(Default)]
 pub struct CarryingPlugin {}
@@ -196,6 +196,8 @@ pub mod model {
             let carryable = item.scope_mut::<Carryable>()?;
             if carryable.quantity > 1.0 {
                 let (_original, separated) = tools::separate(item, 1.0)?;
+
+                // get_my_session()?.add_entity(entity)?;
 
                 Ok(Some(separated))
             } else {

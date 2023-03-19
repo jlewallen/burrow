@@ -11,7 +11,7 @@ impl Plugin for LookingPlugin {
         "looking"
     }
 
-    fn register_hooks(&self, _hooks: &crate::domain::ManagedHooks) {}
+    fn register_hooks(&self, _hooks: &ManagedHooks) {}
 }
 
 impl ParsesActions for LookingPlugin {

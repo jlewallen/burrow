@@ -1,14 +1,12 @@
 use anyhow::Result;
 use tracing::info;
 
-use super::carrying::model::Carryable;
-use super::moving::model::Exit;
 use super::{
-    carrying::model::{Containing, Location},
+    carrying::model::{Carryable, Containing, Location},
+    moving::model::Exit,
     moving::model::{Occupyable, Occupying},
 };
-use crate::kernel::{get_my_session, model::*};
-use crate::kernel::{DomainOutcome, EntityPtr};
+use crate::kernel::{get_my_session, model::*, DomainOutcome, EntityPtr};
 
 pub fn is_container(item: &Entry) -> Result<bool> {
     item.has_scope::<Containing>()
