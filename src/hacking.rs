@@ -37,7 +37,7 @@ pub fn execute_command() -> Result<()> {
 
     let world = session.world()?;
     let usernames = world.scope::<Usernames>()?;
-    let user_key = &usernames.users["jlewallen"];
+    let user_key = &usernames.find("jlewallen");
     let user = session
         .entry(&LookupBy::Key(user_key))?
         .expect("No 'USER' entity.");

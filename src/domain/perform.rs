@@ -69,7 +69,7 @@ impl StandardPerformer {
 
         let usernames = world.scope::<Usernames>()?;
 
-        let user_key = &usernames.users[name];
+        let user_key = &usernames.find(name);
 
         let living = session
             .entry(&LookupBy::Key(user_key))?

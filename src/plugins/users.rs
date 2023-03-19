@@ -3,7 +3,13 @@ pub mod model {
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Usernames {
-        pub users: HashMap<String, EntityKey>,
+        users: HashMap<String, EntityKey>,
+    }
+
+    impl Usernames {
+        pub fn find(&self, name: &str) -> &EntityKey {
+            &self.users[name]
+        }
     }
 
     impl Needs<SessionRef> for Usernames {
