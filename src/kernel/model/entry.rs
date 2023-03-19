@@ -3,7 +3,7 @@ use std::rc::{Rc, Weak};
 use tracing::trace;
 
 use crate::kernel::{
-    get_my_session, DomainError, EntityKey, EntityPtr, EntityRef, Infrastructure, Scope,
+    get_my_session, DomainError, EntityGid, EntityKey, EntityPtr, EntityRef, Infrastructure, Scope,
 };
 
 #[derive(Clone)]
@@ -11,39 +11,23 @@ pub struct Entry {
     key: EntityKey,
     entity: EntityPtr,
     session: Weak<dyn Infrastructure>,
-}
-
-impl TryFrom<EntityPtr> for Entry {
-    type Error = DomainError;
-
-    fn try_from(value: EntityPtr) -> Result<Self, Self::Error> {
-        Ok(Self {
-            key: value.key(),
-            entity: value,
-            session: Rc::downgrade(&get_my_session()?),
-        })
-    }
-}
-
-impl TryFrom<&Entry> for EntityRef {
-    type Error = DomainError;
-
-    fn try_from(entry: &Entry) -> Result<Self, Self::Error> {
-        Ok(EntityRef::new_with_entity(entry.entity()?))
-    }
+    debug: Option<String>,
 }
 
 impl Entry {
     pub fn new(key: &EntityKey, entity: EntityPtr, session: Weak<dyn Infrastructure>) -> Self {
+        let debug = Some(format!("{:?}", entity));
+
         Self {
             key: key.clone(),
             entity,
             session,
+            debug,
         }
     }
 
-    pub fn key(&self) -> EntityKey {
-        self.key.clone()
+    pub fn key(&self) -> &EntityKey {
+        &self.key
     }
 
     pub fn entity(&self) -> Result<EntityPtr> {
@@ -94,6 +78,34 @@ impl Entry {
 
         Ok(Some(self.scope::<T>()?))
     }
+
+    pub fn gid(&self) -> Option<EntityGid> {
+        self.entity.borrow().gid()
+    }
+
+    pub fn debug(&self) -> Option<&String> {
+        self.debug.as_ref()
+    }
+}
+
+impl TryFrom<EntityPtr> for Entry {
+    type Error = DomainError;
+
+    fn try_from(value: EntityPtr) -> Result<Self, Self::Error> {
+        Ok(Self::new(
+            &value.key(),
+            value,
+            Rc::downgrade(&get_my_session()?),
+        ))
+    }
+}
+
+impl TryFrom<&Entry> for EntityRef {
+    type Error = DomainError;
+
+    fn try_from(entry: &Entry) -> Result<Self, Self::Error> {
+        Ok(EntityRef::new_with_entity(entry.entity()?))
+    }
 }
 
 impl TryFrom<EntityRef> for Option<Entry> {
@@ -107,7 +119,11 @@ impl TryFrom<EntityRef> for Option<Entry> {
 
 impl std::fmt::Debug for Entry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Entry").field("key", &self.key).finish()
+        if let Some(debug) = &self.debug {
+            f.write_str(debug)
+        } else {
+            f.debug_struct("Entry").field("key", &self.key).finish()
+        }
     }
 }
 
