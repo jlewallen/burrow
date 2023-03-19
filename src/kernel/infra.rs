@@ -10,9 +10,9 @@ use super::{ManagedHooks, Surroundings};
 pub type SessionRef = Rc<dyn Infrastructure>;
 
 pub trait Infrastructure {
-    fn entry_by_gid(&self, gid: &EntityGid) -> Result<Option<Entry>>;
-
     fn entry(&self, key: &EntityKey) -> Result<Option<Entry>>;
+
+    fn entry_by_gid(&self, gid: &EntityGid) -> Result<Option<Entry>>;
 
     /// I think this will eventually need to return or take a construct that's
     /// builder-like so callers can take more control. Things to consider are:
@@ -44,10 +44,7 @@ pub trait Infrastructure {
     fn add_entity(&self, entity: &EntityPtr) -> Result<Entry>;
 
     fn add_entities(&self, entities: &[&EntityPtr]) -> Result<Vec<Entry>> {
-        entities
-            .iter()
-            .map(|e| self.add_entity(e))
-            .collect::<Result<Vec<_>>>()
+        entities.iter().map(|e| self.add_entity(e)).collect()
     }
 
     fn obliterate(&self, entity: &Entry) -> Result<()>;

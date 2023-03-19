@@ -3,33 +3,11 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 use std::fmt::Debug;
 
-use super::infra::SessionRef;
-use super::model::*;
+use super::{infra::SessionRef, Surroundings};
 
 pub use replies::*;
 
 pub type ReplyResult = anyhow::Result<Box<dyn Reply>>;
-
-#[derive(Debug, Clone)]
-pub enum Surroundings {
-    Living {
-        world: Entry,
-        living: Entry,
-        area: Entry,
-    },
-}
-
-impl Surroundings {
-    pub fn unpack(&self) -> (Entry, Entry, Entry) {
-        match self {
-            Surroundings::Living {
-                world,
-                living,
-                area,
-            } => (world.clone(), living.clone(), area.clone()),
-        }
-    }
-}
 
 pub trait Action: Debug {
     fn is_read_only() -> bool
