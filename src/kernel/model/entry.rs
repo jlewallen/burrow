@@ -31,8 +31,8 @@ impl Entry {
         &self.key
     }
 
-    pub fn entity(&self) -> Result<EntityPtr> {
-        Ok(self.entity.clone())
+    pub fn entity(&self) -> Result<&EntityPtr> {
+        Ok(&self.entity)
     }
 
     pub fn name(&self) -> Result<Option<String>> {

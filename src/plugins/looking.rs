@@ -73,8 +73,6 @@ pub mod model {
     }
 
     pub fn new_area_observation(user: &Entry, area: &Entry) -> Result<AreaObservation> {
-        // I feel like there's a lot of unnecessary copying going on here.
-
         let mut living: Vec<ObservedEntity> = vec![];
         if let Ok(occupyable) = area.scope::<Occupyable>() {
             for entity in &occupyable.occupied {

@@ -591,7 +591,7 @@ pub struct EntityRef {
 }
 
 impl EntityRef {
-    pub fn new_with_entity(entity: EntityPtr) -> Self {
+    pub fn new_with_entity(entity: &EntityPtr) -> Self {
         Self::new_from_raw(&entity.entity)
     }
 
