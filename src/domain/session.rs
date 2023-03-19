@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use std::rc::Weak;
 use std::sync::Arc;
 use std::time::Instant;
@@ -161,7 +161,7 @@ impl Session {
             return Ok(());
         }
 
-        info!(%npending, "session:raising");
+        info!(%npending, "raising");
 
         for event in pending.iter() {
             let audience_keys = self.get_audience_keys(&event.audience())?;
@@ -188,7 +188,7 @@ impl Session {
         let elapsed = self.opened.elapsed();
         let elapsed = format!("{:?}", elapsed);
 
-        info!(%elapsed, %nentities, "session:closed");
+        info!(%elapsed, %nentities, "closed");
 
         self.open.store(false, Ordering::Relaxed);
 
@@ -234,16 +234,11 @@ impl Session {
             // Serialize to string now that we know we'll use this.
             let serialized = value_after.to_string();
 
-            // Assign new global identifier if necessary.
-            let gid = match &l.gid {
-                Some(gid) => gid.clone(),
-                None => {
-                    let gid = self.ids.get();
-                    info!(%gid, "session assigning gid");
-                    gid
-                }
-            };
-            l.gid = Some(gid.clone());
+            // By now we should have a global identifier.
+            if l.gid.is_none() {
+                return Err(anyhow!("Expected EntityGid in check_for_changes"));
+            }
+            let gid = l.gid.clone().unwrap();
 
             // I'm on the look out for a better way to handle this. Part of me
             // wishes that it was done after the save and that part is at odds
