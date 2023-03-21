@@ -166,16 +166,13 @@ pub mod model {
             self.holding = self
                 .holding
                 .iter()
-                .map(|i| -> Result<Vec<EntityRef>> {
+                .flat_map(|i| {
                     if *i.key() == *item.key() {
-                        Ok(vec![])
+                        vec![]
                     } else {
-                        Ok(vec![i.clone()])
+                        vec![i.clone()]
                     }
                 })
-                .collect::<Result<Vec<_>>>()?
-                .into_iter()
-                .flatten()
                 .collect::<Vec<EntityRef>>()
                 .to_vec();
 
