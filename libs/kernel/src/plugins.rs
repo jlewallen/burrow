@@ -1,3 +1,5 @@
+use crate::Surroundings;
+
 use super::{model::*, Action, ManagedHooks};
 use anyhow::Result;
 
@@ -39,9 +41,11 @@ pub trait Plugin: ParsesActions {
     where
         Self: Sized;
 
-    fn initialize(&mut self) -> anyhow::Result<()>;
+    fn initialize(&mut self) -> Result<()>;
 
-    fn register_hooks(&self, hooks: &ManagedHooks);
+    fn register_hooks(&self, hooks: &ManagedHooks) -> Result<()>;
+
+    fn have_surroundings(&self, _surroundings: &Surroundings) -> Result<()>;
 }
 
 #[derive(Default)]
@@ -61,12 +65,12 @@ impl SessionPlugins {
         Ok(())
     }
 
-    pub fn hooks(&self) -> ManagedHooks {
+    pub fn hooks(&self) -> Result<ManagedHooks> {
         let hooks = ManagedHooks::default();
         for plugin in self.plugins.iter() {
-            plugin.register_hooks(&hooks)
+            plugin.register_hooks(&hooks)?;
         }
-        hooks
+        Ok(hooks)
     }
 
     pub fn evaluate(&self, i: &str) -> Result<Option<Box<dyn Action>>, EvaluationError> {
@@ -81,5 +85,12 @@ impl SessionPlugins {
             Some(e) => Ok(Some(e)),
             None => Ok(None),
         }
+    }
+
+    pub fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
+        for plugin in self.plugins.iter() {
+            plugin.have_surroundings(surroundings)?;
+        }
+        Ok(())
     }
 }

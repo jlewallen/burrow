@@ -14,9 +14,9 @@ pub struct Command {
 
 #[tokio::main]
 pub async fn execute_command(cmd: &Command) -> Result<()> {
-    let renderer = Renderer::new()?;
     let domain = make_domain()?;
     let session = domain.open_session()?;
+    let renderer = Renderer::new()?;
 
     for text in &[&cmd.text] {
         if let Some(reply) = session.evaluate_and_perform(&cmd.username, text)? {

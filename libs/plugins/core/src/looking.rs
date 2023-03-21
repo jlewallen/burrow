@@ -20,11 +20,17 @@ impl Plugin for LookingPlugin {
         "looking"
     }
 
-    fn initialize(&mut self) -> anyhow::Result<()> {
+    fn initialize(&mut self) -> Result<()> {
         Ok(())
     }
 
-    fn register_hooks(&self, _hooks: &ManagedHooks) {}
+    fn register_hooks(&self, _hooks: &ManagedHooks) -> Result<()> {
+        Ok(())
+    }
+
+    fn have_surroundings(&self, _surroundings: &Surroundings) -> Result<()> {
+        Ok(())
+    }
 }
 
 impl ParsesActions for LookingPlugin {
@@ -49,6 +55,15 @@ pub mod model {
         } else {
             indefinite(name)
         }
+    }
+
+    pub trait ObserveHook<T> {
+        fn observe(
+            &self,
+            surroundings: &Surroundings,
+            user: &Entry,
+            target: &Entry,
+        ) -> Result<Option<T>>;
     }
 
     pub trait Observe<T> {
@@ -112,7 +127,7 @@ pub mod model {
             for route in &movement.routes {
                 routes.push((&route.area.into_entry()?).observe(user)?);
             }
-        };
+        }
 
         Ok(AreaObservation {
             area: area.observe(user)?,
@@ -138,8 +153,6 @@ pub mod actions {
         }
 
         fn perform(&self, _session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
-            info!("look!");
-
             let (_, user, area) = surroundings.unpack();
 
             Ok(Box::new(new_area_observation(&user, &area)?))
@@ -157,8 +170,6 @@ pub mod actions {
         }
 
         fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
-            info!("look inside!");
-
             let (_, user, _area) = surroundings.unpack();
 
             match session.find_item(surroundings, &self.item)? {

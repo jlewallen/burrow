@@ -64,13 +64,15 @@ impl Session {
         let mut plugins = registered_plugins.create_plugins()?;
         plugins.initialize()?;
 
-        let hooks = plugins.hooks();
+        let plugins = Arc::new(plugins);
+
+        let hooks = plugins.hooks()?;
 
         let session = Rc::new_cyclic(|weak: &Weak<Session>| Self {
             opened,
             storage: Rc::clone(&storage),
             open: AtomicBool::new(true),
-            performer: StandardPerformer::new(weak, Arc::clone(finder)),
+            performer: StandardPerformer::new(weak, Arc::clone(finder), Arc::clone(&plugins)),
             ids: Rc::clone(&ids),
             raised: Rc::new(RefCell::new(Vec::new())),
             weak: Weak::clone(weak),
@@ -79,7 +81,7 @@ impl Session {
             identities: Arc::clone(identities),
             destroyed: RefCell::new(Vec::new()),
             finder: Arc::clone(finder),
-            plugins: Arc::new(plugins),
+            plugins,
             hooks,
         });
 

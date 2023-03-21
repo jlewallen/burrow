@@ -5,34 +5,27 @@ use std::sync::Arc;
 use tracing::{debug, event, info, span, Level};
 
 use super::Session;
-use crate::users::model::Usernames;
+use crate::username_to_key;
 use crate::Finder;
 use kernel::*;
 
 pub struct StandardPerformer {
     session: Weak<Session>,
     finder: Arc<dyn Finder>,
+    plugins: Arc<SessionPlugins>,
 }
 
 impl StandardPerformer {
-    pub fn new(session: &Weak<Session>, finder: Arc<dyn Finder>) -> Rc<Self> {
+    pub fn new(
+        session: &Weak<Session>,
+        finder: Arc<dyn Finder>,
+        plugins: Arc<SessionPlugins>,
+    ) -> Rc<Self> {
         Rc::new(StandardPerformer {
             session: Weak::clone(session),
             finder,
+            plugins,
         })
-    }
-
-    pub fn perform_via_name(&self, name: &str, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
-        info!("performing {:?}", action);
-
-        let surroundings = self.evaluate_name(name)?;
-
-        let reply = {
-            let _span = span!(Level::INFO, "A").entered();
-            action.perform(self.session()?, &surroundings)?
-        };
-
-        Ok(reply)
     }
 
     pub fn evaluate_and_perform(&self, name: &str, text: &str) -> Result<Option<Box<dyn Reply>>> {
@@ -46,6 +39,21 @@ impl StandardPerformer {
         } else {
             Ok(None)
         }
+    }
+
+    fn perform_via_name(&self, name: &str, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
+        info!("performing {:?}", action);
+
+        let surroundings = self.evaluate_name(name)?;
+
+        let reply = {
+            let _span = span!(Level::INFO, "A").entered();
+            info!("{:?}", &surroundings);
+            self.plugins.have_surroundings(&surroundings)?;
+            action.perform(self.session()?, &surroundings)?
+        };
+
+        Ok(reply)
     }
 
     pub fn find_name_key(&self, name: &str) -> Result<Option<EntityKey>, DomainError> {
@@ -68,17 +76,11 @@ impl StandardPerformer {
         let _span = span!(Level::DEBUG, "L").entered();
 
         let session = self.session()?;
-
         let world = session.world()?;
-
-        let usernames = world.scope::<Usernames>()?;
-
-        let user_key = &usernames
-            .find(name)
-            .ok_or_else(|| DomainError::EntityNotFound)?;
+        let user_key = username_to_key(&world, name)?.ok_or_else(|| DomainError::EntityNotFound)?;
 
         let living = session
-            .entry(&LookupBy::Key(user_key))?
+            .entry(&LookupBy::Key(&user_key))?
             .ok_or(DomainError::EntityNotFound)?;
 
         self.evaluate_living(&living)
@@ -86,12 +88,8 @@ impl StandardPerformer {
 
     fn evaluate_living(&self, living: &Entry) -> Result<Surroundings, DomainError> {
         let session = self.session()?;
-
         let world = session.world()?;
-
         let area: Entry = self.finder.find_location(living)?;
-
-        info!("area {:?}", &area);
 
         Ok(Surroundings::Living {
             world,
@@ -107,6 +105,8 @@ impl StandardPerformer {
 
         let reply = {
             let _span = span!(Level::INFO, "A").entered();
+            info!("{:?}", &surroundings);
+            self.plugins.have_surroundings(&surroundings)?;
             action.perform(self.session()?, &surroundings)?
         };
 

@@ -22,11 +22,17 @@ impl Plugin for BuildingPlugin {
         "building"
     }
 
-    fn initialize(&mut self) -> anyhow::Result<()> {
+    fn initialize(&mut self) -> Result<()> {
         Ok(())
     }
 
-    fn register_hooks(&self, _hooks: &ManagedHooks) {}
+    fn register_hooks(&self, _hooks: &ManagedHooks) -> Result<()> {
+        Ok(())
+    }
+
+    fn have_surroundings(&self, _surroundings: &Surroundings) -> Result<()> {
+        Ok(())
+    }
 }
 
 impl ParsesActions for BuildingPlugin {

@@ -25,6 +25,7 @@ impl<T> Hooks<T> {
         self.instances.borrow_mut().push(hook);
     }
 }
+
 pub trait HooksSet {
     fn hooks_key() -> &'static str
     where
