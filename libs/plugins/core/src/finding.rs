@@ -34,12 +34,30 @@ pub enum EntityRelationship {
     Exit(String, Entry),
 }
 
+impl EntityRelationship {
+    pub fn entry(&self) -> Result<&Entry> {
+        Ok(match self {
+            EntityRelationship::World(e) => &e,
+            EntityRelationship::User(e) => &e,
+            EntityRelationship::Area(e) => &e,
+            EntityRelationship::Holding(e) => &e,
+            EntityRelationship::Ground(e) => &e,
+            EntityRelationship::Contained(e) => &e,
+            EntityRelationship::Exit(_, e) => &e,
+        })
+    }
+}
+
 #[derive(Debug)]
 pub struct EntityRelationshipSet {
     entities: Vec<EntityRelationship>,
 }
 
 impl EntityRelationshipSet {
+    pub fn iter(&self) -> std::slice::Iter<'_, EntityRelationship> {
+        self.entities.iter()
+    }
+
     pub fn new_from_surroundings(surroundings: &Surroundings) -> Self {
         match surroundings {
             Surroundings::Living {

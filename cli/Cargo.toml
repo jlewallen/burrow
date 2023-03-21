@@ -33,3 +33,6 @@ path = "../libs/engine"
 
 [dependencies.plugins-core]
 path = "../libs/plugins/core"
+
+[dependencies.plugins-rune]
+path = "../libs/plugins/rune"

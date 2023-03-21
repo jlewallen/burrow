@@ -1,0 +1,23 @@
+[package]
+name = "plugins-rune"
+version = "0.1.0"
+authors = ["Jacob Lewallen <jlewallen@gmail.com>"]
+edition = "2021"
+
+[dependencies.kernel]
+path = "../../kernel"
+
+[dependencies.plugins-core]
+path = "../core"
+
+[dependencies]
+anyhow = "1.0.66"
+tracing = "0.1.37"
+tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
+serde = { version = "1.0.145", features = ["derive"] }
+serde_json = "1.0.86"
+rune = "0.12.1"
+glob = "0.3.1"
+
+[dev-dependencies]
+insta = { version = "1.21.1", features = ["yaml", "json"] }

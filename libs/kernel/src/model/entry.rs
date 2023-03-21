@@ -138,6 +138,10 @@ impl<T: Scope> OpenedScope<T> {
 
         Self { target }
     }
+
+    pub fn as_ref(&self) -> &Box<T> {
+        &self.target
+    }
 }
 
 impl<T: Scope> std::ops::Deref for OpenedScope<T> {

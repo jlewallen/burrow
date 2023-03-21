@@ -1,4 +1,4 @@
-default_level := "debug"
+default_level := "info"
 
 default:
     cargo test --all

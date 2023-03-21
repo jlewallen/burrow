@@ -1,0 +1,124 @@
+use glob::glob;
+use plugins_core::EntityRelationshipSet;
+use rune::runtime::RuntimeContext;
+use rune::termcolor::{ColorChoice, StandardStream};
+use rune::{Context, Diagnostics, Source, Sources, Vm};
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+
+use plugins_core::library::plugin::*;
+
+#[derive(Default)]
+pub struct RunePluginFactory {}
+
+impl PluginFactory for RunePluginFactory {
+    fn create_plugin(&self) -> Result<Box<dyn Plugin>> {
+        Ok(Box::new(RunePlugin::default()))
+    }
+}
+
+pub struct RunePlugin {
+    ctx: Context,
+    runtime: Arc<RuntimeContext>,
+    vm: Option<Vm>,
+}
+
+impl Default for RunePlugin {
+    fn default() -> Self {
+        Self {
+            ctx: Default::default(),
+            runtime: Default::default(),
+            vm: None,
+        }
+    }
+}
+
+impl RunePlugin {
+    fn load_user_sources(&mut self) -> Result<Sources> {
+        let mut sources = Sources::new();
+        for entry in glob("user/*.rn")? {
+            match entry {
+                Ok(path) => {
+                    info!("loading {}", path.display());
+                    sources.insert(Source::from_path(path.as_path())?);
+                }
+                Err(e) => warn!("{:?}", e),
+            }
+        }
+        Ok(sources)
+    }
+}
+
+impl Plugin for RunePlugin {
+    fn plugin_key() -> &'static str
+    where
+        Self: Sized,
+    {
+        "rune"
+    }
+
+    fn initialize(&mut self) -> Result<()> {
+        let mut sources = self.load_user_sources()?;
+        let mut diagnostics = Diagnostics::new();
+        let compiled = rune::prepare(&mut sources)
+            .with_context(&self.ctx)
+            .with_diagnostics(&mut diagnostics)
+            .build();
+
+        if !diagnostics.is_empty() {
+            let mut writer = StandardStream::stderr(ColorChoice::Always);
+            diagnostics.emit(&mut writer, &sources)?;
+        }
+
+        let vm = Vm::new(self.runtime.clone(), Arc::new(compiled?));
+
+        self.vm = Some(vm);
+
+        Ok(())
+    }
+
+    fn register_hooks(&self, _hooks: &ManagedHooks) -> Result<()> {
+        Ok(())
+    }
+
+    fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
+        let haystack = EntityRelationshipSet::new_from_surroundings(surroundings).expand()?;
+        for nearby in haystack
+            .iter()
+            .map(|r| r.entry())
+            .collect::<Result<Vec<_>>>()?
+        {
+            if nearby.has_scope::<Behavior>()? {
+                let behavior = nearby.scope::<Behavior>()?;
+                info!("{:?} {:?}", nearby, behavior.as_ref());
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl ParsesActions for RunePlugin {
+    fn try_parse_action(&self, _i: &str) -> EvaluationResult {
+        Err(EvaluationError::ParseFailed)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct Behavior {}
+
+impl Needs<SessionRef> for Behavior {
+    fn supply(&mut self, _session: &SessionRef) -> Result<()> {
+        Ok(())
+    }
+}
+
+impl Scope for Behavior {
+    fn serialize(&self) -> Result<serde_json::Value> {
+        Ok(serde_json::to_value(self)?)
+    }
+
+    fn scope_key() -> &'static str {
+        "behavior"
+    }
+}
