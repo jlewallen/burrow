@@ -1,0 +1,25 @@
+[package]
+name = "plugins-core"
+version = "0.1.0"
+authors = ["Jacob Lewallen <jlewallen@gmail.com>"]
+edition = "2021"
+
+[dependencies.kernel]
+path = "../../kernel"
+
+[dependencies.engine]
+path = "../../engine"
+
+[dependencies]
+anyhow = "1.0.66"
+tracing = "0.1.37"
+tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
+ctor = "0.1.26"
+serde = { version = "1.0.145", features = ["derive"] }
+serde_json = "1.0.86"
+nom = "7.1.1"
+indefinite = "0.1.4"
+inflection = "0.1.2"
+
+[dev-dependencies]
+insta = { version = "1.21.1", features = ["yaml", "json"] }

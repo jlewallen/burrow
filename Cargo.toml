@@ -4,8 +4,25 @@ version = "0.1.0"
 authors = ["Jacob Lewallen <jlewallen@gmail.com>"]
 edition = "2021"
 
+[workspace]
+members = [
+    "libs/replies",
+    "libs/kernel",
+    "libs/engine",
+    "libs/plugins/core",
+]
+
 [dependencies.replies]
 path = "libs/replies"
+
+[dependencies.kernel]
+path = "libs/kernel"
+
+[dependencies.engine]
+path = "libs/engine"
+
+[dependencies.plugins-core]
+path = "libs/plugins/core"
 
 [dependencies.yew]
 path = "yew"
@@ -41,11 +58,11 @@ lazy_static = "1.4.0"
 itertools = "0.10.5"
 indefinite = "0.1.4"
 inflection = "0.1.2"
-wasmer = "3.1.1"
-wasm-bindgen = "0.2.84"
-wasmer-compiler-cranelift = "3.1.1"
-rhai = "1.12.0"
-rune = "0.12.1"
+# wasmer = "3.1.1"
+# wasm-bindgen = "0.2.84"
+# wasmer-compiler-cranelift = "3.1.1"
+# rhai = "1.12.0"
+# rune = "0.12.1"
 
 [dev-dependencies]
 insta = { version = "1.21.1", features = ["yaml", "json"] }

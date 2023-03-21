@@ -1,9 +1,8 @@
 use anyhow::Result;
 use std::rc::Rc;
 
-use replies::Observed;
-
-use crate::kernel::EntityKey;
+use kernel::EntityKey;
+use kernel::Observed;
 
 pub trait Notifier {
     fn notify(&self, audience: &EntityKey, observed: &Rc<dyn Observed>) -> Result<()>;

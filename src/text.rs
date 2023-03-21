@@ -1,5 +1,5 @@
-use crate::kernel::Reply;
 use anyhow::Result;
+use replies::Reply;
 use tera::{Context, Tera};
 
 pub struct Renderer {

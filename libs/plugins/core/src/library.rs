@@ -1,11 +1,11 @@
 pub mod plugin {
     pub use super::parser::{try_parsing, ParsesActions};
-    pub use crate::kernel::*;
     pub use anyhow::Result;
+    pub use kernel::*;
 }
 
 pub mod parser {
-    pub use crate::kernel::*;
+    pub use kernel::*;
     use nom::sequence::delimited;
     pub use nom::{
         branch::alt,
@@ -65,8 +65,8 @@ pub mod parser {
 }
 
 pub mod model {
-    pub use crate::kernel::*;
     pub use anyhow::Result;
+    pub use kernel::*;
     pub use serde::{Deserialize, Serialize};
     pub use serde_json::{json, Value};
     pub use std::rc::Rc;
@@ -75,11 +75,11 @@ pub mod model {
 }
 
 pub mod actions {
-    pub use crate::kernel::*;
-    pub use crate::plugins::library::parser::ParsesActions;
-    pub use crate::plugins::log_test;
-    pub use crate::plugins::tools;
+    pub use crate::library::parser::ParsesActions;
+    pub use crate::log_test;
+    pub use crate::tools;
     pub use anyhow::Result;
+    pub use kernel::*;
     pub use tracing::*;
 
     pub fn reply_done<T: DomainEvent + 'static>(raise: T) -> Result<SimpleReply> {

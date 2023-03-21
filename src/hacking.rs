@@ -1,13 +1,15 @@
 use anyhow::Result;
+use engine::users::model::Usernames;
+
 use tracing::info;
 
-use crate::domain::{domain, DevNullNotifier};
-use crate::kernel::{ActiveSession, Entry, LookupBy};
-use crate::plugins::carrying::model::{Carryable, Containing};
-use crate::plugins::moving::model::Occupying;
-use crate::plugins::users::model::Usernames;
-use crate::storage;
+use crate::make_domain;
 use crate::text::Renderer;
+
+use engine::DevNullNotifier;
+use kernel::{ActiveSession, Entry, LookupBy};
+use plugins_core::carrying::model::{Carryable, Containing};
+use plugins_core::moving::model::Occupying;
 
 pub fn set_containing_quantities_to_1(thing: Entry) -> Result<()> {
     let holding = thing
@@ -31,8 +33,7 @@ pub fn set_containing_quantities_to_1(thing: Entry) -> Result<()> {
 
 pub fn execute_command() -> Result<()> {
     let _renderer = Renderer::new()?;
-    let storage_factory = storage::sqlite::Factory::new("world.sqlite3")?;
-    let domain = domain::Domain::new(storage_factory, false);
+    let domain = make_domain()?;
     let session = domain.open_session()?;
 
     let world = session.world()?;

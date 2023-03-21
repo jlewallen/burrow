@@ -4,7 +4,7 @@ use std::sync::{
     Arc,
 };
 
-use crate::kernel::{EntityGid, EntityKey, Identity};
+use kernel::{EntityGid, EntityKey, Identity};
 
 pub fn make_keys(deterministic: bool) -> Arc<dyn Sequence<EntityKey>> {
     if deterministic {

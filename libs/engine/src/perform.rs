@@ -1,20 +1,24 @@
 use anyhow::Result;
 use std::rc::Rc;
 use std::rc::Weak;
+use std::sync::Arc;
 use tracing::{debug, event, info, span, Level};
 
 use super::Session;
-use crate::kernel::*;
-use crate::plugins::{moving::model::Occupying, users::model::Usernames};
+use crate::users::model::Usernames;
+use crate::Finder;
+use kernel::*;
 
 pub struct StandardPerformer {
     session: Weak<Session>,
+    finder: Arc<dyn Finder>,
 }
 
 impl StandardPerformer {
-    pub fn new(session: &Weak<Session>) -> Rc<Self> {
+    pub fn new(session: &Weak<Session>, finder: Arc<dyn Finder>) -> Rc<Self> {
         Rc::new(StandardPerformer {
             session: Weak::clone(session),
+            finder,
         })
     }
 
@@ -83,10 +87,7 @@ impl StandardPerformer {
 
         let world = session.world()?;
 
-        let area: Entry = {
-            let occupying = living.scope::<Occupying>()?;
-            occupying.area.into_entry()?
-        };
+        let area: Entry = self.finder.find_location(living)?;
 
         info!("area {:?}", &area);
 

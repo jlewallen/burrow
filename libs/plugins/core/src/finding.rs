@@ -1,10 +1,9 @@
 use anyhow::{anyhow, Result};
+use engine::Finder;
 use tracing::{debug, info};
 
-use crate::{
-    kernel::{Entry, Item, Surroundings},
-    plugins::tools,
-};
+use crate::{moving::model::Occupying, tools};
+use kernel::{Audience, Entry, Item, Surroundings};
 
 /// Determines if an entity matches a user's description of that entity, given
 /// no other context at all.
@@ -91,7 +90,7 @@ impl EntityRelationshipSet {
 
     // Why not just do this in expand?
     pub fn routes(&self) -> Result<Self> {
-        use crate::plugins::moving::model::Exit;
+        use crate::moving::model::Exit;
 
         let mut expanded = self.entities.clone();
 
@@ -145,6 +144,7 @@ impl EntityRelationshipSet {
                 debug!("route:haystack {:?}", haystack);
 
                 for entity in &haystack.entities {
+                    #[allow(clippy::single_match)]
                     match entity {
                         EntityRelationship::Exit(route_name, area) => {
                             if matches_string(route_name, name) {
@@ -188,5 +188,28 @@ fn default_priority(e: &EntityRelationship) -> u32 {
         EntityRelationship::Exit(_, _) => 5,
         EntityRelationship::User(_) => 6,
         EntityRelationship::World(_) => 7,
+    }
+}
+
+pub struct DefaultFinder {}
+
+impl Finder for DefaultFinder {
+    fn find_location(&self, entry: &Entry) -> Result<Entry> {
+        let occupying = entry.scope::<Occupying>()?;
+        Ok(occupying.area.into_entry()?)
+    }
+
+    fn find_item(&self, surroundings: &Surroundings, item: &Item) -> Result<Option<Entry>> {
+        let haystack = EntityRelationshipSet::new_from_surroundings(surroundings).expand()?;
+        haystack.find_item(item)
+    }
+
+    fn find_audience(&self, audience: &kernel::Audience) -> Result<Vec<kernel::EntityKey>> {
+        match audience {
+            Audience::Nobody => Ok(Vec::new()),
+            Audience::Everybody => todo![],
+            Audience::Individuals(keys) => Ok(keys.to_vec()),
+            Audience::Area(area) => tools::get_occupant_keys(area),
+        }
     }
 }

@@ -13,12 +13,20 @@ use tracing::{debug, info, span, trace, warn, Level};
 use super::internal::{Entities, EntityMap, LoadedEntity};
 use super::perform::StandardPerformer;
 use super::sequences::{GlobalIds, Sequence};
-use super::{EntityRelationshipSet, Notifier};
-use crate::kernel::*;
-use crate::plugins::{identifiers, tools};
+use super::Notifier;
+use crate::identifiers;
 use crate::storage::{EntityStorage, PersistedEntity};
+use kernel::*;
 
 struct ModifiedEntity(PersistedEntity);
+
+pub trait Finder: Send + Sync {
+    fn find_location(&self, entry: &Entry) -> Result<Entry>;
+
+    fn find_item(&self, surroundings: &Surroundings, item: &Item) -> Result<Option<Entry>>;
+
+    fn find_audience(&self, audience: &Audience) -> Result<Vec<EntityKey>>;
+}
 
 pub struct Session {
     opened: Instant,
@@ -33,6 +41,7 @@ pub struct Session {
     entities: Rc<Entities>,
     destroyed: RefCell<Vec<EntityKey>>,
     plugins: Arc<RegisteredPlugins>,
+    finder: Arc<dyn Finder>,
     hooks: ManagedHooks,
 }
 
@@ -42,6 +51,7 @@ impl Session {
         keys: &Arc<dyn Sequence<EntityKey>>,
         identities: &Arc<dyn Sequence<Identity>>,
         plugins: &Arc<RegisteredPlugins>,
+        finder: &Arc<dyn Finder>,
     ) -> Result<Rc<Self>> {
         trace!("session-new");
 
@@ -57,7 +67,7 @@ impl Session {
             opened,
             storage: Rc::clone(&storage),
             open: AtomicBool::new(true),
-            performer: StandardPerformer::new(weak),
+            performer: StandardPerformer::new(weak, Arc::clone(finder)),
             ids: Rc::clone(&ids),
             raised,
             weak: Weak::clone(weak),
@@ -66,6 +76,7 @@ impl Session {
             identities: Arc::clone(identities),
             destroyed: RefCell::new(Vec::new()),
             plugins: Arc::clone(plugins),
+            finder: Arc::clone(finder),
             hooks,
         });
 
@@ -134,12 +145,7 @@ impl Session {
     }
 
     fn get_audience_keys(&self, audience: &Audience) -> Result<Vec<EntityKey>> {
-        match audience {
-            Audience::Nobody => Ok(Vec::new()),
-            Audience::Everybody => todo![],
-            Audience::Individuals(keys) => Ok(keys.to_vec()),
-            Audience::Area(area) => tools::get_occupant_keys(area),
-        }
+        self.finder.find_audience(audience)
     }
 
     fn flush_raised<T: Notifier>(&self, notifier: &T) -> Result<()> {
@@ -321,33 +327,12 @@ impl Session {
         Ok(())
     }
 
-    fn find_item_in_set(
-        &self,
-        haystack: &EntityRelationshipSet,
-        item: &Item,
-    ) -> Result<Option<Entry>> {
-        match item {
-            Item::Gid(gid) => self.entry(&LookupBy::Gid(gid)),
-            _ => haystack.find_item(item),
-        }
-    }
-
     fn load_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
         self.entities.prepare_entity(lookup)
     }
 }
 
 impl ActiveSession for Session {
-    /*
-    fn entry_by_gid(&self, gid: &EntityGid) -> Result<Option<Entry>> {
-        if let Some(e) = self.entities.prepare_entity(&LookupBy::Gid(gid.clone()))? {
-            self.entry(&e.key())
-        } else {
-            Ok(None)
-        }
-    }
-    */
-
     fn entry(&self, lookup: &LookupBy) -> Result<Option<Entry>> {
         match self.load_entity(lookup)? {
             Some(entity) => Ok(Some(Entry::new(
@@ -364,9 +349,10 @@ impl ActiveSession for Session {
 
         info!("finding");
 
-        let haystack = EntityRelationshipSet::new_from_surroundings(surroundings).expand()?;
-
-        self.find_item_in_set(&haystack, item)
+        match item {
+            Item::Gid(gid) => self.entry(&LookupBy::Gid(gid)),
+            _ => self.finder.find_item(surroundings, item),
+        }
     }
 
     fn ensure_entity(&self, entity_ref: &EntityRef) -> Result<EntityRef, DomainError> {

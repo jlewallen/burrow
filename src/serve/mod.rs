@@ -9,6 +9,7 @@ use axum::{
 use axum_typed_websockets::{Message, WebSocket, WebSocketUpgrade};
 use clap::Args;
 use futures::{sink::SinkExt, stream::StreamExt};
+
 use serde::{Deserialize, Serialize};
 use std::{borrow::Borrow, net::SocketAddr, path::PathBuf, rc::Rc, sync::Arc};
 use tokio::signal;
@@ -19,11 +20,10 @@ use tower_http::{
 };
 use tracing::{debug, info, warn};
 
-use crate::{
-    domain::{DevNullNotifier, Domain, Notifier},
-    kernel::{EntityKey, Reply, SimpleReply},
-    storage,
-};
+use engine::{DevNullNotifier, Domain, Notifier};
+use kernel::{EntityKey, Reply, SimpleReply};
+
+use crate::make_domain;
 
 #[derive(Debug, Args)]
 pub struct Command {}
@@ -91,8 +91,7 @@ impl Notifier for AppState {
 pub async fn execute_command(_cmd: &Command) -> Result<()> {
     info!("serving");
 
-    let storage_factory = storage::sqlite::Factory::new("world.sqlite3")?;
-    let domain = Domain::new(storage_factory, false);
+    let domain = make_domain()?;
 
     let assets_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
 

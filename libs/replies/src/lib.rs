@@ -100,12 +100,6 @@ impl From<&SimpleObservation> for serde_json::Value {
     }
 }
 
-impl Into<serde_json::Value> for SimpleObservation {
-    fn into(self) -> serde_json::Value {
-        self.0
-    }
-}
-
 impl ToJson for SimpleObservation {
     fn to_json(&self) -> Result<Value, serde_json::Error> {
         Ok(json!({ "simpleObservation": serde_json::to_value(self)? }))

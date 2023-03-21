@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::rc::Rc;
 use tracing::*;
 
-use crate::kernel::{EntityGid, EntityKey, LookupBy};
+use kernel::{EntityGid, EntityKey, LookupBy};
 
 pub trait EntityStorage {
     fn load(&self, lookup: &LookupBy) -> Result<Option<PersistedEntity>>;

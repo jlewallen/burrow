@@ -1,11 +1,10 @@
 use anyhow::Result;
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
 
-use super::{DevNullNotifier, Session};
-use crate::{
-    kernel::{EntityKey, EntityPtr, Entry, SessionRef, Surroundings, WORLD_KEY},
-    plugins::tools,
-};
+use engine::{domain, storage, DevNullNotifier, Session};
+use kernel::{EntityKey, EntityPtr, Entry, RegisteredPlugins, SessionRef, Surroundings, WORLD_KEY};
+
+use crate::{tools, DefaultFinder};
 
 pub struct Build {
     session: SessionRef,
@@ -108,8 +107,10 @@ pub struct BuildSurroundings {
 
 impl BuildSurroundings {
     pub fn new() -> Result<Self> {
-        let storage_factory = crate::storage::sqlite::Factory::new(":memory:")?;
-        let domain = crate::domain::Domain::new(storage_factory, true);
+        let storage_factory = storage::sqlite::Factory::new(":memory:")?;
+        let plugins = Arc::new(RegisteredPlugins::default());
+        let finder = Arc::new(DefaultFinder {});
+        let domain = domain::Domain::new(storage_factory, plugins, finder, true);
         let session = domain.open_session()?;
 
         Ok(Self {

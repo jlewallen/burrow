@@ -1,4 +1,4 @@
-use crate::plugins::library::plugin::*;
+use crate::library::plugin::*;
 
 #[derive(Default)]
 pub struct MovingPlugin {}
@@ -21,7 +21,7 @@ impl ParsesActions for MovingPlugin {
 }
 
 pub mod model {
-    use crate::plugins::{library::model::*, looking::model::Observe};
+    use crate::{library::model::*, looking::model::Observe};
 
     pub trait BeforeMovingHook {
         fn before_moving(&self, surroundings: &Surroundings, to_area: &Entry) -> Result<CanMove>;
@@ -244,9 +244,9 @@ pub mod model {
 }
 
 pub mod actions {
-    use crate::plugins::library::actions::*;
-    use crate::plugins::looking::actions::*;
-    use crate::plugins::moving::model::{
+    use crate::library::actions::*;
+    use crate::looking::actions::*;
+    use crate::moving::model::{
         AfterMoveHook, BeforeMovingHook, CanMove, MovingEvent, MovingHooks,
     };
 
@@ -303,7 +303,7 @@ pub mod actions {
 }
 
 mod parser {
-    use crate::plugins::library::parser::*;
+    use crate::library::parser::*;
 
     use super::actions::GoAction;
 
@@ -326,8 +326,8 @@ mod tests {
     use super::parser::*;
     use super::*;
     use crate::{
-        domain::{BuildSurroundings, QuickThing},
-        plugins::{looking::model::new_area_observation, tools},
+        {looking::model::new_area_observation, tools},
+        {BuildSurroundings, QuickThing},
     };
 
     #[test]

@@ -1,4 +1,4 @@
-use crate::plugins::library::plugin::*;
+use crate::library::plugin::*;
 
 #[derive(Default)]
 pub struct LookingPlugin {}
@@ -21,10 +21,10 @@ impl ParsesActions for LookingPlugin {
 }
 
 pub mod model {
-    use crate::plugins::library::model::*;
+    use crate::library::model::*;
     use crate::{
-        plugins::carrying::model::{Carryable, Containing},
-        plugins::moving::model::{Movement, Occupyable},
+        carrying::model::{Carryable, Containing},
+        moving::model::{Movement, Occupyable},
     };
 
     pub fn qualify_name(quantity: f32, name: &str) -> String {
@@ -114,7 +114,7 @@ pub mod model {
 
 pub mod actions {
     use super::model::*;
-    use crate::plugins::library::actions::*;
+    use crate::library::actions::*;
 
     #[derive(Debug)]
     pub struct LookAction {}
@@ -163,7 +163,7 @@ pub mod actions {
 }
 
 pub mod parser {
-    use crate::plugins::library::parser::*;
+    use crate::library::parser::*;
 
     use super::actions::{LookAction, LookInsideAction};
 
@@ -194,10 +194,7 @@ mod tests {
     use super::model::*;
     use super::parser::LookActionParser;
     use super::*;
-    use crate::{
-        domain::{BuildSurroundings, QuickThing},
-        plugins::library::plugin::try_parsing,
-    };
+    use crate::{library::plugin::try_parsing, BuildSurroundings, QuickThing};
 
     #[test]
     fn it_looks_in_empty_area() -> Result<()> {

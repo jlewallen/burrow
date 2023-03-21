@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::rc::{Rc, Weak};
 use tracing::trace;
 
-use crate::kernel::{
+use crate::{
     get_my_session, ActiveSession, DomainError, EntityGid, EntityKey, EntityPtr, EntityRef,
     LookupBy, Scope,
 };

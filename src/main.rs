@@ -1,18 +1,20 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use std::error::Error;
+use engine::{storage, Domain};
+use kernel::RegisteredPlugins;
+use plugins_core::{
+    building::BuildingPlugin, carrying::CarryingPlugin, looking::LookingPlugin,
+    moving::MovingPlugin, DefaultFinder,
+};
 use std::path::PathBuf;
+use std::{error::Error, sync::Arc};
 use tracing::*;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-pub mod domain;
 pub mod eval;
 pub mod hacking;
-pub mod kernel;
-pub mod plugins;
 pub mod serve;
 pub mod shell;
-pub mod storage;
 pub mod text;
 
 #[derive(Parser)]
@@ -43,6 +45,23 @@ fn get_rust_log() -> String {
     }
 
     original
+}
+
+fn make_domain() -> Result<Domain> {
+    let storage_factory = storage::sqlite::Factory::new("world.sqlite3")?;
+    let mut plugins = RegisteredPlugins::default();
+    plugins.register::<MovingPlugin>();
+    plugins.register::<LookingPlugin>();
+    plugins.register::<CarryingPlugin>();
+    plugins.register::<BuildingPlugin>();
+
+    let finder = Arc::new(DefaultFinder {});
+    Ok(Domain::new(
+        storage_factory,
+        Arc::new(plugins),
+        finder,
+        false,
+    ))
 }
 
 fn main() -> Result<(), Box<dyn Error>> {

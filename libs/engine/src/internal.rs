@@ -2,8 +2,8 @@ use anyhow::{anyhow, Result};
 use std::{cell::RefCell, collections::HashMap, fmt::Debug, rc::Rc};
 use tracing::*;
 
-use crate::kernel::*;
 use crate::storage::{EntityStorage, PersistedEntity};
+use kernel::*;
 
 use super::sequences::GlobalIds;
 

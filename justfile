@@ -1,7 +1,7 @@
 default_level := "debug"
 
 default:
-    cargo test
+    cargo test --all
 
 eval:
     RUST_LOG={{ default_level }} cargo run -- eval

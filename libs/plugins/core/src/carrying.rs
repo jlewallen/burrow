@@ -1,4 +1,4 @@
-use crate::plugins::library::plugin::*;
+use crate::library::plugin::*;
 
 #[derive(Default)]
 pub struct CarryingPlugin {}
@@ -24,7 +24,7 @@ impl ParsesActions for CarryingPlugin {
 }
 
 pub mod model {
-    use crate::plugins::{library::model::*, looking::model::Observe, tools};
+    use crate::{library::model::*, looking::model::Observe, tools};
 
     pub type CarryingResult = Result<DomainOutcome>;
 
@@ -284,7 +284,7 @@ pub mod model {
 }
 
 pub mod actions {
-    use crate::plugins::{carrying::model::CarryingEvent, library::actions::*};
+    use crate::{carrying::model::CarryingEvent, library::actions::*};
 
     #[derive(Debug)]
     pub struct HoldAction {
@@ -423,7 +423,7 @@ pub mod actions {
 
 pub mod parser {
     use super::actions::*;
-    use crate::plugins::library::parser::*;
+    use crate::library::parser::*;
 
     pub struct HoldActionParser {}
 
@@ -510,11 +510,11 @@ mod tests {
 
     use super::parser::*;
     use super::*;
-    use crate::plugins::carrying::model::Location;
-    use crate::plugins::tools;
+    use crate::carrying::model::Location;
+    use crate::tools;
     use crate::{
-        domain::{BuildSurroundings, QuickThing},
-        plugins::carrying::model::Containing,
+        carrying::model::Containing,
+        {BuildSurroundings, QuickThing},
     };
 
     #[test]

@@ -1,4 +1,6 @@
-use crate::plugins::library::plugin::*;
+use kernel::{EvaluationResult, ManagedHooks, ParsesActions, Plugin};
+
+use crate::library::plugin::*;
 
 #[derive(Default)]
 pub struct BuildingPlugin {}
@@ -25,7 +27,7 @@ impl ParsesActions for BuildingPlugin {
 }
 
 pub mod model {
-    use crate::plugins::library::model::*;
+    use crate::library::model::*;
 
     #[derive(Debug, Serialize)]
     #[serde(rename_all = "camelCase")]
@@ -41,7 +43,7 @@ pub mod model {
 }
 
 pub mod actions {
-    use crate::plugins::{library::actions::*, looking::actions::LookAction};
+    use crate::{library::actions::*, looking::actions::LookAction};
 
     #[derive(Debug)]
     pub struct EditAction {
@@ -182,7 +184,7 @@ pub mod actions {
 }
 
 pub mod parser {
-    use crate::plugins::library::parser::*;
+    use crate::library::parser::*;
 
     use super::actions::{
         BidirectionalDigAction, DuplicateAction, EditAction, MakeItemAction, ObliterateAction,
@@ -269,11 +271,13 @@ pub mod parser {
 
 #[cfg(test)]
 mod tests {
+    use kernel::{DomainError, EntityGid, LookupBy, SimpleReply};
+
     use super::parser::*;
     use super::*;
     use crate::{
-        domain::{BuildSurroundings, QuickThing},
-        plugins::{carrying::model::Containing, looking::model::new_area_observation, tools},
+        {carrying::model::Containing, looking::model::new_area_observation, tools},
+        {BuildSurroundings, QuickThing},
     };
 
     #[test]

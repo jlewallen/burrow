@@ -5,7 +5,7 @@ use super::{
     carrying::model::{Carryable, Containing, Location},
     moving::model::{Exit, Occupyable, Occupying},
 };
-use crate::kernel::{get_my_session, model::*, DomainOutcome, EntityPtr};
+use kernel::{get_my_session, model::*, DomainOutcome, EntityPtr};
 
 pub fn is_container(item: &Entry) -> Result<bool> {
     item.has_scope::<Containing>()

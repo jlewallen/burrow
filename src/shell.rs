@@ -1,9 +1,10 @@
-use crate::domain::{self, DevNullNotifier, Domain, Notifier};
-use crate::kernel::{EntityKey, Reply, SimpleReply};
-use crate::storage;
+use crate::make_domain;
 use crate::text::Renderer;
 use anyhow::Result;
 use clap::Args;
+use engine::{self, DevNullNotifier, Domain, Notifier};
+use kernel::{EntityKey, Reply, SimpleReply};
+
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::cell::RefCell;
@@ -78,8 +79,7 @@ fn find_user_key(domain: &Domain, name: &str) -> Result<Option<EntityKey>> {
 #[tokio::main]
 pub async fn execute_command(cmd: &Command) -> Result<()> {
     let renderer = Renderer::new()?;
-    let storage_factory = storage::sqlite::Factory::new("world.sqlite3")?;
-    let domain = domain::Domain::new(storage_factory, false);
+    let domain = make_domain()?;
 
     let self_key = find_user_key(&domain, &cmd.username)?.expect("No such username");
 

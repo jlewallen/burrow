@@ -1,11 +1,8 @@
 use anyhow::Result;
 use clap::Args;
 
-use crate::{
-    domain::{DevNullNotifier, Domain},
-    storage,
-    text::Renderer,
-};
+use crate::{make_domain, text::Renderer};
+use engine::DevNullNotifier;
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -18,8 +15,7 @@ pub struct Command {
 #[tokio::main]
 pub async fn execute_command(cmd: &Command) -> Result<()> {
     let renderer = Renderer::new()?;
-    let storage_factory = storage::sqlite::Factory::new("world.sqlite3")?;
-    let domain = Domain::new(storage_factory, false);
+    let domain = make_domain()?;
     let session = domain.open_session()?;
 
     for text in &[&cmd.text] {
