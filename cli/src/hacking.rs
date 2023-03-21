@@ -1,13 +1,12 @@
 use anyhow::Result;
-use engine::users::model::Usernames;
 
 use tracing::info;
 
 use crate::make_domain;
 use crate::text::Renderer;
 
-use engine::DevNullNotifier;
-use kernel::{ActiveSession, Entry, LookupBy};
+use engine::{username_to_key, DevNullNotifier};
+use kernel::{ActiveSession, DomainError, Entry, LookupBy};
 use plugins_core::carrying::model::{Carryable, Containing};
 use plugins_core::moving::model::Occupying;
 
@@ -37,10 +36,10 @@ pub fn execute_command() -> Result<()> {
     let session = domain.open_session()?;
 
     let world = session.world()?;
-    let usernames = world.scope::<Usernames>()?;
-    let user_key = &usernames.find("jlewallen");
+    let user_key =
+        username_to_key(&world, "jlewallen")?.ok_or_else(|| DomainError::EntityNotFound)?;
     let user = session
-        .entry(&LookupBy::Key(user_key))?
+        .entry(&LookupBy::Key(&user_key))?
         .expect("No 'USER' entity.");
 
     let occupying = user.scope::<Occupying>()?;

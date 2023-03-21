@@ -10,8 +10,8 @@ pub mod model {
     }
 
     impl Usernames {
-        pub fn find(&self, name: &str) -> &EntityKey {
-            &self.users[name]
+        pub fn find(&self, name: &str) -> Option<&EntityKey> {
+            self.users.get(name)
         }
     }
 
@@ -29,5 +29,10 @@ pub mod model {
         fn scope_key() -> &'static str {
             "usernames"
         }
+    }
+
+    pub fn username_to_key(world: &Entry, username: &str) -> Result<Option<EntityKey>> {
+        let usernames = world.scope::<Usernames>()?;
+        Ok(usernames.find(username).cloned())
     }
 }

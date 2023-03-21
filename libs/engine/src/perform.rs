@@ -73,7 +73,9 @@ impl StandardPerformer {
 
         let usernames = world.scope::<Usernames>()?;
 
-        let user_key = &usernames.find(name);
+        let user_key = &usernames
+            .find(name)
+            .ok_or_else(|| DomainError::EntityNotFound)?;
 
         let living = session
             .entry(&LookupBy::Key(user_key))?
