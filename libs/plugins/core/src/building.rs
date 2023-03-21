@@ -3,6 +3,15 @@ use kernel::{EvaluationResult, ManagedHooks, ParsesActions, Plugin};
 use crate::library::plugin::*;
 
 #[derive(Default)]
+pub struct BuildingPluginFactory {}
+
+impl PluginFactory for BuildingPluginFactory {
+    fn create_plugin(&self) -> Result<Box<dyn Plugin>> {
+        Ok(Box::new(BuildingPlugin {}))
+    }
+}
+
+#[derive(Default)]
 pub struct BuildingPlugin {}
 
 impl Plugin for BuildingPlugin {

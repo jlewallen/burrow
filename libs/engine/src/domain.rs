@@ -14,8 +14,8 @@ pub struct Domain {
     storage_factory: Box<dyn EntityStorageFactory>,
     keys: Arc<dyn Sequence<EntityKey>>,
     identities: Arc<dyn Sequence<Identity>>,
-    plugins: Arc<RegisteredPlugins>,
     finder: Arc<dyn Finder>,
+    plugins: Arc<RegisteredPlugins>,
 }
 
 impl Domain {
@@ -31,8 +31,8 @@ impl Domain {
             storage_factory,
             keys: make_keys(deterministic),
             identities: make_identities(deterministic),
-            plugins,
             finder,
+            plugins,
         }
     }
 
@@ -45,8 +45,8 @@ impl Domain {
             storage,
             &self.keys,
             &self.identities,
-            &self.plugins,
             &self.finder,
+            &self.plugins,
         )
     }
 }

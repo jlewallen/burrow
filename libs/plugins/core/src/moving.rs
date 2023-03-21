@@ -1,6 +1,15 @@
 use crate::library::plugin::*;
 
 #[derive(Default)]
+pub struct MovingPluginFactory {}
+
+impl PluginFactory for MovingPluginFactory {
+    fn create_plugin(&self) -> Result<Box<dyn Plugin>> {
+        Ok(Box::new(MovingPlugin {}))
+    }
+}
+
+#[derive(Default)]
 pub struct MovingPlugin {}
 
 impl Plugin for MovingPlugin {

@@ -1,6 +1,15 @@
 use crate::library::plugin::*;
 
 #[derive(Default)]
+pub struct LookingPluginFactory {}
+
+impl PluginFactory for LookingPluginFactory {
+    fn create_plugin(&self) -> Result<Box<dyn Plugin>> {
+        Ok(Box::new(LookingPlugin {}))
+    }
+}
+
+#[derive(Default)]
 pub struct LookingPlugin {}
 
 impl Plugin for LookingPlugin {

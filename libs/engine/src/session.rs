@@ -40,8 +40,8 @@ pub struct Session {
     weak: Weak<Session>,
     entities: Rc<Entities>,
     destroyed: RefCell<Vec<EntityKey>>,
-    plugins: Arc<RegisteredPlugins>,
     finder: Arc<dyn Finder>,
+    plugins: Arc<SessionPlugins>,
     hooks: ManagedHooks,
 }
 
@@ -50,18 +50,21 @@ impl Session {
         storage: Rc<dyn EntityStorage>,
         keys: &Arc<dyn Sequence<EntityKey>>,
         identities: &Arc<dyn Sequence<Identity>>,
-        plugins: &Arc<RegisteredPlugins>,
         finder: &Arc<dyn Finder>,
+        registered_plugins: &Arc<RegisteredPlugins>,
     ) -> Result<Rc<Self>> {
         trace!("session-new");
 
         let opened = Instant::now();
         let ids = GlobalIds::new();
         let entity_map = EntityMap::new(Rc::clone(&ids));
-        let raised = Rc::new(RefCell::new(Vec::new()));
-        let hooks = plugins.hooks();
 
         storage.begin()?;
+
+        let mut plugins = registered_plugins.create_plugins()?;
+        plugins.initialize()?;
+
+        let hooks = plugins.hooks();
 
         let session = Rc::new_cyclic(|weak: &Weak<Session>| Self {
             opened,
@@ -69,14 +72,14 @@ impl Session {
             open: AtomicBool::new(true),
             performer: StandardPerformer::new(weak, Arc::clone(finder)),
             ids: Rc::clone(&ids),
-            raised,
+            raised: Rc::new(RefCell::new(Vec::new())),
             weak: Weak::clone(weak),
             entities: Entities::new(entity_map, storage),
             keys: Arc::clone(keys),
             identities: Arc::clone(identities),
             destroyed: RefCell::new(Vec::new()),
-            plugins: Arc::clone(plugins),
             finder: Arc::clone(finder),
+            plugins: Arc::new(plugins),
             hooks,
         });
 
@@ -98,7 +101,7 @@ impl Session {
         Ok(())
     }
 
-    pub fn plugins(&self) -> &RegisteredPlugins {
+    pub fn plugins(&self) -> &SessionPlugins {
         &self.plugins
     }
 
@@ -144,10 +147,6 @@ impl Session {
         self.storage.begin()
     }
 
-    fn get_audience_keys(&self, audience: &Audience) -> Result<Vec<EntityKey>> {
-        self.finder.find_audience(audience)
-    }
-
     fn flush_raised<T: Notifier>(&self, notifier: &T) -> Result<()> {
         let mut pending = self.raised.borrow_mut();
         let npending = pending.len();
@@ -158,7 +157,7 @@ impl Session {
         info!(%npending, "raising");
 
         for event in pending.iter() {
-            let audience_keys = self.get_audience_keys(&event.audience())?;
+            let audience_keys = self.finder.find_audience(&event.audience())?;
             for key in audience_keys {
                 let user = self.load_entity(&LookupBy::Key(&key))?.unwrap();
                 debug!(%key, "observing {:?}", user);

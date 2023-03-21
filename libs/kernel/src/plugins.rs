@@ -1,12 +1,40 @@
 use super::{model::*, Action, ManagedHooks};
+use anyhow::Result;
 
 pub type EvaluationResult = Result<Box<dyn Action>, EvaluationError>;
+
+pub trait PluginFactory: Send + Sync {
+    fn create_plugin(&self) -> Result<Box<dyn Plugin>>;
+}
+
+#[derive(Default)]
+pub struct RegisteredPlugins {
+    factories: Vec<Box<dyn PluginFactory>>,
+}
+
+impl RegisteredPlugins {
+    pub fn register<P>(&mut self)
+    where
+        P: PluginFactory + Default + 'static,
+    {
+        self.factories.push(Box::<P>::default())
+    }
+
+    pub fn create_plugins(&self) -> Result<SessionPlugins> {
+        Ok(SessionPlugins::new(
+            self.factories
+                .iter()
+                .map(|f| f.create_plugin())
+                .collect::<Result<Vec<_>>>()?,
+        ))
+    }
+}
 
 pub trait ParsesActions {
     fn try_parse_action(&self, i: &str) -> EvaluationResult;
 }
 
-pub trait Plugin: ParsesActions + Send + Sync {
+pub trait Plugin: ParsesActions {
     fn plugin_key() -> &'static str
     where
         Self: Sized;
@@ -17,16 +45,13 @@ pub trait Plugin: ParsesActions + Send + Sync {
 }
 
 #[derive(Default)]
-pub struct RegisteredPlugins {
+pub struct SessionPlugins {
     plugins: Vec<Box<dyn Plugin>>,
 }
 
-impl RegisteredPlugins {
-    pub fn register<P>(&mut self)
-    where
-        P: Plugin + Default + 'static,
-    {
-        self.plugins.push(Box::<P>::default())
+impl SessionPlugins {
+    fn new(plugins: Vec<Box<dyn Plugin>>) -> Self {
+        Self { plugins }
     }
 
     pub fn initialize(&mut self) -> anyhow::Result<()> {

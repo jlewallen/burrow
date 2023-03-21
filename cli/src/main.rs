@@ -8,9 +8,10 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use engine::{storage, Domain};
 use kernel::RegisteredPlugins;
 use plugins_core::{
-    building::BuildingPlugin, carrying::CarryingPlugin, looking::LookingPlugin,
-    moving::MovingPlugin, DefaultFinder,
+    building::BuildingPluginFactory, carrying::CarryingPluginFactory,
+    looking::LookingPluginFactory, moving::MovingPluginFactory, DefaultFinder,
 };
+use plugins_rune::RunePluginFactory;
 
 mod eval;
 mod hacking;
@@ -50,17 +51,17 @@ fn get_rust_log() -> String {
 
 fn make_domain() -> Result<Domain> {
     let storage_factory = storage::sqlite::Factory::new("world.sqlite3")?;
-    let mut plugins = RegisteredPlugins::default();
-    plugins.register::<MovingPlugin>();
-    plugins.register::<LookingPlugin>();
-    plugins.register::<CarryingPlugin>();
-    plugins.register::<BuildingPlugin>();
-    plugins.initialize()?;
+    let mut registered_plugins = RegisteredPlugins::default();
+    registered_plugins.register::<MovingPluginFactory>();
+    registered_plugins.register::<LookingPluginFactory>();
+    registered_plugins.register::<CarryingPluginFactory>();
+    registered_plugins.register::<BuildingPluginFactory>();
+    registered_plugins.register::<RunePluginFactory>();
 
     let finder = Arc::new(DefaultFinder {});
     Ok(Domain::new(
         storage_factory,
-        Arc::new(plugins),
+        Arc::new(registered_plugins),
         finder,
         false,
     ))
