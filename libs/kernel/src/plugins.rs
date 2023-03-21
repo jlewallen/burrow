@@ -11,6 +11,8 @@ pub trait Plugin: ParsesActions + Send + Sync {
     where
         Self: Sized;
 
+    fn initialize(&mut self) -> anyhow::Result<()>;
+
     fn register_hooks(&self, hooks: &ManagedHooks);
 }
 
@@ -25,6 +27,13 @@ impl RegisteredPlugins {
         P: Plugin + Default + 'static,
     {
         self.plugins.push(Box::<P>::default())
+    }
+
+    pub fn initialize(&mut self) -> anyhow::Result<()> {
+        for plugin in self.plugins.iter_mut() {
+            plugin.initialize()?;
+        }
+        Ok(())
     }
 
     pub fn hooks(&self) -> ManagedHooks {

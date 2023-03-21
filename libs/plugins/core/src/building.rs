@@ -13,6 +13,10 @@ impl Plugin for BuildingPlugin {
         "building"
     }
 
+    fn initialize(&mut self) -> anyhow::Result<()> {
+        Ok(())
+    }
+
     fn register_hooks(&self, _hooks: &ManagedHooks) {}
 }
 

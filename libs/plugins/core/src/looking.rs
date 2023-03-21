@@ -11,6 +11,10 @@ impl Plugin for LookingPlugin {
         "looking"
     }
 
+    fn initialize(&mut self) -> anyhow::Result<()> {
+        Ok(())
+    }
+
     fn register_hooks(&self, _hooks: &ManagedHooks) {}
 }
 

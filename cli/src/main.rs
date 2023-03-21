@@ -55,6 +55,7 @@ fn make_domain() -> Result<Domain> {
     plugins.register::<LookingPlugin>();
     plugins.register::<CarryingPlugin>();
     plugins.register::<BuildingPlugin>();
+    plugins.initialize()?;
 
     let finder = Arc::new(DefaultFinder {});
     Ok(Domain::new(
