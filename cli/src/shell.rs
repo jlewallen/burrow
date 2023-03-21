@@ -1,14 +1,14 @@
-use crate::make_domain;
-use crate::text::Renderer;
 use anyhow::Result;
 use clap::Args;
-use engine::{self, DevNullNotifier, Domain, Notifier};
-use kernel::{EntityKey, Reply, SimpleReply};
-
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::cell::RefCell;
 use std::rc::Rc;
+
+use crate::make_domain;
+use crate::text::Renderer;
+use engine::{self, DevNullNotifier, Domain, Notifier};
+use kernel::{EntityKey, Reply, SimpleReply};
 
 #[derive(Debug, Args)]
 pub struct Command {

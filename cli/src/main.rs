@@ -1,21 +1,22 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use std::path::PathBuf;
+use std::{error::Error, sync::Arc};
+use tracing::*;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
 use engine::{storage, Domain};
 use kernel::RegisteredPlugins;
 use plugins_core::{
     building::BuildingPlugin, carrying::CarryingPlugin, looking::LookingPlugin,
     moving::MovingPlugin, DefaultFinder,
 };
-use std::path::PathBuf;
-use std::{error::Error, sync::Arc};
-use tracing::*;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-pub mod eval;
-pub mod hacking;
-pub mod serve;
-pub mod shell;
-pub mod text;
+mod eval;
+mod hacking;
+mod serve;
+mod shell;
+mod text;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
