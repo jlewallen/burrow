@@ -20,7 +20,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
 
     for text in &[&cmd.text] {
         if let Some(reply) = session.evaluate_and_perform(&cmd.username, text)? {
-            let text = renderer.render(reply)?;
+            let text = renderer.render_reply(&reply)?;
             println!("{}", text);
         }
     }

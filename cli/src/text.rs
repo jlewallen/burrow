@@ -1,7 +1,7 @@
 use anyhow::Result;
+use tera::{Context, Tera};
 
 use replies::Reply;
-use tera::{Context, Tera};
 
 pub struct Renderer {
     tera: Tera,
@@ -14,14 +14,14 @@ impl Renderer {
         Ok(Self { tera })
     }
 
-    pub fn render(&self, reply: Box<dyn Reply>) -> Result<String> {
+    pub fn render_value(&self, value: &serde_json::Value) -> Result<String> {
         let mut all = "".to_string();
 
-        match reply.to_json()? {
+        match value {
             serde_json::Value::Object(object) => {
                 for (key, value) in object {
                     let mut context = Context::new();
-                    context.insert(&key, &value);
+                    context.insert(key, &value);
 
                     let path = format!("replies/{}.txt", key);
                     let text = self.tera.render(&path, &context)?;
@@ -38,5 +38,9 @@ impl Renderer {
         }
 
         Ok(all)
+    }
+
+    pub fn render_reply(&self, reply: &Box<dyn Reply>) -> Result<String> {
+        self.render_value(&reply.to_json()?)
     }
 }

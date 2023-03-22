@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::make_domain;
-use crate::text::Renderer;
+use crate::terminal::Renderer;
 use engine::{self, DevNullNotifier, Domain, Notifier};
 use kernel::{EntityKey, Reply, SimpleReply};
 
@@ -102,7 +102,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
                     Box::new(SimpleReply::What)
                 };
 
-                let rendered = renderer.render(reply)?;
+                let rendered = renderer.render_reply(&reply)?;
 
                 let notifier = QueuedNotifier::default();
 

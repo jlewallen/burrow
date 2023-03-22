@@ -17,6 +17,7 @@ mod eval;
 mod hacking;
 mod serve;
 mod shell;
+mod terminal;
 mod text;
 
 #[derive(Parser)]
