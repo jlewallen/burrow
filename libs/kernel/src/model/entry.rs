@@ -139,7 +139,7 @@ impl<T: Scope> OpenedScope<T> {
         Self { target }
     }
 
-    pub fn as_ref(&self) -> &Box<T> {
+    pub fn as_ref(&self) -> &T {
         &self.target
     }
 }
@@ -174,6 +174,10 @@ impl<T: Scope> OpenedScopeMut<T> {
         let mut entity = entity.borrow_mut();
 
         entity.replace_scope::<T>(&self.target)
+    }
+
+    pub fn as_ref(&mut self) -> &mut T {
+        &mut self.target
     }
 }
 

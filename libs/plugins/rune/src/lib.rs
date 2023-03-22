@@ -1,12 +1,13 @@
 use glob::glob;
-use plugins_core::EntityRelationshipSet;
 use rune::runtime::RuntimeContext;
 use rune::termcolor::{ColorChoice, StandardStream};
 use rune::{Context, Diagnostics, Source, Sources, Vm};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use plugins_core::library::plugin::*;
+use plugins_core::EntityRelationshipSet;
 
 #[derive(Default)]
 pub struct RunePluginFactory {}
@@ -88,9 +89,13 @@ impl Plugin for RunePlugin {
             .map(|r| r.entry())
             .collect::<Result<Vec<_>>>()?
         {
-            if nearby.has_scope::<Behavior>()? {
-                let behavior = nearby.scope::<Behavior>()?;
-                info!("{:?} {:?}", nearby, behavior.as_ref());
+            if nearby.has_scope::<Behaviors>()? {
+                let mut behaviors = nearby.scope_mut::<Behaviors>()?;
+                if behaviors.langs.is_none() {
+                    behaviors.langs = Some(HashMap::new());
+                    behaviors.save()?;
+                }
+                info!("{:?} {:?}", nearby, behaviors.as_ref());
             }
         }
 
@@ -104,21 +109,25 @@ impl ParsesActions for RunePlugin {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
-pub struct Behavior {}
+pub static RUNE_LANG: &str = "rune";
 
-impl Needs<SessionRef> for Behavior {
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct Behaviors {
+    pub langs: Option<HashMap<String, String>>,
+}
+
+impl Needs<SessionRef> for Behaviors {
     fn supply(&mut self, _session: &SessionRef) -> Result<()> {
         Ok(())
     }
 }
 
-impl Scope for Behavior {
+impl Scope for Behaviors {
     fn serialize(&self) -> Result<serde_json::Value> {
         Ok(serde_json::to_value(self)?)
     }
 
     fn scope_key() -> &'static str {
-        "behavior"
+        "behaviors"
     }
 }
