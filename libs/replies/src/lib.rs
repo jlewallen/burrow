@@ -107,3 +107,23 @@ impl ToJson for SimpleObservation {
 }
 
 impl Observed for SimpleObservation {}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EditorReply {
+    pub raw: serde_json::Value,
+}
+
+impl EditorReply {
+    pub fn new(raw: serde_json::Value) -> Self {
+        Self { raw }
+    }
+}
+
+impl Reply for EditorReply {}
+
+impl ToJson for EditorReply {
+    fn to_json(&self) -> Result<Value, serde_json::Error> {
+        Ok(json!({ "editor": serde_json::to_value(self)? }))
+    }
+}

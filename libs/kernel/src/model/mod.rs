@@ -195,6 +195,10 @@ impl EntityPtr {
     fn mutate<R, T: FnOnce(&mut Entity) -> Result<R>>(&self, mutator: T) -> Result<R> {
         mutator(&mut self.borrow_mut())
     }
+
+    pub fn to_json_value(&self) -> Result<serde_json::Value> {
+        Ok(self.entity.borrow().to_json_value()?)
+    }
 }
 
 impl From<Rc<RefCell<Entity>>> for EntityPtr {
@@ -572,6 +576,10 @@ impl Entity {
             .insert(scope_key.to_string(), ScopeValue::Json(value));
 
         Ok(())
+    }
+
+    pub fn to_json_value(&self) -> Result<serde_json::Value> {
+        Ok(serde_json::to_value(self)?)
     }
 }
 

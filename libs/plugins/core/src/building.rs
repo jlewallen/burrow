@@ -75,12 +75,13 @@ pub mod actions {
         }
 
         fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
-            info!("editing {:?}!", self.item);
+            debug!("editing {:?}!", self.item);
 
             match session.find_item(surroundings, &self.item)? {
                 Some(editing) => {
                     info!("editing {:?}", editing);
-                    Ok(Box::new(SimpleReply::Done))
+                    let editing = editing.entity()?;
+                    Ok(Box::new(EditorReply::new(editing.to_json_value()?)))
                 }
                 None => Ok(Box::new(SimpleReply::NotFound)),
             }
