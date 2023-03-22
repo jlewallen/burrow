@@ -355,7 +355,7 @@ mod tests {
         let action = try_parsing(EditActionParser {}, "edit broom")?;
         let reply = action.perform(session, &surroundings)?;
 
-        assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+        insta::assert_json_snapshot!(reply.to_json()?);
 
         Ok(())
     }
@@ -432,7 +432,7 @@ mod tests {
         let action = try_parsing(EditActionParser {}, "edit #1")?;
         let reply = action.perform(session, &surroundings)?;
 
-        assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+        insta::assert_json_snapshot!(reply.to_json()?);
 
         Ok(())
     }

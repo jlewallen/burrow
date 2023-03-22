@@ -1,0 +1,61 @@
+---
+source: libs/plugins/core/src/building.rs
+expression: reply.to_json()?
+---
+{
+  "editor": {
+    "raw": {
+      "acls": {
+        "py/object": "",
+        "rules": []
+      },
+      "creator": null,
+      "identity": {
+        "private": "",
+        "public": "",
+        "py/object": "",
+        "signature": null
+      },
+      "key": "world",
+      "klass": {
+        "py/type": ""
+      },
+      "parent": null,
+      "props": {
+        "map": {
+          "gid": {
+            "acls": {
+              "py/object": "",
+              "rules": []
+            },
+            "py/object": "",
+            "value": 1
+          },
+          "name": {
+            "acls": {
+              "py/object": "",
+              "rules": []
+            },
+            "py/object": "",
+            "value": "World"
+          }
+        },
+        "py/object": "model.properties.Common"
+      },
+      "py/object": "",
+      "scopes": {
+        "identifiers": {
+          "acls": {
+            "py/object": "",
+            "rules": []
+          },
+          "gid": 4
+        }
+      },
+      "version": {
+        "i": 2,
+        "py/object": ""
+      }
+    }
+  }
+}
