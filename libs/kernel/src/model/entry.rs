@@ -180,7 +180,7 @@ impl<T: Scope> OpenedScopeMut<T> {
 impl<T: Scope> Drop for OpenedScopeMut<T> {
     fn drop(&mut self) {
         // TODO Check for unsaved changes to this scope and possibly warn the
-        // user, this would require them to intentionally discard  any unsaved
+        // user, this would require them to intentionally discard any unsaved
         // changes. Not being able to bubble an error up makes doing anything
         // elaborate in here a bad idea.
         trace!("scope-dropped {:?}", self.target);

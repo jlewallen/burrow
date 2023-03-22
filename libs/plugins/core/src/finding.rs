@@ -27,9 +27,6 @@ pub enum EntityRelationship {
     Area(Entry),
     Holding(Entry),
     Ground(Entry),
-    /// Item is nearby, inside something else. Considering renaming this and
-    /// others to better indicate how far removed they are. For example,
-    /// containers in the area vs containers that are being held.
     Contained(Entry),
     Exit(String, Entry),
 }

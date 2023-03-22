@@ -230,7 +230,7 @@ impl Debug for EntityPtr {
         if let Some(gid) = &lazy.gid {
             write!(f, "Entity(#{}, `{}`, {})", &gid, &lazy.name, &lazy.key)
         } else {
-            write!(f, "Entity(`{}`, {})", &lazy.name, &lazy.key)
+            write!(f, "Entity(?, `{}`, {})", &lazy.name, &lazy.key)
         }
     }
 }
@@ -473,12 +473,6 @@ impl Entity {
         Ok(())
     }
 
-    pub fn set_version(&mut self, version: u64) -> Result<()> {
-        self.version.i = version;
-
-        Ok(())
-    }
-
     pub fn name(&self) -> Option<String> {
         self.props.string_property(NAME_PROPERTY)
     }
@@ -505,6 +499,12 @@ impl Entity {
     pub fn set_desc(&mut self, value: &str) -> Result<()> {
         let value: serde_json::Value = value.into();
         self.props.set_property(DESC_PROPERTY, value);
+
+        Ok(())
+    }
+
+    pub fn set_version(&mut self, version: u64) -> Result<()> {
+        self.version.i = version;
 
         Ok(())
     }
