@@ -38,6 +38,7 @@ impl Plugin for BuildingPlugin {
 impl ParsesActions for BuildingPlugin {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
         try_parsing(parser::EditActionParser {}, i)
+            .or_else(|_| try_parsing(parser::DescribeActionParser {}, i))
             .or_else(|_| try_parsing(parser::DuplicateActionParser {}, i))
             .or_else(|_| try_parsing(parser::BidirectionalDigActionParser {}, i))
             .or_else(|_| try_parsing(parser::ObliterateActionParser {}, i))
@@ -81,7 +82,37 @@ pub mod actions {
                 Some(editing) => {
                     info!("editing {:?}", editing);
                     let editing = editing.entity()?;
-                    Ok(Box::new(EditorReply::new(editing.to_json_value()?)))
+                    Ok(Box::new(EditorReply::new(
+                        EditorOf::Entity,
+                        editing.to_json_value()?,
+                    )))
+                }
+                None => Ok(Box::new(SimpleReply::NotFound)),
+            }
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct DescribeAction {
+        pub item: Item,
+    }
+
+    impl Action for DescribeAction {
+        fn is_read_only() -> bool {
+            true
+        }
+
+        fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+            debug!("describing {:?}!", self.item);
+
+            match session.find_item(surroundings, &self.item)? {
+                Some(editing) => {
+                    info!("describing {:?}", editing);
+                    let editing = editing.entity()?;
+                    Ok(Box::new(EditorReply::new(
+                        EditorOf::Description,
+                        editing.to_json_value()?,
+                    )))
                 }
                 None => Ok(Box::new(SimpleReply::NotFound)),
             }
@@ -201,13 +232,49 @@ pub mod actions {
             Ok(Box::new(SimpleReply::Done))
         }
     }
+
+    pub struct MutateAction {
+        pub key: EntityKey,
+        pub mutator: fn(&Entry) -> Result<()>,
+    }
+
+    impl std::fmt::Debug for MutateAction {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.debug_struct("MutateAction")
+                .field("key", &self.key)
+                .finish()
+        }
+    }
+
+    impl Action for MutateAction {
+        fn is_read_only() -> bool {
+            false
+        }
+
+        fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+            info!("mutate {:?}", self.key);
+
+            let (_, _user, _area) = surroundings.unpack();
+
+            let entry = session.entry(&LookupBy::Key(&self.key))?;
+
+            match entry {
+                Some(entry) => {
+                    (self.mutator)(&entry)?;
+                    Ok(Box::new(SimpleReply::Done))
+                }
+                None => Ok(Box::new(SimpleReply::NotFound)),
+            }
+        }
+    }
 }
 
 pub mod parser {
     use crate::library::parser::*;
 
     use super::actions::{
-        BidirectionalDigAction, DuplicateAction, EditAction, MakeItemAction, ObliterateAction,
+        BidirectionalDigAction, DescribeAction, DuplicateAction, EditAction, MakeItemAction,
+        ObliterateAction,
     };
 
     pub struct MakeItemParser {}
@@ -287,6 +354,19 @@ pub mod parser {
             Ok(Box::new(action))
         }
     }
+
+    pub struct DescribeActionParser {}
+
+    impl ParsesActions for DescribeActionParser {
+        fn try_parse_action(&self, i: &str) -> EvaluationResult {
+            let (_, action) = map(
+                preceded(pair(tag("describe"), spaces), noun_or_specific),
+                |item| DescribeAction { item },
+            )(i)?;
+
+            Ok(Box::new(action))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -353,6 +433,21 @@ mod tests {
             .build()?;
 
         let action = try_parsing(EditActionParser {}, "edit broom")?;
+        let reply = action.perform(session, &surroundings)?;
+
+        insta::assert_json_snapshot!(reply.to_json()?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_describes_area() -> Result<()> {
+        let mut build = BuildSurroundings::new()?;
+        let (session, surroundings) = build
+            .ground(vec![QuickThing::Object("Cool Broom")])
+            .build()?;
+
+        let action = try_parsing(DescribeActionParser {}, "describe area")?;
         let reply = action.perform(session, &surroundings)?;
 
         insta::assert_json_snapshot!(reply.to_json()?);

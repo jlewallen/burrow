@@ -30,12 +30,12 @@ pub mod parser {
         map(word, |s: &str| Item::Named(s.to_owned()))(i)
     }
 
-    fn string_inside(i: &str) -> IResult<&str, &str> {
-        take_while(|c: char| c.is_alphabetic() || c.is_whitespace())(i)
-    }
-
     pub fn string_literal(i: &str) -> IResult<&str, &str> {
         delimited(tag("\""), string_inside, tag("\""))(i)
+    }
+
+    fn string_inside(i: &str) -> IResult<&str, &str> {
+        take_while(|c: char| c.is_alphabetic() || c.is_whitespace())(i)
     }
 
     pub fn unsigned_number(i: &str) -> IResult<&str, u64> {
@@ -48,8 +48,12 @@ pub mod parser {
         })(i)
     }
 
+    pub fn surrounding_area(i: &str) -> IResult<&str, Item> {
+        map(tag("area"), |_s: &str| Item::Area)(i)
+    }
+
     pub fn noun_or_specific(i: &str) -> IResult<&str, Item> {
-        alt((noun, gid_reference))(i)
+        alt((surrounding_area, noun, gid_reference))(i)
     }
 
     pub fn named_place(i: &str) -> IResult<&str, Item> {

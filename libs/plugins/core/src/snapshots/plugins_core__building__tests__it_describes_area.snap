@@ -16,7 +16,7 @@ expression: reply.to_json()?
         "py/object": "",
         "signature": null
       },
-      "key": "E-3",
+      "key": "E-2",
       "klass": {
         "py/type": ""
       },
@@ -29,7 +29,7 @@ expression: reply.to_json()?
               "rules": []
             },
             "py/object": "",
-            "value": 4
+            "value": 3
           },
           "name": {
             "acls": {
@@ -37,22 +37,43 @@ expression: reply.to_json()?
               "rules": []
             },
             "py/object": "",
-            "value": "Cool Broom"
+            "value": "Welcome Area"
           }
         },
         "py/object": "model.properties.Common"
       },
       "py/object": "",
       "scopes": {
-        "location": {
-          "container": {
-            "gid": 3,
-            "key": "E-2",
-            "klass": "",
-            "name": "Welcome Area",
-            "py/object": "model.entity.EntityRef",
-            "py/ref": "model.entity.Entity"
-          }
+        "containing": {
+          "capacity": null,
+          "holding": [
+            {
+              "gid": 4,
+              "key": "E-3",
+              "klass": "",
+              "name": "Cool Broom",
+              "py/object": "model.entity.EntityRef",
+              "py/ref": "model.entity.Entity"
+            }
+          ],
+          "produces": {}
+        },
+        "occupyable": {
+          "acls": {
+            "py/object": "",
+            "rules": []
+          },
+          "occupancy": 0,
+          "occupied": [
+            {
+              "gid": 2,
+              "key": "E-1",
+              "klass": "",
+              "name": "Living",
+              "py/object": "model.entity.EntityRef",
+              "py/ref": "model.entity.Entity"
+            }
+          ]
         }
       },
       "version": {
@@ -60,6 +81,6 @@ expression: reply.to_json()?
         "py/object": ""
       }
     },
-    "of": "entity"
+    "of": "description"
   }
 }

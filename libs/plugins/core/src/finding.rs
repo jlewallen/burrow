@@ -125,11 +125,22 @@ impl EntityRelationshipSet {
     }
 
     pub fn find_item(&self, item: &Item) -> Result<Option<Entry>> {
-        match item {
-            Item::Named(name) => {
-                debug!("item:haystack {:?}", self);
+        debug!("haystack {:?}", self);
 
-                // https://github.com/ferrous-systems/elements-of-rust#tuple-structs-and-enum-tuple-variants-as-functions
+        match item {
+            Item::Area => {
+                for entity in &self.entities {
+                    match entity {
+                        EntityRelationship::Area(e) => {
+                            return Ok(Some(e.clone()));
+                        }
+                        _ => {}
+                    }
+                }
+
+                Ok(None)
+            }
+            Item::Named(name) => {
                 for entity in &self.entities {
                     match entity {
                         EntityRelationship::Contained(e) => {
@@ -180,7 +191,7 @@ impl EntityRelationshipSet {
                     _ => default_priority(e),
                 })?
                 .find_item(held),
-            Item::Gid(_) => Ok(None),
+            _ => Ok(None),
         }
     }
 

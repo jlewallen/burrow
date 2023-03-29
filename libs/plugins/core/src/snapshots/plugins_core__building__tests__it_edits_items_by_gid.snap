@@ -4,7 +4,7 @@ expression: reply.to_json()?
 ---
 {
   "editor": {
-    "raw": {
+    "body": {
       "acls": {
         "py/object": "",
         "rules": []
@@ -56,6 +56,7 @@ expression: reply.to_json()?
         "i": 2,
         "py/object": ""
       }
-    }
+    },
+    "of": "entity"
   }
 }
