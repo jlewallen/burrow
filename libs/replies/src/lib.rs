@@ -110,13 +110,23 @@ impl Observed for SimpleObservation {}
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub enum EditorOf {
+    Entity,
+    Name,
+    Description,
+    Script,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EditorReply {
-    pub raw: serde_json::Value,
+    pub of: EditorOf,
+    pub body: serde_json::Value,
 }
 
 impl EditorReply {
-    pub fn new(raw: serde_json::Value) -> Self {
-        Self { raw }
+    pub fn new(of: EditorOf, body: serde_json::Value) -> Self {
+        Self { of, body }
     }
 }
 

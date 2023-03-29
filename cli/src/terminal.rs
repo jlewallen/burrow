@@ -1,16 +1,21 @@
+use std::{fs::File, io::Read, path::Path, rc::Rc};
+
 use anyhow::{anyhow, Result};
 use tracing::info;
 
+use engine::Session;
 use replies::Reply;
 
 pub struct Renderer {
     text: crate::text::Renderer,
+    session: Rc<Session>,
 }
 
 impl Renderer {
-    pub fn new() -> Result<Self> {
+    pub fn new(session: Rc<Session>) -> Result<Self> {
         Ok(Self {
             text: crate::text::Renderer::new()?,
+            session,
         })
     }
 
@@ -19,10 +24,14 @@ impl Renderer {
         match &value {
             serde_json::Value::Object(object) => {
                 for (key, value) in object {
+                    // TODO This is annoying.
                     if key == "editor" {
                         info!("{:?}", value);
 
-                        self.external_editor::<VsCodeEditor>()?;
+                        let edited =
+                            self.external_editor::<TerminalVimEditor>("hello world", "txt")?;
+
+                        info!("{:?}", edited);
 
                         return Ok("".to_string());
                     }
@@ -33,20 +42,31 @@ impl Renderer {
         }
     }
 
-    fn external_editor<T>(&self) -> Result<()>
+    fn external_editor<T>(&self, value: &str, extension: &str) -> Result<String>
     where
         T: ExternalEditor + Default,
     {
+        use std::io::Write;
+
+        let dir = tempfile::tempdir()?;
+        let file_path = dir.path().join(format!("editing.{}", extension));
+        let mut file = File::create(&file_path)?;
+        write!(file, "{}", value)?;
+        file.flush()?;
+
         let editor: T = T::default();
+        editor.run(&file_path)?;
 
-        editor.run("justfile")?;
+        let mut edited = String::new();
+        let mut file = File::open(file_path)?;
+        file.read_to_string(&mut edited)?;
 
-        Ok(())
+        Ok(edited)
     }
 }
 
 trait ExternalEditor {
-    fn run(&self, path: &str) -> Result<()>;
+    fn run(&self, path: &Path) -> Result<()>;
 }
 
 #[allow(dead_code)]
@@ -54,7 +74,7 @@ trait ExternalEditor {
 struct TerminalVimEditor {}
 
 impl ExternalEditor for TerminalVimEditor {
-    fn run(&self, path: &str) -> Result<()> {
+    fn run(&self, path: &Path) -> Result<()> {
         info!("opening in vim and waiting on close");
 
         let status = std::process::Command::new("/bin/sh")
@@ -62,7 +82,7 @@ impl ExternalEditor for TerminalVimEditor {
             // Note that this is passed as one argument to the
             // shell's -c argument and that is why multiple arg
             // calls aren't being used.
-            .arg(format!("vim {}", path))
+            .arg(format!("vim {}", path.display()))
             .spawn()
             .or_else(|_| Err(anyhow!("Error: Failed to run /bin/sh -c vim")))?
             .wait()
@@ -79,7 +99,7 @@ impl ExternalEditor for TerminalVimEditor {
 struct VsCodeEditor {}
 
 impl ExternalEditor for VsCodeEditor {
-    fn run(&self, path: &str) -> Result<()> {
+    fn run(&self, path: &Path) -> Result<()> {
         info!("opening in vscode and waiting on close");
 
         let status = std::process::Command::new("/bin/sh")
@@ -87,7 +107,7 @@ impl ExternalEditor for VsCodeEditor {
             // Note that this is passed as one argument to the
             // shell's -c argument and that is why multiple arg
             // calls aren't being used.
-            .arg(format!("code -w {}", path))
+            .arg(format!("code -w {}", path.display()))
             .spawn()
             .or_else(|_| Err(anyhow!("Error: Failed to run /bin/sh -c code")))?
             .wait()

@@ -21,6 +21,7 @@ axum-typed-websockets = "0.4.0"
 tower-http = { version = "0.3.0", features = ["fs", "trace"] }
 tera = "1.17.1"
 rustyline = "10.0.0"
+tempfile = "3.4.0"
  
 [dependencies.replies]
 path = "../libs/replies"

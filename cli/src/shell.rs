@@ -78,7 +78,6 @@ fn find_user_key(domain: &Domain, name: &str) -> Result<Option<EntityKey>> {
 
 #[tokio::main]
 pub async fn execute_command(cmd: &Command) -> Result<()> {
-    let renderer = Renderer::new()?;
     let domain = make_domain()?;
 
     let self_key = find_user_key(&domain, &cmd.username)?.expect("No such username");
@@ -102,6 +101,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
                     Box::new(SimpleReply::What)
                 };
 
+                let renderer = Renderer::new(session.clone())?;
                 let rendered = renderer.render_reply(&reply)?;
 
                 let notifier = QueuedNotifier::default();
