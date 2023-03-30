@@ -1,3 +1,6 @@
+[registries.crates-io]
+protocol = "sparse"
+
 [workspace]
 members = [
     "libs/replies",
