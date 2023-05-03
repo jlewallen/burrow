@@ -8,6 +8,7 @@ use replies::Reply;
 
 pub struct Renderer {
     text: crate::text::Renderer,
+    #[allow(dead_code)]
     session: Rc<Session>,
 }
 
