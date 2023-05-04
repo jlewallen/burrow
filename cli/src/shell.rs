@@ -10,7 +10,7 @@ use std::rc::Rc;
 use crate::terminal::Renderer;
 use crate::{make_domain, terminal::default_external_editor};
 use engine::{self, DevNullNotifier, Domain, Notifier, Session};
-use kernel::{ActiveSession, EntityKey, Reply, SimpleReply};
+use kernel::{ActiveSession, EntityKey, Perform, Reply, SimpleReply};
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -111,7 +111,12 @@ pub fn try_interactive(
                     };
 
                     match session.entry(&kernel::LookupBy::Key(&living))? {
-                        Some(living) => return session.chain(&living, Box::new(save_action)),
+                        Some(living) => {
+                            return session.chain(Perform::Living {
+                                living,
+                                action: Box::new(save_action),
+                            })
+                        }
                         None => break,
                     }
                 }

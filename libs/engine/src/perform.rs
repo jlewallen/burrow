@@ -98,20 +98,24 @@ impl StandardPerformer {
         })
     }
 
-    pub fn perform(&self, living: &Entry, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
-        info!("performing {:?}", action);
+    pub fn perform(&self, perform: Perform) -> Result<Box<dyn Reply>> {
+        info!("performing {:?}", perform);
 
-        let surroundings = self.evaluate_living(living)?;
+        match &perform {
+            Perform::Living { living, action } => {
+                let surroundings = self.evaluate_living(living)?;
 
-        let reply = {
-            let _span = span!(Level::INFO, "A").entered();
-            info!("{:?}", &surroundings);
-            self.plugins.have_surroundings(&surroundings)?;
-            action.perform(self.session()?, &surroundings)?
-        };
+                let reply = {
+                    let _span = span!(Level::INFO, "A").entered();
+                    info!("{:?}", &surroundings);
+                    self.plugins.have_surroundings(&surroundings)?;
+                    action.perform(self.session()?, &surroundings)?
+                };
 
-        event!(Level::INFO, "done");
+                event!(Level::INFO, "done");
 
-        Ok(reply)
+                Ok(reply)
+            }
+        }
     }
 }

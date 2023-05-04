@@ -307,7 +307,10 @@ pub mod actions {
                                         area: to_area,
                                     }))?;
 
-                                    session.chain(&living, Box::new(LookAction {}))
+                                    session.chain(Perform::Living {
+                                        living,
+                                        action: Box::new(LookAction {}),
+                                    })
                                 }
                                 DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
                             }

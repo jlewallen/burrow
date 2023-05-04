@@ -384,8 +384,8 @@ impl ActiveSession for Session {
         Ok(())
     }
 
-    fn chain(&self, living: &Entry, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
-        self.performer.perform(living, action)
+    fn chain(&self, perform: Perform) -> Result<Box<dyn Reply>> {
+        self.performer.perform(perform)
     }
 
     fn new_key(&self) -> EntityKey {

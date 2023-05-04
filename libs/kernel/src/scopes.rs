@@ -3,7 +3,7 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 use std::fmt::Debug;
 
-use super::{session::SessionRef, Surroundings};
+use super::{session::SessionRef, Entry, Surroundings};
 
 pub use replies::*;
 
@@ -27,4 +27,12 @@ pub trait Scope: Needs<SessionRef> + DeserializeOwned + Default + Debug {
 
 pub trait Needs<T> {
     fn supply(&mut self, resource: &T) -> Result<()>;
+}
+
+#[derive(Debug)]
+pub enum Perform {
+    Living {
+        living: Entry,
+        action: Box<dyn Action>,
+    },
 }

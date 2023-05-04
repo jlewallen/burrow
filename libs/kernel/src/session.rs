@@ -4,7 +4,7 @@ use std::{cell::RefCell, rc::Rc};
 use super::model::{
     DomainError, DomainEvent, EntityKey, EntityPtr, EntityRef, Entry, Identity, Item,
 };
-use super::scopes::{Action, Reply};
+use super::scopes::{Perform, Reply};
 use super::{LookupBy, ManagedHooks, Surroundings};
 
 pub type SessionRef = Rc<dyn ActiveSession>;
@@ -54,7 +54,7 @@ pub trait ActiveSession {
 
     fn raise(&self, event: Box<dyn DomainEvent>) -> Result<()>;
 
-    fn chain(&self, living: &Entry, action: Box<dyn Action>) -> Result<Box<dyn Reply>>;
+    fn chain(&self, perform: Perform) -> Result<Box<dyn Reply>>;
 
     fn hooks(&self) -> &ManagedHooks;
 }
