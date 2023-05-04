@@ -4,83 +4,9 @@ expression: reply.to_json()?
 ---
 {
   "editor": {
-    "body": {
-      "acls": {
-        "py/object": "",
-        "rules": []
-      },
-      "creator": null,
-      "identity": {
-        "private": "",
-        "public": "",
-        "py/object": "",
-        "signature": null
-      },
-      "key": "E-2",
-      "klass": {
-        "py/type": ""
-      },
-      "parent": null,
-      "props": {
-        "map": {
-          "gid": {
-            "acls": {
-              "py/object": "",
-              "rules": []
-            },
-            "py/object": "",
-            "value": 3
-          },
-          "name": {
-            "acls": {
-              "py/object": "",
-              "rules": []
-            },
-            "py/object": "",
-            "value": "Welcome Area"
-          }
-        },
-        "py/object": "model.properties.Common"
-      },
-      "py/object": "",
-      "scopes": {
-        "containing": {
-          "capacity": null,
-          "holding": [
-            {
-              "gid": 4,
-              "key": "E-3",
-              "klass": "",
-              "name": "Cool Broom",
-              "py/object": "model.entity.EntityRef",
-              "py/ref": "model.entity.Entity"
-            }
-          ],
-          "produces": {}
-        },
-        "occupyable": {
-          "acls": {
-            "py/object": "",
-            "rules": []
-          },
-          "occupancy": 0,
-          "occupied": [
-            {
-              "gid": 2,
-              "key": "E-1",
-              "klass": "",
-              "name": "Living",
-              "py/object": "model.entity.EntityRef",
-              "py/ref": "model.entity.Entity"
-            }
-          ]
-        }
-      },
-      "version": {
-        "i": 2,
-        "py/object": ""
-      }
+    "editing": {
+      "description": ""
     },
-    "of": "description"
+    "key": "E-2"
   }
 }

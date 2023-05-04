@@ -82,9 +82,10 @@ pub mod actions {
                 Some(editing) => {
                     info!("editing {:?}", editing);
                     let editing = editing.entity()?;
-                    Ok(Box::new(EditorReply::new(WorkingCopy::Json(
-                        editing.to_json_value()?,
-                    ))))
+                    Ok(Box::new(EditorReply::new(
+                        editing.key().to_string(),
+                        WorkingCopy::Json(editing.to_json_value()?),
+                    )))
                 }
                 None => Ok(Box::new(SimpleReply::NotFound)),
             }
@@ -107,10 +108,10 @@ pub mod actions {
             match session.find_item(surroundings, &self.item)? {
                 Some(editing) => {
                     info!("describing {:?}", editing);
-                    //let editing = editing.entity()?;
-                    Ok(Box::new(EditorReply::new(WorkingCopy::Description(
-                        editing.desc()?.unwrap_or("".to_owned()),
-                    ))))
+                    Ok(Box::new(EditorReply::new(
+                        editing.key().to_string(),
+                        WorkingCopy::Description(editing.desc()?.unwrap_or("".to_owned())),
+                    )))
                 }
                 None => Ok(Box::new(SimpleReply::NotFound)),
             }
@@ -231,10 +232,17 @@ pub mod actions {
         }
     }
 
-    #[derive(Debug)]
     pub struct SaveWorkingCopyAction {
         pub key: EntityKey,
         pub copy: WorkingCopy,
+    }
+
+    impl std::fmt::Debug for SaveWorkingCopyAction {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.debug_struct("SaveWorkingCopyAction")
+                .field("key", &self.key)
+                .finish()
+        }
     }
 
     impl Action for SaveWorkingCopyAction {
@@ -250,11 +258,15 @@ pub mod actions {
             match session.entry(&LookupBy::Key(&self.key))? {
                 Some(entry) => {
                     let entity = entry.entity()?;
+                    info!("mutate {:?}", entity);
+
                     match &self.copy {
                         WorkingCopy::Description(desc) => entity.set_desc(desc)?,
                         WorkingCopy::Json(value) => {
+                            info!("mutate:json");
                             let replacing = deserialize_entity_from_value(value.clone())?;
                             entity.replace(replacing);
+                            info!("mutate:json:replaced");
                         }
                     }
                     Ok(Box::new(SimpleReply::Done))

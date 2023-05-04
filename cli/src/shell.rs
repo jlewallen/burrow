@@ -1,14 +1,16 @@
 use anyhow::Result;
 use clap::Args;
+use plugins_core::building::actions::SaveWorkingCopyAction;
+use replies::EditorReply;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::make_domain;
 use crate::terminal::Renderer;
-use engine::{self, DevNullNotifier, Domain, Notifier};
-use kernel::{EntityKey, Reply, SimpleReply};
+use crate::{make_domain, terminal::default_external_editor};
+use engine::{self, DevNullNotifier, Domain, Notifier, Session};
+use kernel::{ActiveSession, EntityKey, Reply, SimpleReply};
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -76,6 +78,51 @@ fn find_user_key(domain: &Domain, name: &str) -> Result<Option<EntityKey>> {
     Ok(maybe_key)
 }
 
+pub fn try_interactive(
+    session: Rc<Session>,
+    living: &EntityKey,
+    reply: Box<dyn Reply>,
+) -> Result<Box<dyn Reply>> {
+    let value = reply.to_json()?;
+    match &value {
+        serde_json::Value::Object(object) => {
+            for (key, value) in object {
+                // TODO This is annoying.
+                if key == "editor" {
+                    let reply: EditorReply = serde_json::from_value(value.clone())?;
+                    let save_action = match reply.editing {
+                        replies::WorkingCopy::Description(original) => {
+                            let edited = default_external_editor(&original, "txt")?;
+
+                            SaveWorkingCopyAction {
+                                key: EntityKey::new(&reply.key),
+                                copy: replies::WorkingCopy::Description(edited),
+                            }
+                        }
+                        replies::WorkingCopy::Json(original) => {
+                            let serialized = serde_json::to_string_pretty(&original)?;
+                            let edited = default_external_editor(&serialized, "txt")?;
+
+                            SaveWorkingCopyAction {
+                                key: EntityKey::new(&reply.key),
+                                copy: replies::WorkingCopy::Json(serde_json::from_str(&edited)?),
+                            }
+                        }
+                    };
+
+                    match session.entry(&kernel::LookupBy::Key(&living))? {
+                        Some(living) => return session.chain(&living, Box::new(save_action)),
+                        None => break,
+                    }
+                }
+            }
+
+            Ok(reply)
+        }
+        _ => Ok(reply),
+    }
+}
+
 #[tokio::main]
 pub async fn execute_command(cmd: &Command) -> Result<()> {
     let domain = make_domain()?;
@@ -102,6 +149,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
                 };
 
                 let renderer = Renderer::new(session.clone())?;
+                let reply = try_interactive(session.clone(), &self_key, reply)?;
                 let rendered = renderer.render_reply(&reply)?;
 
                 let notifier = QueuedNotifier::default();

@@ -4,62 +4,64 @@ expression: reply.to_json()?
 ---
 {
   "editor": {
-    "body": {
-      "acls": {
-        "py/object": "",
-        "rules": []
-      },
-      "creator": null,
-      "identity": {
-        "private": "",
-        "public": "",
-        "py/object": "",
-        "signature": null
-      },
-      "key": "E-3",
-      "klass": {
-        "py/type": ""
-      },
-      "parent": null,
-      "props": {
-        "map": {
-          "gid": {
-            "acls": {
+    "editing": {
+      "json": {
+        "acls": {
+          "py/object": "",
+          "rules": []
+        },
+        "creator": null,
+        "identity": {
+          "private": "",
+          "public": "",
+          "py/object": "",
+          "signature": null
+        },
+        "key": "E-3",
+        "klass": {
+          "py/type": ""
+        },
+        "parent": null,
+        "props": {
+          "map": {
+            "gid": {
+              "acls": {
+                "py/object": "",
+                "rules": []
+              },
               "py/object": "",
-              "rules": []
+              "value": 4
             },
-            "py/object": "",
-            "value": 4
+            "name": {
+              "acls": {
+                "py/object": "",
+                "rules": []
+              },
+              "py/object": "",
+              "value": "Cool Broom"
+            }
           },
-          "name": {
-            "acls": {
-              "py/object": "",
-              "rules": []
-            },
-            "py/object": "",
-            "value": "Cool Broom"
+          "py/object": "model.properties.Common"
+        },
+        "py/object": "",
+        "scopes": {
+          "location": {
+            "container": {
+              "gid": 3,
+              "key": "E-2",
+              "klass": "",
+              "name": "Welcome Area",
+              "py/object": "model.entity.EntityRef",
+              "py/ref": "model.entity.Entity"
+            }
           }
         },
-        "py/object": "model.properties.Common"
-      },
-      "py/object": "",
-      "scopes": {
-        "location": {
-          "container": {
-            "gid": 3,
-            "key": "E-2",
-            "klass": "",
-            "name": "Welcome Area",
-            "py/object": "model.entity.EntityRef",
-            "py/ref": "model.entity.Entity"
-          }
+        "version": {
+          "i": 2,
+          "py/object": ""
         }
-      },
-      "version": {
-        "i": 2,
-        "py/object": ""
       }
     },
-    "of": "entity"
+    "key": "E-3"
   }
 }

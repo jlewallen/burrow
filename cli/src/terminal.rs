@@ -22,48 +22,34 @@ impl Renderer {
 
     pub fn render_reply(&self, reply: &Box<dyn Reply>) -> Result<String> {
         let value = reply.to_json()?;
-        match &value {
-            serde_json::Value::Object(object) => {
-                for (key, value) in object {
-                    // TODO This is annoying.
-                    if key == "editor" {
-                        info!("{:?}", value);
-
-                        let edited =
-                            self.external_editor::<TerminalVimEditor>("hello world", "txt")?;
-
-                        info!("{:?}", edited);
-
-                        return Ok("".to_string());
-                    }
-                }
-                self.text.render_value(&value)
-            }
-            _ => self.text.render_value(&value),
-        }
+        self.text.render_value(&value)
     }
+}
 
-    fn external_editor<T>(&self, value: &str, extension: &str) -> Result<String>
-    where
-        T: ExternalEditor + Default,
-    {
-        use std::io::Write;
+pub fn default_external_editor(value: &str, extension: &str) -> Result<String> {
+    external_editor::<TerminalVimEditor>(value, extension)
+}
 
-        let dir = tempfile::tempdir()?;
-        let file_path = dir.path().join(format!("editing.{}", extension));
-        let mut file = File::create(&file_path)?;
-        write!(file, "{}", value)?;
-        file.flush()?;
+fn external_editor<T>(value: &str, extension: &str) -> Result<String>
+where
+    T: ExternalEditor + Default,
+{
+    use std::io::Write;
 
-        let editor: T = T::default();
-        editor.run(&file_path)?;
+    let dir = tempfile::tempdir()?;
+    let file_path = dir.path().join(format!("editing.{}", extension));
+    let mut file = File::create(&file_path)?;
+    write!(file, "{}", value)?;
+    file.flush()?;
 
-        let mut edited = String::new();
-        let mut file = File::open(file_path)?;
-        file.read_to_string(&mut edited)?;
+    let editor: T = T::default();
+    editor.run(&file_path)?;
 
-        Ok(edited)
-    }
+    let mut edited = String::new();
+    let mut file = File::open(file_path)?;
+    file.read_to_string(&mut edited)?;
+
+    Ok(edited)
 }
 
 trait ExternalEditor {

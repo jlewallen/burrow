@@ -119,12 +119,13 @@ pub enum WorkingCopy {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EditorReply {
+    pub key: String,
     pub editing: WorkingCopy,
 }
 
 impl EditorReply {
-    pub fn new(editing: WorkingCopy) -> Self {
-        Self { editing }
+    pub fn new(key: String, editing: WorkingCopy) -> Self {
+        Self { key, editing }
     }
 }
 

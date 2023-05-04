@@ -4,59 +4,61 @@ expression: reply.to_json()?
 ---
 {
   "editor": {
-    "body": {
-      "acls": {
-        "py/object": "",
-        "rules": []
-      },
-      "creator": null,
-      "identity": {
-        "private": "",
-        "public": "",
-        "py/object": "",
-        "signature": null
-      },
-      "key": "world",
-      "klass": {
-        "py/type": ""
-      },
-      "parent": null,
-      "props": {
-        "map": {
-          "gid": {
-            "acls": {
+    "editing": {
+      "json": {
+        "acls": {
+          "py/object": "",
+          "rules": []
+        },
+        "creator": null,
+        "identity": {
+          "private": "",
+          "public": "",
+          "py/object": "",
+          "signature": null
+        },
+        "key": "world",
+        "klass": {
+          "py/type": ""
+        },
+        "parent": null,
+        "props": {
+          "map": {
+            "gid": {
+              "acls": {
+                "py/object": "",
+                "rules": []
+              },
               "py/object": "",
-              "rules": []
+              "value": 1
             },
-            "py/object": "",
-            "value": 1
+            "name": {
+              "acls": {
+                "py/object": "",
+                "rules": []
+              },
+              "py/object": "",
+              "value": "World"
+            }
           },
-          "name": {
+          "py/object": "model.properties.Common"
+        },
+        "py/object": "",
+        "scopes": {
+          "identifiers": {
             "acls": {
               "py/object": "",
               "rules": []
             },
-            "py/object": "",
-            "value": "World"
+            "gid": 4
           }
         },
-        "py/object": "model.properties.Common"
-      },
-      "py/object": "",
-      "scopes": {
-        "identifiers": {
-          "acls": {
-            "py/object": "",
-            "rules": []
-          },
-          "gid": 4
+        "version": {
+          "i": 2,
+          "py/object": ""
         }
-      },
-      "version": {
-        "i": 2,
-        "py/object": ""
       }
     },
-    "of": "entity"
+    "key": "world"
   }
 }
