@@ -113,7 +113,7 @@ impl Observed for SimpleObservation {}
 pub enum WorkingCopy {
     Description(String),
     Json(serde_json::Value),
-    // Script(String),
+    Script(String),
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -104,8 +104,8 @@ impl Plugin for RunePlugin {
 }
 
 impl ParsesActions for RunePlugin {
-    fn try_parse_action(&self, _i: &str) -> EvaluationResult {
-        Err(EvaluationError::ParseFailed)
+    fn try_parse_action(&self, i: &str) -> EvaluationResult {
+        try_parsing(parser::LeadActionParser {}, i)
     }
 }
 
@@ -129,5 +129,55 @@ impl Scope for Behaviors {
 
     fn scope_key() -> &'static str {
         "behaviors"
+    }
+}
+
+mod actions {
+    use kernel::*;
+
+    #[derive(Debug)]
+    pub struct LeadAction {
+        pub item: Item,
+    }
+
+    impl Action for LeadAction {
+        fn is_read_only() -> bool {
+            true
+        }
+
+        fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+            debug!("leading {:?}!", self.item);
+
+            match session.find_item(surroundings, &self.item)? {
+                Some(editing) => {
+                    info!("leading {:?}", editing);
+                    Ok(Box::new(EditorReply::new(
+                        editing.key().to_string(),
+                        WorkingCopy::Script(editing.desc()?.unwrap_or("".to_owned())),
+                    )))
+                }
+                None => Ok(Box::new(SimpleReply::NotFound)),
+            }
+        }
+    }
+}
+
+mod parser {
+    use kernel::*;
+    use plugins_core::library::parser::*;
+
+    use super::actions::LeadAction;
+
+    pub struct LeadActionParser {}
+
+    impl ParsesActions for LeadActionParser {
+        fn try_parse_action(&self, i: &str) -> EvaluationResult {
+            let (_, action) = map(
+                preceded(pair(tag("lead"), spaces), noun_or_specific),
+                |item| -> EvaluationResult { Ok(Box::new(LeadAction { item })) },
+            )(i)?;
+
+            action
+        }
     }
 }

@@ -298,6 +298,7 @@ pub mod actions {
                             entity.replace(replacing);
                             info!("mutate:json:replaced");
                         }
+                        WorkingCopy::Script(_) => todo!(),
                     }
                     Ok(Box::new(SimpleReply::Done))
                 }

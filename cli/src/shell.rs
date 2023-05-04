@@ -108,6 +108,14 @@ pub fn try_interactive(
                                 copy: replies::WorkingCopy::Json(serde_json::from_str(&edited)?),
                             }
                         }
+                        replies::WorkingCopy::Script(original) => {
+                            let edited = default_external_editor(&original, "rn")?;
+
+                            SaveWorkingCopyAction {
+                                key: EntityKey::new(&reply.key),
+                                copy: replies::WorkingCopy::Script(serde_json::from_str(&edited)?),
+                            }
+                        }
                     };
 
                     match session.entry(&kernel::LookupBy::Key(&living))? {
