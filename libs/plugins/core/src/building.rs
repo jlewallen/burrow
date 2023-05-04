@@ -93,6 +93,33 @@ pub mod actions {
     }
 
     #[derive(Debug)]
+    pub struct EditRawAction {
+        pub item: Item,
+    }
+
+    impl Action for EditRawAction {
+        fn is_read_only() -> bool {
+            true
+        }
+
+        fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+            debug!("editing {:?}!", self.item);
+
+            match session.find_item(surroundings, &self.item)? {
+                Some(editing) => {
+                    info!("editing {:?}", editing);
+                    let editing = editing.entity()?;
+                    Ok(Box::new(EditorReply::new(
+                        editing.key().to_string(),
+                        WorkingCopy::Json(editing.to_json_value()?),
+                    )))
+                }
+                None => Ok(Box::new(SimpleReply::NotFound)),
+            }
+        }
+    }
+
+    #[derive(Debug)]
     pub struct DescribeAction {
         pub item: Item,
     }
@@ -284,9 +311,28 @@ pub mod parser {
     use crate::library::parser::*;
 
     use super::actions::{
-        BidirectionalDigAction, DescribeAction, DuplicateAction, EditAction, MakeItemAction,
-        ObliterateAction,
+        BidirectionalDigAction, DescribeAction, DuplicateAction, EditAction, EditRawAction,
+        MakeItemAction, ObliterateAction,
     };
+
+    pub struct EditActionParser {}
+
+    impl ParsesActions for EditActionParser {
+        fn try_parse_action(&self, i: &str) -> EvaluationResult {
+            let (_, action) = alt((
+                map(
+                    preceded(pair(tag("edit raw"), spaces), noun_or_specific),
+                    |item| -> Box<dyn Action> { Box::new(EditRawAction { item }) },
+                ),
+                map(
+                    preceded(pair(tag("edit"), spaces), noun_or_specific),
+                    |item| -> Box<dyn Action> { Box::new(EditAction { item }) },
+                ),
+            ))(i)?;
+
+            Ok(action)
+        }
+    }
 
     pub struct MakeItemParser {}
 
@@ -300,19 +346,6 @@ pub mod parser {
                 |name| MakeItemAction {
                     name: name.0.into(),
                 },
-            )(i)?;
-
-            Ok(Box::new(action))
-        }
-    }
-
-    pub struct EditActionParser {}
-
-    impl ParsesActions for EditActionParser {
-        fn try_parse_action(&self, i: &str) -> EvaluationResult {
-            let (_, action) = map(
-                preceded(pair(tag("edit"), spaces), noun_or_specific),
-                |item| EditAction { item },
             )(i)?;
 
             Ok(Box::new(action))
@@ -408,28 +441,13 @@ mod tests {
     }
 
     #[test]
-    fn it_fails_to_duplicate_unknown_items() -> Result<()> {
+    fn it_fails_to_edit_raw_unknown_items() -> Result<()> {
         let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Broom")])
             .build()?;
 
-        let action = try_parsing(DuplicateActionParser {}, "duplicate rake")?;
-        let reply = action.perform(session, &surroundings)?;
-
-        assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
-
-        Ok(())
-    }
-
-    #[test]
-    fn it_fails_to_obliterate_unknown_items() -> Result<()> {
-        let mut build = BuildSurroundings::new()?;
-        let (session, surroundings) = build
-            .hands(vec![QuickThing::Object("Cool Broom")])
-            .build()?;
-
-        let action = try_parsing(ObliterateActionParser {}, "obliterate rake")?;
+        let action = try_parsing(EditActionParser {}, "edit raw rake")?;
         let reply = action.perform(session, &surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
@@ -453,63 +471,16 @@ mod tests {
     }
 
     #[test]
-    fn it_describes_area() -> Result<()> {
+    fn it_edits_raw_items_named() -> Result<()> {
         let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build
             .ground(vec![QuickThing::Object("Cool Broom")])
             .build()?;
 
-        let action = try_parsing(DescribeActionParser {}, "describe area")?;
+        let action = try_parsing(EditActionParser {}, "edit raw broom")?;
         let reply = action.perform(session, &surroundings)?;
 
         insta::assert_json_snapshot!(reply.to_json()?);
-
-        Ok(())
-    }
-
-    #[test]
-    fn it_duplicates_items_named() -> Result<()> {
-        let mut build = BuildSurroundings::new()?;
-        let (session, surroundings) = build
-            .hands(vec![QuickThing::Object("Cool Broom")])
-            .build()?;
-
-        let action = try_parsing(DuplicateActionParser {}, "duplicate broom")?;
-        let reply = action.perform(session.clone(), &surroundings)?;
-        let (_world, person, _area) = surroundings.unpack();
-
-        assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
-        assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
-        assert_eq!(
-            tools::quantity(
-                &person.scope::<Containing>()?.holding[0]
-                    .clone()
-                    .try_into()?
-            )?,
-            2.0
-        );
-
-        Ok(())
-    }
-
-    #[test]
-    fn it_obliterates_items_named() -> Result<()> {
-        let mut build = BuildSurroundings::new()?;
-        let (session, surroundings) = build
-            .hands(vec![QuickThing::Object("Cool Broom")])
-            .build()?;
-
-        let action = try_parsing(ObliterateActionParser {}, "obliterate broom")?;
-        let reply = action.perform(session.clone(), &surroundings)?;
-        let (_world, person, area) = surroundings.unpack();
-
-        assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
-        // It's not enough just to check this, but why not given how easy.
-        // Should actually verify it's deleted.
-        assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
-        assert_eq!(area.scope::<Containing>()?.holding.len(), 0);
-
-        build.flush()?;
 
         Ok(())
     }
@@ -545,6 +516,83 @@ mod tests {
     }
 
     #[test]
+    fn it_fails_to_duplicate_unknown_items() -> Result<()> {
+        let mut build = BuildSurroundings::new()?;
+        let (session, surroundings) = build
+            .ground(vec![QuickThing::Object("Cool Broom")])
+            .build()?;
+
+        let action = try_parsing(DuplicateActionParser {}, "duplicate rake")?;
+        let reply = action.perform(session, &surroundings)?;
+
+        assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_duplicates_items_named() -> Result<()> {
+        let mut build = BuildSurroundings::new()?;
+        let (session, surroundings) = build
+            .hands(vec![QuickThing::Object("Cool Broom")])
+            .build()?;
+
+        let action = try_parsing(DuplicateActionParser {}, "duplicate broom")?;
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_world, person, _area) = surroundings.unpack();
+
+        assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+        assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
+        assert_eq!(
+            tools::quantity(
+                &person.scope::<Containing>()?.holding[0]
+                    .clone()
+                    .try_into()?
+            )?,
+            2.0
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_fails_to_obliterate_unknown_items() -> Result<()> {
+        let mut build = BuildSurroundings::new()?;
+        let (session, surroundings) = build
+            .hands(vec![QuickThing::Object("Cool Broom")])
+            .build()?;
+
+        let action = try_parsing(ObliterateActionParser {}, "obliterate rake")?;
+        let reply = action.perform(session, &surroundings)?;
+
+        assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_obliterates_items_named() -> Result<()> {
+        let mut build = BuildSurroundings::new()?;
+        let (session, surroundings) = build
+            .hands(vec![QuickThing::Object("Cool Broom")])
+            .build()?;
+
+        let action = try_parsing(ObliterateActionParser {}, "obliterate broom")?;
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_world, person, area) = surroundings.unpack();
+
+        assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+        // It's not enough just to check this, but why not given how easy.
+        // Should actually verify it's deleted.
+        assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
+        assert_eq!(area.scope::<Containing>()?.holding.len(), 0);
+
+        build.flush()?;
+
+        Ok(())
+    }
+
+    #[test]
     fn it_digs_bidirectionally() -> Result<()> {
         let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build.plain().build()?;
@@ -565,6 +613,21 @@ mod tests {
             reply.to_json()?,
             new_area_observation(&living, &destination)?.to_json()?
         );
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_describes_area() -> Result<()> {
+        let mut build = BuildSurroundings::new()?;
+        let (session, surroundings) = build
+            .ground(vec![QuickThing::Object("Cool Broom")])
+            .build()?;
+
+        let action = try_parsing(DescribeActionParser {}, "describe area")?;
+        let reply = action.perform(session, &surroundings)?;
+
+        insta::assert_json_snapshot!(reply.to_json()?);
 
         Ok(())
     }

@@ -1,0 +1,67 @@
+---
+source: libs/plugins/core/src/building.rs
+expression: reply.to_json()?
+---
+{
+  "editor": {
+    "editing": {
+      "json": {
+        "acls": {
+          "py/object": "",
+          "rules": []
+        },
+        "creator": null,
+        "identity": {
+          "private": "",
+          "public": "",
+          "py/object": "",
+          "signature": null
+        },
+        "key": "E-3",
+        "klass": {
+          "py/type": ""
+        },
+        "parent": null,
+        "props": {
+          "map": {
+            "gid": {
+              "acls": {
+                "py/object": "",
+                "rules": []
+              },
+              "py/object": "",
+              "value": 4
+            },
+            "name": {
+              "acls": {
+                "py/object": "",
+                "rules": []
+              },
+              "py/object": "",
+              "value": "Cool Broom"
+            }
+          },
+          "py/object": "model.properties.Common"
+        },
+        "py/object": "",
+        "scopes": {
+          "location": {
+            "container": {
+              "gid": 3,
+              "key": "E-2",
+              "klass": "",
+              "name": "Welcome Area",
+              "py/object": "model.entity.EntityRef",
+              "py/ref": "model.entity.Entity"
+            }
+          }
+        },
+        "version": {
+          "i": 2,
+          "py/object": ""
+        }
+      }
+    },
+    "key": "E-3"
+  }
+}
