@@ -82,10 +82,9 @@ pub mod actions {
                 Some(editing) => {
                     info!("editing {:?}", editing);
                     let editing = editing.entity()?;
-                    Ok(Box::new(EditorReply::new(
-                        EditorOf::Entity,
+                    Ok(Box::new(EditorReply::new(WorkingCopy::Json(
                         editing.to_json_value()?,
-                    )))
+                    ))))
                 }
                 None => Ok(Box::new(SimpleReply::NotFound)),
             }
@@ -108,11 +107,10 @@ pub mod actions {
             match session.find_item(surroundings, &self.item)? {
                 Some(editing) => {
                     info!("describing {:?}", editing);
-                    let editing = editing.entity()?;
-                    Ok(Box::new(EditorReply::new(
-                        EditorOf::Description,
-                        editing.to_json_value()?,
-                    )))
+                    //let editing = editing.entity()?;
+                    Ok(Box::new(EditorReply::new(WorkingCopy::Description(
+                        editing.desc()?.unwrap_or("".to_owned()),
+                    ))))
                 }
                 None => Ok(Box::new(SimpleReply::NotFound)),
             }
@@ -233,20 +231,13 @@ pub mod actions {
         }
     }
 
-    pub struct MutateAction {
+    #[derive(Debug)]
+    pub struct SaveWorkingCopyAction {
         pub key: EntityKey,
-        pub mutator: fn(&Entry) -> Result<()>,
+        pub copy: WorkingCopy,
     }
 
-    impl std::fmt::Debug for MutateAction {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            f.debug_struct("MutateAction")
-                .field("key", &self.key)
-                .finish()
-        }
-    }
-
-    impl Action for MutateAction {
+    impl Action for SaveWorkingCopyAction {
         fn is_read_only() -> bool {
             false
         }
@@ -256,11 +247,16 @@ pub mod actions {
 
             let (_, _user, _area) = surroundings.unpack();
 
-            let entry = session.entry(&LookupBy::Key(&self.key))?;
-
-            match entry {
+            match session.entry(&LookupBy::Key(&self.key))? {
                 Some(entry) => {
-                    (self.mutator)(&entry)?;
+                    let entity = entry.entity()?;
+                    match &self.copy {
+                        WorkingCopy::Description(desc) => entity.set_desc(desc)?,
+                        WorkingCopy::Json(value) => {
+                            let replacing = deserialize_entity_from_value(value.clone())?;
+                            entity.replace(replacing);
+                        }
+                    }
                     Ok(Box::new(SimpleReply::Done))
                 }
                 None => Ok(Box::new(SimpleReply::NotFound)),
@@ -376,6 +372,7 @@ mod tests {
     use super::parser::*;
     use super::*;
     use crate::{
+        building::actions::SaveWorkingCopyAction,
         {carrying::model::Containing, looking::model::new_area_observation, tools},
         {BuildSurroundings, QuickThing},
     };
@@ -569,6 +566,52 @@ mod tests {
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
 
         assert_eq!(living.scope::<Containing>()?.holding.len(), 1);
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_saves_changes_to_description() -> Result<()> {
+        let mut build = BuildSurroundings::new()?;
+        let (session, surroundings) = build.plain().build()?;
+        let (_world, _living, _area) = surroundings.unpack();
+
+        let description = "Would be really weird if this was the original description".to_owned();
+
+        let action = Box::new(SaveWorkingCopyAction {
+            key: EntityKey::new("world"),
+            copy: WorkingCopy::Description(description.clone()),
+        });
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (world, _living, _area) = surroundings.unpack();
+
+        assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+
+        assert_eq!(world.desc()?.unwrap(), description.as_str());
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_saves_changes_to_whole_entities() -> Result<()> {
+        let mut build = BuildSurroundings::new()?;
+        let (session, surroundings) = build.plain().build()?;
+        let (_, living, area) = surroundings.unpack();
+
+        let original = living.entity()?;
+        let original = original.to_json_value()?;
+
+        let action = Box::new(SaveWorkingCopyAction {
+            key: area.key().clone(),
+            copy: WorkingCopy::Json(original),
+        });
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_, _living, _area) = surroundings.unpack();
+
+        assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+
+        // TODO Would be really nice to have some assurances here, even though
+        // I'm wondering how often this will actually get used.
 
         Ok(())
     }

@@ -139,6 +139,19 @@ pub struct EntityPtr {
     lazy: RefCell<EntityRef>,
 }
 
+pub fn deserialize_entity(serialized: &str) -> Result<Entity> {
+    deserialize_entity_from_value(serde_json::from_str(serialized)?)
+}
+
+pub fn deserialize_entity_from_value(serialized: serde_json::Value) -> Result<Entity> {
+    trace!("parsing");
+    let mut loaded: Entity = serde_json::from_value(serialized)?;
+    trace!("session");
+    let session = get_my_session()?;
+    loaded.supply(&session)?;
+    Ok(loaded)
+}
+
 impl EntityPtr {
     pub fn new_blank() -> Result<Self> {
         Ok(Self::new(Entity::new_blank()?))
@@ -178,6 +191,11 @@ impl EntityPtr {
 
     pub fn set_name(&self, name: &str) -> Result<()> {
         self.mutate(|e| e.set_name(name))?;
+        self.modified()
+    }
+
+    pub fn set_desc(&self, desc: &str) -> Result<()> {
+        self.mutate(|e| e.set_desc(desc))?;
         self.modified()
     }
 

@@ -175,13 +175,7 @@ impl Entities {
     }
 
     fn prepare_persisted(&self, persisted: PersistedEntity) -> Result<EntityPtr> {
-        trace!("parsing");
-        let mut loaded: Entity = serde_json::from_str(&persisted.serialized)?;
-
-        trace!("session");
-        let session = get_my_session()?;
-        loaded.supply(&session)?;
-
+        let loaded = deserialize_entity(&persisted.serialized)?;
         let gid = loaded.gid();
         let cell: EntityPtr = loaded.into();
 
