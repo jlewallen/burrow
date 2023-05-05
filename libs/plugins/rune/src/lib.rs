@@ -91,21 +91,26 @@ impl Plugin for RunePlugin {
             .map(|r| r.entry())
             .collect::<Result<Vec<_>>>()?
         {
-            if nearby.has_scope::<Behaviors>()? {
-                let behaviors = nearby.scope::<Behaviors>()?;
-                match &behaviors.langs {
-                    Some(langs) => match langs.get(RUNE_EXTENSION) {
-                        Some(script) => {
-                            info!("{:?} {:?}", nearby, script);
-                        }
-                        None => (),
-                    },
-                    None => (),
+            match get_script(nearby)? {
+                Some(script) => {
+                    info!("{:?} {:?}", nearby, script);
                 }
+                None => (),
             }
         }
 
         Ok(())
+    }
+}
+
+fn get_script(entry: &Entry) -> Result<Option<String>> {
+    let behaviors = entry.scope::<Behaviors>()?;
+    match &behaviors.langs {
+        Some(langs) => match langs.get(RUNE_EXTENSION) {
+            Some(script) => Ok(Some(script.clone())),
+            None => Ok(None),
+        },
+        None => Ok(None),
     }
 }
 
@@ -141,7 +146,7 @@ pub mod actions {
 
     use kernel::*;
 
-    use crate::{Behaviors, RUNE_EXTENSION};
+    use crate::{get_script, Behaviors, RUNE_EXTENSION};
 
     #[derive(Debug)]
     pub struct LeadAction {
@@ -159,9 +164,13 @@ pub mod actions {
             match session.find_item(surroundings, &self.item)? {
                 Some(editing) => {
                     info!("leading {:?}", editing);
+                    let script = match get_script(&editing)? {
+                        Some(script) => script,
+                        None => "; Default script".to_owned(),
+                    };
                     Ok(Box::new(EditorReply::new(
                         editing.key().to_string(),
-                        WorkingCopy::Script(editing.desc()?.unwrap_or("".to_owned())),
+                        WorkingCopy::Script(script),
                     )))
                 }
                 None => Ok(Box::new(SimpleReply::NotFound)),
