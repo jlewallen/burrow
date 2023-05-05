@@ -27,7 +27,7 @@ impl Renderer {
 }
 
 pub fn default_external_editor(value: &str, extension: &str) -> Result<String> {
-    external_editor::<TerminalVimEditor>(value, extension)
+    external_editor::<HelixEditor>(value, extension)
 }
 
 fn external_editor<T>(value: &str, extension: &str) -> Result<String>
@@ -58,11 +58,36 @@ trait ExternalEditor {
 
 #[allow(dead_code)]
 #[derive(Default)]
-struct TerminalVimEditor {}
+struct HelixEditor {}
 
-impl ExternalEditor for TerminalVimEditor {
+impl ExternalEditor for HelixEditor {
     fn run(&self, path: &Path) -> Result<()> {
-        info!("opening in vim and waiting on close");
+        info!("helix:spawn");
+
+        let status = std::process::Command::new("/bin/sh")
+            .arg("-c")
+            // Note that this is passed as one argument to the
+            // shell's -c argument and that is why multiple arg
+            // calls aren't being used.
+            .arg(format!("hx {}", path.display()))
+            .spawn()
+            .or_else(|_| Err(anyhow!("Error: Failed to run /bin/sh -c hx")))?
+            .wait()
+            .expect("Error: Editor returned a non-zero status");
+
+        info!("helix:done {:?}", status);
+
+        Ok(())
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Default)]
+struct VimEditor {}
+
+impl ExternalEditor for VimEditor {
+    fn run(&self, path: &Path) -> Result<()> {
+        info!("vim:spawn");
 
         let status = std::process::Command::new("/bin/sh")
             .arg("-c")
@@ -75,7 +100,7 @@ impl ExternalEditor for TerminalVimEditor {
             .wait()
             .expect("Error: Editor returned a non-zero status");
 
-        info!("finished: {:?}", status);
+        info!("vim:exited {:?}", status);
 
         Ok(())
     }
@@ -87,7 +112,7 @@ struct VsCodeEditor {}
 
 impl ExternalEditor for VsCodeEditor {
     fn run(&self, path: &Path) -> Result<()> {
-        info!("opening in vscode and waiting on close");
+        info!("vscode:spawn");
 
         let status = std::process::Command::new("/bin/sh")
             .arg("-c")
@@ -100,7 +125,7 @@ impl ExternalEditor for VsCodeEditor {
             .wait()
             .expect("Error: Editor returned a non-zero status");
 
-        info!("finished: {:?}", status);
+        info!("vscode:done {:?}", status);
 
         Ok(())
     }
