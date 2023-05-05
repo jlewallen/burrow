@@ -9,6 +9,9 @@ edition = "2021"
 # keywords = ["yew", "trunk"]
 # categories = ["gui", "wasm", "web-programming"]
 
+[lib]
+doctest = false
+
 [dependencies.replies]
 path = "../libs/replies"
 
