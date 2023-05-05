@@ -199,15 +199,8 @@ pub mod actions {
                     match &self.copy {
                         WorkingCopy::Script(script) => {
                             let mut behaviors = entry.scope_mut::<Behaviors>()?;
-                            if behaviors.langs.is_none() {
-                                behaviors.langs = Some(HashMap::new());
-                            }
-                            match &mut behaviors.langs {
-                                Some(behaviors) => {
-                                    behaviors.insert(RUNE_EXTENSION.to_owned(), script.clone())
-                                }
-                                None => todo!(),
-                            };
+                            let langs = behaviors.langs.get_or_insert_with(|| HashMap::new());
+                            langs.insert(RUNE_EXTENSION.to_owned(), script.clone());
                             behaviors.save()?;
                         }
                         _ => {
