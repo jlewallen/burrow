@@ -92,12 +92,16 @@ impl Plugin for RunePlugin {
             .collect::<Result<Vec<_>>>()?
         {
             if nearby.has_scope::<Behaviors>()? {
-                let mut behaviors = nearby.scope_mut::<Behaviors>()?;
-                if behaviors.langs.is_none() {
-                    behaviors.langs = Some(HashMap::new());
-                    behaviors.save()?;
+                let behaviors = nearby.scope::<Behaviors>()?;
+                match &behaviors.langs {
+                    Some(langs) => match langs.get(RUNE_EXTENSION) {
+                        Some(script) => {
+                            info!("{:?} {:?}", nearby, script);
+                        }
+                        None => (),
+                    },
+                    None => (),
                 }
-                info!("{:?} {:?}", nearby, behaviors.as_ref());
             }
         }
 
