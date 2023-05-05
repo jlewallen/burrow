@@ -280,15 +280,13 @@ pub mod actions {
             false
         }
 
-        fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
-            info!("mutate {:?}", self.key);
-
-            let (_, _user, _area) = surroundings.unpack();
+        fn perform(&self, session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
+            info!("mutate:key {:?}", self.key);
 
             match session.entry(&LookupBy::Key(&self.key))? {
                 Some(entry) => {
                     let entity = entry.entity()?;
-                    info!("mutate {:?}", entity);
+                    info!("mutate:entity {:?}", entity);
 
                     match &self.copy {
                         WorkingCopy::Description(desc) => entity.set_desc(desc)?,
@@ -296,10 +294,10 @@ pub mod actions {
                             info!("mutate:json");
                             let replacing = deserialize_entity_from_value(value.clone())?;
                             entity.replace(replacing);
-                            info!("mutate:json:replaced");
                         }
-                        WorkingCopy::Script(_) => todo!(),
+                        WorkingCopy::Script(_) => unimplemented!("TODO (See SaveLeadAction)"),
                     }
+
                     Ok(Box::new(SimpleReply::Done))
                 }
                 None => Ok(Box::new(SimpleReply::NotFound)),

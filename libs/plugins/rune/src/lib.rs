@@ -9,6 +9,8 @@ use std::sync::Arc;
 use plugins_core::library::plugin::*;
 use plugins_core::EntityRelationshipSet;
 
+pub static RUNE_EXTENSION: &str = "rn";
+
 #[derive(Default)]
 pub struct RunePluginFactory {}
 
@@ -109,8 +111,6 @@ impl ParsesActions for RunePlugin {
     }
 }
 
-pub static RUNE_LANG: &str = "rune";
-
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Behaviors {
     pub langs: Option<HashMap<String, String>>,
@@ -132,8 +132,12 @@ impl Scope for Behaviors {
     }
 }
 
-mod actions {
+pub mod actions {
+    use std::collections::HashMap;
+
     use kernel::*;
+
+    use crate::{Behaviors, RUNE_EXTENSION};
 
     #[derive(Debug)]
     pub struct LeadAction {
@@ -155,6 +159,50 @@ mod actions {
                         editing.key().to_string(),
                         WorkingCopy::Script(editing.desc()?.unwrap_or("".to_owned())),
                     )))
+                }
+                None => Ok(Box::new(SimpleReply::NotFound)),
+            }
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct SaveScriptAction {
+        pub key: EntityKey,
+        pub copy: WorkingCopy,
+    }
+
+    impl Action for SaveScriptAction {
+        fn is_read_only() -> bool {
+            false
+        }
+
+        fn perform(&self, session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
+            info!("mutate:key {:?}", self.key);
+
+            match session.entry(&LookupBy::Key(&self.key))? {
+                Some(entry) => {
+                    info!("mutate:entry {:?}", entry);
+
+                    match &self.copy {
+                        WorkingCopy::Script(script) => {
+                            let mut behaviors = entry.scope_mut::<Behaviors>()?;
+                            if behaviors.langs.is_none() {
+                                behaviors.langs = Some(HashMap::new());
+                            }
+                            match &mut behaviors.langs {
+                                Some(behaviors) => {
+                                    behaviors.insert(RUNE_EXTENSION.to_owned(), script.clone())
+                                }
+                                None => todo!(),
+                            };
+                            behaviors.save()?;
+                        }
+                        _ => {
+                            unimplemented!("TODO (See SaveWorkingCopyAction)")
+                        }
+                    }
+
+                    Ok(Box::new(SimpleReply::Done))
                 }
                 None => Ok(Box::new(SimpleReply::NotFound)),
             }

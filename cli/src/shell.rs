@@ -1,7 +1,6 @@
 use anyhow::Result;
 use clap::Args;
-use plugins_core::building::actions::SaveWorkingCopyAction;
-use replies::EditorReply;
+use plugins_rune::RUNE_EXTENSION;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::cell::RefCell;
@@ -11,6 +10,10 @@ use crate::terminal::Renderer;
 use crate::{make_domain, terminal::default_external_editor};
 use engine::{self, DevNullNotifier, Domain, Notifier, Session};
 use kernel::{ActiveSession, EntityKey, Perform, Reply, SimpleReply};
+use replies::EditorReply;
+
+use plugins_core::building::actions::SaveWorkingCopyAction;
+use plugins_rune::actions::SaveScriptAction;
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -78,6 +81,9 @@ fn find_user_key(domain: &Domain, name: &str) -> Result<Option<EntityKey>> {
     Ok(maybe_key)
 }
 
+pub static TEXT_EXTENSION: &str = "txt";
+pub static JSON_EXTENSION: &str = "json";
+
 pub fn try_interactive(
     session: Rc<Session>,
     living: &EntityKey,
@@ -90,41 +96,36 @@ pub fn try_interactive(
                 // TODO This is annoying.
                 if key == "editor" {
                     let reply: EditorReply = serde_json::from_value(value.clone())?;
-                    let save_action = match reply.editing {
+                    let action: Box<dyn kernel::Action> = match reply.editing {
                         replies::WorkingCopy::Description(original) => {
-                            let edited = default_external_editor(&original, "txt")?;
+                            let edited = default_external_editor(&original, TEXT_EXTENSION)?;
 
-                            SaveWorkingCopyAction {
+                            Box::new(SaveWorkingCopyAction {
                                 key: EntityKey::new(&reply.key),
                                 copy: replies::WorkingCopy::Description(edited),
-                            }
+                            })
                         }
                         replies::WorkingCopy::Json(original) => {
                             let serialized = serde_json::to_string_pretty(&original)?;
-                            let edited = default_external_editor(&serialized, "txt")?;
+                            let edited = default_external_editor(&serialized, JSON_EXTENSION)?;
 
-                            SaveWorkingCopyAction {
+                            Box::new(SaveWorkingCopyAction {
                                 key: EntityKey::new(&reply.key),
                                 copy: replies::WorkingCopy::Json(serde_json::from_str(&edited)?),
-                            }
+                            })
                         }
                         replies::WorkingCopy::Script(original) => {
-                            let edited = default_external_editor(&original, "rn")?;
+                            let edited = default_external_editor(&original, RUNE_EXTENSION)?;
 
-                            SaveWorkingCopyAction {
+                            Box::new(SaveScriptAction {
                                 key: EntityKey::new(&reply.key),
-                                copy: replies::WorkingCopy::Script(serde_json::from_str(&edited)?),
-                            }
+                                copy: replies::WorkingCopy::Script(edited),
+                            })
                         }
                     };
 
                     match session.entry(&kernel::LookupBy::Key(&living))? {
-                        Some(living) => {
-                            return session.chain(Perform::Living {
-                                living,
-                                action: Box::new(save_action),
-                            })
-                        }
+                        Some(living) => return session.chain(Perform::Living { living, action }),
                         None => break,
                     }
                 }
