@@ -62,22 +62,7 @@ struct HelixEditor {}
 
 impl ExternalEditor for HelixEditor {
     fn run(&self, path: &Path) -> Result<()> {
-        info!("helix:spawn");
-
-        let status = std::process::Command::new("/bin/sh")
-            .arg("-c")
-            // Note that this is passed as one argument to the
-            // shell's -c argument and that is why multiple arg
-            // calls aren't being used.
-            .arg(format!("hx {}", path.display()))
-            .spawn()
-            .or_else(|_| Err(anyhow!("Error: Failed to run /bin/sh -c hx")))?
-            .wait()
-            .expect("Error: Editor returned a non-zero status");
-
-        info!("helix:done {:?}", status);
-
-        Ok(())
+        spawn_editor("hx", path)
     }
 }
 
@@ -87,22 +72,7 @@ struct VimEditor {}
 
 impl ExternalEditor for VimEditor {
     fn run(&self, path: &Path) -> Result<()> {
-        info!("vim:spawn");
-
-        let status = std::process::Command::new("/bin/sh")
-            .arg("-c")
-            // Note that this is passed as one argument to the
-            // shell's -c argument and that is why multiple arg
-            // calls aren't being used.
-            .arg(format!("vim {}", path.display()))
-            .spawn()
-            .or_else(|_| Err(anyhow!("Error: Failed to run /bin/sh -c vim")))?
-            .wait()
-            .expect("Error: Editor returned a non-zero status");
-
-        info!("vim:exited {:?}", status);
-
-        Ok(())
+        spawn_editor("vim", path)
     }
 }
 
@@ -112,21 +82,25 @@ struct VsCodeEditor {}
 
 impl ExternalEditor for VsCodeEditor {
     fn run(&self, path: &Path) -> Result<()> {
-        info!("vscode:spawn");
-
-        let status = std::process::Command::new("/bin/sh")
-            .arg("-c")
-            // Note that this is passed as one argument to the
-            // shell's -c argument and that is why multiple arg
-            // calls aren't being used.
-            .arg(format!("code -w {}", path.display()))
-            .spawn()
-            .or_else(|_| Err(anyhow!("Error: Failed to run /bin/sh -c code")))?
-            .wait()
-            .expect("Error: Editor returned a non-zero status");
-
-        info!("vscode:done {:?}", status);
-
-        Ok(())
+        spawn_editor("code -w", path)
     }
+}
+
+fn spawn_editor(prefix: &str, path: &Path) -> Result<()> {
+    info!("editor:spawn '{} {}'", prefix, path.display());
+
+    let status = std::process::Command::new("/bin/sh")
+        .arg("-c")
+        // Note that this is passed as one argument to the
+        // shell's -c argument and that is why multiple arg
+        // calls aren't being used.
+        .arg(format!("{} {}", prefix, path.display()))
+        .spawn()
+        .or_else(|_| Err(anyhow!("Error: Failed to run /bin/sh -c {}", prefix)))?
+        .wait()
+        .expect("Error: Editor returned a non-zero status");
+
+    info!("editor:done {:?}", status);
+
+    Ok(())
 }
