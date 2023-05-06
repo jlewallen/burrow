@@ -1,6 +1,7 @@
 use anyhow::Result;
 use tera::{Context, Tera};
 
+use kernel::LogTimeFromNow;
 use replies::Reply;
 
 pub struct Renderer {
@@ -41,6 +42,7 @@ impl Renderer {
     }
 
     pub fn render_reply(&self, reply: &Box<dyn Reply>) -> Result<String> {
+        let _log = LogTimeFromNow::new("render-reply");
         self.render_value(&reply.to_json()?)
     }
 }

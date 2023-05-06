@@ -3,8 +3,11 @@ use rune::runtime::RuntimeContext;
 use rune::termcolor::{ColorChoice, StandardStream};
 use rune::{Context, Diagnostics, Source, Sources, Vm};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::cell::RefCell;
+use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Instant;
 
 use plugins_core::library::plugin::*;
 use plugins_core::EntityRelationshipSet;
@@ -20,13 +23,16 @@ impl PluginFactory for RunePluginFactory {
     }
 }
 
-pub struct RunePlugin {
+pub struct RuneRunner {
+    #[allow(dead_code)]
     ctx: Context,
+    #[allow(dead_code)]
     runtime: Arc<RuntimeContext>,
+    #[allow(dead_code)]
     vm: Option<Vm>,
 }
 
-impl Default for RunePlugin {
+impl Default for RuneRunner {
     fn default() -> Self {
         Self {
             ctx: Default::default(),
@@ -36,19 +42,96 @@ impl Default for RunePlugin {
     }
 }
 
+#[derive(PartialEq, Eq, Hash)]
+pub enum ScriptSource {
+    File(PathBuf),
+    Entity(EntityKey, String),
+}
+
+pub struct RunePlugin {
+    sources: RefCell<HashSet<ScriptSource>>,
+}
+
+impl Default for RunePlugin {
+    fn default() -> Self {
+        Self {
+            sources: RefCell::new(HashSet::new()),
+        }
+    }
+}
+
 impl RunePlugin {
-    fn load_user_sources(&mut self) -> Result<Sources> {
-        let mut sources = Sources::new();
+    fn load_user_sources(&self) -> Result<()> {
+        let _log = LogTimeFromNow::new("load-user-sources");
+        let mut sources = self.sources.borrow_mut();
         for entry in glob("user/*.rn")? {
             match entry {
                 Ok(path) => {
                     info!("loading {}", path.display());
-                    sources.insert(Source::from_path(path.as_path())?);
+                    sources.insert(ScriptSource::File(path));
                 }
                 Err(e) => warn!("{:?}", e),
             }
         }
-        Ok(sources)
+
+        Ok(())
+    }
+
+    fn load_sources_from_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
+        let _log = LogTimeFromNow::new("load-sources-from-surroundings");
+        let mut sources = self.sources.borrow_mut();
+        let haystack = EntityRelationshipSet::new_from_surroundings(surroundings).expand()?;
+        for nearby in haystack
+            .iter()
+            .map(|r| r.entry())
+            .collect::<Result<Vec<_>>>()?
+        {
+            match get_script(nearby)? {
+                Some(script) => {
+                    info!("{:?} {:?}", nearby, script);
+                    sources.insert(ScriptSource::Entity(nearby.key().clone(), script));
+                }
+                None => (),
+            }
+        }
+
+        Ok(())
+    }
+
+    fn get_runner(&self) -> Result<RuneRunner> {
+        let started = Instant::now();
+        let mut sources = Sources::new();
+        let scripts = self.sources.borrow();
+        for script in scripts.iter() {
+            match script {
+                ScriptSource::File(path) => sources.insert(Source::from_path(path.as_path())?),
+                ScriptSource::Entity(key, source) => {
+                    sources.insert(Source::new(key.to_string(), source))
+                }
+            };
+        }
+
+        let mut diagnostics = Diagnostics::new();
+        let ctx: Context = Default::default();
+        let runtime: Arc<RuntimeContext> = Default::default();
+        let compiled = rune::prepare(&mut sources)
+            .with_context(&ctx)
+            .with_diagnostics(&mut diagnostics)
+            .build();
+        if !diagnostics.is_empty() {
+            let mut writer = StandardStream::stderr(ColorChoice::Always);
+            diagnostics.emit(&mut writer, &sources)?;
+        }
+
+        let vm = Vm::new(runtime.clone(), Arc::new(compiled?));
+        let elapsed = Instant::now() - started;
+        info!("runner:ready {:?}", elapsed);
+
+        Ok(RuneRunner {
+            ctx,
+            runtime,
+            vm: Some(vm),
+        })
     }
 }
 
@@ -61,21 +144,9 @@ impl Plugin for RunePlugin {
     }
 
     fn initialize(&mut self) -> Result<()> {
-        let mut sources = self.load_user_sources()?;
-        let mut diagnostics = Diagnostics::new();
-        let compiled = rune::prepare(&mut sources)
-            .with_context(&self.ctx)
-            .with_diagnostics(&mut diagnostics)
-            .build();
+        info!("initialize");
 
-        if !diagnostics.is_empty() {
-            let mut writer = StandardStream::stderr(ColorChoice::Always);
-            diagnostics.emit(&mut writer, &sources)?;
-        }
-
-        let vm = Vm::new(self.runtime.clone(), Arc::new(compiled?));
-
-        self.vm = Some(vm);
+        self.load_user_sources()?;
 
         Ok(())
     }
@@ -85,18 +156,11 @@ impl Plugin for RunePlugin {
     }
 
     fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
-        let haystack = EntityRelationshipSet::new_from_surroundings(surroundings).expand()?;
-        for nearby in haystack
-            .iter()
-            .map(|r| r.entry())
-            .collect::<Result<Vec<_>>>()?
-        {
-            match get_script(nearby)? {
-                Some(script) => {
-                    info!("{:?} {:?}", nearby, script);
-                }
-                None => (),
-            }
+        self.load_sources_from_surroundings(surroundings)?;
+
+        match self.get_runner() {
+            Ok(_runner) => info!("runner!"),
+            Err(_e) => warn!("Oops"),
         }
 
         Ok(())
