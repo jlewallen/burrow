@@ -47,16 +47,7 @@ impl ManagedHooks {
         F: Fn(&mut T) -> anyhow::Result<()>,
         T: HooksSet + Default + 'static,
     {
-        let mut all_hooks = self.hooks.borrow_mut();
-        // Would love to use .or_default here, only the 'as' call to produce a
-        // Box<dyn Any> throws a wrench in that plan.
-        let hooks = all_hooks
-            .entry(<T as HooksSet>::hooks_key())
-            .or_insert_with(|| Box::<T>::default() as Box<dyn Any>);
-        let hooks = hooks
-            .downcast_mut()
-            .expect("Hooks of unexpected type, duplicate hooks_key?");
-        with_fn(hooks)
+        self.invoke::<T, (), _>(with_fn)
     }
 
     pub fn invoke<T, V, F>(&self, with_fn: F) -> anyhow::Result<V>

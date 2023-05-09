@@ -45,7 +45,7 @@ pub trait Plugin: ParsesActions {
 
     fn register_hooks(&self, hooks: &ManagedHooks) -> Result<()>;
 
-    fn have_surroundings(&self, _surroundings: &Surroundings) -> Result<()>;
+    fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()>;
 }
 
 #[derive(Default)]

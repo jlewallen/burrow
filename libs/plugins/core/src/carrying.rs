@@ -207,8 +207,6 @@ pub mod model {
             if carryable.quantity > 1.0 {
                 let (_original, separated) = tools::separate(item, 1.0)?;
 
-                // get_my_session()?.add_entity(entity)?;
-
                 Ok(Some(separated))
             } else {
                 self.remove_item(item)?;
