@@ -32,16 +32,6 @@ pub struct RuneRunner {
     vm: Option<Vm>,
 }
 
-impl Default for RuneRunner {
-    fn default() -> Self {
-        Self {
-            ctx: Default::default(),
-            runtime: Default::default(),
-            vm: None,
-        }
-    }
-}
-
 #[derive(PartialEq, Eq, Hash)]
 pub enum ScriptSource {
     File(PathBuf),
@@ -112,7 +102,7 @@ impl RunePlugin {
         }
 
         let mut diagnostics = Diagnostics::new();
-        let ctx: Context = Default::default();
+        let ctx = Context::with_default_modules()?;
         let runtime: Arc<RuntimeContext> = Default::default();
         let compiled = rune::prepare(&mut sources)
             .with_context(&ctx)
