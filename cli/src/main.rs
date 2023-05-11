@@ -40,11 +40,18 @@ enum Commands {
 }
 
 fn get_rust_log() -> String {
-    let mut original =
-        std::env::var("RUST_LOG").unwrap_or_else(|_| "burrow=info,tower_http=info".into());
+    let mut original = std::env::var("RUST_LOG").unwrap_or_else(|_| "burrow=info".into());
+
+    if !original.contains("tower_http=") {
+        original.push_str(",tower_http=info");
+    }
 
     if !original.contains("rustyline=") {
         original.push_str(",rustyline=info");
+    }
+
+    if !original.contains("globset=") {
+        original.push_str(",globset=info");
     }
 
     original

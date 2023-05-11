@@ -1,7 +1,8 @@
 use anyhow::Result;
+use std::time::Instant;
 use tera::{Context, Tera};
+use tracing::info;
 
-use kernel::LogTimeFromNow;
 use replies::Reply;
 
 pub struct Renderer {
@@ -10,7 +11,10 @@ pub struct Renderer {
 
 impl Renderer {
     pub fn new() -> Result<Self> {
+        let started = Instant::now();
         let tera = Tera::new("text/**/*")?;
+        let elapsed = Instant::now() - started;
+        info!(?elapsed, "compiled");
 
         Ok(Self { tera })
     }
@@ -42,7 +46,6 @@ impl Renderer {
     }
 
     pub fn render_reply(&self, reply: &Box<dyn Reply>) -> Result<String> {
-        let _log = LogTimeFromNow::new("render-reply");
         self.render_value(&reply.to_json()?)
     }
 }
