@@ -25,6 +25,8 @@ impl PluginFactory for RunePluginFactory {
 
 pub struct RuneRunner {
     #[allow(dead_code)]
+    scripts: HashSet<ScriptSource>,
+    #[allow(dead_code)]
     ctx: Context,
     #[allow(dead_code)]
     runtime: Arc<RuntimeContext>,
@@ -39,39 +41,38 @@ pub enum ScriptSource {
 }
 
 pub struct RunePlugin {
-    #[allow(dead_code)]
-    sources: RefCell<HashSet<ScriptSource>>,
+    runner: RefCell<Option<RuneRunner>>,
 }
 
 impl Default for RunePlugin {
     fn default() -> Self {
         Self {
-            sources: RefCell::new(HashSet::new()),
+            runner: RefCell::new(None),
         }
     }
 }
 
 impl RunePlugin {
     fn load_user_sources(&self) -> Result<HashSet<ScriptSource>> {
-        let mut sources = HashSet::new();
+        let mut scripts = HashSet::new();
         for entry in glob("user/*.rn")? {
             match entry {
                 Ok(path) => {
                     info!("script {}", path.display());
-                    sources.insert(ScriptSource::File(path));
+                    scripts.insert(ScriptSource::File(path));
                 }
                 Err(e) => warn!("{:?}", e),
             }
         }
 
-        Ok(sources)
+        Ok(scripts)
     }
 
     fn load_sources_from_surroundings(
         &self,
         surroundings: &Surroundings,
     ) -> Result<HashSet<ScriptSource>> {
-        let mut sources = HashSet::new();
+        let mut scripts = HashSet::new();
         let haystack = EntityRelationshipSet::new_from_surroundings(surroundings).expand()?;
         for nearby in haystack
             .iter()
@@ -81,16 +82,16 @@ impl RunePlugin {
             match get_script(nearby)? {
                 Some(script) => {
                     info!("script {:?}", nearby);
-                    sources.insert(ScriptSource::Entity(nearby.key().clone(), script));
+                    scripts.insert(ScriptSource::Entity(nearby.key().clone(), script));
                 }
                 None => (),
             }
         }
 
-        Ok(sources)
+        Ok(scripts)
     }
 
-    fn create_runner(&self, scripts: &HashSet<ScriptSource>) -> Result<RuneRunner> {
+    fn create_runner(&self, scripts: HashSet<ScriptSource>) -> Result<RuneRunner> {
         debug!("runner:loading");
         let started = Instant::now();
         let mut sources = Sources::new();
@@ -121,10 +122,17 @@ impl RunePlugin {
         info!("runner:ready {:?}", elapsed);
 
         Ok(RuneRunner {
+            scripts,
             ctx,
             runtime,
             vm: Some(vm),
         })
+    }
+
+    fn create_and_use_runner(&self, scripts: HashSet<ScriptSource>) -> Result<()> {
+        let runner = self.create_runner(scripts)?;
+        *self.runner.borrow_mut() = Some(runner);
+        Ok(())
     }
 }
 
@@ -137,6 +145,8 @@ impl Plugin for RunePlugin {
     }
 
     fn initialize(&mut self) -> Result<()> {
+        self.create_and_use_runner(self.load_user_sources()?)?;
+
         Ok(())
     }
 
@@ -150,11 +160,7 @@ impl Plugin for RunePlugin {
             .into_iter()
             .chain(self.load_sources_from_surroundings(surroundings)?)
             .collect();
-
-        match self.create_runner(&scripts) {
-            Ok(_runner) => {}
-            Err(_e) => warn!("Oops"),
-        }
+        self.create_and_use_runner(scripts)?;
 
         Ok(())
     }
