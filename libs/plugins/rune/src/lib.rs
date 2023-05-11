@@ -94,15 +94,20 @@ impl RunePlugin {
     fn create_runner(&self, scripts: HashSet<ScriptSource>) -> Result<RuneRunner> {
         debug!("runner:loading");
         let started = Instant::now();
-        let mut sources = Sources::new();
-        for script in scripts.iter() {
-            match script {
-                ScriptSource::File(path) => sources.insert(Source::from_path(path.as_path())?),
-                ScriptSource::Entity(key, source) => {
-                    sources.insert(Source::new(key.to_string(), source))
-                }
-            };
-        }
+        let sources = scripts
+            .iter()
+            .map(|script| match script {
+                ScriptSource::File(path) => Ok(Source::from_path(path.as_path())?),
+                ScriptSource::Entity(key, source) => Ok(Source::new(key.to_string(), source)),
+            })
+            .collect::<Result<Vec<_>>>()?;
+
+        let mut sources = sources
+            .into_iter()
+            .fold(Sources::new(), |mut sources, source| {
+                sources.insert(source);
+                sources
+            });
 
         debug!("runner:compiling");
         let mut diagnostics = Diagnostics::new();
