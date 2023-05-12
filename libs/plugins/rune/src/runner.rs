@@ -5,7 +5,7 @@ use rune::{
     Context, Diagnostics, Source, Sources, Vm,
 };
 use std::{collections::HashSet, sync::Arc, time::Instant};
-use tracing::{debug, error, info, span, Level};
+use tracing::{debug, error, info, span, warn, Level};
 
 use kernel::Surroundings;
 
@@ -87,15 +87,24 @@ impl RuneRunner {
             diagnostics.emit(&mut writer, &sources)?;
         }
 
-        let vm = Vm::new(runtime.clone(), Arc::new(compiled?));
-        let elapsed = Instant::now() - started;
-        info!("runner:ready {:?}", elapsed);
+        let vm = match compiled {
+            Ok(compiled) => {
+                let vm = Vm::new(runtime.clone(), Arc::new(compiled));
+                let elapsed = Instant::now() - started;
+                info!("runner:ready {:?}", elapsed);
+                Some(vm)
+            }
+            Err(e) => {
+                warn!("{}", e);
+                None
+            }
+        };
 
         Ok(Self {
             scripts,
             ctx,
             runtime,
-            vm: Some(vm),
+            vm,
         })
     }
 
