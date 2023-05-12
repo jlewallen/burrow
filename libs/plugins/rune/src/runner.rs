@@ -108,7 +108,12 @@ impl RuneRunner {
         Ok(())
     }
 
-    pub fn have_surroundings(&self, _surroundings: &Surroundings) -> Result<()> {
+    pub fn have_surroundings(&mut self, _surroundings: &Surroundings) -> Result<()> {
+        match &mut self.vm {
+            Some(vm) => vm.execute(["have_surroundings"], ())?.complete()?,
+            None => rune::Value::Unit,
+        };
+
         Ok(())
     }
 }

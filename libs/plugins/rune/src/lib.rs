@@ -60,7 +60,7 @@ impl Plugin for RunePlugin {
             .chain(sources::load_sources_from_surroundings(surroundings)?)
             .collect();
 
-        let runner = RuneRunner::new(scripts)?;
+        let mut runner = RuneRunner::new(scripts)?;
 
         runner.have_surroundings(surroundings)?;
 
