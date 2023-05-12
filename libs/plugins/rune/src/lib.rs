@@ -1,5 +1,5 @@
 use glob::glob;
-use rune::runtime::RuntimeContext;
+use rune::runtime::{Protocol, RuntimeContext};
 use rune::termcolor::{ColorChoice, StandardStream};
 use rune::{Context, Diagnostics, Source, Sources, Vm};
 use serde::{Deserialize, Serialize};
@@ -23,15 +23,27 @@ impl PluginFactory for RunePluginFactory {
     }
 }
 
+#[allow(dead_code)]
 pub struct RuneRunner {
-    #[allow(dead_code)]
     scripts: HashSet<ScriptSource>,
-    #[allow(dead_code)]
     ctx: Context,
-    #[allow(dead_code)]
     runtime: Arc<RuntimeContext>,
-    #[allow(dead_code)]
     vm: Option<Vm>,
+}
+
+impl RuneRunner {
+    fn user(&mut self) -> Result<()> {
+        match &mut self.vm {
+            Some(vm) => vm.execute(["user"], ())?.complete()?,
+            None => rune::Value::Unit,
+        };
+
+        Ok(())
+    }
+
+    fn have_surroundings(&self, _surroundings: &Surroundings) -> Result<()> {
+        Ok(())
+    }
 }
 
 #[derive(PartialEq, Eq, Hash)]
@@ -40,15 +52,26 @@ pub enum ScriptSource {
     Entity(EntityKey, String),
 }
 
+#[derive(Default)]
 pub struct RunePlugin {
-    runner: RefCell<Option<RuneRunner>>,
+    runner: Arc<RefCell<Option<RuneRunner>>>,
 }
 
-impl Default for RunePlugin {
-    fn default() -> Self {
-        Self {
-            runner: RefCell::new(None),
-        }
+#[derive(Debug, Default, rune::Any)]
+struct Thing {
+    #[rune(get)]
+    value: u32,
+}
+
+impl Thing {
+    fn new() -> Self {
+        Self { value: 0 }
+    }
+
+    #[inline]
+    fn string_debug(&self, s: &mut String) -> std::fmt::Result {
+        use std::fmt::Write;
+        write!(s, "Thing({:?})", self.value)
     }
 }
 
@@ -111,8 +134,15 @@ impl RunePlugin {
 
         debug!("runner:compiling");
         let mut diagnostics = Diagnostics::new();
-        let ctx = Context::with_default_modules()?;
-        let runtime: Arc<RuntimeContext> = Default::default();
+        let mut ctx = Context::with_default_modules()?;
+
+        let mut module = rune::Module::default();
+        module.ty::<Thing>()?;
+        module.function(["Thing", "new"], Thing::new)?;
+        module.inst_fn(Protocol::STRING_DEBUG, Thing::string_debug)?;
+        ctx.install(&module)?;
+
+        let runtime: Arc<RuntimeContext> = Arc::new(ctx.runtime());
         let compiled = rune::prepare(&mut sources)
             .with_context(&ctx)
             .with_diagnostics(&mut diagnostics)
@@ -134,10 +164,8 @@ impl RunePlugin {
         })
     }
 
-    fn create_and_use_runner(&self, scripts: HashSet<ScriptSource>) -> Result<()> {
-        let runner = self.create_runner(scripts)?;
-        *self.runner.borrow_mut() = Some(runner);
-        Ok(())
+    fn use_runner(&self, runner: RuneRunner) {
+        self.runner.replace(Some(runner));
     }
 }
 
@@ -150,7 +178,11 @@ impl Plugin for RunePlugin {
     }
 
     fn initialize(&mut self) -> Result<()> {
-        self.create_and_use_runner(self.load_user_sources()?)?;
+        let mut runner = self.create_runner(self.load_user_sources()?)?;
+
+        runner.user()?;
+
+        self.use_runner(runner);
 
         Ok(())
     }
@@ -165,7 +197,12 @@ impl Plugin for RunePlugin {
             .into_iter()
             .chain(self.load_sources_from_surroundings(surroundings)?)
             .collect();
-        self.create_and_use_runner(scripts)?;
+
+        let runner = self.create_runner(scripts)?;
+
+        runner.have_surroundings(surroundings)?;
+
+        self.use_runner(runner);
 
         Ok(())
     }

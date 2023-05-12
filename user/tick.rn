@@ -1,3 +1,4 @@
-pub fn tick() {
-    println("tick");
+pub fn user() {
+    let thing = Thing::new();
+    println(format!("thing={:?}", thing));
 }
