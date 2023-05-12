@@ -1,4 +1,4 @@
 pub fn user() {
     let thing = Thing::new();
-    println(format!("thing={:?}", thing));
+    info(format!("thing={:?}", thing));
 }

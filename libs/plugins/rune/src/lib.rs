@@ -75,6 +75,10 @@ impl Thing {
     }
 }
 
+fn rune_info(s: &str) {
+    info!("rune: {}", s)
+}
+
 impl RunePlugin {
     fn load_user_sources(&self) -> Result<HashSet<ScriptSource>> {
         let mut scripts = HashSet::new();
@@ -114,6 +118,15 @@ impl RunePlugin {
         Ok(scripts)
     }
 
+    fn create_module(&self) -> Result<rune::Module> {
+        let mut module = rune::Module::default();
+        module.function(["info"], rune_info)?;
+        module.ty::<Thing>()?;
+        module.function(["Thing", "new"], Thing::new)?;
+        module.inst_fn(Protocol::STRING_DEBUG, Thing::string_debug)?;
+        Ok(module)
+    }
+
     fn create_runner(&self, scripts: HashSet<ScriptSource>) -> Result<RuneRunner> {
         debug!("runner:loading");
         let started = Instant::now();
@@ -133,15 +146,11 @@ impl RunePlugin {
             });
 
         debug!("runner:compiling");
-        let mut diagnostics = Diagnostics::new();
         let mut ctx = Context::with_default_modules()?;
-
-        let mut module = rune::Module::default();
-        module.ty::<Thing>()?;
-        module.function(["Thing", "new"], Thing::new)?;
-        module.inst_fn(Protocol::STRING_DEBUG, Thing::string_debug)?;
+        let module = self.create_module()?;
         ctx.install(&module)?;
 
+        let mut diagnostics = Diagnostics::new();
         let runtime: Arc<RuntimeContext> = Arc::new(ctx.runtime());
         let compiled = rune::prepare(&mut sources)
             .with_context(&ctx)
