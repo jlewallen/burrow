@@ -11,7 +11,10 @@ use crate::Behaviors;
 
 pub static RUNE_EXTENSION: &str = "rn";
 
-#[derive(PartialEq, Eq, Hash)]
+// Not super happy about Clone here, this is so we can store them mapped to
+// RuneRunners and makes building that hash easier. Maybe, move to generating a
+// key from this and using that.
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub enum ScriptSource {
     File(PathBuf),
     Entity(EntityKey, String),

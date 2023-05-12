@@ -10,7 +10,7 @@ mod sources;
 
 use runner::*;
 
-pub use sources::RUNE_EXTENSION;
+pub use sources::{ScriptSource, RUNE_EXTENSION};
 
 #[derive(Default)]
 pub struct RunePluginFactory {}
@@ -23,12 +23,24 @@ impl PluginFactory for RunePluginFactory {
 
 #[derive(Default)]
 pub struct RunePlugin {
-    runner: Arc<RefCell<Option<RuneRunner>>>,
+    #[allow(dead_code)]
+    runners: Arc<RefCell<HashMap<ScriptSource, RuneRunner>>>,
 }
 
 impl RunePlugin {
-    fn use_runner(&self, runner: RuneRunner) {
-        self.runner.replace(Some(runner));
+    fn add_runners_for(&self, sources: impl Iterator<Item = ScriptSource>) -> Result<()> {
+        let mut runners = self.runners.borrow_mut();
+        for source in sources {
+            if !runners.contains_key(&source) {
+                runners.insert(source.clone(), self.create_runner(source)?);
+            }
+        }
+
+        Ok(())
+    }
+
+    fn create_runner(&self, source: ScriptSource) -> Result<RuneRunner> {
+        Ok(RuneRunner::new(HashSet::from([source]))?)
     }
 }
 
@@ -41,11 +53,11 @@ impl Plugin for RunePlugin {
     }
 
     fn initialize(&mut self) -> Result<()> {
-        let mut runner = RuneRunner::new(sources::load_user_sources()?)?;
+        self.add_runners_for(sources::load_user_sources()?.into_iter())?;
 
-        runner.user()?;
-
-        self.use_runner(runner);
+        for (_, runner) in self.runners.borrow_mut().iter_mut() {
+            runner.user()?;
+        }
 
         Ok(())
     }
@@ -55,16 +67,11 @@ impl Plugin for RunePlugin {
     }
 
     fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
-        let scripts: HashSet<_> = sources::load_user_sources()?
-            .into_iter()
-            .chain(sources::load_sources_from_surroundings(surroundings)?)
-            .collect();
+        self.add_runners_for(sources::load_sources_from_surroundings(surroundings)?.into_iter())?;
 
-        let mut runner = RuneRunner::new(scripts)?;
-
-        runner.have_surroundings(surroundings)?;
-
-        self.use_runner(runner);
+        for (_, runner) in self.runners.borrow_mut().iter_mut() {
+            runner.have_surroundings(surroundings)?;
+        }
 
         Ok(())
     }

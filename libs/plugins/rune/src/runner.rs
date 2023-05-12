@@ -5,7 +5,7 @@ use rune::{
     Context, Diagnostics, Source, Sources, Vm,
 };
 use std::{collections::HashSet, sync::Arc, time::Instant};
-use tracing::{debug, info, span, Level};
+use tracing::{debug, error, info, span, Level};
 
 use kernel::Surroundings;
 
@@ -35,7 +35,7 @@ fn rune_info(s: &str) {
     info!("{}", s)
 }
 
-fn create_module() -> Result<rune::Module> {
+fn create_integration_module() -> Result<rune::Module> {
     let mut module = rune::Module::default();
     module.function(["info"], rune_info)?;
     module.ty::<Thing>()?;
@@ -73,7 +73,7 @@ impl RuneRunner {
 
         debug!("runner:compiling");
         let mut ctx = Context::with_default_modules()?;
-        let module = create_module()?;
+        let module = create_integration_module()?;
         ctx.install(&module)?;
 
         let mut diagnostics = Diagnostics::new();
@@ -101,7 +101,13 @@ impl RuneRunner {
 
     pub fn user(&mut self) -> Result<()> {
         match &mut self.vm {
-            Some(vm) => vm.execute(["user"], ())?.complete()?,
+            Some(vm) => match vm.execute(["user"], ()) {
+                Ok(_v) => rune::Value::Unit,
+                Err(e) => {
+                    error!("rune: {}", e);
+                    rune::Value::Unit
+                }
+            },
             None => rune::Value::Unit,
         };
 
@@ -110,7 +116,13 @@ impl RuneRunner {
 
     pub fn have_surroundings(&mut self, _surroundings: &Surroundings) -> Result<()> {
         match &mut self.vm {
-            Some(vm) => vm.execute(["have_surroundings"], ())?.complete()?,
+            Some(vm) => match vm.execute(["have_surroundings"], ()) {
+                Ok(_v) => rune::Value::Unit,
+                Err(e) => {
+                    error!("rune: {}", e);
+                    rune::Value::Unit
+                }
+            },
             None => rune::Value::Unit,
         };
 

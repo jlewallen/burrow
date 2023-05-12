@@ -9,24 +9,19 @@ pub fn have_surroundings() {
 
 // These should fail eventually unless there's an Entity context.
 
-// #[dropping]
 pub fn dropping() {
     true
 }
 
-// #[dropped]
 pub fn dropped() {
 }
 
-// #[holding]
 pub fn holding() {
     true
 }
 
-// #[held]
 pub fn held() {
 }
 
-// #[observed]
 pub fn observed() {
 }
