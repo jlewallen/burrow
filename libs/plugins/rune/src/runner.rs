@@ -5,7 +5,7 @@ use rune::{
     Context, Diagnostics, Source, Sources, Vm,
 };
 use std::{collections::HashSet, sync::Arc, time::Instant};
-use tracing::{debug, info};
+use tracing::{debug, info, span, Level};
 
 use kernel::Surroundings;
 
@@ -30,7 +30,9 @@ impl Thing {
 }
 
 fn rune_info(s: &str) {
-    info!("rune: {}", s)
+    // Probably a better way to do this.
+    let _span = span!(Level::INFO, "R").entered();
+    info!("{}", s)
 }
 
 fn create_module() -> Result<rune::Module> {
