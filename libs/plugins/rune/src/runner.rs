@@ -109,32 +109,30 @@ impl RuneRunner {
     }
 
     pub fn user(&mut self) -> Result<()> {
-        match &mut self.vm {
-            Some(vm) => match vm.execute(["user"], ()) {
-                Ok(_v) => rune::Value::Unit,
-                Err(e) => {
-                    error!("rune: {}", e);
-                    rune::Value::Unit
-                }
-            },
-            None => rune::Value::Unit,
-        };
+        self.evaluate_optional_function("user")?;
 
         Ok(())
     }
 
     pub fn have_surroundings(&mut self, _surroundings: &Surroundings) -> Result<()> {
-        match &mut self.vm {
-            Some(vm) => match vm.execute(["have_surroundings"], ()) {
-                Ok(_v) => rune::Value::Unit,
-                Err(e) => {
-                    error!("rune: {}", e);
-                    rune::Value::Unit
-                }
-            },
-            None => rune::Value::Unit,
-        };
+        self.evaluate_optional_function("have_surroundings")?;
 
         Ok(())
+    }
+
+    fn evaluate_optional_function(&mut self, name: &str) -> Result<rune::Value> {
+        match &mut self.vm {
+            Some(vm) => match vm.lookup_function([name]) {
+                Ok(hook_fn) => match hook_fn.call::<(), rune::Value>(()) {
+                    Ok(_v) => Ok(rune::Value::Unit),
+                    Err(e) => {
+                        error!("rune: {}", e);
+                        Ok(rune::Value::Unit)
+                    }
+                },
+                Err(_) => Ok(rune::Value::Unit),
+            },
+            None => Ok(rune::Value::Unit),
+        }
     }
 }
