@@ -53,22 +53,22 @@ impl Renderer {
 
         all.push_str("\n");
 
+        let render = |context: Context, name: &str| -> Result<String> {
+            let path = format!("text/replies/{}.txt", name);
+            let text = self.tera.render(&path, &context)?;
+            Ok(text.trim().to_owned())
+        };
+
         match value {
             serde_json::Value::Object(object) => {
                 for (key, value) in object {
                     let mut context = Context::new();
                     context.insert(key, &value);
-
-                    let path = format!("text/replies/{}.txt", key);
-                    let text = self.tera.render(&path, &context)?;
-                    all.push_str(&text.trim());
+                    all.push_str(&render(context, key)?);
                 }
             }
             serde_json::Value::String(name) => {
-                let context = Context::new();
-                let path = format!("text/replies/{}.txt", name);
-                let text = self.tera.render(&path, &context)?;
-                all.push_str(&text.trim());
+                all.push_str(&render(Context::new(), name)?);
             }
             _ => todo!(),
         }
