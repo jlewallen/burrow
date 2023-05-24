@@ -217,6 +217,7 @@ fn default_priority(e: &EntityRelationship) -> u32 {
     }
 }
 
+#[derive(Default)]
 pub struct DefaultFinder {}
 
 impl Finder for DefaultFinder {

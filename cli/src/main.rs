@@ -66,7 +66,7 @@ fn make_domain() -> Result<Domain> {
     registered_plugins.register::<BuildingPluginFactory>();
     registered_plugins.register::<RunePluginFactory>();
 
-    let finder = Arc::new(DefaultFinder {});
+    let finder = Arc::new(DefaultFinder::default());
     Ok(Domain::new(
         storage_factory,
         Arc::new(registered_plugins),

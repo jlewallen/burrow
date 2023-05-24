@@ -109,7 +109,7 @@ impl BuildSurroundings {
     pub fn new() -> Result<Self> {
         let storage_factory = storage::sqlite::Factory::new(":memory:")?;
         let plugins = Arc::new(RegisteredPlugins::default());
-        let finder = Arc::new(DefaultFinder {});
+        let finder = Arc::new(DefaultFinder::default());
         let domain = domain::Domain::new(storage_factory, plugins, finder, true);
         let session = domain.open_session()?;
 
