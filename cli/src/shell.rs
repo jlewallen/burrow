@@ -171,7 +171,6 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
                 session.close(&notifier)?;
 
                 println!("{}", rendered);
-                println!();
 
                 notifier.forward(&StandardOutNotifier::new(&self_key))?;
             }
