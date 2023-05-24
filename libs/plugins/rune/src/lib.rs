@@ -21,10 +21,11 @@ impl PluginFactory for RunePluginFactory {
     }
 }
 
+pub type Runners = Arc<RefCell<HashMap<ScriptSource, RuneRunner>>>;
+
 #[derive(Default)]
 pub struct RunePlugin {
-    #[allow(dead_code)]
-    runners: Arc<RefCell<HashMap<ScriptSource, RuneRunner>>>,
+    runners: Runners,
 }
 
 impl RunePlugin {
@@ -62,8 +63,8 @@ impl Plugin for RunePlugin {
         Ok(())
     }
 
-    fn register_hooks(&self, _hooks: &ManagedHooks) -> Result<()> {
-        Ok(())
+    fn register_hooks(&self, hooks: &ManagedHooks) -> Result<()> {
+        hooks::register(hooks, &self.runners)
     }
 
     fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
@@ -74,6 +75,39 @@ impl Plugin for RunePlugin {
         }
 
         Ok(())
+    }
+}
+
+mod hooks {
+    use super::*;
+    use plugins_core::moving::model::{AfterMoveHook, BeforeMovingHook, CanMove, MovingHooks};
+
+    pub fn register(hooks: &ManagedHooks, runners: &Runners) -> Result<()> {
+        hooks.with::<MovingHooks, _>(|h| {
+            let rune_moving_hooks = Box::new(RuneMovingHooks {
+                _runners: Runners::clone(runners),
+            });
+            h.before_moving.register(rune_moving_hooks.clone());
+            h.after_move.register(rune_moving_hooks);
+            Ok(())
+        })
+    }
+
+    #[derive(Clone)]
+    struct RuneMovingHooks {
+        _runners: Runners,
+    }
+
+    impl BeforeMovingHook for RuneMovingHooks {
+        fn before_moving(&self, _surroundings: &Surroundings, _to_area: &Entry) -> Result<CanMove> {
+            Ok(CanMove::Allow)
+        }
+    }
+
+    impl AfterMoveHook for RuneMovingHooks {
+        fn after_move(&self, _surroundings: &Surroundings, _from_area: &Entry) -> Result<()> {
+            Ok(())
+        }
     }
 }
 
