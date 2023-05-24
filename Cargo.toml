@@ -5,6 +5,7 @@ members = [
     "libs/engine",
     "libs/plugins/core",
     "libs/plugins/rune",
+    "libs/plugins/example",
     "cli",
     "yew",
 ]

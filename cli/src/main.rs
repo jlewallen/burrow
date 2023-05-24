@@ -9,7 +9,8 @@ use engine::{storage, Domain};
 use kernel::RegisteredPlugins;
 use plugins_core::{
     building::BuildingPluginFactory, carrying::CarryingPluginFactory,
-    looking::LookingPluginFactory, moving::MovingPluginFactory, DefaultFinder,
+    dynamic::DynamicPluginFactory, looking::LookingPluginFactory, moving::MovingPluginFactory,
+    DefaultFinder,
 };
 use plugins_rune::RunePluginFactory;
 
@@ -64,6 +65,7 @@ fn make_domain() -> Result<Domain> {
     registered_plugins.register::<LookingPluginFactory>();
     registered_plugins.register::<CarryingPluginFactory>();
     registered_plugins.register::<BuildingPluginFactory>();
+    registered_plugins.register::<DynamicPluginFactory>();
     registered_plugins.register::<RunePluginFactory>();
 
     let finder = Arc::new(DefaultFinder::default());
