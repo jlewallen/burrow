@@ -1,0 +1,14 @@
+---
+source: libs/plugins/core/src/looking.rs
+expression: reply.to_json()?
+---
+{
+  "entityObservation": {
+    "entity": {
+      "desc": null,
+      "key": "E-0",
+      "name": "Hammer",
+      "qualified": "a Hammer"
+    }
+  }
+}

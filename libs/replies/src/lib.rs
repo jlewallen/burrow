@@ -70,6 +70,20 @@ impl ToJson for InsideObservation {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct EntityObservation {
+    pub entity: ObservedEntity,
+}
+
+impl Reply for EntityObservation {}
+
+impl ToJson for EntityObservation {
+    fn to_json(&self) -> Result<Value, serde_json::Error> {
+        Ok(json!({ "entityObservation": serde_json::to_value(self)? }))
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum KnownReply {
     AreaObservation(AreaObservation),
     InsideObservation(InsideObservation),

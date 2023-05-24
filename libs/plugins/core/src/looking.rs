@@ -85,6 +85,12 @@ pub mod model {
         }
     }
 
+    pub fn new_entity_observation(user: &Entry, entity: &Entry) -> Result<EntityObservation> {
+        Ok(EntityObservation {
+            entity: entity.observe(user)?,
+        })
+    }
+
     pub fn new_inside_observation(user: &Entry, vessel: &Entry) -> Result<InsideObservation> {
         let mut items = vec![];
         if let Ok(containing) = vessel.scope::<Containing>() {
@@ -184,12 +190,32 @@ pub mod actions {
             }
         }
     }
+
+    #[derive(Debug)]
+    pub struct LookAtAction {
+        pub item: Item,
+    }
+
+    impl Action for LookAtAction {
+        fn is_read_only() -> bool {
+            true
+        }
+
+        fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+            let (_, user, _area) = surroundings.unpack();
+
+            match session.find_item(surroundings, &self.item)? {
+                Some(target) => Ok(Box::new(new_entity_observation(&user, &target)?)),
+                None => Ok(Box::new(SimpleReply::NotFound)),
+            }
+        }
+    }
 }
 
 pub mod parser {
     use crate::library::parser::*;
 
-    use super::actions::{LookAction, LookInsideAction};
+    use super::actions::{LookAction, LookAtAction, LookInsideAction};
 
     pub struct LookActionParser {}
 
@@ -204,9 +230,14 @@ pub mod parser {
                 |(_, nearby)| Box::new(LookInsideAction { item: nearby }) as Box<dyn Action>,
             );
 
+            let at = map(
+                separated_pair(separated_pair(tag("look"), spaces, tag("at")), spaces, noun),
+                |(_, nearby)| Box::new(LookAtAction { item: nearby }) as Box<dyn Action>,
+            );
+
             let area = map(tag("look"), |_| Box::new(LookAction {}) as Box<dyn Action>);
 
-            let (_, action) = alt((inside, area))(i)?;
+            let (_, action) = alt((inside, at, area))(i)?;
 
             Ok(action)
         }
@@ -324,6 +355,40 @@ mod tests {
         let (session, surroundings) = build.hands(vec![QuickThing::Actual(vessel)]).build()?;
 
         let action = try_parsing(LookActionParser {}, "look inside vessel")?;
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_, _person, _area) = surroundings.unpack();
+
+        insta::assert_json_snapshot!(reply.to_json()?);
+
+        build.close()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_fails_to_look_at_not_found_entities() -> Result<()> {
+        let mut build = BuildSurroundings::new()?;
+        let vessel = build.entity()?.named("Hammer")?.into_entry()?;
+        let (session, surroundings) = build.hands(vec![QuickThing::Actual(vessel)]).build()?;
+
+        let action = try_parsing(LookActionParser {}, "look at shovel")?;
+        let reply = action.perform(session.clone(), &surroundings)?;
+        let (_, _person, _area) = surroundings.unpack();
+
+        insta::assert_json_snapshot!(reply.to_json()?);
+
+        build.close()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_looks_at_entities() -> Result<()> {
+        let mut build = BuildSurroundings::new()?;
+        let vessel = build.entity()?.named("Hammer")?.into_entry()?;
+        let (session, surroundings) = build.hands(vec![QuickThing::Actual(vessel)]).build()?;
+
+        let action = try_parsing(LookActionParser {}, "look at hammer")?;
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, _person, _area) = surroundings.unpack();
 

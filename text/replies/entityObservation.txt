@@ -1,0 +1,4 @@
+
+{{ entityObservation.entity.name }}
+
+{{ entityObservation.entity.desc }}
