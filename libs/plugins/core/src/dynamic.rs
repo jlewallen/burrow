@@ -36,15 +36,19 @@ pub struct DynamicPlugin {}
 
 impl DynamicPlugin {
     fn open_dynamic(&self) -> Result<u32, Box<dyn std::error::Error>> {
-        unsafe {
-            let library = Rc::new(libloading::Library::new(
-                "target/debug/libplugins_example.dylib",
-            )?);
+        let path = "target/debug/libplugins_example.dylib".to_owned();
 
+        unsafe {
+            let _span = span!(Level::INFO, "regdyn", lib = path).entered();
+
+            info!("loading");
+
+            let library = Rc::new(libloading::Library::new(&path)?);
             let sym = library.get::<*mut PluginDeclaration>(b"plugin_declaration\0")?;
             let decl = sym.read();
-
             let mut registrar = DynamicRegistrar::new(Rc::clone(&library));
+
+            info!("registering");
 
             (decl.register)(&mut registrar);
 
