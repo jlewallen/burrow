@@ -1,21 +1,23 @@
+use dispatcher::Dispatch;
 use plugins_core::dynamic::PluginRegistrar;
-use tracing::{dispatcher, info, Subscriber};
+use tracing::{dispatcher, info};
 
 plugins_core::export_plugin!(initialize);
 
-use dispatcher::Dispatch;
-
-fn default_plugin_setup(subscriber: Box<dyn Subscriber + Send + Sync>) {
-    let dispatch = Dispatch::new(subscriber);
-    match dispatcher::set_global_default(dispatch) {
-        Ok(_) => {}
-        Err(_) => println!("Error configuring plugin tracing"),
-    };
+fn default_plugin_setup(registrar: &dyn PluginRegistrar) {
+    if !dispatcher::has_been_set() {
+        let subscriber = registrar.tracing_subscriber();
+        let dispatch = Dispatch::new(subscriber);
+        match dispatcher::set_global_default(dispatch) {
+            Ok(_) => {}
+            Err(_) => println!("Error configuring plugin tracing"),
+        };
+    }
 }
 
 #[allow(improper_ctypes_definitions)] // TODO
 extern "C" fn initialize(registrar: &dyn PluginRegistrar) {
-    default_plugin_setup(registrar.tracing_subscriber());
+    default_plugin_setup(registrar);
 
     info!("hello, world!")
 }
