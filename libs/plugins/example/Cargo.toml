@@ -8,3 +8,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 plugins-core = { path = "../core" }
+tracing = "0.1.37"

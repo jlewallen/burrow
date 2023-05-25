@@ -1,7 +1,10 @@
-use plugins_core::dynamic::{Function, InvocationError, PluginRegistrar};
+use plugins_core::dynamic::PluginRegistrar;
+use tracing::info;
 
 plugins_core::export_plugin!(initialize);
 
+#[allow(improper_ctypes_definitions)] // TODO
 extern "C" fn initialize(_registrar: &mut dyn PluginRegistrar) {
-    // registrar.register_function("random", Box::new(Random));
+    println!("hello, world?");
+    info!("hello, world!")
 }

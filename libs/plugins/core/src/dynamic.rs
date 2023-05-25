@@ -1,4 +1,7 @@
+use std::rc::Rc;
+
 use kernel::{EvaluationResult, ManagedHooks, ParsesActions, Plugin};
+use libloading::Library;
 
 use crate::library::plugin::*;
 
@@ -11,16 +14,47 @@ impl PluginFactory for DynamicPluginFactory {
     }
 }
 
+struct DynamicRegistrar {
+    #[allow(dead_code)]
+    library: Rc<Library>,
+}
+
+impl DynamicRegistrar {
+    fn new(library: Rc<Library>) -> Self {
+        Self { library }
+    }
+}
+impl PluginRegistrar for DynamicRegistrar {
+    fn register_function(&mut self, _name: &str, _function: Box<dyn Function>) {
+        todo!()
+    }
+}
+
 #[derive(Default)]
 pub struct DynamicPlugin {}
 
 impl DynamicPlugin {
-    fn call_dynamic(&self, name: &str) -> Result<u32, Box<dyn std::error::Error>> {
+    fn open_dynamic(&self) -> Result<u32, Box<dyn std::error::Error>> {
         unsafe {
-            let lib = libloading::Library::new("target/debug/libplugins_example.dylib")?;
+            let library = Rc::new(libloading::Library::new(
+                "target/debug/libplugins_example.dylib",
+            )?);
+
+            let sym = library.get::<*mut PluginDeclaration>(b"plugin_declaration\0")?;
+            let decl = sym.read();
+
+            let mut registrar = DynamicRegistrar::new(Rc::clone(&library));
+
+            (decl.register)(&mut registrar);
+
+            Ok(0)
+
+            /*
             let func: libloading::Symbol<unsafe extern "C" fn() -> u32> =
-                lib.get(name.as_bytes())?;
+                library.get(name.as_bytes())?;
+
             Ok(func())
+            */
         }
     }
 }
@@ -77,8 +111,8 @@ impl Plugin for DynamicPlugin {
     }
 
     fn initialize(&mut self) -> Result<()> {
-        match self.call_dynamic("initialize") {
-            Ok(v) => info!("{:?}", v),
+        match self.open_dynamic() {
+            Ok(v) => trace!("{:?}", v),
             Err(e) => warn!("Error: {:?}", e),
         }
 
