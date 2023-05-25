@@ -1,4 +1,3 @@
-mod dynamic;
 mod identifiers;
 mod internal;
 mod perform;
@@ -11,7 +10,6 @@ pub mod session;
 pub mod storage;
 
 pub use domain::*;
-pub use dynamic::*;
 pub use notifications::*;
 pub use session::*;
 pub use storage::*;

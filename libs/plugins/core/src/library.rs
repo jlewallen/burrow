@@ -92,3 +92,8 @@ pub mod actions {
         Ok(SimpleReply::Done)
     }
 }
+
+pub mod tests {
+    pub use crate::{BuildSurroundings, QuickThing};
+    pub use kernel::{DomainError, EntityGid, LookupBy, SimpleReply};
+}

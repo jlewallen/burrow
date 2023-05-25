@@ -2,15 +2,22 @@ default_level := "info"
 
 default:
     cargo test --all
+    cargo build --all
 
-eval:
+eval: dynamics
     RUST_LOG={{ default_level }} cargo run -- eval
 
-shell:
+shell: dynamics
     RUST_LOG={{ default_level }} cargo run -- shell
 
-serve:
+serve: dynamics
     RUST_LOG={{ default_level }} cargo run -- serve
+
+dynamics:
+    cargo build --package plugins_example
+
+look:
+    RUST_LOG={{ default_level }} cargo run -- eval --text look --text look --text look --separate-sessions
 
 clean:
     rm -rf target
