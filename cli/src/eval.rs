@@ -9,7 +9,7 @@ pub struct Command {
     #[arg(short, long, default_value = "jlewallen")]
     username: String,
     #[arg(short, long, default_value = "look")]
-    text: String,
+    text: Vec<String>,
 }
 
 #[tokio::main]
@@ -18,7 +18,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
     let session = domain.open_session()?;
     let renderer = Renderer::new()?;
 
-    for text in &[&cmd.text] {
+    for text in &cmd.text {
         if let Some(reply) = session.evaluate_and_perform(&cmd.username, text)? {
             let text = renderer.render_reply(&reply)?;
             println!("{}", text);

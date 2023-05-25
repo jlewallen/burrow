@@ -16,5 +16,8 @@ serve: dynamics
 dynamics:
     cargo build --package plugins_example
 
+look:
+    RUST_LOG={{ default_level }} cargo run -- eval --text look --text look --text look
+
 clean:
     rm -rf target
