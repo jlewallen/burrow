@@ -2,6 +2,7 @@ use anyhow::Result;
 use std::rc::Rc;
 use std::rc::Weak;
 use std::sync::Arc;
+use std::time::Instant;
 use tracing::{debug, event, info, span, Level};
 
 use super::Session;
@@ -29,16 +30,26 @@ impl StandardPerformer {
     }
 
     pub fn evaluate_and_perform(&self, name: &str, text: &str) -> Result<Option<Box<dyn Reply>>> {
+        let started = Instant::now();
         let _doing_span = span!(Level::INFO, "session-do", user = name).entered();
 
         debug!("'{}'", text);
 
-        let session = self.session()?;
-        if let Some(action) = session.plugins().evaluate(text)? {
-            Ok(Some(self.perform_via_name(name, action)?))
-        } else {
-            Ok(None)
-        }
+        let res = {
+            let session = self.session()?;
+            if let Some(action) = session.plugins().evaluate(text)? {
+                Ok(Some(self.perform_via_name(name, action)?))
+            } else {
+                Ok(None)
+            }
+        };
+
+        let elapsed = started.elapsed();
+        let elapsed = format!("{:?}", elapsed);
+
+        info!(%elapsed, "done");
+
+        res
     }
 
     fn perform_via_name(&self, name: &str, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
