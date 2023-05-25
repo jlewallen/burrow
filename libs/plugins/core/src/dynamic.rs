@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use kernel::{EvaluationResult, ManagedHooks, ParsesActions, Plugin};
 use libloading::Library;
+use tracing::dispatcher::get_default;
 
 use crate::library::plugin::*;
 
@@ -25,8 +26,8 @@ impl DynamicRegistrar {
     }
 }
 impl PluginRegistrar for DynamicRegistrar {
-    fn register_function(&mut self, _name: &str, _function: Box<dyn Function>) {
-        todo!()
+    fn tracing_subscriber(&self) -> Box<dyn Subscriber + Send + Sync> {
+        Box::new(PluginSubscriber::new())
     }
 }
 
@@ -59,33 +60,18 @@ impl DynamicPlugin {
     }
 }
 
-pub static CORE_VERSION: &str = env!("CARGO_PKG_VERSION");
 // pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
+pub static CORE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Copy, Clone)]
 pub struct PluginDeclaration {
     // pub rustc_version: &'static str,
     pub core_version: &'static str,
-    pub register: unsafe extern "C" fn(&mut dyn PluginRegistrar),
+    pub register: unsafe extern "C" fn(&dyn PluginRegistrar),
 }
 
 pub trait PluginRegistrar {
-    fn register_function(&mut self, name: &str, function: Box<dyn Function>);
-}
-
-pub trait Function {
-    fn call(&self, args: &[f64]) -> Result<f64, InvocationError>;
-
-    /// Help text that may be used to display information about this function.
-    fn help(&self) -> Option<&str> {
-        None
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum InvocationError {
-    InvalidArgumentCount { expected: usize, found: usize },
-    Other { msg: String },
+    fn tracing_subscriber(&self) -> Box<dyn Subscriber + Send + Sync>;
 }
 
 #[macro_export]
@@ -131,6 +117,44 @@ impl Plugin for DynamicPlugin {
 impl ParsesActions for DynamicPlugin {
     fn try_parse_action(&self, _i: &str) -> EvaluationResult {
         Err(EvaluationError::ParseFailed)
+    }
+}
+
+struct PluginSubscriber {}
+
+impl PluginSubscriber {
+    fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Subscriber for PluginSubscriber {
+    fn enabled(&self, metadata: &tracing::Metadata<'_>) -> bool {
+        get_default(|d| d.enabled(metadata))
+    }
+
+    fn new_span(&self, span: &span::Attributes<'_>) -> span::Id {
+        get_default(|d| d.new_span(span))
+    }
+
+    fn record(&self, span: &span::Id, values: &span::Record<'_>) {
+        get_default(|d| d.record(span, values))
+    }
+
+    fn record_follows_from(&self, span: &span::Id, follows: &span::Id) {
+        get_default(|d| d.record_follows_from(span, follows))
+    }
+
+    fn event(&self, event: &tracing::Event<'_>) {
+        get_default(|d| d.event(event))
+    }
+
+    fn enter(&self, span: &span::Id) {
+        get_default(|d| d.enter(span))
+    }
+
+    fn exit(&self, span: &span::Id) {
+        get_default(|d| d.exit(span))
     }
 }
 
