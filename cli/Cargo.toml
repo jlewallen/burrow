@@ -37,3 +37,6 @@ path = "../libs/plugins/core"
 
 [dependencies.plugins-rune]
 path = "../libs/plugins/rune"
+
+[dependencies.plugins-wasm]
+path = "../libs/plugins/wasm"

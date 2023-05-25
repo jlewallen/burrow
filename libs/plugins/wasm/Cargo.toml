@@ -1,5 +1,5 @@
 [package]
-name = "plugins-rune"
+name = "plugins-wasm"
 version = "0.1.0"
 authors = ["Jacob Lewallen <jlewallen@gmail.com>"]
 edition = "2021"
@@ -18,9 +18,7 @@ anyhow = "1.0.66"
 tracing = "0.1.37"
 serde = { version = "1.0.145", features = ["derive"] }
 serde_json = "1.0.86"
-rune = "0.12.1"
 glob = "0.3.1"
-rune-modules = "0.12.3"
 
 [dev-dependencies]
 insta = { version = "1.21.1", features = ["yaml", "json"] }

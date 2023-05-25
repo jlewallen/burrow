@@ -13,6 +13,7 @@ use plugins_core::{
     DefaultFinder,
 };
 use plugins_rune::RunePluginFactory;
+use plugins_wasm::WasmPluginFactory;
 
 mod eval;
 mod hacking;
@@ -67,6 +68,7 @@ fn make_domain() -> Result<Domain> {
     registered_plugins.register::<BuildingPluginFactory>();
     registered_plugins.register::<DynamicPluginFactory>();
     registered_plugins.register::<RunePluginFactory>();
+    registered_plugins.register::<WasmPluginFactory>();
 
     let finder = Arc::new(DefaultFinder::default());
     Ok(Domain::new(
