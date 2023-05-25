@@ -11,7 +11,7 @@ pub struct DynamicPluginFactory {}
 
 impl PluginFactory for DynamicPluginFactory {
     fn create_plugin(&self) -> Result<Box<dyn Plugin>> {
-        Ok(Box::new(DynamicPlugin {}))
+        Ok(Box::new(DynamicPlugin::default()))
     }
 }
 
@@ -31,36 +31,54 @@ impl PluginRegistrar for DynamicRegistrar {
     }
 }
 
+struct LoadedLibrary {
+    library: Rc<Library>,
+}
+
+impl LoadedLibrary {
+    fn register(&self) -> Result<()> {
+        unsafe {
+            let sym = self
+                .library
+                .get::<*mut PluginDeclaration>(b"plugin_declaration\0")?;
+            let decl = sym.read();
+            let mut registrar = DynamicRegistrar::new(Rc::clone(&self.library));
+
+            info!("registering");
+
+            (decl.register)(&mut registrar);
+        }
+
+        Ok(())
+    }
+}
+
 #[derive(Default)]
-pub struct DynamicPlugin {}
+pub struct DynamicPlugin {
+    libraries: Vec<LoadedLibrary>,
+}
 
 impl DynamicPlugin {
-    fn open_dynamic(&self) -> Result<u32, Box<dyn std::error::Error>> {
-        let path = "target/debug/libplugins_example.dylib".to_owned();
-
+    fn load(&self, path: &str) -> Result<LoadedLibrary> {
         unsafe {
             let _span = span!(Level::INFO, "regdyn", lib = path).entered();
 
             info!("loading");
 
-            let library = Rc::new(libloading::Library::new(&path)?);
-            let sym = library.get::<*mut PluginDeclaration>(b"plugin_declaration\0")?;
-            let decl = sym.read();
-            let mut registrar = DynamicRegistrar::new(Rc::clone(&library));
+            let library = Rc::new(libloading::Library::new(path)?);
 
-            info!("registering");
-
-            (decl.register)(&mut registrar);
-
-            Ok(0)
-
-            /*
-            let func: libloading::Symbol<unsafe extern "C" fn() -> u32> =
-                library.get(name.as_bytes())?;
-
-            Ok(func())
-            */
+            Ok(LoadedLibrary { library })
         }
+    }
+
+    fn open_dynamic(&mut self) -> Result<u32, Box<dyn std::error::Error>> {
+        let library = self.load("target/debug/libplugins_example.dylib")?;
+
+        library.register()?;
+
+        self.libraries.push(library);
+
+        Ok(0)
     }
 }
 
