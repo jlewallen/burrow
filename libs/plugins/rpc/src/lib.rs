@@ -1,5 +1,7 @@
 use plugins_core::library::plugin::*;
 
+mod proto;
+
 #[derive(Default)]
 pub struct RpcPluginFactory {}
 
