@@ -1,7 +1,6 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use std::path::PathBuf;
-use std::{error::Error, sync::Arc};
+use std::{error::Error, path::PathBuf, sync::Arc};
 use tracing::*;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -12,6 +11,7 @@ use plugins_core::{
     dynamic::DynamicPluginFactory, looking::LookingPluginFactory, moving::MovingPluginFactory,
     DefaultFinder,
 };
+use plugins_rpc::RpcPluginFactory;
 use plugins_rune::RunePluginFactory;
 use plugins_wasm::WasmPluginFactory;
 
@@ -69,6 +69,7 @@ fn make_domain() -> Result<Domain> {
     registered_plugins.register::<DynamicPluginFactory>();
     registered_plugins.register::<RunePluginFactory>();
     registered_plugins.register::<WasmPluginFactory>();
+    registered_plugins.register::<RpcPluginFactory>();
 
     let finder = Arc::new(DefaultFinder::default());
     Ok(Domain::new(
