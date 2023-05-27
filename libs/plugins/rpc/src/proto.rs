@@ -182,30 +182,6 @@ mod tests {
             }
         }
 
-        /*
-        struct StateMachine<S> {
-            state: S,
-        }
-
-        struct Uninitialized {}
-
-        struct Failed {}
-
-        impl StateMachine<Uninitialized> {
-            fn new() -> Self {
-                Self {
-                    state: Uninitialized {},
-                }
-            }
-        }
-
-        impl From<StateMachine<Uninitialized>> for StateMachine<Failed> {
-            fn from(val: StateMachine<Uninitialized>) -> StateMachine<Failed> {
-                StateMachine { state: Failed {} }
-            }
-        }
-        */
-
         #[cfg(test)]
         mod tests {
             use crate::proto::{tests::plugin::PluginState, Payload, PayloadMessage, SessionKey};
@@ -288,30 +264,6 @@ mod tests {
             }
         }
 
-        /*
-        struct StateMachine<S> {
-            state: S,
-        }
-
-        struct Initializing {}
-
-        struct Failed {}
-
-        impl StateMachine<Initializing> {
-            fn new() -> Self {
-                Self {
-                    state: Initializing {},
-                }
-            }
-        }
-
-        impl From<StateMachine<Initializing>> for StateMachine<Failed> {
-            fn from(val: StateMachine<Initializing>) -> StateMachine<Failed> {
-                StateMachine { state: Failed {} }
-            }
-        }
-        */
-
         #[cfg(test)]
         mod tests {
             use crate::proto::{tests::server::ServerState, QueryMessage, SessionKey};
@@ -333,12 +285,5 @@ mod tests {
                 Ok(())
             }
         }
-    }
-
-    use plugin::PluginProtocol;
-    use server::ServerProtocol;
-
-    fn create() -> Result<(ServerProtocol, PluginProtocol)> {
-        Ok((ServerProtocol::default(), PluginProtocol::default()))
     }
 }
