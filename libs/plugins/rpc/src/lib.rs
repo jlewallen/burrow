@@ -43,3 +43,9 @@ impl ParsesActions for RpcPlugin {
         Err(EvaluationError::ParseFailed)
     }
 }
+
+#[cfg(test)]
+#[ctor::ctor]
+fn initialize_tests() {
+    plugins_core::log_test();
+}

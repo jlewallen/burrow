@@ -1,7 +1,6 @@
-use std::marker::PhantomData;
-
 use serde::{Deserialize, Serialize};
-use tracing::info;
+use std::marker::PhantomData;
+use tracing::{debug, info};
 
 pub type SessionKey = String;
 
@@ -68,7 +67,25 @@ pub enum Query {
     Try(Try),
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct Message<B> {
+    session_key: SessionKey,
+    body: B,
+}
+
+impl<B> Message<B> {
+    fn into_tuple(self) -> (SessionKey, B) {
+        (self.session_key, self.body)
+    }
+}
+
 pub type QueryMessage = Message<Option<Query>>;
+
+impl std::fmt::Debug for QueryMessage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Query").field("body", &self.body).finish()
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Surroundings {
@@ -93,19 +110,13 @@ pub enum Payload {
     Hook(Hook),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Message<B> {
-    session_key: SessionKey,
-    body: B,
-}
+pub type PayloadMessage = Message<Payload>;
 
-impl<B> Message<B> {
-    fn into_tuple(self) -> (SessionKey, B) {
-        (self.session_key, self.body)
+impl std::fmt::Debug for PayloadMessage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Payload").field("body", &self.body).finish()
     }
 }
-
-pub type PayloadMessage = Message<Payload>;
 
 #[derive(Debug)]
 struct Sender<S> {
@@ -120,9 +131,14 @@ impl<S> Default for Sender<S> {
     }
 }
 
-impl<S> Sender<S> {
-    async fn send(&self, _message: S) -> anyhow::Result<()> {
-        todo!()
+impl<S> Sender<S>
+where
+    S: std::fmt::Debug,
+{
+    async fn send(&self, message: S) -> anyhow::Result<()> {
+        debug!("Sending {:?}", &message);
+
+        Ok(())
     }
 }
 
@@ -156,21 +172,23 @@ where
     S: std::fmt::Debug,
     M: std::fmt::Debug,
 {
-    async fn apply(&mut self, transition: Transition<S, M>) -> anyhow::Result<Option<S>> {
+    async fn apply(&mut self, transition: Transition<S, M>) -> anyhow::Result<()> {
         match transition {
             Transition::None => {
                 info!("(none) {:?}", &self.state);
-                Ok(None)
+                Ok(())
             }
             Transition::Direct(state) => {
                 info!("(direct) {:?} -> {:?}", &self.state, &state);
-                Ok(Some(state))
+                self.state = state;
+                Ok(())
             }
             Transition::Send(sending, state) => {
                 info!("(send) {:?}", &sending);
                 self.sender.send(sending).await?;
                 info!("(send) {:?} -> {:?}", &self.state, &state);
-                Ok(Some(state))
+                self.state = state;
+                Ok(())
             }
         }
     }
@@ -207,6 +225,26 @@ mod plugin {
     pub struct PluginProtocol {
         session_key: Option<String>,
         machine: PluginMachine,
+    }
+
+    impl PluginProtocol {
+        fn new(session_key: String) -> Self {
+            Self {
+                session_key: Some(session_key),
+                ..Default::default()
+            }
+        }
+
+        fn session_key(&self) -> Option<&str> {
+            self.session_key.as_deref()
+        }
+
+        fn message<B>(&self, body: B) -> Message<B> {
+            Message {
+                session_key: self.session_key.clone().expect("A session key is required"),
+                body,
+            }
+        }
     }
 
     impl Default for PluginProtocol {
@@ -251,23 +289,24 @@ mod plugin {
 
     #[cfg(test)]
     mod tests {
-        use crate::proto::{plugin::PluginState, Payload, PayloadMessage, SessionKey};
+        #[allow(unused_imports)]
+        use tracing::*;
+
+        use crate::proto::{plugin::PluginState, Payload};
 
         use super::PluginProtocol;
 
         #[tokio::test]
         async fn test_initialize() -> anyhow::Result<()> {
-            let mut proto = PluginProtocol::default();
-            let session_key: SessionKey = "session-key".to_owned();
+            let mut proto = PluginProtocol::new("session-key".to_owned());
 
             assert_eq!(proto.machine.state, PluginState::Uninitialized);
 
-            proto
-                .apply(PayloadMessage {
-                    session_key: session_key.clone(),
-                    body: Payload::Initialize(session_key.clone()),
-                })
-                .await?;
+            let session_key = proto.session_key().unwrap().to_owned();
+            let initialize = Payload::Initialize(session_key);
+            proto.apply(proto.message(initialize)).await?;
+
+            assert_eq!(proto.machine.state, PluginState::Initialized);
 
             Ok(())
         }
@@ -304,6 +343,20 @@ mod server {
         #[allow(dead_code)]
         session_key: String,
         machine: ServerMachine,
+    }
+
+    impl ServerProtocol {
+        #[allow(dead_code)]
+        fn session_key(&self) -> &str {
+            &self.session_key
+        }
+
+        fn message<B>(&self, body: B) -> Message<B> {
+            Message {
+                session_key: self.session_key.clone(),
+                body,
+            }
+        }
     }
 
     impl Default for ServerProtocol {
@@ -346,23 +399,23 @@ mod server {
 
     #[cfg(test)]
     mod tests {
-        use crate::proto::{server::ServerState, QueryMessage, SessionKey};
+        #[allow(unused_imports)]
+        use tracing::*;
+
+        use crate::proto::server::ServerState;
 
         use super::ServerProtocol;
 
         #[tokio::test]
         async fn test_initialize() -> anyhow::Result<()> {
-            let mut server = ServerProtocol::default();
-            let session_key: SessionKey = "session-key".to_owned();
+            let mut proto = ServerProtocol::default();
 
-            assert_eq!(server.machine.state, ServerState::Initializing);
+            assert_eq!(proto.machine.state, ServerState::Initializing);
 
-            server
-                .apply(QueryMessage {
-                    session_key: session_key.clone(),
-                    body: None,
-                })
-                .await?;
+            let start = proto.message(None);
+            proto.apply(start).await?;
+
+            assert_eq!(proto.machine.state, ServerState::Initialized);
 
             Ok(())
         }
