@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::marker::PhantomData;
 use tracing::{debug, info};
 
 pub type SessionKey = String;
@@ -8,13 +7,13 @@ pub type EntityKey = String;
 
 pub type EntityJson = serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct EntityUpdate {
     entity_key: EntityKey,
     entity: EntityJson,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Event {
     Arrived,
     Left,
@@ -22,35 +21,35 @@ pub enum Event {
     Dropped,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Reply {
     Done,
     NotFound,
     Impossible,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Find {}
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Try {
     CanMove,
     Moved,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Permission {}
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Hook {}
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum LookupBy {
     Key(EntityKey),
     Gid(u64),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Query {
     Complete,
 
@@ -87,7 +86,7 @@ impl std::fmt::Debug for QueryMessage {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Surroundings {
     Living {
         world: EntityJson,
@@ -96,7 +95,7 @@ pub enum Surroundings {
     },
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Payload {
     Initialize(String), /* Complete */
 
@@ -120,13 +119,13 @@ impl std::fmt::Debug for PayloadMessage {
 
 #[derive(Debug)]
 struct Sender<S> {
-    _phantom: PhantomData<S>,
+    queue: Vec<S>,
 }
 
 impl<S> Default for Sender<S> {
     fn default() -> Self {
         Self {
-            _phantom: Default::default(),
+            queue: Default::default(),
         }
     }
 }
@@ -135,8 +134,9 @@ impl<S> Sender<S>
 where
     S: std::fmt::Debug,
 {
-    async fn send(&self, message: S) -> anyhow::Result<()> {
+    async fn send(&mut self, message: S) -> anyhow::Result<()> {
         debug!("Sending {:?}", &message);
+        self.queue.push(message);
 
         Ok(())
     }
@@ -172,6 +172,10 @@ where
     S: std::fmt::Debug,
     M: std::fmt::Debug,
 {
+    fn sender(&self) -> &Sender<M> {
+        &self.sender
+    }
+
     async fn apply(&mut self, transition: Transition<S, M>) -> anyhow::Result<()> {
         match transition {
             Transition::None => {
@@ -307,6 +311,7 @@ mod plugin {
             proto.apply(proto.message(initialize)).await?;
 
             assert_eq!(proto.machine.state, PluginState::Initialized);
+            assert!(proto.machine.sender().queue.is_empty());
 
             Ok(())
         }
@@ -402,7 +407,7 @@ mod server {
         #[allow(unused_imports)]
         use tracing::*;
 
-        use crate::proto::server::ServerState;
+        use crate::proto::{server::ServerState, Payload};
 
         use super::ServerProtocol;
 
@@ -416,6 +421,11 @@ mod server {
             proto.apply(start).await?;
 
             assert_eq!(proto.machine.state, ServerState::Initialized);
+
+            assert_eq!(
+                proto.machine.sender().queue.get(0).map(|m| &m.body),
+                Some(&Payload::Initialize("session-key".to_owned()))
+            );
 
             Ok(())
         }
