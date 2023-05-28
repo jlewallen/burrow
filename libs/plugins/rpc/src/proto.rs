@@ -1,4 +1,7 @@
+use std::marker::PhantomData;
+
 use serde::{Deserialize, Serialize};
+use tracing::info;
 
 pub type SessionKey = String;
 
@@ -65,18 +68,7 @@ pub enum Query {
     Try(Try),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct QueryMessage {
-    session_key: SessionKey,
-    query: Option<Query>,
-}
-
-impl QueryMessage {
-    #[cfg(test)]
-    fn into_tuple(self) -> (SessionKey, Option<Query>) {
-        (self.session_key, self.query)
-    }
-}
+pub type QueryMessage = Message<Option<Query>>;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Surroundings {
@@ -89,7 +81,7 @@ pub enum Surroundings {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Payload {
-    Initialize, /* Complete */
+    Initialize(String), /* Complete */
 
     Evaluate(String, Surroundings), /* Reply */
 
@@ -102,188 +94,277 @@ pub enum Payload {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PayloadMessage {
+pub struct Message<B> {
     session_key: SessionKey,
-    payload: Payload,
+    body: B,
 }
 
-impl PayloadMessage {
-    #[cfg(test)]
-    fn into_tuple(self) -> (SessionKey, Payload) {
-        (self.session_key, self.payload)
+impl<B> Message<B> {
+    fn into_tuple(self) -> (SessionKey, B) {
+        (self.session_key, self.body)
     }
 }
 
-#[allow(dead_code)]
-#[allow(unused_variables)]
+pub type PayloadMessage = Message<Payload>;
+
+#[derive(Debug)]
+struct Sender<S> {
+    _phantom: PhantomData<S>,
+}
+
+impl<S> Default for Sender<S> {
+    fn default() -> Self {
+        Self {
+            _phantom: Default::default(),
+        }
+    }
+}
+
+impl<S> Sender<S> {
+    async fn send(&self, _message: S) -> anyhow::Result<()> {
+        todo!()
+    }
+}
+
+enum Transition<S, M> {
+    None,
+    Direct(S),
+    Send(M, S),
+}
+
+impl<S, M> Transition<S, M> {
+    fn map_message<O, F>(self, mut f: F) -> Transition<S, O>
+    where
+        F: FnMut(M) -> O,
+    {
+        match self {
+            Transition::None => Transition::<S, O>::None,
+            Transition::Direct(s) => Transition::<S, O>::Direct(s),
+            Transition::Send(m, s) => Transition::<S, O>::Send(f(m), s),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct Machine<S, M> {
+    state: S,
+    sender: Sender<M>,
+}
+
+impl<S, M> Machine<S, M>
+where
+    S: std::fmt::Debug,
+    M: std::fmt::Debug,
+{
+    async fn apply(&mut self, transition: Transition<S, M>) -> anyhow::Result<Option<S>> {
+        match transition {
+            Transition::None => {
+                info!("(none) {:?}", &self.state);
+                Ok(None)
+            }
+            Transition::Direct(state) => {
+                info!("(direct) {:?} -> {:?}", &self.state, &state);
+                Ok(Some(state))
+            }
+            Transition::Send(sending, state) => {
+                info!("(send) {:?}", &sending);
+                self.sender.send(sending).await?;
+                info!("(send) {:?} -> {:?}", &self.state, &state);
+                Ok(Some(state))
+            }
+        }
+    }
+}
+
 #[cfg(test)]
-mod tests {
+mod plugin {
+    use super::*;
+    use super::{Payload, PayloadMessage, Query};
     use anyhow::Result;
+    use tracing::warn;
 
-    use super::{Payload, PayloadMessage, Query, QueryMessage};
+    type PluginTransition = Transition<PluginState, Query>;
 
-    mod plugin {
-        use super::*;
-        use tracing::*;
+    #[derive(Debug, PartialEq, Eq)]
+    enum PluginState {
+        Uninitialized,
+        Initialized,
+        Failed,
+    }
 
-        #[derive(Debug)]
-        enum PluginTransition {
-            Direct(PluginState),
-            Send(Query, PluginState),
-        }
+    type PluginMachine = Machine<PluginState, QueryMessage>;
 
-        #[derive(Debug, PartialEq, Eq)]
-        enum PluginState {
-            Uninitialized,
-            Initialized,
-            Failed,
-        }
-
-        #[derive(Debug)]
-        pub struct PluginProtocol {
-            state: PluginState,
-        }
-
-        impl Default for PluginProtocol {
-            fn default() -> Self {
-                Self {
-                    state: PluginState::Uninitialized,
-                }
-            }
-        }
-
-        impl PluginProtocol {
-            pub fn apply(&mut self, message: PayloadMessage) -> Result<()> {
-                match self.handle(message) {
-                    PluginTransition::Direct(state) => {
-                        info!("{:?} -> {:?}", &self.state, &state);
-                        self.state = state;
-                        Ok(())
-                    }
-                    PluginTransition::Send(message, state) => {
-                        info!("{:?} Send", &message);
-                        info!("{:?} -> {:?}", &self.state, &state);
-                        self.state = state;
-                        Ok(())
-                    }
-                }
-            }
-
-            fn handle(&self, message: PayloadMessage) -> PluginTransition {
-                let (session_key, payload) = message.into_tuple();
-                match (&self.state, payload) {
-                    (PluginState::Uninitialized, Payload::Initialize) => {
-                        PluginTransition::Direct(PluginState::Initialized)
-                    }
-                    (PluginState::Initialized, _) => todo!(),
-                    (PluginState::Failed, _) => todo!(),
-                    (_, _) => PluginTransition::Direct(PluginState::Failed),
-                }
-            }
-        }
-
-        #[cfg(test)]
-        mod tests {
-            use crate::proto::{tests::plugin::PluginState, Payload, PayloadMessage, SessionKey};
-
-            use super::PluginProtocol;
-
-            #[test]
-            fn test_initialize() -> anyhow::Result<()> {
-                let mut proto = PluginProtocol::default();
-                let session_key: SessionKey = "session-key".to_owned();
-
-                assert_eq!(proto.state, PluginState::Uninitialized);
-
-                proto.apply(PayloadMessage {
-                    session_key: session_key.clone(),
-                    payload: Payload::Initialize,
-                })?;
-
-                Ok(())
+    impl Default for PluginMachine {
+        fn default() -> Self {
+            Self {
+                state: PluginState::Uninitialized,
+                sender: Default::default(),
             }
         }
     }
 
-    mod server {
-        use super::*;
-        use tracing::*;
+    #[derive(Debug)]
+    pub struct PluginProtocol {
+        session_key: Option<String>,
+        machine: PluginMachine,
+    }
 
-        #[derive(Debug)]
-        enum ServerTransition {
-            Direct(ServerState),
-            Send(Payload, ServerState),
-        }
-
-        #[derive(Debug, PartialEq, Eq)]
-        enum ServerState {
-            Initializing,
-            Initialized,
-            Failed,
-        }
-
-        #[derive(Debug)]
-        pub struct ServerProtocol {
-            state: ServerState,
-        }
-
-        impl Default for ServerProtocol {
-            fn default() -> Self {
-                Self {
-                    state: ServerState::Initializing,
-                }
+    impl Default for PluginProtocol {
+        fn default() -> Self {
+            Self {
+                session_key: None,
+                machine: PluginMachine::default(),
             }
         }
+    }
 
-        impl ServerProtocol {
-            pub fn apply(&mut self, message: QueryMessage) -> Result<()> {
-                match self.handle(message) {
-                    ServerTransition::Direct(state) => {
-                        info!("{:?} -> {:?}", &self.state, &state);
-                        self.state = state;
-                        Ok(())
-                    }
-                    ServerTransition::Send(sending, state) => {
-                        info!("{:?} Send", &sending);
-                        info!("{:?} -> {:?}", &self.state, &state);
-                        self.state = state;
-                        Ok(())
-                    }
-                }
-            }
+    impl PluginProtocol {
+        pub async fn apply(&mut self, message: PayloadMessage) -> Result<()> {
+            let transition = self.handle(message).map_message(|m| QueryMessage {
+                session_key: self.session_key.as_ref().unwrap().clone(),
+                body: Some(m),
+            });
 
-            fn handle(&self, message: QueryMessage) -> ServerTransition {
-                let (session_key, query) = message.into_tuple();
-                match (&self.state, query) {
-                    (ServerState::Initializing, _) => {
-                        ServerTransition::Send(Payload::Initialize, ServerState::Initialized)
-                    }
-                    (ServerState::Failed, _) => todo!(),
-                    (ServerState::Initialized, _) => todo!(),
-                }
-            }
+            self.machine.apply(transition).await?;
+
+            Ok(())
         }
 
-        #[cfg(test)]
-        mod tests {
-            use crate::proto::{tests::server::ServerState, QueryMessage, SessionKey};
+        fn handle(&mut self, message: PayloadMessage) -> PluginTransition {
+            let (_session_key, payload) = message.into_tuple();
+            match (&self.machine.state, payload) {
+                (PluginState::Uninitialized, Payload::Initialize(session_key)) => {
+                    self.session_key = Some(session_key);
 
-            use super::ServerProtocol;
+                    PluginTransition::Direct(PluginState::Initialized)
+                }
+                (PluginState::Initialized, _) => todo!(),
+                (PluginState::Failed, payload) => {
+                    warn!("(failed) {:?}", &payload);
 
-            #[test]
-            fn test_initialize() -> anyhow::Result<()> {
-                let mut server = ServerProtocol::default();
-                let session_key: SessionKey = "session-key".to_owned();
+                    PluginTransition::None
+                }
+                (_, _) => PluginTransition::Direct(PluginState::Failed),
+            }
+        }
+    }
 
-                assert_eq!(server.state, ServerState::Initializing);
+    #[cfg(test)]
+    mod tests {
+        use crate::proto::{plugin::PluginState, Payload, PayloadMessage, SessionKey};
 
-                server.apply(QueryMessage {
+        use super::PluginProtocol;
+
+        #[tokio::test]
+        async fn test_initialize() -> anyhow::Result<()> {
+            let mut proto = PluginProtocol::default();
+            let session_key: SessionKey = "session-key".to_owned();
+
+            assert_eq!(proto.machine.state, PluginState::Uninitialized);
+
+            proto
+                .apply(PayloadMessage {
                     session_key: session_key.clone(),
-                    query: None,
-                })?;
+                    body: Payload::Initialize(session_key.clone()),
+                })
+                .await?;
 
-                Ok(())
+            Ok(())
+        }
+    }
+}
+
+mod server {
+    use super::*;
+    use anyhow::Result;
+    use tracing::*;
+
+    type ServerTransition = Transition<ServerState, Payload>;
+
+    #[derive(Debug, PartialEq, Eq)]
+    enum ServerState {
+        Initializing,
+        Initialized,
+        Failed,
+    }
+
+    type ServerMachine = Machine<ServerState, PayloadMessage>;
+
+    impl Default for ServerMachine {
+        fn default() -> Self {
+            Self {
+                state: ServerState::Initializing,
+                sender: Default::default(),
             }
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct ServerProtocol {
+        #[allow(dead_code)]
+        session_key: String,
+        machine: ServerMachine,
+    }
+
+    impl Default for ServerProtocol {
+        fn default() -> Self {
+            Self {
+                session_key: "session-key".to_owned(),
+                machine: ServerMachine::default(),
+            }
+        }
+    }
+
+    impl ServerProtocol {
+        pub async fn apply(&mut self, message: QueryMessage) -> Result<()> {
+            let transition = self.handle(message).map_message(|m| PayloadMessage {
+                session_key: self.session_key.clone(),
+                body: m,
+            });
+
+            self.machine.apply(transition).await?;
+
+            Ok(())
+        }
+
+        fn handle(&mut self, message: QueryMessage) -> ServerTransition {
+            let (session_key, query) = message.into_tuple();
+            match (&self.machine.state, query) {
+                (ServerState::Initializing, _) => ServerTransition::Send(
+                    Payload::Initialize(session_key.clone()),
+                    ServerState::Initialized,
+                ),
+                (ServerState::Failed, query) => {
+                    warn!("(failed) {:?}", &query);
+
+                    ServerTransition::None
+                }
+                (_, _) => ServerTransition::Direct(ServerState::Failed),
+            }
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use crate::proto::{server::ServerState, QueryMessage, SessionKey};
+
+        use super::ServerProtocol;
+
+        #[tokio::test]
+        async fn test_initialize() -> anyhow::Result<()> {
+            let mut server = ServerProtocol::default();
+            let session_key: SessionKey = "session-key".to_owned();
+
+            assert_eq!(server.machine.state, ServerState::Initializing);
+
+            server
+                .apply(QueryMessage {
+                    session_key: session_key.clone(),
+                    body: None,
+                })
+                .await?;
+
+            Ok(())
         }
     }
 }

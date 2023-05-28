@@ -1,5 +1,6 @@
 use plugins_core::library::plugin::*;
 
+#[cfg(test)]
 mod proto;
 
 #[derive(Default)]
@@ -41,13 +42,4 @@ impl ParsesActions for RpcPlugin {
     fn try_parse_action(&self, _i: &str) -> EvaluationResult {
         Err(EvaluationError::ParseFailed)
     }
-}
-
-pub mod actions {
-    // use kernel::*;
-}
-
-mod parser {
-    // use kernel::*;
-    // use plugins_core::library::parser::*;
 }
