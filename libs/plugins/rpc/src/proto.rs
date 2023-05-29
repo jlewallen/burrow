@@ -118,7 +118,7 @@ impl std::fmt::Debug for PayloadMessage {
 }
 
 #[derive(Debug)]
-struct Sender<S> {
+pub struct Sender<S> {
     queue: Vec<S>,
 }
 
@@ -217,11 +217,11 @@ mod plugin {
 
     type PluginMachine = Machine<PluginState, QueryMessage>;
 
-    impl Default for PluginMachine {
-        fn default() -> Self {
+    impl PluginMachine {
+        fn new(sender: Sender<QueryMessage>) -> Self {
             Self {
                 state: PluginState::Uninitialized,
-                sender: Default::default(),
+                sender,
             }
         }
     }
@@ -233,10 +233,17 @@ mod plugin {
     }
 
     impl PluginProtocol {
-        pub fn new(session_key: String) -> Self {
+        pub fn new(sender: Sender<QueryMessage>) -> Self {
+            Self {
+                session_key: None,
+                machine: PluginMachine::new(sender),
+            }
+        }
+
+        pub fn new_with_session_key(sender: Sender<QueryMessage>, session_key: String) -> Self {
             Self {
                 session_key: Some(session_key),
-                ..Default::default()
+                machine: PluginMachine::new(sender),
             }
         }
 
@@ -248,15 +255,6 @@ mod plugin {
             Message {
                 session_key: self.session_key.clone().expect("A session key is required"),
                 body,
-            }
-        }
-    }
-
-    impl Default for PluginProtocol {
-        fn default() -> Self {
-            Self {
-                session_key: None,
-                machine: PluginMachine::default(),
             }
         }
     }
@@ -297,13 +295,14 @@ mod plugin {
         #[allow(unused_imports)]
         use tracing::*;
 
-        use crate::proto::{plugin::PluginState, Payload};
+        use crate::proto::{plugin::PluginState, Payload, QueryMessage, Sender};
 
         use super::PluginProtocol;
 
         #[tokio::test]
         async fn test_initialize() -> anyhow::Result<()> {
-            let mut proto = PluginProtocol::new("session-key".to_owned());
+            let sender: Sender<QueryMessage> = Sender::default();
+            let mut proto = PluginProtocol::new_with_session_key(sender, "session-key".to_owned());
 
             assert_eq!(proto.machine.state, PluginState::Uninitialized);
 
@@ -336,11 +335,11 @@ mod server {
 
     type ServerMachine = Machine<ServerState, PayloadMessage>;
 
-    impl Default for ServerMachine {
-        fn default() -> Self {
+    impl ServerMachine {
+        fn new(sender: Sender<PayloadMessage>) -> Self {
             Self {
                 state: ServerState::Initializing,
-                sender: Default::default(),
+                sender,
             }
         }
     }
@@ -352,6 +351,13 @@ mod server {
     }
 
     impl ServerProtocol {
+        pub fn new(sender: Sender<PayloadMessage>) -> Self {
+            Self {
+                session_key: "session-key".to_owned(),
+                machine: ServerMachine::new(sender),
+            }
+        }
+
         pub fn session_key(&self) -> &str {
             &self.session_key
         }
@@ -360,15 +366,6 @@ mod server {
             Message {
                 session_key: self.session_key.clone(),
                 body,
-            }
-        }
-    }
-
-    impl Default for ServerProtocol {
-        fn default() -> Self {
-            Self {
-                session_key: "session-key".to_owned(),
-                machine: ServerMachine::default(),
             }
         }
     }
@@ -413,7 +410,8 @@ mod server {
 
         #[tokio::test]
         async fn test_initialize() -> anyhow::Result<()> {
-            let mut proto = ServerProtocol::default();
+            let sender = Default::default();
+            let mut proto = ServerProtocol::new(sender);
 
             assert_eq!(proto.machine.state, ServerState::Initializing);
 
