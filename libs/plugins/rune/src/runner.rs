@@ -31,7 +31,7 @@ impl Thing {
 
 fn rune_info(s: &str) {
     // Probably a better way to do this.
-    let _span = span!(Level::INFO, "R").entered();
+    let _span = span!(Level::INFO, "rune").entered();
     info!("{}", s)
 }
 
