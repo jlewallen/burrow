@@ -3,7 +3,14 @@ use tracing::{debug, info};
 
 pub type SessionKey = String;
 
-pub type EntityKey = String;
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
+pub struct EntityKey(String);
+
+impl From<&kernel::EntityKey> for EntityKey {
+    fn from(value: &kernel::EntityKey) -> Self {
+        Self(value.to_string())
+    }
+}
 
 #[derive(Serialize, Deserialize, PartialEq, Eq)]
 pub struct EntityJson(serde_json::Value);
@@ -67,7 +74,7 @@ pub enum Query {
 
     Permission(Try),
 
-    Lookup(LookupBy),
+    Lookup(Vec<LookupBy>),
     Find(Find),
 
     Try(Try),
@@ -77,6 +84,12 @@ pub enum Query {
 pub struct Message<B> {
     session_key: SessionKey,
     body: B,
+}
+
+impl<B> Message<B> {
+    pub fn body(&self) -> &B {
+        &self.body
+    }
 }
 
 pub type QueryMessage = Message<Option<Query>>;
@@ -90,9 +103,9 @@ impl std::fmt::Debug for QueryMessage {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Surroundings {
     Living {
-        world: EntityJson,
-        living: EntityJson,
-        area: EntityJson,
+        world: EntityKey,
+        living: EntityKey,
+        area: EntityKey,
     },
 }
 
@@ -115,9 +128,9 @@ impl TryFrom<&kernel::Surroundings> for Surroundings {
                 living,
                 area,
             } => Ok(Self::Living {
-                world: world.try_into()?,
-                living: living.try_into()?,
-                area: area.try_into()?,
+                world: world.key().into(),
+                living: living.key().into(),
+                area: area.key().into(),
             }),
         }
     }
@@ -130,7 +143,7 @@ pub enum Payload {
     Surroundings(Surroundings),
     Evaluate(String, Surroundings), /* Reply */
 
-    Entity(Option<EntityJson>),
+    Entity(EntityKey, Option<EntityJson>),
     Found(Vec<EntityJson>),
 
     Permission(Permission),
