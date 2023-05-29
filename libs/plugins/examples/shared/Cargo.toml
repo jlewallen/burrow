@@ -1,5 +1,5 @@
 [package]
-name = "plugins_example"
+name = "plugin-example-shared"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,5 +7,5 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-plugins-core = { path = "../core" }
+plugins-core = { path = "../../core" }
 tracing = "0.1.37"

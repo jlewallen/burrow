@@ -4,17 +4,18 @@ default:
     cargo test --all
     cargo build --all
 
-eval: dynamics
+eval: external
     RUST_LOG={{ default_level }} cargo run -- eval
 
-shell: dynamics
+shell: external
     RUST_LOG={{ default_level }} cargo run -- shell
 
-serve: dynamics
+serve: external
     RUST_LOG={{ default_level }} cargo run -- serve
 
-dynamics:
-    cargo build --package plugins_example
+external:
+    cargo build --package plugin-example-shared
+    cargo build --package plugin-example-rpc
 
 look:
     RUST_LOG={{ default_level }} cargo run -- eval --text look --text look --text look --separate-sessions

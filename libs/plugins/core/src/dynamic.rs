@@ -72,7 +72,7 @@ impl DynamicPlugin {
     }
 
     fn open_dynamic(&mut self) -> Result<u32, Box<dyn std::error::Error>> {
-        let filename = libloading::library_filename("plugins_example");
+        let filename = libloading::library_filename("plugin_example_shared");
         let path = format!("target/debug/{}", filename.to_string_lossy());
         let library = self.load(&path)?;
         library.register()?;

@@ -6,7 +6,9 @@ members = [
     "libs/plugins/core",
     "libs/plugins/rune",
     "libs/plugins/wasm",
-    "libs/plugins/example",
+    "libs/plugins/rpc",
+    "libs/plugins/examples/shared",
+    "libs/plugins/examples/rpc",
     "cli",
     "yew",
 ]
