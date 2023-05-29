@@ -1,6 +1,5 @@
 use plugins_core::library::plugin::*;
 
-#[cfg(test)]
 mod proto;
 
 #[derive(Default)]
@@ -26,6 +25,10 @@ impl Plugin for RpcPlugin {
     }
 
     fn initialize(&mut self) -> Result<()> {
+        let mut example = example::InMemoryExamplePlugin::new();
+
+        example.initialize()?;
+
         Ok(())
     }
 
@@ -41,6 +44,39 @@ impl Plugin for RpcPlugin {
 impl ParsesActions for RpcPlugin {
     fn try_parse_action(&self, _i: &str) -> EvaluationResult {
         Err(EvaluationError::ParseFailed)
+    }
+}
+
+#[allow(dead_code)]
+mod example {
+    use anyhow::Result;
+
+    use crate::proto::{PayloadMessage, PluginProtocol, ServerProtocol};
+
+    pub struct InMemoryExamplePlugin {
+        plugin: PluginProtocol,
+        server: ServerProtocol,
+    }
+
+    impl InMemoryExamplePlugin {
+        pub fn new() -> Self {
+            Self {
+                plugin: PluginProtocol::new(),
+                server: ServerProtocol::new(),
+            }
+        }
+
+        pub fn initialize(&mut self) -> Result<()> {
+            let mut sender = Default::default();
+            let start = self.server.message(None);
+            self.server.apply(start, &mut sender)?;
+
+            Ok(())
+        }
+
+        fn handle(&self, _payload: PayloadMessage) -> Result<()> {
+            todo!()
+        }
     }
 }
 

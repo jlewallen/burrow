@@ -162,22 +162,23 @@ impl<S, M> Transition<S, M> {
 }
 
 #[derive(Debug)]
-struct Machine<S, M> {
+struct Machine<S> {
     state: S,
-    sender: Sender<M>,
 }
 
 #[allow(dead_code)]
-impl<S, M> Machine<S, M>
+impl<S> Machine<S>
 where
     S: std::fmt::Debug,
-    M: std::fmt::Debug,
 {
-    fn sender(&self) -> &Sender<M> {
-        &self.sender
-    }
-
-    fn apply(&mut self, transition: Transition<S, M>) -> anyhow::Result<()> {
+    fn apply<M>(
+        &mut self,
+        transition: Transition<S, M>,
+        sender: &mut Sender<M>,
+    ) -> anyhow::Result<()>
+    where
+        M: std::fmt::Debug,
+    {
         match transition {
             Transition::None => {
                 info!("(none) {:?}", &self.state);
@@ -190,7 +191,7 @@ where
             }
             Transition::Send(sending, state) => {
                 info!("(send) {:?}", &sending);
-                self.sender.send(sending)?;
+                sender.send(sending)?;
                 info!("(send) {:?} -> {:?}", &self.state, &state);
                 self.state = state;
                 Ok(())
@@ -215,13 +216,12 @@ mod plugin {
         Failed,
     }
 
-    type PluginMachine = Machine<PluginState, QueryMessage>;
+    type PluginMachine = Machine<PluginState>;
 
     impl PluginMachine {
-        fn new(sender: Sender<QueryMessage>) -> Self {
+        fn new() -> Self {
             Self {
                 state: PluginState::Uninitialized,
-                sender,
             }
         }
     }
@@ -233,17 +233,17 @@ mod plugin {
     }
 
     impl PluginProtocol {
-        pub fn new(sender: Sender<QueryMessage>) -> Self {
+        pub fn new() -> Self {
             Self {
                 session_key: None,
-                machine: PluginMachine::new(sender),
+                machine: PluginMachine::new(),
             }
         }
 
-        pub fn new_with_session_key(sender: Sender<QueryMessage>, session_key: String) -> Self {
+        pub fn new_with_session_key(session_key: String) -> Self {
             Self {
                 session_key: Some(session_key),
-                machine: PluginMachine::new(sender),
+                machine: PluginMachine::new(),
             }
         }
 
@@ -260,13 +260,17 @@ mod plugin {
     }
 
     impl PluginProtocol {
-        pub fn apply(&mut self, message: PayloadMessage) -> Result<()> {
+        pub fn apply(
+            &mut self,
+            message: PayloadMessage,
+            sender: &mut Sender<QueryMessage>,
+        ) -> Result<()> {
             let transition = self.handle(message).map_message(|m| QueryMessage {
                 session_key: self.session_key.as_ref().unwrap().clone(),
                 body: Some(m),
             });
 
-            self.machine.apply(transition)?;
+            self.machine.apply(transition, sender)?;
 
             Ok(())
         }
@@ -295,23 +299,23 @@ mod plugin {
         #[allow(unused_imports)]
         use tracing::*;
 
-        use crate::proto::{plugin::PluginState, Payload, QueryMessage, Sender};
+        use crate::proto::{plugin::PluginState, Payload};
 
         use super::PluginProtocol;
 
         #[tokio::test]
         async fn test_initialize() -> anyhow::Result<()> {
-            let sender: Sender<QueryMessage> = Sender::default();
-            let mut proto = PluginProtocol::new_with_session_key(sender, "session-key".to_owned());
+            let mut proto = PluginProtocol::new_with_session_key("session-key".to_owned());
 
             assert_eq!(proto.machine.state, PluginState::Uninitialized);
 
             let session_key = proto.session_key().unwrap().to_owned();
             let initialize = Payload::Initialize(session_key);
-            proto.apply(proto.message(initialize))?;
+            let mut sender = Default::default();
+            proto.apply(proto.message(initialize), &mut sender)?;
 
             assert_eq!(proto.machine.state, PluginState::Initialized);
-            assert!(proto.machine.sender().queue.is_empty());
+            assert!(sender.queue.is_empty());
 
             Ok(())
         }
@@ -333,13 +337,12 @@ mod server {
         Failed,
     }
 
-    type ServerMachine = Machine<ServerState, PayloadMessage>;
+    type ServerMachine = Machine<ServerState>;
 
     impl ServerMachine {
-        fn new(sender: Sender<PayloadMessage>) -> Self {
+        fn new() -> Self {
             Self {
                 state: ServerState::Initializing,
-                sender,
             }
         }
     }
@@ -351,10 +354,10 @@ mod server {
     }
 
     impl ServerProtocol {
-        pub fn new(sender: Sender<PayloadMessage>) -> Self {
+        pub fn new() -> Self {
             Self {
                 session_key: "session-key".to_owned(),
-                machine: ServerMachine::new(sender),
+                machine: ServerMachine::new(),
             }
         }
 
@@ -371,13 +374,17 @@ mod server {
     }
 
     impl ServerProtocol {
-        pub fn apply(&mut self, message: QueryMessage) -> Result<()> {
+        pub fn apply(
+            &mut self,
+            message: QueryMessage,
+            sender: &mut Sender<PayloadMessage>,
+        ) -> Result<()> {
             let transition = self.handle(message).map_message(|m| PayloadMessage {
                 session_key: self.session_key.clone(),
                 body: m,
             });
 
-            self.machine.apply(transition)?;
+            self.machine.apply(transition, sender)?;
 
             Ok(())
         }
@@ -410,18 +417,18 @@ mod server {
 
         #[tokio::test]
         async fn test_initialize() -> anyhow::Result<()> {
-            let sender = Default::default();
-            let mut proto = ServerProtocol::new(sender);
+            let mut proto = ServerProtocol::new();
 
             assert_eq!(proto.machine.state, ServerState::Initializing);
 
+            let mut sender = Default::default();
             let start = proto.message(None);
-            proto.apply(start)?;
+            proto.apply(start, &mut sender)?;
 
             assert_eq!(proto.machine.state, ServerState::Initialized);
 
             assert_eq!(
-                proto.machine.sender().queue.get(0).map(|m| &m.body),
+                sender.queue.get(0).map(|m| &m.body),
                 Some(&Payload::Initialize("session-key".to_owned()))
             );
 
