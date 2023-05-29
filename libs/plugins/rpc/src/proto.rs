@@ -134,7 +134,7 @@ impl<S> Sender<S>
 where
     S: std::fmt::Debug,
 {
-    async fn send(&mut self, message: S) -> anyhow::Result<()> {
+    fn send(&mut self, message: S) -> anyhow::Result<()> {
         debug!("Sending {:?}", &message);
         self.queue.push(message);
 
@@ -167,6 +167,7 @@ struct Machine<S, M> {
     sender: Sender<M>,
 }
 
+#[allow(dead_code)]
 impl<S, M> Machine<S, M>
 where
     S: std::fmt::Debug,
@@ -176,7 +177,7 @@ where
         &self.sender
     }
 
-    async fn apply(&mut self, transition: Transition<S, M>) -> anyhow::Result<()> {
+    fn apply(&mut self, transition: Transition<S, M>) -> anyhow::Result<()> {
         match transition {
             Transition::None => {
                 info!("(none) {:?}", &self.state);
@@ -189,7 +190,7 @@ where
             }
             Transition::Send(sending, state) => {
                 info!("(send) {:?}", &sending);
-                self.sender.send(sending).await?;
+                self.sender.send(sending)?;
                 info!("(send) {:?} -> {:?}", &self.state, &state);
                 self.state = state;
                 Ok(())
@@ -198,7 +199,7 @@ where
     }
 }
 
-#[cfg(test)]
+#[allow(dead_code)]
 mod plugin {
     use super::*;
     use super::{Payload, PayloadMessage, Query};
@@ -232,18 +233,18 @@ mod plugin {
     }
 
     impl PluginProtocol {
-        fn new(session_key: String) -> Self {
+        pub fn new(session_key: String) -> Self {
             Self {
                 session_key: Some(session_key),
                 ..Default::default()
             }
         }
 
-        fn session_key(&self) -> Option<&str> {
+        pub fn session_key(&self) -> Option<&str> {
             self.session_key.as_deref()
         }
 
-        fn message<B>(&self, body: B) -> Message<B> {
+        pub fn message<B>(&self, body: B) -> Message<B> {
             Message {
                 session_key: self.session_key.clone().expect("A session key is required"),
                 body,
@@ -261,13 +262,13 @@ mod plugin {
     }
 
     impl PluginProtocol {
-        pub async fn apply(&mut self, message: PayloadMessage) -> Result<()> {
+        pub fn apply(&mut self, message: PayloadMessage) -> Result<()> {
             let transition = self.handle(message).map_message(|m| QueryMessage {
                 session_key: self.session_key.as_ref().unwrap().clone(),
                 body: Some(m),
             });
 
-            self.machine.apply(transition).await?;
+            self.machine.apply(transition)?;
 
             Ok(())
         }
@@ -308,7 +309,7 @@ mod plugin {
 
             let session_key = proto.session_key().unwrap().to_owned();
             let initialize = Payload::Initialize(session_key);
-            proto.apply(proto.message(initialize)).await?;
+            proto.apply(proto.message(initialize))?;
 
             assert_eq!(proto.machine.state, PluginState::Initialized);
             assert!(proto.machine.sender().queue.is_empty());
@@ -318,6 +319,7 @@ mod plugin {
     }
 }
 
+#[allow(dead_code)]
 mod server {
     use super::*;
     use anyhow::Result;
@@ -345,18 +347,16 @@ mod server {
 
     #[derive(Debug)]
     pub struct ServerProtocol {
-        #[allow(dead_code)]
         session_key: String,
         machine: ServerMachine,
     }
 
     impl ServerProtocol {
-        #[allow(dead_code)]
-        fn session_key(&self) -> &str {
+        pub fn session_key(&self) -> &str {
             &self.session_key
         }
 
-        fn message<B>(&self, body: B) -> Message<B> {
+        pub fn message<B>(&self, body: B) -> Message<B> {
             Message {
                 session_key: self.session_key.clone(),
                 body,
@@ -374,13 +374,13 @@ mod server {
     }
 
     impl ServerProtocol {
-        pub async fn apply(&mut self, message: QueryMessage) -> Result<()> {
+        pub fn apply(&mut self, message: QueryMessage) -> Result<()> {
             let transition = self.handle(message).map_message(|m| PayloadMessage {
                 session_key: self.session_key.clone(),
                 body: m,
             });
 
-            self.machine.apply(transition).await?;
+            self.machine.apply(transition)?;
 
             Ok(())
         }
@@ -418,7 +418,7 @@ mod server {
             assert_eq!(proto.machine.state, ServerState::Initializing);
 
             let start = proto.message(None);
-            proto.apply(start).await?;
+            proto.apply(start)?;
 
             assert_eq!(proto.machine.state, ServerState::Initialized);
 
@@ -431,3 +431,6 @@ mod server {
         }
     }
 }
+
+pub use plugin::PluginProtocol;
+pub use server::ServerProtocol;
