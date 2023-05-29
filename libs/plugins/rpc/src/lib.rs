@@ -15,7 +15,7 @@ impl PluginFactory for RpcPluginFactory {
 
 #[derive(Default)]
 pub struct RpcPlugin {
-    example: RefCell<example::InMemoryExamplePlugin>,
+    example: RefCell<example::InProcessServer<example::ExamplePlugin>>,
 }
 
 impl RpcPlugin {}
@@ -68,25 +68,57 @@ mod example {
         Payload, PayloadMessage, PluginProtocol, Query, QueryMessage, Sender, ServerProtocol,
     };
 
-    pub struct InMemoryExamplePlugin {
+    pub struct ExamplePlugin {
         plugin: PluginProtocol,
-        server: ServerProtocol,
     }
 
-    impl Default for InMemoryExamplePlugin {
-        fn default() -> Self {
+    impl ExamplePlugin {
+        pub fn new() -> Self {
             Self {
                 plugin: PluginProtocol::new(),
+            }
+        }
+
+        pub fn message(&self, body: Payload) -> PayloadMessage {
+            self.plugin.message(body)
+        }
+
+        pub fn deliver(
+            &mut self,
+            message: &PayloadMessage,
+            replies: &mut Sender<QueryMessage>,
+        ) -> Result<()> {
+            self.plugin.apply(message, replies)?;
+
+            self.handle(message.body())?;
+
+            Ok(())
+        }
+
+        pub fn handle(&mut self, _message: &Payload) -> Result<()> {
+            Ok(())
+        }
+    }
+
+    pub struct InProcessServer<P> {
+        server: ServerProtocol,
+        plugin: P,
+    }
+
+    impl Default for InProcessServer<ExamplePlugin> {
+        fn default() -> Self {
+            Self {
                 server: ServerProtocol::new(),
+                plugin: ExamplePlugin::new(),
             }
         }
     }
 
-    impl InMemoryExamplePlugin {
+    impl InProcessServer<ExamplePlugin> {
         pub fn new() -> Self {
             Self {
-                plugin: PluginProtocol::new(),
                 server: ServerProtocol::new(),
+                plugin: ExamplePlugin::new(),
             }
         }
 
@@ -101,9 +133,7 @@ mod example {
 
         pub fn handle(&mut self, query: QueryMessage) -> Result<()> {
             let mut to_server: Sender<_> = Default::default();
-
             to_server.send(query)?;
-
             self.drain(to_server)
         }
 
@@ -113,8 +143,7 @@ mod example {
             while let Some(sending) = to_server.pop() {
                 self.server.apply(&sending, &mut to_plugin)?;
                 for message in to_plugin.iter() {
-                    info!("{:?}", message);
-                    self.plugin.apply(message, &mut to_server)?;
+                    self.deliver(message, &mut to_server)?;
                 }
             }
 
@@ -124,10 +153,18 @@ mod example {
         pub fn send(&mut self, message: &PayloadMessage) -> Result<()> {
             let mut to_server: Sender<_> = Default::default();
 
-            info!("{:?}", message);
-            self.plugin.apply(message, &mut to_server)?;
+            self.deliver(message, &mut to_server)?;
 
             self.drain(to_server)
+        }
+
+        fn deliver(
+            &mut self,
+            message: &PayloadMessage,
+            to_server: &mut Sender<QueryMessage>,
+        ) -> Result<()> {
+            info!("{:?}", message);
+            self.plugin.deliver(message, to_server)
         }
     }
 }
