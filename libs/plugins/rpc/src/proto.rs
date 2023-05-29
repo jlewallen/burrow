@@ -5,7 +5,14 @@ pub type SessionKey = String;
 
 pub type EntityKey = String;
 
-pub type EntityJson = serde_json::Value;
+#[derive(Serialize, Deserialize, PartialEq, Eq)]
+pub struct EntityJson(serde_json::Value);
+
+impl std::fmt::Debug for EntityJson {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("EntityJson").finish()
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct EntityUpdate {
@@ -72,12 +79,6 @@ pub struct Message<B> {
     body: B,
 }
 
-impl<B> Message<B> {
-    fn into_tuple(self) -> (SessionKey, B) {
-        (self.session_key, self.body)
-    }
-}
-
 pub type QueryMessage = Message<Option<Query>>;
 
 impl std::fmt::Debug for QueryMessage {
@@ -95,10 +96,38 @@ pub enum Surroundings {
     },
 }
 
+impl TryFrom<&kernel::Entry> for EntityJson {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &kernel::Entry) -> Result<Self, Self::Error> {
+        let entity = value.entity()?;
+        Ok(Self(entity.to_json_value()?))
+    }
+}
+
+impl TryFrom<&kernel::Surroundings> for Surroundings {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &kernel::Surroundings) -> Result<Self, Self::Error> {
+        match value {
+            kernel::Surroundings::Living {
+                world,
+                living,
+                area,
+            } => Ok(Self::Living {
+                world: world.try_into()?,
+                living: living.try_into()?,
+                area: area.try_into()?,
+            }),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Payload {
     Initialize(String), /* Complete */
 
+    Surroundings(Surroundings),
     Evaluate(String, Surroundings), /* Reply */
 
     Entity(Option<EntityJson>),
@@ -130,15 +159,28 @@ impl<S> Default for Sender<S> {
     }
 }
 
+#[allow(dead_code)]
 impl<S> Sender<S>
 where
     S: std::fmt::Debug,
 {
-    fn send(&mut self, message: S) -> anyhow::Result<()> {
+    pub fn send(&mut self, message: S) -> anyhow::Result<()> {
         debug!("Sending {:?}", &message);
         self.queue.push(message);
 
         Ok(())
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &S> {
+        self.queue.iter()
+    }
+
+    pub fn clear(&mut self) {
+        self.queue.clear()
+    }
+
+    pub fn pop(&mut self) -> Option<S> {
+        self.queue.pop()
     }
 }
 
@@ -262,7 +304,7 @@ mod plugin {
     impl PluginProtocol {
         pub fn apply(
             &mut self,
-            message: PayloadMessage,
+            message: &PayloadMessage,
             sender: &mut Sender<QueryMessage>,
         ) -> Result<()> {
             let transition = self.handle(message).map_message(|m| QueryMessage {
@@ -275,15 +317,18 @@ mod plugin {
             Ok(())
         }
 
-        fn handle(&mut self, message: PayloadMessage) -> PluginTransition {
-            let (_session_key, payload) = message.into_tuple();
-            match (&self.machine.state, payload) {
+        fn handle(&mut self, message: &PayloadMessage) -> PluginTransition {
+            match (&self.machine.state, &message.body) {
                 (PluginState::Uninitialized, Payload::Initialize(session_key)) => {
-                    self.session_key = Some(session_key);
+                    self.session_key = Some(session_key.to_owned());
 
                     PluginTransition::Direct(PluginState::Initialized)
                 }
-                (PluginState::Initialized, _) => todo!(),
+                (PluginState::Initialized, payload) => {
+                    info!("(initialized) {:?}", payload);
+
+                    PluginTransition::None
+                }
                 (PluginState::Failed, payload) => {
                     warn!("(failed) {:?}", &payload);
 
@@ -312,7 +357,7 @@ mod plugin {
             let session_key = proto.session_key().unwrap().to_owned();
             let initialize = Payload::Initialize(session_key);
             let mut sender = Default::default();
-            proto.apply(proto.message(initialize), &mut sender)?;
+            proto.apply(&proto.message(initialize), &mut sender)?;
 
             assert_eq!(proto.machine.state, PluginState::Initialized);
             assert!(sender.queue.is_empty());
@@ -376,7 +421,7 @@ mod server {
     impl ServerProtocol {
         pub fn apply(
             &mut self,
-            message: QueryMessage,
+            message: &QueryMessage,
             sender: &mut Sender<PayloadMessage>,
         ) -> Result<()> {
             let transition = self.handle(message).map_message(|m| PayloadMessage {
@@ -389,11 +434,10 @@ mod server {
             Ok(())
         }
 
-        fn handle(&mut self, message: QueryMessage) -> ServerTransition {
-            let (session_key, query) = message.into_tuple();
-            match (&self.machine.state, query) {
+        fn handle(&mut self, message: &QueryMessage) -> ServerTransition {
+            match (&self.machine.state, &message.body) {
                 (ServerState::Initializing, _) => ServerTransition::Send(
-                    Payload::Initialize(session_key.clone()),
+                    Payload::Initialize(message.session_key.clone()),
                     ServerState::Initialized,
                 ),
                 (ServerState::Failed, query) => {
@@ -423,12 +467,12 @@ mod server {
 
             let mut sender = Default::default();
             let start = proto.message(None);
-            proto.apply(start, &mut sender)?;
+            proto.apply(&start, &mut sender)?;
 
             assert_eq!(proto.machine.state, ServerState::Initialized);
 
             assert_eq!(
-                sender.queue.get(0).map(|m| &m.body),
+                sender.iter().next().map(|m| &m.body),
                 Some(&Payload::Initialize("session-key".to_owned()))
             );
 
