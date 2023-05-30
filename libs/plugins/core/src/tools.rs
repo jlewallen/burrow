@@ -70,6 +70,16 @@ pub fn area_of(living: &Entry) -> Result<EntityPtr> {
     Ok(occupying.area.into_entity()?)
 }
 
+pub fn get_contained_keys(area: &Entry) -> Result<Vec<EntityKey>> {
+    let containing = area.scope::<Containing>()?;
+
+    Ok(containing
+        .holding
+        .iter()
+        .map(|e| e.key().clone())
+        .collect::<Vec<EntityKey>>())
+}
+
 pub fn set_container(container: &Entry, items: &Vec<Entry>) -> Result<()> {
     let mut containing = container.scope_mut::<Containing>()?;
     for item in items {
@@ -185,4 +195,26 @@ pub fn obliterate(obliterating: &Entry) -> Result<()> {
     } else {
         Err(DomainError::ContainerRequired.into())
     }
+}
+
+pub fn get_adjacent_keys(entry: &Entry) -> Result<Vec<EntityKey>> {
+    let containing = entry.scope::<Containing>()?;
+
+    Ok(containing
+        .holding
+        .iter()
+        .map(|e| e.into_entry())
+        .collect::<Result<Vec<Entry>, kernel::DomainError>>()?
+        .into_iter()
+        .map(|e| {
+            if let Some(exit) = e.maybe_scope::<Exit>()? {
+                Ok(vec![exit.area.key().clone()])
+            } else {
+                Ok(vec![])
+            }
+        })
+        .collect::<Result<Vec<Vec<EntityKey>>>>()?
+        .into_iter()
+        .flat_map(|v| v.into_iter())
+        .collect::<Vec<_>>())
 }

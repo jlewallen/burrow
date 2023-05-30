@@ -1,14 +1,26 @@
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info};
+use tracing::*;
 
 pub type SessionKey = String;
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 pub struct EntityKey(String);
+
+impl EntityKey {
+    pub fn new(key: String) -> Self {
+        Self(key)
+    }
+}
 
 impl From<&kernel::EntityKey> for EntityKey {
     fn from(value: &kernel::EntityKey) -> Self {
         Self(value.to_string())
+    }
+}
+
+impl Into<kernel::EntityKey> for &EntityKey {
+    fn into(self) -> kernel::EntityKey {
+        kernel::EntityKey::new(&self.0)
     }
 }
 
@@ -57,11 +69,22 @@ pub enum Permission {}
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Hook {}
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub enum LookupBy {
     Key(EntityKey),
     Gid(u64),
 }
+
+/*
+impl<'a> Into<kernel::LookupBy<'a>> for &LookupBy {
+    fn into(self) -> kernel::LookupBy<'a> {
+        match self {
+            LookupBy::Key(key) => kernel::LookupBy::Key(&key.into()),
+            LookupBy::Gid(gid) => kernel::LookupBy::Gid(&EntityGid::new(*gid)),
+        }
+    }
+}
+*/
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Query {
@@ -74,7 +97,7 @@ pub enum Query {
 
     Permission(Try),
 
-    Lookup(Vec<LookupBy>),
+    Lookup(u32, Vec<LookupBy>),
     Find(Find),
 
     Try(Try),
@@ -143,7 +166,7 @@ pub enum Payload {
     Surroundings(Surroundings),
     Evaluate(String, Surroundings), /* Reply */
 
-    Entity(EntityKey, Option<EntityJson>),
+    Resolved(Vec<(LookupBy, Option<EntityJson>)>),
     Found(Vec<EntityJson>),
 
     Permission(Permission),
@@ -197,10 +220,18 @@ where
     }
 }
 
+impl<B> Sender<Message<B>> {
+    #[cfg(test)]
+    pub fn bodies(&self) -> impl Iterator<Item = &B> {
+        self.queue.iter().map(|m| &m.body)
+    }
+}
+
 enum Transition<S, M> {
     None,
     Direct(S),
     Send(M, S),
+    SendOnly(M),
 }
 
 impl<S, M> Transition<S, M> {
@@ -212,6 +243,7 @@ impl<S, M> Transition<S, M> {
             Transition::None => Transition::<S, O>::None,
             Transition::Direct(s) => Transition::<S, O>::Direct(s),
             Transition::Send(m, s) => Transition::<S, O>::Send(f(m), s),
+            Transition::SendOnly(m) => Transition::<S, O>::SendOnly(f(m)),
         }
     }
 }
@@ -236,19 +268,24 @@ where
     {
         match transition {
             Transition::None => {
-                info!("(none) {:?}", &self.state);
+                debug!("(none) {:?}", &self.state);
                 Ok(())
             }
             Transition::Direct(state) => {
-                info!("(direct) {:?} -> {:?}", &self.state, &state);
+                debug!("(direct) {:?} -> {:?}", &self.state, &state);
                 self.state = state;
                 Ok(())
             }
             Transition::Send(sending, state) => {
-                info!("(send) {:?}", &sending);
+                debug!("(send) {:?}", &sending);
                 sender.send(sending)?;
-                info!("(send) {:?} -> {:?}", &self.state, &state);
+                debug!("(send) {:?} -> {:?}", &self.state, &state);
                 self.state = state;
+                Ok(())
+            }
+            Transition::SendOnly(sending) => {
+                debug!("(send-only) {:?}", &sending);
+                sender.send(sending)?;
                 Ok(())
             }
         }
@@ -269,6 +306,7 @@ mod plugin {
         Uninitialized,
         Initialized,
         Failed,
+        Resolving,
     }
 
     type PluginMachine = Machine<PluginState>;
@@ -337,17 +375,31 @@ mod plugin {
 
                     PluginTransition::Direct(PluginState::Initialized)
                 }
-                (PluginState::Initialized, payload) => {
-                    info!("(initialized) {:?}", payload);
+                (PluginState::Initialized, Payload::Surroundings(surroundings)) => {
+                    let keys = match &surroundings {
+                        Surroundings::Living {
+                            world,
+                            living,
+                            area,
+                        } => vec![world, living, area],
+                    };
 
-                    PluginTransition::None
+                    let lookups = keys.into_iter().map(|k| LookupBy::Key(k.clone())).collect();
+                    let lookup = Query::Lookup(7, lookups);
+
+                    PluginTransition::Send(lookup, PluginState::Resolving)
                 }
+                (PluginState::Resolving, Payload::Resolved(_entities)) => PluginTransition::None,
                 (PluginState::Failed, payload) => {
                     warn!("(failed) {:?}", &payload);
 
                     PluginTransition::None
                 }
-                (_, _) => PluginTransition::Direct(PluginState::Failed),
+                (state, message) => {
+                    warn!("(failing) {:?} {:?}", state, message);
+
+                    PluginTransition::Direct(PluginState::Failed)
+                }
             }
         }
     }
@@ -383,8 +435,7 @@ mod plugin {
 #[allow(dead_code)]
 mod server {
     use super::*;
-    use anyhow::Result;
-    use tracing::*;
+    use anyhow::{anyhow, Result};
 
     type ServerTransition = Transition<ServerState, Payload>;
 
@@ -436,41 +487,90 @@ mod server {
             &mut self,
             message: &QueryMessage,
             sender: &mut Sender<PayloadMessage>,
+            server: &dyn Server,
         ) -> Result<()> {
-            let transition = self.handle(message).map_message(|m| PayloadMessage {
-                session_key: self.session_key.clone(),
-                body: m,
-            });
+            let transition = self
+                .handle(message, server)?
+                .map_message(|m| PayloadMessage {
+                    session_key: self.session_key.clone(),
+                    body: m,
+                });
 
             self.machine.apply(transition, sender)?;
 
             Ok(())
         }
 
-        fn handle(&mut self, message: &QueryMessage) -> ServerTransition {
+        fn handle(
+            &mut self,
+            message: &QueryMessage,
+            server: &dyn Server,
+        ) -> Result<ServerTransition> {
             match (&self.machine.state, &message.body) {
-                (ServerState::Initializing, _) => ServerTransition::Send(
+                (ServerState::Initializing, _) => Ok(ServerTransition::Send(
                     Payload::Initialize(message.session_key.clone()),
                     ServerState::Initialized,
-                ),
+                )),
+                (ServerState::Initialized, Some(Query::Lookup(depth, lookup))) => {
+                    let resolved = server.lookup(*depth, lookup)?;
+
+                    Ok(ServerTransition::SendOnly(Payload::Resolved(resolved)))
+                }
                 (ServerState::Failed, query) => {
                     warn!("(failed) {:?}", &query);
 
-                    ServerTransition::None
+                    Ok(ServerTransition::None)
                 }
-                (_, _) => ServerTransition::Direct(ServerState::Failed),
+                (state, message) => {
+                    warn!("(failing) {:?} {:?}", state, message);
+
+                    Ok(ServerTransition::Direct(ServerState::Failed))
+                }
             }
+        }
+    }
+
+    pub trait Server {
+        fn lookup(
+            &self,
+            depth: u32,
+            lookup: &Vec<LookupBy>,
+        ) -> Result<Vec<(LookupBy, Option<EntityJson>)>>;
+    }
+
+    pub struct AlwaysErrorsServer {}
+
+    impl Server for AlwaysErrorsServer {
+        fn lookup(
+            &self,
+            _depth: u32,
+            _lookup: &Vec<LookupBy>,
+        ) -> Result<Vec<(LookupBy, Option<EntityJson>)>> {
+            Err(anyhow!("This server always errors"))
         }
     }
 
     #[cfg(test)]
     mod tests {
+        use anyhow::Result;
         #[allow(unused_imports)]
         use tracing::*;
 
-        use crate::proto::{server::ServerState, Payload};
+        use crate::proto::{server::ServerState, EntityJson, LookupBy, Payload};
 
-        use super::ServerProtocol;
+        use super::{Server, ServerProtocol};
+
+        struct DummyServer {}
+
+        impl Server for DummyServer {
+            fn lookup(
+                &self,
+                _depth: u32,
+                _lookup: &Vec<LookupBy>,
+            ) -> Result<Vec<(LookupBy, Option<EntityJson>)>> {
+                Ok(vec![])
+            }
+        }
 
         #[tokio::test]
         async fn test_initialize() -> anyhow::Result<()> {
@@ -480,12 +580,12 @@ mod server {
 
             let mut sender = Default::default();
             let start = proto.message(None);
-            proto.apply(&start, &mut sender)?;
+            proto.apply(&start, &mut sender, &DummyServer {})?;
 
             assert_eq!(proto.machine.state, ServerState::Initialized);
 
             assert_eq!(
-                sender.iter().next().map(|m| &m.body),
+                sender.bodies().next(),
                 Some(&Payload::Initialize("session-key".to_owned()))
             );
 
@@ -495,4 +595,6 @@ mod server {
 }
 
 pub use plugin::PluginProtocol;
+pub use server::AlwaysErrorsServer;
+pub use server::Server;
 pub use server::ServerProtocol;
