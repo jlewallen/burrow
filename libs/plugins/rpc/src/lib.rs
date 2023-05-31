@@ -64,6 +64,8 @@ impl ParsesActions for RpcPlugin {
 #[allow(dead_code)]
 #[allow(unused_imports)]
 mod example {
+    use std::collections::{HashMap, HashSet};
+
     use anyhow::Result;
     use kernel::{get_my_session, ActiveSession, EntityGid, Entry, SessionRef, Surroundings};
     use plugins_core::tools;
@@ -183,7 +185,13 @@ mod example {
         where
             F: FnMut(LookupBy) -> Result<(LookupBy, Option<(Entry, EntityJson)>)>,
         {
-            info!("querying {}", self.queue.len());
+            debug!(queue = self.queue.len(), "discovering");
+
+            let have: HashSet<&kernel::EntityKey> = self
+                .entities
+                .iter()
+                .filter_map(|(_lookup, maybe)| maybe.as_ref().map(|m| m.0.key()))
+                .collect();
 
             let adding = self
                 .queue
@@ -205,11 +213,12 @@ mod example {
                 })
                 .collect::<Result<Vec<_>>>()?
                 .into_iter()
-                .flat_map(|v| {
-                    v.into_iter()
-                        .map(|key| LookupBy::Key(EntityKey::new(key.to_string())))
-                })
-                .map(|v| v.into())
+                .flat_map(|v| v.into_iter())
+                .collect::<HashSet<kernel::EntityKey>>()
+                .into_iter()
+                .filter_map(|key| have.get(&key).map_or(Some(key), |_| None))
+                .map(|key| LookupBy::Key(EntityKey::new(key.to_string())))
+                .map(|lookup| lookup.into())
                 .collect();
 
             let entities = self.entities.into_iter().chain(adding).collect();

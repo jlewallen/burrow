@@ -3,7 +3,7 @@ use tracing::*;
 
 pub type SessionKey = String;
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Debug)]
 pub struct EntityKey(String);
 
 impl EntityKey {
@@ -85,6 +85,8 @@ impl<'a> Into<kernel::LookupBy<'a>> for &LookupBy {
     }
 }
 */
+
+const DEFAULT_DEPTH: u32 = 2;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Query {
@@ -385,7 +387,7 @@ mod plugin {
                     };
 
                     let lookups = keys.into_iter().map(|k| LookupBy::Key(k.clone())).collect();
-                    let lookup = Query::Lookup(7, lookups);
+                    let lookup = Query::Lookup(DEFAULT_DEPTH, lookups);
 
                     PluginTransition::Send(lookup, PluginState::Resolving)
                 }
