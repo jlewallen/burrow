@@ -104,7 +104,7 @@ mod example {
         }
 
         pub fn handle(&mut self, _message: &Payload) -> Result<()> {
-            info!("{:?}", _message);
+            debug!("(handle) {:?}", _message);
 
             Ok(())
         }
@@ -243,6 +243,8 @@ mod example {
                     Err(e) => Err(e),
                 },
             )?;
+
+            info!(nentities = done.entities.len(), depth = depth, "lookup");
 
             Ok(done
                 .entities
