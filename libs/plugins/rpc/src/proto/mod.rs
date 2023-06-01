@@ -7,7 +7,9 @@ mod server;
 
 pub use fsm::Sender;
 
+pub use plugin::DefaultResponses;
 pub use plugin::PluginProtocol;
+pub use plugin::PluginResponses;
 pub use server::AlwaysErrorsServer;
 pub use server::Server;
 pub use server::ServerProtocol;

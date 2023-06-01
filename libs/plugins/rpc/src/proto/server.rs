@@ -40,9 +40,7 @@ impl ServerProtocol {
             body,
         }
     }
-}
 
-impl ServerProtocol {
     pub fn apply(
         &mut self,
         message: &QueryMessage,

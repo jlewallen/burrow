@@ -9,7 +9,7 @@ const DEFAULT_DEPTH: u32 = 2;
 type PluginTransition = Transition<PluginState, Query>;
 
 #[derive(Debug, PartialEq, Eq)]
-enum PluginState {
+pub enum PluginState {
     Uninitialized,
     Initialized,
     Failed,
@@ -26,17 +26,47 @@ impl PluginMachine {
     }
 }
 
-#[derive(Debug)]
-pub struct PluginProtocol {
-    session_key: Option<String>,
-    machine: PluginMachine,
+pub trait PluginResponses {
+    fn surroundings(surroundings: &Surroundings) -> PluginTransition;
 }
 
-impl PluginProtocol {
+pub struct DefaultResponses {}
+
+impl PluginResponses for DefaultResponses {
+    fn surroundings(surroundings: &Surroundings) -> PluginTransition {
+        let keys = match &surroundings {
+            Surroundings::Living {
+                world,
+                living,
+                area,
+            } => vec![world, living, area],
+        };
+
+        let lookups = keys.into_iter().map(|k| LookupBy::Key(k.clone())).collect();
+        let lookup = Query::Lookup(DEFAULT_DEPTH, lookups);
+        PluginTransition::Send(lookup, PluginState::Resolving)
+    }
+}
+
+#[derive(Debug)]
+pub struct PluginProtocol<R>
+where
+    R: PluginResponses,
+{
+    session_key: Option<String>,
+    machine: PluginMachine,
+    _marker: std::marker::PhantomData<R>,
+}
+
+impl<R> PluginProtocol<R>
+where
+    R: PluginResponses,
+{
     pub fn new() -> Self {
         Self {
             session_key: None,
             machine: PluginMachine::new(),
+            _marker: Default::default(),
         }
     }
 
@@ -45,6 +75,7 @@ impl PluginProtocol {
         Self {
             session_key: Some(session_key),
             machine: PluginMachine::new(),
+            _marker: Default::default(),
         }
     }
 
@@ -59,9 +90,7 @@ impl PluginProtocol {
             body,
         }
     }
-}
 
-impl PluginProtocol {
     pub fn apply(
         &mut self,
         message: &PayloadMessage,
@@ -85,18 +114,7 @@ impl PluginProtocol {
                 PluginTransition::Direct(PluginState::Initialized)
             }
             (PluginState::Initialized, Payload::Surroundings(surroundings)) => {
-                let keys = match &surroundings {
-                    Surroundings::Living {
-                        world,
-                        living,
-                        area,
-                    } => vec![world, living, area],
-                };
-
-                let lookups = keys.into_iter().map(|k| LookupBy::Key(k.clone())).collect();
-                let lookup = Query::Lookup(DEFAULT_DEPTH, lookups);
-
-                PluginTransition::Send(lookup, PluginState::Resolving)
+                R::surroundings(surroundings)
             }
             (PluginState::Resolving, Payload::Resolved(_entities)) => PluginTransition::None,
             (PluginState::Failed, payload) => {
@@ -120,11 +138,13 @@ mod tests {
 
     use crate::proto::{plugin::PluginState, Payload};
 
-    use super::PluginProtocol;
+    use super::*;
+
+    type TestPlugin = PluginProtocol<DefaultResponses>;
 
     #[tokio::test]
     async fn test_initialize() -> anyhow::Result<()> {
-        let mut proto = PluginProtocol::new_with_session_key("session-key".to_owned());
+        let mut proto = TestPlugin::new_with_session_key("session-key".to_owned());
 
         assert_eq!(proto.machine.state, PluginState::Uninitialized);
 

@@ -72,12 +72,12 @@ mod example {
     use tracing::{debug, info, span, Level};
 
     use crate::proto::{
-        AlwaysErrorsServer, EntityJson, EntityKey, LookupBy, Payload, PayloadMessage,
-        PluginProtocol, Query, QueryMessage, Sender, Server, ServerProtocol,
+        AlwaysErrorsServer, DefaultResponses, EntityJson, EntityKey, LookupBy, Payload,
+        PayloadMessage, PluginProtocol, Query, QueryMessage, Sender, Server, ServerProtocol,
     };
 
     pub struct ExamplePlugin {
-        plugin: PluginProtocol,
+        plugin: PluginProtocol<DefaultResponses>,
     }
 
     impl ExamplePlugin {
