@@ -91,7 +91,7 @@ impl Notifier for AppState {
 pub async fn execute_command(_cmd: &Command) -> Result<()> {
     info!("serving");
 
-    let domain = make_domain()?;
+    let domain = make_domain().await?;
 
     let assets_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
 

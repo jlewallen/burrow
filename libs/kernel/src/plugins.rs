@@ -15,11 +15,11 @@ pub struct RegisteredPlugins {
 }
 
 impl RegisteredPlugins {
-    pub fn register<P>(&mut self)
+    pub fn register<P>(&mut self, factory: P)
     where
-        P: PluginFactory + Default + 'static,
+        P: PluginFactory + 'static,
     {
-        self.factories.push(Box::<P>::default())
+        self.factories.push(Box::new(factory))
     }
 
     pub fn create_plugins(&self) -> Result<SessionPlugins> {

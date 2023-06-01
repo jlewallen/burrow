@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use std::{error::Error, path::PathBuf, sync::Arc};
+use tokio::runtime::Handle;
 use tracing::*;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -59,18 +60,17 @@ fn get_rust_log() -> String {
     original
 }
 
-fn make_domain() -> Result<Domain> {
+async fn make_domain() -> Result<Domain> {
     let storage_factory = storage::sqlite::Factory::new("world.sqlite3")?;
     let mut registered_plugins = RegisteredPlugins::default();
-    registered_plugins.register::<MovingPluginFactory>();
-    registered_plugins.register::<LookingPluginFactory>();
-    registered_plugins.register::<CarryingPluginFactory>();
-    registered_plugins.register::<BuildingPluginFactory>();
-    registered_plugins.register::<DynamicPluginFactory>();
-    registered_plugins.register::<RunePluginFactory>();
-    registered_plugins.register::<WasmPluginFactory>();
-    registered_plugins.register::<RpcPluginFactory>();
-
+    registered_plugins.register(MovingPluginFactory::default());
+    registered_plugins.register(LookingPluginFactory::default());
+    registered_plugins.register(CarryingPluginFactory::default());
+    registered_plugins.register(BuildingPluginFactory::default());
+    registered_plugins.register(DynamicPluginFactory::default());
+    registered_plugins.register(RunePluginFactory::default());
+    registered_plugins.register(WasmPluginFactory::default());
+    registered_plugins.register(RpcPluginFactory::start(Handle::current())?);
     let finder = Arc::new(DefaultFinder::default());
     Ok(Domain::new(
         storage_factory,

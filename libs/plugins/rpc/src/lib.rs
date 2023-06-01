@@ -1,22 +1,87 @@
 use std::cell::RefCell;
+use tokio::{
+    runtime::Handle,
+    sync::mpsc::{self, Receiver, Sender},
+};
 
 use example::SessionServer;
 use plugins_core::library::plugin::*;
 
 mod proto;
 
-#[derive(Default)]
-pub struct RpcPluginFactory {}
+pub struct RpcPluginFactory {
+    server: SynchronousWrapper,
+}
 
-impl PluginFactory for RpcPluginFactory {
-    fn create_plugin(&self) -> Result<Box<dyn Plugin>> {
-        Ok(Box::<RpcPlugin>::default())
+enum RpcMessage {}
+
+#[derive(Clone)]
+struct RpcServer {
+    tx: Sender<RpcMessage>,
+}
+
+impl RpcServer {
+    pub async fn initialize(&self) -> Result<()> {
+        todo!()
+    }
+
+    pub async fn have_surroundings(&self, surroundings: Surroundings) -> Result<()> {
+        todo!()
     }
 }
 
-#[derive(Default)]
+#[derive(Clone)]
+struct SynchronousWrapper {
+    handle: Handle,
+    server: RpcServer,
+}
+
+impl SynchronousWrapper {
+    pub fn initialize(&self) -> Result<()> {
+        todo!()
+    }
+
+    pub fn have_surroundings(&self, surroundings: Surroundings) -> Result<()> {
+        todo!()
+    }
+}
+
+async fn start_server(rx: Receiver<RpcMessage>) -> Result<()> {
+    loop {
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        info!("tick");
+    }
+}
+
+impl RpcPluginFactory {
+    pub fn start(handle: Handle) -> Result<Self> {
+        let (tx, rx) = mpsc::channel::<RpcMessage>(32);
+        let server = RpcServer { tx: tx.clone() };
+        let _task = handle.spawn(start_server(rx));
+        let server = SynchronousWrapper { handle, server };
+
+        Ok(Self { server })
+    }
+}
+
+impl Drop for RpcPluginFactory {
+    fn drop(&mut self) {
+        info!("~RpcPluginFactory");
+    }
+}
+
+impl PluginFactory for RpcPluginFactory {
+    fn create_plugin(&self) -> Result<Box<dyn Plugin>> {
+        Ok(Box::new(RpcPlugin {
+            example: Default::default(),
+            server: self.server.clone(),
+        }))
+    }
+}
+
 pub struct RpcPlugin {
     example: RefCell<example::InProcessServer<example::ExampleAgent>>,
+    server: SynchronousWrapper,
 }
 
 impl RpcPlugin {
@@ -37,6 +102,8 @@ impl Plugin for RpcPlugin {
     fn initialize(&mut self) -> Result<()> {
         let mut example = self.example.borrow_mut();
         example.initialize()?;
+
+        self.server.initialize()?;
 
         Ok(())
     }

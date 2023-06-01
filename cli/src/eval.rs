@@ -18,7 +18,7 @@ pub struct Command {
 
 #[tokio::main]
 pub async fn execute_command(cmd: &Command) -> Result<()> {
-    let domain = make_domain()?;
+    let domain = make_domain().await?;
     let renderer = Renderer::new()?;
 
     let mut open_session: Option<Rc<Session>> = None;

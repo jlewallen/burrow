@@ -139,7 +139,7 @@ pub fn try_interactive(
 
 #[tokio::main]
 pub async fn execute_command(cmd: &Command) -> Result<()> {
-    let domain = make_domain()?;
+    let domain = make_domain().await?;
 
     let self_key = find_user_key(&domain, &cmd.username)?.expect("No such username");
 
