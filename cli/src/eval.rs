@@ -2,11 +2,12 @@ use std::rc::Rc;
 
 use anyhow::Result;
 use clap::Args;
+use tokio::task::JoinHandle;
 
 use crate::{make_domain, text::Renderer};
 use engine::{DevNullNotifier, Session};
 
-#[derive(Debug, Args)]
+#[derive(Debug, Args, Clone)]
 pub struct Command {
     #[arg(short, long, default_value = "jlewallen")]
     username: String,
@@ -16,9 +17,7 @@ pub struct Command {
     separate_sessions: bool,
 }
 
-#[tokio::main]
-pub async fn execute_command(cmd: &Command) -> Result<()> {
-    let domain = make_domain().await?;
+fn evaluate_commands(domain: engine::Domain, cmd: Command) -> Result<()> {
     let renderer = Renderer::new()?;
 
     let mut open_session: Option<Rc<Session>> = None;
@@ -49,4 +48,15 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[tokio::main]
+pub async fn execute_command(cmd: &Command) -> Result<()> {
+    let domain = make_domain().await?;
+    let cmd = cmd.clone();
+
+    let handle: JoinHandle<Result<()>> =
+        tokio::task::spawn_blocking(|| evaluate_commands(domain, cmd));
+
+    handle.await?
 }

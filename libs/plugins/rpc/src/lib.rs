@@ -17,16 +17,16 @@ enum RpcMessage {}
 
 #[derive(Clone)]
 struct RpcServer {
-    tx: Sender<RpcMessage>,
+    _tx: Sender<RpcMessage>,
 }
 
 impl RpcServer {
     pub async fn initialize(&self) -> Result<()> {
-        todo!()
+        Ok(())
     }
 
-    pub async fn have_surroundings(&self, surroundings: Surroundings) -> Result<()> {
-        todo!()
+    pub async fn have_surroundings(&self, _surroundings: &Surroundings) -> Result<()> {
+        Ok(())
     }
 }
 
@@ -38,17 +38,18 @@ struct SynchronousWrapper {
 
 impl SynchronousWrapper {
     pub fn initialize(&self) -> Result<()> {
-        todo!()
+        self.handle.block_on(self.server.initialize())
     }
 
-    pub fn have_surroundings(&self, surroundings: Surroundings) -> Result<()> {
-        todo!()
+    pub fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
+        self.handle
+            .block_on(self.server.have_surroundings(surroundings))
     }
 }
 
-async fn start_server(rx: Receiver<RpcMessage>) -> Result<()> {
+async fn start_server(_rx: Receiver<RpcMessage>) -> Result<()> {
     loop {
-        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
         info!("tick");
     }
 }
@@ -56,7 +57,7 @@ async fn start_server(rx: Receiver<RpcMessage>) -> Result<()> {
 impl RpcPluginFactory {
     pub fn start(handle: Handle) -> Result<Self> {
         let (tx, rx) = mpsc::channel::<RpcMessage>(32);
-        let server = RpcServer { tx: tx.clone() };
+        let server = RpcServer { _tx: tx.clone() };
         let _task = handle.spawn(start_server(rx));
         let server = SynchronousWrapper { handle, server };
 
@@ -103,9 +104,7 @@ impl Plugin for RpcPlugin {
         let mut example = self.example.borrow_mut();
         example.initialize()?;
 
-        self.server.initialize()?;
-
-        Ok(())
+        self.server.initialize()
     }
 
     #[tracing::instrument(name = "rpc-register", skip_all)]
@@ -118,7 +117,7 @@ impl Plugin for RpcPlugin {
         let mut example = self.example.borrow_mut();
         example.have_surroundings(surroundings, &self.server()?)?;
 
-        Ok(())
+        self.server.have_surroundings(surroundings)
     }
 }
 

@@ -5,6 +5,8 @@ use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
+use tokio::task::JoinHandle;
 
 use crate::terminal::Renderer;
 use crate::{make_domain, terminal::default_external_editor};
@@ -137,9 +139,39 @@ pub fn try_interactive(
     }
 }
 
+fn evaluate_commands(
+    domain: Arc<engine::Domain>,
+    self_key: EntityKey,
+    username: String,
+    line: String,
+) -> Result<()> {
+    let session = domain.open_session()?;
+
+    let reply: Box<dyn Reply> =
+        if let Some(reply) = session.evaluate_and_perform(&username, &line)? {
+            reply
+        } else {
+            Box::new(SimpleReply::What)
+        };
+
+    let renderer = Renderer::new(session.clone())?;
+    let reply = try_interactive(session.clone(), &self_key, reply)?;
+    let rendered = renderer.render_reply(&reply)?;
+
+    let notifier = QueuedNotifier::default();
+
+    session.close(&notifier)?;
+
+    println!("{}", rendered);
+
+    notifier.forward(&StandardOutNotifier::new(&self_key))?;
+
+    Ok(())
+}
+
 #[tokio::main]
 pub async fn execute_command(cmd: &Command) -> Result<()> {
-    let domain = make_domain().await?;
+    let domain = Arc::new(make_domain().await?);
 
     let self_key = find_user_key(&domain, &cmd.username)?.expect("No such username");
 
@@ -152,27 +184,16 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
         match readline {
             Ok(line) => {
                 rl.add_history_entry(line.as_str());
-                let session = domain.open_session()?;
 
-                let reply: Box<dyn Reply> = if let Some(reply) =
-                    session.evaluate_and_perform(&cmd.username, line.as_str())?
-                {
-                    reply
-                } else {
-                    Box::new(SimpleReply::What)
-                };
+                let handle: JoinHandle<Result<()>> = tokio::task::spawn_blocking({
+                    let username = cmd.username.clone();
+                    let self_key = self_key.clone();
+                    let domain = Arc::clone(&domain);
 
-                let renderer = Renderer::new(session.clone())?;
-                let reply = try_interactive(session.clone(), &self_key, reply)?;
-                let rendered = renderer.render_reply(&reply)?;
+                    || evaluate_commands(domain, self_key, username, line)
+                });
 
-                let notifier = QueuedNotifier::default();
-
-                session.close(&notifier)?;
-
-                println!("{}", rendered);
-
-                notifier.forward(&StandardOutNotifier::new(&self_key))?;
+                handle.await??;
             }
             Err(ReadlineError::Interrupted) => {
                 println!("ctrl-c");
