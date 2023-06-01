@@ -138,8 +138,10 @@ impl<T: Scope> OpenedScope<T> {
 
         Self { target }
     }
+}
 
-    pub fn as_ref(&self) -> &T {
+impl<T: Scope> AsRef<T> for OpenedScope<T> {
+    fn as_ref(&self) -> &T {
         &self.target
     }
 }

@@ -120,7 +120,7 @@ impl EntityMap {
         self.maps.borrow().lookup_entity(lookup)
     }
 
-    fn assign_gid_if_necessary(&self, mut loaded: &mut LoadedEntity) -> Result<()> {
+    fn assign_gid_if_necessary(&self, loaded: &mut LoadedEntity) -> Result<()> {
         if loaded.gid.is_none() {
             let gid = self.ids.get();
             info!(%loaded.key, %gid, "entity-map assigning gid");

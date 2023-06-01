@@ -10,7 +10,7 @@ pub struct RpcPluginFactory {}
 
 impl PluginFactory for RpcPluginFactory {
     fn create_plugin(&self) -> Result<Box<dyn Plugin>> {
-        Ok(Box::new(RpcPlugin::default()))
+        Ok(Box::<RpcPlugin>::default())
     }
 }
 
@@ -61,19 +61,17 @@ impl ParsesActions for RpcPlugin {
     }
 }
 
-#[allow(dead_code)]
-#[allow(unused_imports)]
 mod example {
-    use std::collections::{HashMap, HashSet};
+    use std::collections::HashSet;
 
     use anyhow::Result;
-    use kernel::{get_my_session, ActiveSession, EntityGid, Entry, SessionRef, Surroundings};
+    use kernel::{get_my_session, ActiveSession, EntityGid, Entry, Surroundings};
     use plugins_core::tools;
     use tracing::{debug, info, span, Level};
 
     use crate::proto::{
         AgentProtocol, AlwaysErrorsServer, DefaultResponses, EntityJson, EntityKey, LookupBy,
-        Payload, PayloadMessage, Query, QueryMessage, Sender, Server, ServerProtocol,
+        Payload, PayloadMessage, QueryMessage, Sender, Server, ServerProtocol,
     };
 
     pub struct ExampleAgent {
@@ -136,35 +134,6 @@ mod example {
                 None => Ok((lookup.clone(), None)),
             }
         }
-
-        fn lookup(
-            &self,
-            lookup: &Vec<LookupBy>,
-        ) -> Result<Vec<(LookupBy, Option<(Entry, EntityJson)>)>> {
-            Ok(lookup
-                .iter()
-                .map(|lookup| {
-                    debug!("lookup({:?})", lookup);
-
-                    // This is awkward because of the generic lifetime on kernel::LookupBy
-                    let entry = match lookup {
-                        LookupBy::Key(key) => {
-                            self.session.entry(&kernel::LookupBy::Key(&key.into()))?
-                        }
-                        LookupBy::Gid(gid) => self
-                            .session
-                            .entry(&kernel::LookupBy::Gid(&EntityGid::new(*gid)))?,
-                    };
-
-                    match entry {
-                        Some(entry) => {
-                            Ok((lookup.clone(), Some((entry.clone(), (&entry).try_into()?))))
-                        }
-                        None => Ok((lookup.clone(), None)),
-                    }
-                })
-                .collect::<Result<Vec<(_, Option<_>)>>>()?)
-        }
     }
 
     #[derive(Default)]
@@ -181,7 +150,7 @@ mod example {
             }
         }
 
-        pub fn into_with<F>(self, mut f: F) -> Result<Self>
+        pub fn into_with<F>(self, f: F) -> Result<Self>
         where
             F: FnMut(LookupBy) -> Result<(LookupBy, Option<(Entry, EntityJson)>)>,
         {
@@ -193,11 +162,7 @@ mod example {
                 .filter_map(|(_lookup, maybe)| maybe.as_ref().map(|m| m.0.key()))
                 .collect();
 
-            let adding = self
-                .queue
-                .into_iter()
-                .map(|lookup| f(lookup))
-                .collect::<Result<Vec<_>>>()?;
+            let adding = self.queue.into_iter().map(f).collect::<Result<Vec<_>>>()?;
 
             let queue = adding
                 .iter()
@@ -218,7 +183,6 @@ mod example {
                 .into_iter()
                 .filter_map(|key| have.get(&key).map_or(Some(key), |_| None))
                 .map(|key| LookupBy::Key(EntityKey::new(key.to_string())))
-                .map(|lookup| lookup.into())
                 .collect();
 
             let entities = self.entities.into_iter().chain(adding).collect();
@@ -231,9 +195,9 @@ mod example {
         fn lookup(
             &self,
             depth: u32,
-            lookup: &Vec<LookupBy>,
+            lookup: &[LookupBy],
         ) -> Result<Vec<(LookupBy, Option<EntityJson>)>> {
-            let done = (0..depth).into_iter().fold(
+            let done = (0..depth).fold(
                 Ok::<_, anyhow::Error>(FoldToDepth::new(lookup)),
                 |acc, depth| match acc {
                     Ok(acc) => {
@@ -269,11 +233,9 @@ mod example {
     }
 
     impl InProcessServer<ExampleAgent> {
+        #[allow(dead_code)]
         pub fn new() -> Self {
-            Self {
-                server: ServerProtocol::new(),
-                plugin: ExampleAgent::new(),
-            }
+            Default::default()
         }
 
         pub fn initialize(&mut self) -> Result<()> {

@@ -17,7 +17,7 @@ pub struct RunePluginFactory {}
 
 impl PluginFactory for RunePluginFactory {
     fn create_plugin(&self) -> Result<Box<dyn Plugin>> {
-        Ok(Box::new(RunePlugin::default()))
+        Ok(Box::<RunePlugin>::default())
     }
 }
 
@@ -41,7 +41,7 @@ impl RunePlugin {
     }
 
     fn create_runner(&self, source: ScriptSource) -> Result<RuneRunner> {
-        Ok(RuneRunner::new(HashSet::from([source]))?)
+        RuneRunner::new(HashSet::from([source]))
     }
 }
 
@@ -196,7 +196,7 @@ pub mod actions {
                     match &self.copy {
                         WorkingCopy::Script(script) => {
                             let mut behaviors = entry.scope_mut::<Behaviors>()?;
-                            let langs = behaviors.langs.get_or_insert_with(|| HashMap::new());
+                            let langs = behaviors.langs.get_or_insert_with(HashMap::new);
                             langs.insert(RUNE_EXTENSION.to_owned(), script.clone());
                             behaviors.save()?;
                         }

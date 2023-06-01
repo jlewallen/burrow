@@ -124,7 +124,7 @@ pub fn try_interactive(
                         }
                     };
 
-                    match session.entry(&kernel::LookupBy::Key(&living))? {
+                    match session.entry(&kernel::LookupBy::Key(living))? {
                         Some(living) => return session.chain(Perform::Living { living, action }),
                         None => break,
                     }

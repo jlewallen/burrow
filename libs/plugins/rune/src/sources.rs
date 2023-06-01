@@ -45,12 +45,9 @@ pub fn load_sources_from_surroundings(
         .map(|r| r.entry())
         .collect::<Result<Vec<_>>>()?
     {
-        match get_script(nearby)? {
-            Some(script) => {
-                info!("script {:?}", nearby);
-                scripts.insert(ScriptSource::Entity(nearby.key().clone(), script));
-            }
-            None => (),
+        if let Some(script) = get_script(nearby)? {
+            info!("script {:?}", nearby);
+            scripts.insert(ScriptSource::Entity(nearby.key().clone(), script));
         }
     }
 

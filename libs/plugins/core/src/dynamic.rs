@@ -11,7 +11,7 @@ pub struct DynamicPluginFactory {}
 
 impl PluginFactory for DynamicPluginFactory {
     fn create_plugin(&self) -> Result<Box<dyn Plugin>> {
-        Ok(Box::new(DynamicPlugin::default()))
+        Ok(Box::<DynamicPlugin>::default())
     }
 }
 

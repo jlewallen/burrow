@@ -216,7 +216,7 @@ impl EntityPtr {
     }
 
     pub fn to_json_value(&self) -> Result<serde_json::Value> {
-        Ok(self.entity.borrow().to_json_value()?)
+        self.entity.borrow().to_json_value()
     }
 }
 

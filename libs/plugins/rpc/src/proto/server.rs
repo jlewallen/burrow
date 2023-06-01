@@ -88,7 +88,7 @@ pub trait Server {
     fn lookup(
         &self,
         depth: u32,
-        lookup: &Vec<LookupBy>,
+        lookup: &[LookupBy],
     ) -> Result<Vec<(LookupBy, Option<EntityJson>)>>;
 }
 
@@ -98,7 +98,7 @@ impl Server for AlwaysErrorsServer {
     fn lookup(
         &self,
         _depth: u32,
-        _lookup: &Vec<LookupBy>,
+        _lookup: &[LookupBy],
     ) -> Result<Vec<(LookupBy, Option<EntityJson>)>> {
         Err(anyhow!("This server always errors"))
     }
@@ -120,7 +120,7 @@ mod tests {
         fn lookup(
             &self,
             _depth: u32,
-            _lookup: &Vec<LookupBy>,
+            _lookup: &[LookupBy],
         ) -> Result<Vec<(LookupBy, Option<EntityJson>)>> {
             Ok(vec![])
         }

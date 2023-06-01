@@ -28,7 +28,7 @@ pub struct WasmPluginFactory {}
 
 impl PluginFactory for WasmPluginFactory {
     fn create_plugin(&self) -> Result<Box<dyn Plugin>> {
-        Ok(Box::new(WasmPlugin::default()))
+        Ok(Box::<WasmPlugin>::default())
     }
 }
 

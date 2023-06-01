@@ -96,7 +96,7 @@ fn spawn_editor(prefix: &str, path: &Path) -> Result<()> {
         // calls aren't being used.
         .arg(format!("{} {}", prefix, path.display()))
         .spawn()
-        .or_else(|_| Err(anyhow!("Error: Failed to run /bin/sh -c {}", prefix)))?
+        .map_err(|_| anyhow!("Error: Failed to run /bin/sh -c {}", prefix))?
         .wait()
         .expect("Error: Editor returned a non-zero status");
 

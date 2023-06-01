@@ -34,7 +34,8 @@ impl Renderer {
         ])?;
         */
         let mut tera = Tera::default();
-        for directory in ["text/replies"] {
+        {
+            let directory = "text/replies";
             let files: Vec<_> = std::fs::read_dir(directory)?
                 .filter_map(std::result::Result::ok)
                 .map(|path| (path.path(), None::<String>))
@@ -51,7 +52,7 @@ impl Renderer {
     pub fn render_value(&self, value: &serde_json::Value) -> Result<String> {
         let mut all = "".to_string();
 
-        all.push_str("\n");
+        all.push('\n');
 
         let render = |context: Context, name: &str| -> Result<String> {
             let path = format!("text/replies/{}.txt", name);
@@ -73,7 +74,7 @@ impl Renderer {
             _ => todo!(),
         }
 
-        all.push_str("\n");
+        all.push('\n');
 
         Ok(all)
     }

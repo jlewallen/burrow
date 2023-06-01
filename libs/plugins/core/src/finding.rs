@@ -34,13 +34,13 @@ pub enum EntityRelationship {
 impl EntityRelationship {
     pub fn entry(&self) -> Result<&Entry> {
         Ok(match self {
-            EntityRelationship::World(e) => &e,
-            EntityRelationship::User(e) => &e,
-            EntityRelationship::Area(e) => &e,
-            EntityRelationship::Holding(e) => &e,
-            EntityRelationship::Ground(e) => &e,
-            EntityRelationship::Contained(e) => &e,
-            EntityRelationship::Exit(_, e) => &e,
+            EntityRelationship::World(e) => e,
+            EntityRelationship::User(e) => e,
+            EntityRelationship::Area(e) => e,
+            EntityRelationship::Holding(e) => e,
+            EntityRelationship::Ground(e) => e,
+            EntityRelationship::Contained(e) => e,
+            EntityRelationship::Exit(_, e) => e,
         })
     }
 }
@@ -130,6 +130,7 @@ impl EntityRelationshipSet {
         match item {
             Item::Area => {
                 for entity in &self.entities {
+                    #[allow(clippy::single_match)]
                     match entity {
                         EntityRelationship::Area(e) => {
                             return Ok(Some(e.clone()));

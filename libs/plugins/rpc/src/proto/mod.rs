@@ -31,9 +31,9 @@ impl From<&kernel::EntityKey> for EntityKey {
     }
 }
 
-impl Into<kernel::EntityKey> for &EntityKey {
-    fn into(self) -> kernel::EntityKey {
-        kernel::EntityKey::new(&self.0)
+impl From<&EntityKey> for kernel::EntityKey {
+    fn from(value: &EntityKey) -> Self {
+        kernel::EntityKey::new(&value.0)
     }
 }
 
