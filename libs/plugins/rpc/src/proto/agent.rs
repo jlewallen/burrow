@@ -6,34 +6,34 @@ use tracing::warn;
 
 const DEFAULT_DEPTH: u32 = 2;
 
-type PluginTransition = Transition<PluginState, Query>;
+type AgentTransition = Transition<AgentState, Query>;
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum PluginState {
+pub enum AgentState {
     Uninitialized,
     Initialized,
     Failed,
     Resolving,
 }
 
-type PluginMachine = Machine<PluginState>;
+type AgentMachine = Machine<AgentState>;
 
-impl PluginMachine {
+impl AgentMachine {
     fn new() -> Self {
         Self {
-            state: PluginState::Uninitialized,
+            state: AgentState::Uninitialized,
         }
     }
 }
 
-pub trait PluginResponses {
-    fn surroundings(surroundings: &Surroundings) -> PluginTransition;
+pub trait AgentResponses {
+    fn surroundings(surroundings: &Surroundings) -> AgentTransition;
 }
 
 pub struct DefaultResponses {}
 
-impl PluginResponses for DefaultResponses {
-    fn surroundings(surroundings: &Surroundings) -> PluginTransition {
+impl AgentResponses for DefaultResponses {
+    fn surroundings(surroundings: &Surroundings) -> AgentTransition {
         let keys = match &surroundings {
             Surroundings::Living {
                 world,
@@ -44,28 +44,28 @@ impl PluginResponses for DefaultResponses {
 
         let lookups = keys.into_iter().map(|k| LookupBy::Key(k.clone())).collect();
         let lookup = Query::Lookup(DEFAULT_DEPTH, lookups);
-        PluginTransition::Send(lookup, PluginState::Resolving)
+        AgentTransition::Send(lookup, AgentState::Resolving)
     }
 }
 
 #[derive(Debug)]
-pub struct PluginProtocol<R>
+pub struct AgentProtocol<R>
 where
-    R: PluginResponses,
+    R: AgentResponses,
 {
     session_key: Option<String>,
-    machine: PluginMachine,
+    machine: AgentMachine,
     _marker: std::marker::PhantomData<R>,
 }
 
-impl<R> PluginProtocol<R>
+impl<R> AgentProtocol<R>
 where
-    R: PluginResponses,
+    R: AgentResponses,
 {
     pub fn new() -> Self {
         Self {
             session_key: None,
-            machine: PluginMachine::new(),
+            machine: AgentMachine::new(),
             _marker: Default::default(),
         }
     }
@@ -74,7 +74,7 @@ where
     pub fn new_with_session_key(session_key: String) -> Self {
         Self {
             session_key: Some(session_key),
-            machine: PluginMachine::new(),
+            machine: AgentMachine::new(),
             _marker: Default::default(),
         }
     }
@@ -106,26 +106,26 @@ where
         Ok(())
     }
 
-    fn handle(&mut self, message: &PayloadMessage) -> PluginTransition {
+    fn handle(&mut self, message: &PayloadMessage) -> AgentTransition {
         match (&self.machine.state, &message.body) {
-            (PluginState::Uninitialized, Payload::Initialize(session_key)) => {
+            (AgentState::Uninitialized, Payload::Initialize(session_key)) => {
                 self.session_key = Some(session_key.to_owned());
 
-                PluginTransition::Direct(PluginState::Initialized)
+                AgentTransition::Direct(AgentState::Initialized)
             }
-            (PluginState::Initialized, Payload::Surroundings(surroundings)) => {
+            (AgentState::Initialized, Payload::Surroundings(surroundings)) => {
                 R::surroundings(surroundings)
             }
-            (PluginState::Resolving, Payload::Resolved(_entities)) => PluginTransition::None,
-            (PluginState::Failed, payload) => {
+            (AgentState::Resolving, Payload::Resolved(_entities)) => AgentTransition::None,
+            (AgentState::Failed, payload) => {
                 warn!("(failed) {:?}", &payload);
 
-                PluginTransition::None
+                AgentTransition::None
             }
             (state, message) => {
                 warn!("(failing) {:?} {:?}", state, message);
 
-                PluginTransition::Direct(PluginState::Failed)
+                AgentTransition::Direct(AgentState::Failed)
             }
         }
     }
@@ -136,24 +136,24 @@ mod tests {
     #[allow(unused_imports)]
     use tracing::*;
 
-    use crate::proto::{plugin::PluginState, Payload};
+    use crate::proto::{agent::AgentState, Payload};
 
     use super::*;
 
-    type TestPlugin = PluginProtocol<DefaultResponses>;
+    type TestAgent = AgentProtocol<DefaultResponses>;
 
     #[tokio::test]
     async fn test_initialize() -> anyhow::Result<()> {
-        let mut proto = TestPlugin::new_with_session_key("session-key".to_owned());
+        let mut proto = TestAgent::new_with_session_key("session-key".to_owned());
 
-        assert_eq!(proto.machine.state, PluginState::Uninitialized);
+        assert_eq!(proto.machine.state, AgentState::Uninitialized);
 
         let session_key = proto.session_key().unwrap().to_owned();
         let initialize = Payload::Initialize(session_key);
         let mut sender = Default::default();
         proto.apply(&proto.message(initialize), &mut sender)?;
 
-        assert_eq!(proto.machine.state, PluginState::Initialized);
+        assert_eq!(proto.machine.state, AgentState::Initialized);
         assert!(sender.queue.is_empty());
 
         Ok(())

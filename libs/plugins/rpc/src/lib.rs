@@ -16,7 +16,7 @@ impl PluginFactory for RpcPluginFactory {
 
 #[derive(Default)]
 pub struct RpcPlugin {
-    example: RefCell<example::InProcessServer<example::ExamplePlugin>>,
+    example: RefCell<example::InProcessServer<example::ExampleAgent>>,
 }
 
 impl RpcPlugin {
@@ -72,18 +72,18 @@ mod example {
     use tracing::{debug, info, span, Level};
 
     use crate::proto::{
-        AlwaysErrorsServer, DefaultResponses, EntityJson, EntityKey, LookupBy, Payload,
-        PayloadMessage, PluginProtocol, Query, QueryMessage, Sender, Server, ServerProtocol,
+        AgentProtocol, AlwaysErrorsServer, DefaultResponses, EntityJson, EntityKey, LookupBy,
+        Payload, PayloadMessage, Query, QueryMessage, Sender, Server, ServerProtocol,
     };
 
-    pub struct ExamplePlugin {
-        plugin: PluginProtocol<DefaultResponses>,
+    pub struct ExampleAgent {
+        plugin: AgentProtocol<DefaultResponses>,
     }
 
-    impl ExamplePlugin {
+    impl ExampleAgent {
         pub fn new() -> Self {
             Self {
-                plugin: PluginProtocol::new(),
+                plugin: AgentProtocol::new(),
             }
         }
 
@@ -259,20 +259,20 @@ mod example {
         plugin: P,
     }
 
-    impl Default for InProcessServer<ExamplePlugin> {
+    impl Default for InProcessServer<ExampleAgent> {
         fn default() -> Self {
             Self {
                 server: ServerProtocol::new(),
-                plugin: ExamplePlugin::new(),
+                plugin: ExampleAgent::new(),
             }
         }
     }
 
-    impl InProcessServer<ExamplePlugin> {
+    impl InProcessServer<ExampleAgent> {
         pub fn new() -> Self {
             Self {
                 server: ServerProtocol::new(),
-                plugin: ExamplePlugin::new(),
+                plugin: ExampleAgent::new(),
             }
         }
 
