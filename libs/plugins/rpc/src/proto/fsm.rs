@@ -38,6 +38,10 @@ where
     pub fn pop(&mut self) -> Option<S> {
         self.queue.pop()
     }
+
+    pub fn into_iter(self) -> impl Iterator<Item = S> {
+        self.queue.into_iter()
+    }
 }
 
 impl<B> Sender<Message<B>> {

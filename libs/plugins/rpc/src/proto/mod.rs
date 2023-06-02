@@ -126,6 +126,10 @@ impl<B> Message<B> {
     pub fn body(&self) -> &B {
         &self.body
     }
+
+    pub fn into_body(self) -> B {
+        self.body
+    }
 }
 
 pub type QueryMessage = Message<Option<Query>>;

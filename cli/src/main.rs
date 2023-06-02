@@ -70,7 +70,7 @@ async fn make_domain() -> Result<Domain> {
     registered_plugins.register(DynamicPluginFactory::default());
     registered_plugins.register(RunePluginFactory::default());
     registered_plugins.register(WasmPluginFactory::default());
-    registered_plugins.register(RpcPluginFactory::start(Handle::current())?);
+    registered_plugins.register(RpcPluginFactory::start(Handle::current()).await?);
     let finder = Arc::new(DefaultFinder::default());
     Ok(Domain::new(
         storage_factory,
