@@ -105,12 +105,6 @@ impl RpcPluginFactory {
     }
 }
 
-impl Drop for RpcPluginFactory {
-    fn drop(&mut self) {
-        info!("~RpcPluginFactory");
-    }
-}
-
 impl PluginFactory for RpcPluginFactory {
     fn create_plugin(&self) -> Result<Box<dyn Plugin>> {
         Ok(Box::new(RpcPlugin {

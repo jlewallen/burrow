@@ -181,7 +181,6 @@ fn apply_query(
     Ok(to_agent)
 }
 
-#[allow(dead_code)]
 impl TokioChannelServer<ExampleAgent> {
     pub async fn new() -> Self {
         let (agent_tx, mut rx_agent) = tokio::sync::mpsc::channel::<ChannelMessage>(4);
@@ -225,7 +224,7 @@ impl TokioChannelServer<ExampleAgent> {
                                 }
                             }
                         }
-                        ChannelMessage::Payload(_) => {}
+                        ChannelMessage::Payload(_) => unimplemented!(),
                     }
                 }
             }
@@ -260,7 +259,7 @@ impl TokioChannelServer<ExampleAgent> {
                                 }
                             }
                         }
-                        ChannelMessage::Query(_) => {}
+                        ChannelMessage::Query(_) => unimplemented!(),
                     }
                 }
             }
@@ -295,18 +294,17 @@ impl TokioChannelServer<ExampleAgent> {
 }
 
 pub struct InProcessServer<P> {
+    session_key: SessionKey,
     server: ServerProtocol,
     agent: P,
-    // Would like to move this.
-    session_key: SessionKey,
 }
 
 impl InProcessServer<ExampleAgent> {
     pub fn new(session_key: SessionKey) -> Self {
         Self {
-            server: ServerProtocol::new(session_key.clone()),
+            session_key: session_key.clone(),
+            server: ServerProtocol::new(session_key),
             agent: ExampleAgent::new(),
-            session_key,
         }
     }
 
