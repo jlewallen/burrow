@@ -30,6 +30,7 @@ pub trait AgentResponses {
     fn surroundings(surroundings: &Surroundings) -> AgentTransition;
 }
 
+#[derive(Debug)]
 pub struct DefaultResponses {}
 
 impl AgentResponses for DefaultResponses {

@@ -45,7 +45,7 @@ impl RpcServer {
             .example
             .write()
             .map_err(|_| anyhow!("Read lock error"))?;
-        example.initialize()?;
+        example.initialize().await?;
 
         Ok(())
     }
@@ -55,7 +55,9 @@ impl RpcServer {
             .example
             .write()
             .map_err(|_| anyhow!("Read lock error"))?;
-        example.have_surroundings(surroundings, &self.server()?)?;
+        example
+            .have_surroundings(surroundings, &self.server()?)
+            .await?;
 
         Ok(())
     }

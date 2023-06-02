@@ -1,28 +1,29 @@
-use std::{collections::HashSet, marker::PhantomData};
+use std::{collections::HashSet, marker::PhantomData, rc::Rc};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use kernel::{get_my_session, ActiveSession, EntityGid, Entry, Surroundings};
 use plugins_core::tools;
 use tracing::{debug, info, span, trace, warn, Level};
 
 use crate::proto::{
-    AgentProtocol, AlwaysErrorsServer, DefaultResponses, EntityJson, EntityKey, LookupBy, Payload,
-    PayloadMessage, Query, QueryMessage, Sender, Server, ServerProtocol,
+    AgentProtocol, AlwaysErrorsServer, DefaultResponses, EntityJson, EntityKey, LookupBy, Message,
+    Payload, PayloadMessage, Query, QueryMessage, Sender, Server, ServerProtocol,
 };
 
+#[derive(Debug)]
 pub struct ExampleAgent {
-    plugin: AgentProtocol<DefaultResponses>,
+    agent: AgentProtocol<DefaultResponses>,
 }
 
 impl ExampleAgent {
     pub fn new() -> Self {
         Self {
-            plugin: AgentProtocol::new(),
+            agent: AgentProtocol::new(),
         }
     }
 
     pub fn message(&self, body: Payload) -> PayloadMessage {
-        self.plugin.message(body)
+        self.agent.message(body)
     }
 
     pub fn deliver(
@@ -30,7 +31,9 @@ impl ExampleAgent {
         message: &PayloadMessage,
         replies: &mut Sender<QueryMessage>,
     ) -> Result<()> {
-        self.plugin.apply(message, replies)?;
+        info!("{:?}", message.body());
+
+        self.agent.apply(message, replies)?;
 
         self.handle(message.body())?;
 
@@ -45,7 +48,7 @@ impl ExampleAgent {
 }
 
 pub struct SessionServer {
-    session: std::rc::Rc<dyn ActiveSession>,
+    session: Rc<dyn ActiveSession>,
 }
 
 impl SessionServer {
@@ -166,7 +169,20 @@ pub struct TokioChannelServer<P> {
 #[derive(Debug)]
 enum ChannelMessage {
     Query(Option<Query>),
-    Payload(crate::proto::Message<Payload>),
+    Payload(Payload),
+}
+
+fn apply_query(
+    server: &mut ServerProtocol,
+    message: Message<Option<Query>>,
+    session_server: &dyn Server,
+) -> Result<Sender<PayloadMessage>> {
+    let mut to_agent: Sender<_> = Default::default();
+    server
+        .apply(&message, &mut to_agent, session_server)
+        .expect("Server protocol error");
+
+    Ok(to_agent)
 }
 
 #[allow(dead_code)]
@@ -184,21 +200,27 @@ impl TokioChannelServer<ExampleAgent> {
                 // Agent is transmitting queries to us and we're receiving from them.
                 while let Some(cm) = rx_agent.recv().await {
                     match cm {
-                        ChannelMessage::Query(query) => {
-                            let mut to_agent: Sender<_> = Default::default();
-
-                            {
-                                // Scope for Session, which isn't Send.
-                                let session_server = SessionServer::new_for_my_session()
-                                    .expect("Session server error");
-                                let message = server.message(query);
-                                server
-                                    .apply(&message, &mut to_agent, &session_server)
-                                    .expect("Server protocol error");
-                            }
+                        ChannelMessage::Query(message) => {
+                            let message = server.message(message);
+                            let to_agent: Sender<_> = if message.body().is_none() {
+                                apply_query(&mut server, message, &AlwaysErrorsServer {})
+                                    .expect("Apply failed")
+                            } else {
+                                apply_query(
+                                    &mut server,
+                                    message,
+                                    &SessionServer::new_for_my_session()
+                                        .expect("Session server error"),
+                                )
+                                .expect("Apply failed")
+                            };
 
                             for sending in to_agent.into_iter() {
-                                match server_tx.send(ChannelMessage::Payload(sending)).await {
+                                info!("sending {:?}", sending);
+                                match server_tx
+                                    .send(ChannelMessage::Payload(sending.into_body()))
+                                    .await
+                                {
                                     Err(e) => warn!("Error sending: {:?}", e),
                                     Ok(_) => {}
                                 }
@@ -219,15 +241,16 @@ impl TokioChannelServer<ExampleAgent> {
                 // Server is transmitting paylods to us and we're receiving from them.
                 while let Some(cm) = rx_server.recv().await {
                     match cm {
-                        ChannelMessage::Payload(payload) => {
+                        ChannelMessage::Payload(message) => {
                             let mut to_server: Sender<_> = Default::default();
-                            let payload = payload.into_body();
-                            let message = agent.message(payload);
+                            let message = agent.message(message);
                             agent
                                 .deliver(&message, &mut to_server)
+                                .with_context(|| format!("{:?}", message))
                                 .expect("Server protocol error");
 
                             for sending in to_server.into_iter() {
+                                info!("sending {:?}", sending);
                                 match agent_tx
                                     .send(ChannelMessage::Query(sending.into_body()))
                                     .await
@@ -250,39 +273,37 @@ impl TokioChannelServer<ExampleAgent> {
         }
     }
 
-    pub fn initialize(&mut self) -> Result<()> {
-        /*
-        while let Some(sending) = to_server.pop() {
-            self.server.apply(&sending, &mut to_plugin, server)?;
-            for message in to_plugin.iter() {
-                self.deliver(message, &mut to_server)?;
-            }
-        }
-        */
-        // self.agent_tx.blocking_send(ChannelMessage::Query(None))?;
+    pub async fn initialize(&mut self) -> Result<()> {
+        self.agent_tx.send(ChannelMessage::Query(None)).await?;
 
         Ok(())
     }
 
-    pub fn have_surroundings(
+    pub async fn have_surroundings(
         &mut self,
-        _surroundings: &Surroundings,
+        surroundings: &Surroundings,
         _server: &dyn Server,
     ) -> Result<()> {
+        self.server_tx
+            .send(ChannelMessage::Payload(Payload::Surroundings(
+                surroundings.try_into()?,
+            )))
+            .await?;
+
         Ok(())
     }
 }
 
 pub struct InProcessServer<P> {
     server: ServerProtocol,
-    plugin: P,
+    agent: P,
 }
 
 impl Default for InProcessServer<ExampleAgent> {
     fn default() -> Self {
         Self {
             server: ServerProtocol::new(),
-            plugin: ExampleAgent::new(),
+            agent: ExampleAgent::new(),
         }
     }
 }
@@ -303,7 +324,7 @@ impl InProcessServer<ExampleAgent> {
         server: &dyn Server,
     ) -> Result<()> {
         let payload = Payload::Surroundings(surroundings.try_into()?);
-        self.send(&self.plugin.message(payload), server)
+        self.send(&self.agent.message(payload), server)
     }
 
     fn handle(&mut self, query: QueryMessage, server: &dyn Server) -> Result<()> {
@@ -339,6 +360,6 @@ impl InProcessServer<ExampleAgent> {
         to_server: &mut Sender<QueryMessage>,
     ) -> Result<()> {
         trace!("{:?}", message);
-        self.plugin.deliver(message, to_server)
+        self.agent.deliver(message, to_server)
     }
 }

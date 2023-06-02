@@ -37,7 +37,7 @@ impl From<&EntityKey> for kernel::EntityKey {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct EntityJson(serde_json::Value);
 
 impl std::fmt::Debug for EntityJson {
@@ -46,13 +46,13 @@ impl std::fmt::Debug for EntityJson {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct EntityUpdate {
     entity_key: EntityKey,
     entity: EntityJson,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub enum Event {
     Arrived,
     Left,
@@ -60,26 +60,26 @@ pub enum Event {
     Dropped,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub enum Reply {
     Done,
     NotFound,
     Impossible,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub enum Find {}
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub enum Try {
     CanMove,
     Moved,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub enum Permission {}
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub enum Hook {}
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
@@ -99,7 +99,7 @@ impl<'a> Into<kernel::LookupBy<'a>> for &LookupBy {
 }
 */
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub enum Query {
     Complete,
 
@@ -140,7 +140,7 @@ impl std::fmt::Debug for QueryMessage {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub enum Surroundings {
     Living {
         world: EntityKey,
@@ -176,7 +176,7 @@ impl TryFrom<&kernel::Surroundings> for Surroundings {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub enum Payload {
     Initialize(String), /* Complete */
 
