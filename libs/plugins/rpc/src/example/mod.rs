@@ -154,6 +154,41 @@ impl Server for SessionServer {
     }
 }
 
+#[allow(dead_code)]
+pub struct TokioChannelServer<P> {
+    server: ServerProtocol,
+    plugin: P,
+}
+
+impl Default for TokioChannelServer<ExampleAgent> {
+    fn default() -> Self {
+        Self {
+            server: ServerProtocol::new(),
+            plugin: ExampleAgent::new(),
+        }
+    }
+}
+
+#[allow(dead_code)]
+impl TokioChannelServer<ExampleAgent> {
+    #[allow(dead_code)]
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    pub fn initialize(&mut self) -> Result<()> {
+        Ok(())
+    }
+
+    pub fn have_surroundings(
+        &mut self,
+        _surroundings: &Surroundings,
+        _server: &dyn Server,
+    ) -> Result<()> {
+        Ok(())
+    }
+}
+
 pub struct InProcessServer<P> {
     server: ServerProtocol,
     plugin: P,
@@ -187,17 +222,13 @@ impl InProcessServer<ExampleAgent> {
         self.send(&self.plugin.message(payload), server)
     }
 
-    pub fn handle(&mut self, query: QueryMessage, server: &dyn Server) -> Result<()> {
+    fn handle(&mut self, query: QueryMessage, server: &dyn Server) -> Result<()> {
         let mut to_server: Sender<_> = Default::default();
         to_server.send(query)?;
         self.drain(to_server, server)
     }
 
-    pub fn drain(
-        &mut self,
-        mut to_server: Sender<QueryMessage>,
-        server: &dyn Server,
-    ) -> Result<()> {
+    fn drain(&mut self, mut to_server: Sender<QueryMessage>, server: &dyn Server) -> Result<()> {
         let mut to_plugin: Sender<_> = Default::default();
 
         while let Some(sending) = to_server.pop() {
@@ -210,7 +241,7 @@ impl InProcessServer<ExampleAgent> {
         Ok(())
     }
 
-    pub fn send(&mut self, message: &PayloadMessage, server: &dyn Server) -> Result<()> {
+    fn send(&mut self, message: &PayloadMessage, server: &dyn Server) -> Result<()> {
         let mut to_server: Sender<_> = Default::default();
 
         self.deliver(message, &mut to_server)?;
