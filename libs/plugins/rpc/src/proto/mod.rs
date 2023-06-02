@@ -14,7 +14,21 @@ pub use server::AlwaysErrorsServer;
 pub use server::Server;
 pub use server::ServerProtocol;
 
-pub type SessionKey = String;
+#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Debug)]
+pub struct SessionKey(String);
+
+impl SessionKey {
+    pub fn new(value: &str) -> Self {
+        Self(value.to_owned())
+    }
+
+    pub fn message<B>(&self, body: B) -> Message<B> {
+        Message {
+            session_key: self.clone(),
+            body,
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Debug)]
 pub struct EntityKey(String);
@@ -116,6 +130,12 @@ pub enum Query {
     Try(Try),
 }
 
+impl Query {
+    pub fn into_message(body: Option<Self>, session_key: SessionKey) -> Message<Option<Self>> {
+        Message { session_key, body }
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Message<B> {
     session_key: SessionKey,
@@ -178,7 +198,7 @@ impl TryFrom<&kernel::Surroundings> for Surroundings {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub enum Payload {
-    Initialize(String), /* Complete */
+    Initialize(SessionKey), /* Complete */
 
     Surroundings(Surroundings),
     Evaluate(String, Surroundings), /* Reply */

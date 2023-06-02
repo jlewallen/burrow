@@ -22,22 +22,15 @@ impl ServerMachine {
 
 #[derive(Debug)]
 pub struct ServerProtocol {
-    session_key: String,
+    session_key: SessionKey,
     machine: ServerMachine,
 }
 
 impl ServerProtocol {
-    pub fn new() -> Self {
+    pub fn new(session_key: SessionKey) -> Self {
         Self {
-            session_key: "session-key".to_owned(),
+            session_key,
             machine: ServerMachine::new(),
-        }
-    }
-
-    pub fn message<B>(&self, body: B) -> Message<B> {
-        Message {
-            session_key: self.session_key.clone(),
-            body,
         }
     }
 
@@ -112,7 +105,7 @@ mod tests {
     #[allow(unused_imports)]
     use tracing::*;
 
-    use crate::proto::{server::ServerState, EntityJson, LookupBy, Payload};
+    use crate::proto::{server::ServerState, EntityJson, LookupBy, Payload, SessionKey};
 
     use super::{Server, ServerProtocol};
 
@@ -130,19 +123,20 @@ mod tests {
 
     #[tokio::test]
     async fn test_initialize() -> anyhow::Result<()> {
-        let mut proto = ServerProtocol::new();
+        let session_key = SessionKey::new("session-key");
+        let mut proto = ServerProtocol::new(session_key.clone());
 
         assert_eq!(proto.machine.state, ServerState::Initializing);
 
         let mut sender = Default::default();
-        let start = proto.message(None);
+        let start = session_key.message(None);
         proto.apply(&start, &mut sender, &DummyServer {})?;
 
         assert_eq!(proto.machine.state, ServerState::Initialized);
 
         assert_eq!(
             sender.bodies().next(),
-            Some(&Payload::Initialize("session-key".to_owned()))
+            Some(&Payload::Initialize(session_key))
         );
 
         Ok(())

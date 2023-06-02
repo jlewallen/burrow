@@ -7,7 +7,7 @@ use tracing::{debug, info, span, trace, warn, Level};
 
 use crate::proto::{
     AgentProtocol, AlwaysErrorsServer, DefaultResponses, EntityJson, EntityKey, LookupBy, Message,
-    Payload, PayloadMessage, Query, QueryMessage, Sender, Server, ServerProtocol,
+    Payload, PayloadMessage, Query, QueryMessage, Sender, Server, ServerProtocol, SessionKey,
 };
 
 #[derive(Debug)]
@@ -20,10 +20,6 @@ impl ExampleAgent {
         Self {
             agent: AgentProtocol::new(),
         }
-    }
-
-    pub fn message(&self, body: Payload) -> PayloadMessage {
-        self.agent.message(body)
     }
 
     pub fn deliver(
@@ -191,17 +187,20 @@ impl TokioChannelServer<ExampleAgent> {
         let (agent_tx, mut rx_agent) = tokio::sync::mpsc::channel::<ChannelMessage>(4);
         let (server_tx, mut rx_server) = tokio::sync::mpsc::channel::<ChannelMessage>(4);
 
+        let session_key = SessionKey::new("SessionKey");
+
         tokio::spawn({
+            let session_key = session_key.clone();
             let server_tx = server_tx.clone();
 
             async move {
-                let mut server = ServerProtocol::new();
+                let mut server = ServerProtocol::new(session_key.clone());
 
                 // Agent is transmitting queries to us and we're receiving from them.
                 while let Some(cm) = rx_agent.recv().await {
                     match cm {
-                        ChannelMessage::Query(message) => {
-                            let message = server.message(message);
+                        ChannelMessage::Query(query) => {
+                            let message = session_key.message(query);
                             let to_agent: Sender<_> = if message.body().is_none() {
                                 apply_query(&mut server, message, &AlwaysErrorsServer {})
                                     .expect("Apply failed")
@@ -233,6 +232,7 @@ impl TokioChannelServer<ExampleAgent> {
         });
 
         tokio::spawn({
+            let session_key = session_key.clone();
             let agent_tx = agent_tx.clone();
 
             async move {
@@ -241,9 +241,9 @@ impl TokioChannelServer<ExampleAgent> {
                 // Server is transmitting paylods to us and we're receiving from them.
                 while let Some(cm) = rx_server.recv().await {
                     match cm {
-                        ChannelMessage::Payload(message) => {
+                        ChannelMessage::Payload(payload) => {
                             let mut to_server: Sender<_> = Default::default();
-                            let message = agent.message(message);
+                            let message = session_key.message(payload);
                             agent
                                 .deliver(&message, &mut to_server)
                                 .with_context(|| format!("{:?}", message))
@@ -297,25 +297,21 @@ impl TokioChannelServer<ExampleAgent> {
 pub struct InProcessServer<P> {
     server: ServerProtocol,
     agent: P,
-}
-
-impl Default for InProcessServer<ExampleAgent> {
-    fn default() -> Self {
-        Self {
-            server: ServerProtocol::new(),
-            agent: ExampleAgent::new(),
-        }
-    }
+    // Would like to move this.
+    session_key: SessionKey,
 }
 
 impl InProcessServer<ExampleAgent> {
-    #[allow(dead_code)]
-    pub fn new() -> Self {
-        Default::default()
+    pub fn new(session_key: SessionKey) -> Self {
+        Self {
+            server: ServerProtocol::new(session_key.clone()),
+            agent: ExampleAgent::new(),
+            session_key,
+        }
     }
 
     pub fn initialize(&mut self) -> Result<()> {
-        self.handle(self.server.message(None), &AlwaysErrorsServer {})
+        self.handle(self.session_key.message(None), &AlwaysErrorsServer {})
     }
 
     pub fn have_surroundings(
@@ -324,7 +320,7 @@ impl InProcessServer<ExampleAgent> {
         server: &dyn Server,
     ) -> Result<()> {
         let payload = Payload::Surroundings(surroundings.try_into()?);
-        self.send(&self.agent.message(payload), server)
+        self.send(&self.session_key.message(payload), server)
     }
 
     fn handle(&mut self, query: QueryMessage, server: &dyn Server) -> Result<()> {

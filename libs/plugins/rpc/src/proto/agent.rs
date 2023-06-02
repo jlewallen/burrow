@@ -54,7 +54,7 @@ pub struct AgentProtocol<R>
 where
     R: AgentResponses,
 {
-    session_key: Option<String>,
+    session_key: Option<SessionKey>,
     machine: AgentMachine,
     _marker: std::marker::PhantomData<R>,
 }
@@ -72,7 +72,7 @@ where
     }
 
     #[cfg(test)]
-    pub fn new_with_session_key(session_key: String) -> Self {
+    pub fn new_with_session_key(session_key: SessionKey) -> Self {
         Self {
             session_key: Some(session_key),
             machine: AgentMachine::new(),
@@ -81,15 +81,8 @@ where
     }
 
     #[cfg(test)]
-    pub fn session_key(&self) -> Option<&str> {
-        self.session_key.as_deref()
-    }
-
-    pub fn message<B>(&self, body: B) -> Message<B> {
-        Message {
-            session_key: self.session_key.clone().expect("A session key is required"),
-            body,
-        }
+    pub fn session_key(&self) -> Option<&SessionKey> {
+        self.session_key.as_ref()
     }
 
     pub fn apply(
@@ -148,14 +141,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_initialize() -> anyhow::Result<()> {
-        let mut proto = TestAgent::new_with_session_key("session-key".to_owned());
+        let session_key = SessionKey::new("session-key");
+        let mut proto = TestAgent::new_with_session_key(session_key.clone());
 
         assert_eq!(proto.machine.state, AgentState::Uninitialized);
 
         let session_key = proto.session_key().unwrap().to_owned();
-        let initialize = Payload::Initialize(session_key);
+        let initialize = Payload::Initialize(session_key.clone());
         let mut sender = Default::default();
-        proto.apply(&proto.message(initialize), &mut sender)?;
+        proto.apply(&session_key.message(initialize), &mut sender)?;
 
         assert_eq!(proto.machine.state, AgentState::Initialized);
         assert!(sender.queue.is_empty());
