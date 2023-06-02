@@ -96,6 +96,7 @@ where
         message: &PayloadMessage,
         sender: &mut Sender<QueryMessage>,
     ) -> Result<()> {
+        let _span = span!(Level::INFO, "agent").entered();
         let transition = self.handle(message).map_message(|m| QueryMessage {
             session_key: self.session_key.as_ref().unwrap().clone(),
             body: Some(m),
@@ -116,7 +117,9 @@ where
             (AgentState::Initialized, Payload::Surroundings(surroundings)) => {
                 R::surroundings(surroundings)
             }
-            (AgentState::Resolving, Payload::Resolved(_entities)) => AgentTransition::None,
+            (AgentState::Resolving, Payload::Resolved(_entities)) => {
+                AgentTransition::Direct(AgentState::Initialized)
+            }
             (AgentState::Failed, payload) => {
                 warn!("(failed) {:?}", &payload);
 

@@ -47,6 +47,7 @@ impl ServerProtocol {
         sender: &mut Sender<PayloadMessage>,
         server: &dyn Server,
     ) -> Result<()> {
+        let _span = span!(Level::INFO, "server").entered();
         let transition = self
             .handle(message, server)?
             .map_message(|m| PayloadMessage {
@@ -70,6 +71,7 @@ impl ServerProtocol {
 
                 Ok(ServerTransition::SendOnly(Payload::Resolved(resolved)))
             }
+            (ServerState::Initialized, None) => Ok(ServerTransition::None),
             (ServerState::Failed, query) => {
                 warn!("(failed) {:?}", &query);
 
