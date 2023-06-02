@@ -1,4 +1,5 @@
-use std::cell::RefCell;
+use anyhow::anyhow;
+use std::sync::{Arc, RwLock};
 use tokio::{
     runtime::Handle,
     sync::mpsc::{self, Receiver, Sender},
@@ -15,18 +16,52 @@ pub struct RpcPluginFactory {
 
 enum RpcMessage {}
 
+pub struct Task {
+    _rx: Receiver<RpcMessage>,
+}
+
+impl Task {
+    pub async fn run(self) {
+        loop {
+            tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+            info!("tick");
+        }
+    }
+}
+
 #[derive(Clone)]
 struct RpcServer {
     _tx: Sender<RpcMessage>,
+    example: Arc<RwLock<example::InProcessServer<example::ExampleAgent>>>,
 }
 
 impl RpcServer {
     pub async fn initialize(&self) -> Result<()> {
+        let mut example = self
+            .example
+            .write()
+            .map_err(|_| anyhow!("Read lock error"))?;
+        example.initialize()?;
+
         Ok(())
     }
 
-    pub async fn have_surroundings(&self, _surroundings: &Surroundings) -> Result<()> {
+    pub async fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
+        let mut example = self
+            .example
+            .write()
+            .map_err(|_| anyhow!("Read lock error"))?;
+        example.have_surroundings(surroundings, &self.server()?)?;
+
         Ok(())
+    }
+
+    fn task(&self, rx: Receiver<RpcMessage>) -> Task {
+        Task { _rx: rx }
+    }
+
+    fn server(&self) -> Result<SessionServer> {
+        SessionServer::new_for_my_session()
     }
 }
 
@@ -47,18 +82,14 @@ impl SynchronousWrapper {
     }
 }
 
-async fn start_server(_rx: Receiver<RpcMessage>) -> Result<()> {
-    loop {
-        tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
-        info!("tick");
-    }
-}
-
 impl RpcPluginFactory {
     pub fn start(handle: Handle) -> Result<Self> {
         let (tx, rx) = mpsc::channel::<RpcMessage>(32);
-        let server = RpcServer { _tx: tx.clone() };
-        let _task = handle.spawn(start_server(rx));
+        let server = RpcServer {
+            _tx: tx.clone(),
+            example: Default::default(),
+        };
+        let _task = handle.spawn(server.task(rx).run());
         let server = SynchronousWrapper { handle, server };
 
         Ok(Self { server })
@@ -74,22 +105,16 @@ impl Drop for RpcPluginFactory {
 impl PluginFactory for RpcPluginFactory {
     fn create_plugin(&self) -> Result<Box<dyn Plugin>> {
         Ok(Box::new(RpcPlugin {
-            example: Default::default(),
             server: self.server.clone(),
         }))
     }
 }
 
 pub struct RpcPlugin {
-    example: RefCell<example::InProcessServer<example::ExampleAgent>>,
     server: SynchronousWrapper,
 }
 
-impl RpcPlugin {
-    fn server(&self) -> Result<SessionServer> {
-        SessionServer::new_for_my_session()
-    }
-}
+impl RpcPlugin {}
 
 impl Plugin for RpcPlugin {
     fn plugin_key() -> &'static str
@@ -101,9 +126,6 @@ impl Plugin for RpcPlugin {
 
     #[tracing::instrument(name = "rpc-initialize", skip(self))]
     fn initialize(&mut self) -> Result<()> {
-        let mut example = self.example.borrow_mut();
-        example.initialize()?;
-
         self.server.initialize()
     }
 
@@ -114,9 +136,6 @@ impl Plugin for RpcPlugin {
 
     #[tracing::instrument(name = "rpc-surroundings", skip_all)]
     fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
-        let mut example = self.example.borrow_mut();
-        example.have_surroundings(surroundings, &self.server()?)?;
-
         self.server.have_surroundings(surroundings)
     }
 }
@@ -133,7 +152,7 @@ mod example {
     use anyhow::Result;
     use kernel::{get_my_session, ActiveSession, EntityGid, Entry, Surroundings};
     use plugins_core::tools;
-    use tracing::{debug, info, span, Level};
+    use tracing::{debug, info, span, trace, Level};
 
     use crate::proto::{
         AgentProtocol, AlwaysErrorsServer, DefaultResponses, EntityJson, EntityKey, LookupBy,
@@ -353,7 +372,7 @@ mod example {
             message: &PayloadMessage,
             to_server: &mut Sender<QueryMessage>,
         ) -> Result<()> {
-            debug!("{:?}", message);
+            trace!("{:?}", message);
             self.plugin.deliver(message, to_server)
         }
     }
