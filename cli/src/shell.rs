@@ -5,7 +5,6 @@ use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::Arc;
 use tokio::task::JoinHandle;
 
 use crate::terminal::Renderer;
@@ -140,7 +139,7 @@ pub fn try_interactive(
 }
 
 fn evaluate_commands(
-    domain: Arc<engine::Domain>,
+    domain: engine::Domain,
     self_key: EntityKey,
     username: String,
     line: String,
@@ -171,7 +170,7 @@ fn evaluate_commands(
 
 #[tokio::main]
 pub async fn execute_command(cmd: &Command) -> Result<()> {
-    let domain = Arc::new(make_domain().await?);
+    let domain = make_domain().await?;
 
     let self_key = find_user_key(&domain, &cmd.username)?.expect("No such username");
 
@@ -188,7 +187,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
                 let handle: JoinHandle<Result<()>> = tokio::task::spawn_blocking({
                     let username = cmd.username.clone();
                     let self_key = self_key.clone();
-                    let domain = Arc::clone(&domain);
+                    let domain = domain.clone();
 
                     || evaluate_commands(domain, self_key, username, line)
                 });
