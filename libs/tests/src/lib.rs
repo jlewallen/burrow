@@ -130,18 +130,21 @@ mod tests {
     }
 
     #[derive(Default)]
-    struct KeyInVessel {}
+    struct HoldingKeyInVessel {}
 
-    impl WorldFixture for KeyInVessel {
+    impl WorldFixture for HoldingKeyInVessel {
         fn prepare(&self, session: &Rc<Session>) -> Result<()> {
             let mut build = BuildSurroundings::new_in_session(session.clone())?;
+
+            let place = build.make(QuickThing::Place("Place"))?;
             let key = build.entity()?.named("Key")?.into_entry()?;
             let vessel = build
                 .entity()?
                 .named("Vessel")?
                 .holding(&vec![key.clone()])?
                 .into_entry()?;
-            let (_session, _surroundings) = build
+            let (_, _surroundings) = build
+                .route("East", QuickThing::Actual(place.clone()))
                 .hands(vec![QuickThing::Actual(vessel.clone())])
                 .build()?;
 
@@ -154,7 +157,7 @@ mod tests {
     #[tokio::test]
     async fn it_evaluates_a_simple_look() -> Result<()> {
         let domain = test_domain().await?;
-        domain.evaluate::<KeyInVessel>(&["look"]).await?;
+        domain.evaluate::<HoldingKeyInVessel>(&["look"]).await?;
         insta::assert_json_snapshot!(domain.snapshot().await?);
         domain.stop().await?;
 
@@ -164,7 +167,9 @@ mod tests {
     #[tokio::test]
     async fn it_evaluates_two_simple_looks_same_session() -> Result<()> {
         let domain = test_domain().await?;
-        domain.evaluate::<KeyInVessel>(&["look", "look"]).await?;
+        domain
+            .evaluate::<HoldingKeyInVessel>(&["look", "look"])
+            .await?;
         insta::assert_json_snapshot!(domain.snapshot().await?);
         domain.stop().await?;
 
@@ -174,7 +179,42 @@ mod tests {
     #[tokio::test]
     async fn it_evaluates_two_simple_looks_separate_session() -> Result<()> {
         let domain = test_domain().await?;
-        domain.evaluate::<KeyInVessel>(&["look"]).await?;
+        domain.evaluate::<HoldingKeyInVessel>(&["look"]).await?;
+        domain.evaluate::<Noop>(&["look"]).await?;
+        insta::assert_json_snapshot!(domain.snapshot().await?);
+        domain.stop().await?;
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn it_can_drop_held_container() -> Result<()> {
+        let domain = test_domain().await?;
+        domain.evaluate::<HoldingKeyInVessel>(&["look"]).await?;
+        domain.evaluate::<Noop>(&["drop vessel"]).await?;
+        insta::assert_json_snapshot!(domain.snapshot().await?);
+        domain.stop().await?;
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn it_can_rehold_dropped_container() -> Result<()> {
+        let domain = test_domain().await?;
+        domain.evaluate::<HoldingKeyInVessel>(&["look"]).await?;
+        domain.evaluate::<Noop>(&["drop vessel"]).await?;
+        domain.evaluate::<Noop>(&["hold vessel"]).await?;
+        insta::assert_json_snapshot!(domain.snapshot().await?);
+        domain.stop().await?;
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn it_can_go_east() -> Result<()> {
+        let domain = test_domain().await?;
+        domain.evaluate::<HoldingKeyInVessel>(&["look"]).await?;
+        domain.evaluate::<Noop>(&["go east"]).await?;
         domain.evaluate::<Noop>(&["look"]).await?;
         insta::assert_json_snapshot!(domain.snapshot().await?);
         domain.stop().await?;

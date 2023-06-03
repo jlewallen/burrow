@@ -42,7 +42,25 @@ expression: domain.snapshot().await?
       "py/object": "model.properties.Common"
     },
     "py/object": "",
-    "scopes": {},
+    "scopes": {
+      "occupyable": {
+        "acls": {
+          "py/object": "",
+          "rules": []
+        },
+        "occupancy": 0,
+        "occupied": [
+          {
+            "gid": 4,
+            "key": "E-3",
+            "klass": "",
+            "name": "Living",
+            "py/object": "model.entity.EntityRef",
+            "py/ref": "model.entity.Entity"
+          }
+        ]
+      }
+    },
     "version": {
       "i": 3,
       "py/object": ""
@@ -230,10 +248,10 @@ expression: domain.snapshot().await?
       },
       "occupying": {
         "area": {
-          "gid": 6,
-          "key": "E-5",
+          "gid": 1,
+          "key": "E-0",
           "klass": "",
-          "name": "Welcome Area",
+          "name": "Place",
           "py/object": "model.entity.EntityRef",
           "py/ref": "model.entity.Entity"
         }
@@ -362,16 +380,7 @@ expression: domain.snapshot().await?
           "rules": []
         },
         "occupancy": 0,
-        "occupied": [
-          {
-            "gid": 4,
-            "key": "E-3",
-            "klass": "",
-            "name": "Living",
-            "py/object": "model.entity.EntityRef",
-            "py/ref": "model.entity.Entity"
-          }
-        ]
+        "occupied": []
       }
     },
     "version": {

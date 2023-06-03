@@ -36,24 +36,13 @@ expression: domain.snapshot().await?
             "rules": []
           },
           "py/object": "",
-          "value": "Key"
+          "value": "Place"
         }
       },
       "py/object": "model.properties.Common"
     },
     "py/object": "",
-    "scopes": {
-      "location": {
-        "container": {
-          "gid": 2,
-          "key": "E-1",
-          "klass": "",
-          "name": "Vessel",
-          "py/object": "model.entity.EntityRef",
-          "py/ref": "model.entity.Entity"
-        }
-      }
-    },
+    "scopes": {},
     "version": {
       "i": 3,
       "py/object": ""
@@ -92,33 +81,19 @@ expression: domain.snapshot().await?
             "rules": []
           },
           "py/object": "",
-          "value": "Vessel"
+          "value": "Key"
         }
       },
       "py/object": "model.properties.Common"
     },
     "py/object": "",
     "scopes": {
-      "containing": {
-        "capacity": null,
-        "holding": [
-          {
-            "gid": 1,
-            "key": "E-0",
-            "klass": "",
-            "name": "Key",
-            "py/object": "model.entity.EntityRef",
-            "py/ref": "model.entity.Entity"
-          }
-        ],
-        "produces": {}
-      },
       "location": {
         "container": {
           "gid": 3,
           "key": "E-2",
           "klass": "",
-          "name": "Living",
+          "name": "Vessel",
           "py/object": "model.entity.EntityRef",
           "py/ref": "model.entity.Entity"
         }
@@ -162,7 +137,7 @@ expression: domain.snapshot().await?
             "rules": []
           },
           "py/object": "",
-          "value": "Living"
+          "value": "Vessel"
         }
       },
       "py/object": "model.properties.Common"
@@ -176,6 +151,76 @@ expression: domain.snapshot().await?
             "gid": 2,
             "key": "E-1",
             "klass": "",
+            "name": "Key",
+            "py/object": "model.entity.EntityRef",
+            "py/ref": "model.entity.Entity"
+          }
+        ],
+        "produces": {}
+      },
+      "location": {
+        "container": {
+          "gid": 4,
+          "key": "E-3",
+          "klass": "",
+          "name": "Living",
+          "py/object": "model.entity.EntityRef",
+          "py/ref": "model.entity.Entity"
+        }
+      }
+    },
+    "version": {
+      "i": 3,
+      "py/object": ""
+    }
+  },
+  {
+    "acls": {
+      "py/object": "",
+      "rules": []
+    },
+    "creator": null,
+    "identity": {
+      "private": "",
+      "public": "",
+      "py/object": "",
+      "signature": null
+    },
+    "key": "E-3",
+    "klass": {
+      "py/type": ""
+    },
+    "parent": null,
+    "props": {
+      "map": {
+        "gid": {
+          "acls": {
+            "py/object": "",
+            "rules": []
+          },
+          "py/object": "",
+          "value": 4
+        },
+        "name": {
+          "acls": {
+            "py/object": "",
+            "rules": []
+          },
+          "py/object": "",
+          "value": "Living"
+        }
+      },
+      "py/object": "model.properties.Common"
+    },
+    "py/object": "",
+    "scopes": {
+      "containing": {
+        "capacity": null,
+        "holding": [
+          {
+            "gid": 3,
+            "key": "E-2",
+            "klass": "",
             "name": "Vessel",
             "py/object": "model.entity.EntityRef",
             "py/ref": "model.entity.Entity"
@@ -185,8 +230,8 @@ expression: domain.snapshot().await?
       },
       "occupying": {
         "area": {
-          "gid": 5,
-          "key": "E-4",
+          "gid": 6,
+          "key": "E-5",
           "klass": "",
           "name": "Welcome Area",
           "py/object": "model.entity.EntityRef",
@@ -224,7 +269,7 @@ expression: domain.snapshot().await?
             "rules": []
           },
           "py/object": "",
-          "value": 4
+          "value": 5
         },
         "name": {
           "acls": {
@@ -244,11 +289,11 @@ expression: domain.snapshot().await?
           "py/object": "",
           "rules": []
         },
-        "gid": 5
+        "gid": 7
       },
       "usernames": {
         "users": {
-          "burrow": "E-2"
+          "burrow": "E-3"
         }
       }
     },
@@ -269,7 +314,7 @@ expression: domain.snapshot().await?
       "py/object": "",
       "signature": null
     },
-    "key": "E-4",
+    "key": "E-5",
     "klass": {
       "py/type": ""
     },
@@ -282,7 +327,7 @@ expression: domain.snapshot().await?
             "rules": []
           },
           "py/object": "",
-          "value": 5
+          "value": 6
         },
         "name": {
           "acls": {
@@ -299,7 +344,16 @@ expression: domain.snapshot().await?
     "scopes": {
       "containing": {
         "capacity": null,
-        "holding": [],
+        "holding": [
+          {
+            "gid": 7,
+            "key": "E-6",
+            "klass": "",
+            "name": "East",
+            "py/object": "model.entity.EntityRef",
+            "py/ref": "model.entity.Entity"
+          }
+        ],
         "produces": {}
       },
       "occupyable": {
@@ -310,14 +364,80 @@ expression: domain.snapshot().await?
         "occupancy": 0,
         "occupied": [
           {
-            "gid": 3,
-            "key": "E-2",
+            "gid": 4,
+            "key": "E-3",
             "klass": "",
             "name": "Living",
             "py/object": "model.entity.EntityRef",
             "py/ref": "model.entity.Entity"
           }
         ]
+      }
+    },
+    "version": {
+      "i": 3,
+      "py/object": ""
+    }
+  },
+  {
+    "acls": {
+      "py/object": "",
+      "rules": []
+    },
+    "creator": null,
+    "identity": {
+      "private": "",
+      "public": "",
+      "py/object": "",
+      "signature": null
+    },
+    "key": "E-6",
+    "klass": {
+      "py/type": ""
+    },
+    "parent": null,
+    "props": {
+      "map": {
+        "gid": {
+          "acls": {
+            "py/object": "",
+            "rules": []
+          },
+          "py/object": "",
+          "value": 7
+        },
+        "name": {
+          "acls": {
+            "py/object": "",
+            "rules": []
+          },
+          "py/object": "",
+          "value": "East"
+        }
+      },
+      "py/object": "model.properties.Common"
+    },
+    "py/object": "",
+    "scopes": {
+      "exit": {
+        "area": {
+          "gid": 1,
+          "key": "E-0",
+          "klass": "",
+          "name": "Place",
+          "py/object": "model.entity.EntityRef",
+          "py/ref": "model.entity.Entity"
+        }
+      },
+      "location": {
+        "container": {
+          "gid": 6,
+          "key": "E-5",
+          "klass": "",
+          "name": "Welcome Area",
+          "py/object": "model.entity.EntityRef",
+          "py/ref": "model.entity.Entity"
+        }
       }
     },
     "version": {

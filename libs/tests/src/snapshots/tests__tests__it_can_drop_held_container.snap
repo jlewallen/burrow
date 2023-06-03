@@ -160,10 +160,10 @@ expression: domain.snapshot().await?
       },
       "location": {
         "container": {
-          "gid": 4,
-          "key": "E-3",
+          "gid": 6,
+          "key": "E-5",
           "klass": "",
-          "name": "Living",
+          "name": "Welcome Area",
           "py/object": "model.entity.EntityRef",
           "py/ref": "model.entity.Entity"
         }
@@ -216,16 +216,7 @@ expression: domain.snapshot().await?
     "scopes": {
       "containing": {
         "capacity": null,
-        "holding": [
-          {
-            "gid": 3,
-            "key": "E-2",
-            "klass": "",
-            "name": "Vessel",
-            "py/object": "model.entity.EntityRef",
-            "py/ref": "model.entity.Entity"
-          }
-        ],
+        "holding": [],
         "produces": {}
       },
       "occupying": {
@@ -350,6 +341,14 @@ expression: domain.snapshot().await?
             "key": "E-6",
             "klass": "",
             "name": "East",
+            "py/object": "model.entity.EntityRef",
+            "py/ref": "model.entity.Entity"
+          },
+          {
+            "gid": 3,
+            "key": "E-2",
+            "klass": "",
+            "name": "Vessel",
             "py/object": "model.entity.EntityRef",
             "py/ref": "model.entity.Entity"
           }
