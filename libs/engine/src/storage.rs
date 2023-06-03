@@ -32,7 +32,7 @@ pub mod sqlite {
     use anyhow::anyhow;
     use rusqlite::{Connection, OpenFlags};
 
-    const MEMORY_SPECIAL: &str = ":memory:";
+    pub const MEMORY_SPECIAL: &str = ":memory:";
 
     pub struct SqliteStorage {
         conn: Connection,
