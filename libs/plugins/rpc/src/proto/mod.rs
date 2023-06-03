@@ -8,7 +8,6 @@ mod server;
 pub use agent::AgentProtocol;
 pub use agent::AgentResponses;
 pub use agent::DefaultResponses;
-pub use fsm::Sender;
 pub use server::AlwaysErrorsServer;
 pub use server::Completed;
 pub use server::Server;
@@ -28,6 +27,10 @@ impl SessionKey {
             body,
         }
     }
+}
+
+pub trait Inbox<T, R> {
+    fn deliver(&mut self, message: &T, replies: &mut Sender<R>) -> anyhow::Result<()>;
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Debug)]
@@ -216,5 +219,53 @@ pub type PayloadMessage = Message<Payload>;
 impl std::fmt::Debug for PayloadMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Payload").field("body", &self.body).finish()
+    }
+}
+
+#[derive(Debug)]
+pub struct Sender<S> {
+    pub queue: Vec<S>,
+}
+
+impl<S> Default for Sender<S> {
+    fn default() -> Self {
+        Self {
+            queue: Default::default(),
+        }
+    }
+}
+
+#[allow(dead_code)]
+impl<S> Sender<S>
+where
+    S: std::fmt::Debug,
+{
+    pub fn send(&mut self, message: S) -> anyhow::Result<()> {
+        self.queue.push(message);
+
+        Ok(())
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &S> {
+        self.queue.iter()
+    }
+
+    pub fn clear(&mut self) {
+        self.queue.clear()
+    }
+
+    pub fn pop(&mut self) -> Option<S> {
+        self.queue.pop()
+    }
+
+    pub fn into_iter(self) -> impl Iterator<Item = S> {
+        self.queue.into_iter()
+    }
+}
+
+impl<B> Sender<Message<B>> {
+    #[cfg(test)]
+    pub fn bodies(&self) -> impl Iterator<Item = &B> {
+        self.queue.iter().map(|m| &m.body)
     }
 }

@@ -1,54 +1,6 @@
 use tracing::*;
 
-use super::Message;
-
-#[derive(Debug)]
-pub struct Sender<S> {
-    pub queue: Vec<S>,
-}
-
-impl<S> Default for Sender<S> {
-    fn default() -> Self {
-        Self {
-            queue: Default::default(),
-        }
-    }
-}
-
-#[allow(dead_code)]
-impl<S> Sender<S>
-where
-    S: std::fmt::Debug,
-{
-    pub fn send(&mut self, message: S) -> anyhow::Result<()> {
-        self.queue.push(message);
-
-        Ok(())
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = &S> {
-        self.queue.iter()
-    }
-
-    pub fn clear(&mut self) {
-        self.queue.clear()
-    }
-
-    pub fn pop(&mut self) -> Option<S> {
-        self.queue.pop()
-    }
-
-    pub fn into_iter(self) -> impl Iterator<Item = S> {
-        self.queue.into_iter()
-    }
-}
-
-impl<B> Sender<Message<B>> {
-    #[cfg(test)]
-    pub fn bodies(&self) -> impl Iterator<Item = &B> {
-        self.queue.iter().map(|m| &m.body)
-    }
-}
+use super::Sender;
 
 pub enum Transition<S, M> {
     None,

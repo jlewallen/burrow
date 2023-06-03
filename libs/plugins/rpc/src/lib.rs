@@ -9,14 +9,16 @@ use tokio::{
     time::interval,
 };
 
+mod async_tokio;
 mod example;
 mod proto;
 
 use plugins_core::library::plugin::*;
 
+pub use async_tokio::TokioChannelServer;
 pub use example::ExampleAgent;
+pub use example::InProcessServer;
 pub use example::SessionServer;
-pub use example::{InProcessServer, TokioChannelServer};
 
 pub struct RpcPluginFactory {
     server: SynchronousWrapper,
@@ -56,14 +58,14 @@ impl Task {
 #[derive(Clone)]
 struct RpcServer {
     tx: Sender<RpcMessage>,
-    example: Arc<RwLock<example::TokioChannelServer<example::ExampleAgent>>>,
+    example: Arc<RwLock<async_tokio::TokioChannelServer<example::ExampleAgent>>>,
 }
 
 impl RpcServer {
     pub async fn new(handle: Handle) -> Result<Self> {
         let (tx, rx) = mpsc::channel::<RpcMessage>(4);
 
-        let example = example::TokioChannelServer::<example::ExampleAgent>::new().await;
+        let example = async_tokio::TokioChannelServer::<example::ExampleAgent>::new().await;
         let server = RpcServer {
             tx: tx.clone(),
             example: Arc::new(RwLock::new(example)),
