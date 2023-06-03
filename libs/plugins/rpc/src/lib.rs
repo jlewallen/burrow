@@ -126,7 +126,6 @@ impl SynchronousWrapper {
     }
 
     pub fn stop(&self) -> Result<()> {
-        info!("Sync::stop");
         let rt = runtime::Builder::new_current_thread().build()?;
         rt.block_on(self.server.stop())
     }
