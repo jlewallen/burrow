@@ -4,7 +4,8 @@ mod tests {
 
     use anyhow::Result;
     use engine::{
-        storage, DevNullNotifier, Domain, EntityStorageFactory, Finder, Session, SessionOpener,
+        storage, DevNullNotifier, Domain, EntityStorageFactory, Finder, PersistedEntity, Session,
+        SessionOpener,
     };
     use kernel::RegisteredPlugins;
     use plugins_core::{
@@ -17,21 +18,42 @@ mod tests {
     use plugins_wasm::WasmPluginFactory;
     use tokio::{runtime::Handle, task::JoinHandle};
 
+    const USERNAME: &str = "burrow";
+
     #[derive(Clone)]
     struct AsyncFriendlyDomain {
         domain: Domain,
     }
 
     impl AsyncFriendlyDomain {
-        pub fn new(
-            storage_factory: Arc<dyn EntityStorageFactory>,
+        pub fn new<SF>(
+            storage_factory: Arc<SF>,
             plugins: Arc<RegisteredPlugins>,
             finder: Arc<dyn Finder>,
             deterministic: bool,
-        ) -> Self {
+        ) -> Self
+        where
+            SF: EntityStorageFactory + 'static,
+        {
             Self {
                 domain: Domain::new(storage_factory, plugins, finder, deterministic),
             }
+        }
+
+        pub async fn query_all(&self) -> Result<Vec<PersistedEntity>> {
+            self.domain.query_all()
+        }
+
+        #[cfg(test)]
+        pub async fn snapshot(&self) -> Result<serde_json::Value> {
+            let json: Vec<serde_json::Value> = self
+                .query_all()
+                .await?
+                .into_iter()
+                .map(|p| p.to_json_value())
+                .collect::<Result<_>>()?;
+
+            Ok(serde_json::Value::Array(json))
         }
 
         pub async fn evaluate<W>(&self, text: &'static [&'static str]) -> Result<()>
@@ -48,7 +70,7 @@ mod tests {
                     fixture.prepare(&session)?;
 
                     for text in text {
-                        if let Some(reply) = session.evaluate_and_perform("burrow", text)? {
+                        if let Some(reply) = session.evaluate_and_perform(USERNAME, text)? {
                             println!("{:?}", &reply);
                         }
                     }
@@ -133,6 +155,7 @@ mod tests {
     async fn it_evaluates_a_simple_look() -> Result<()> {
         let domain = test_domain().await?;
         domain.evaluate::<KeyInVessel>(&["look"]).await?;
+        insta::assert_json_snapshot!(domain.snapshot().await?);
         domain.stop().await?;
 
         Ok(())
@@ -142,6 +165,7 @@ mod tests {
     async fn it_evaluates_two_simple_looks_same_session() -> Result<()> {
         let domain = test_domain().await?;
         domain.evaluate::<KeyInVessel>(&["look", "look"]).await?;
+        insta::assert_json_snapshot!(domain.snapshot().await?);
         domain.stop().await?;
 
         Ok(())
@@ -152,6 +176,7 @@ mod tests {
         let domain = test_domain().await?;
         domain.evaluate::<KeyInVessel>(&["look"]).await?;
         domain.evaluate::<Noop>(&["look"]).await?;
+        insta::assert_json_snapshot!(domain.snapshot().await?);
         domain.stop().await?;
 
         Ok(())

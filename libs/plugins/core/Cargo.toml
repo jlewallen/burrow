@@ -26,4 +26,4 @@ inflection = "0.1.2"
 libloading = "0.8.0"
 
 [dev-dependencies]
-insta = { version = "1.21.1", features = ["yaml", "json"] }
+insta = { version = "1.21.1", features = ["json"] }

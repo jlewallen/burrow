@@ -11,6 +11,7 @@ pub trait EntityStorage {
     fn begin(&self) -> Result<()>;
     fn rollback(&self, benign: bool) -> Result<()>;
     fn commit(&self) -> Result<()>;
+    fn query_all(&self) -> Result<Vec<PersistedEntity>>;
 }
 
 pub trait EntityStorageFactory: Send + Sync {
@@ -23,6 +24,12 @@ pub struct PersistedEntity {
     pub gid: u64,
     pub version: u64,
     pub serialized: String,
+}
+
+impl PersistedEntity {
+    pub fn to_json_value(&self) -> Result<serde_json::Value> {
+        Ok(serde_json::from_str(&self.serialized)?)
+    }
 }
 
 pub mod sqlite {
@@ -70,11 +77,24 @@ pub mod sqlite {
             query: &str,
             params: T,
         ) -> Result<Option<PersistedEntity>> {
+            let mut unknown = self.multiple_query(query, params)?;
+            match unknown.len() {
+                0 => Ok(None),
+                1 => Ok(Some(unknown.remove(0))),
+                _ => Err(anyhow!("Unexpected number of rows for single query")),
+            }
+        }
+
+        fn multiple_query<T: rusqlite::Params>(
+            &self,
+            query: &str,
+            params: T,
+        ) -> Result<Vec<PersistedEntity>> {
             trace!("querying");
 
             let mut stmt = self.conn.prepare(query)?;
 
-            let mut entities = stmt.query_map(params, |row| {
+            let entities = stmt.query_map(params, |row| {
                 Ok(PersistedEntity {
                     key: row.get(0)?,
                     gid: row.get(1)?,
@@ -83,10 +103,10 @@ pub mod sqlite {
                 })
             })?;
 
-            match entities.next() {
-                Some(p) => Ok(Some(p?)),
-                _ => Ok(None),
-            }
+            Ok(entities
+                .into_iter()
+                .map(|v| Ok(v?))
+                .collect::<Result<_>>()?)
         }
 
         fn load_by_key(&self, key: &EntityKey) -> Result<Option<PersistedEntity>> {
@@ -187,6 +207,13 @@ pub mod sqlite {
             self.conn.execute("COMMIT TRANSACTION", [])?;
 
             Ok(())
+        }
+
+        fn query_all(&self) -> Result<Vec<PersistedEntity>> {
+            self.multiple_query(
+                "SELECT key, gid, version, serialized FROM entities ORDER BY gid;",
+                [],
+            )
         }
     }
 

@@ -6,7 +6,7 @@ use super::{sequences::Sequence, Session};
 use crate::{
     sequences::{make_identities, make_keys},
     storage::EntityStorageFactory,
-    Finder,
+    Finder, PersistedEntity,
 };
 use kernel::{EntityKey, Identity, RegisteredPlugins};
 
@@ -39,6 +39,11 @@ impl Domain {
             finder,
             plugins,
         }
+    }
+
+    pub fn query_all(&self) -> Result<Vec<PersistedEntity>> {
+        let storage = self.storage_factory.create_storage()?;
+        Ok(storage.query_all()?)
     }
 
     pub fn stop(&self) -> Result<()> {
