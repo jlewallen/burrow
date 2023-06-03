@@ -3,12 +3,10 @@ use std::marker::PhantomData;
 use tokio::sync::mpsc;
 use tracing::*;
 
-use kernel::Surroundings;
-
 use crate::{
     proto::{
         AlwaysErrorsServer, Completed, Inbox, Message, Payload, PayloadMessage, Query,
-        QueryMessage, Sender, Server, ServerProtocol, SessionKey,
+        QueryMessage, Sender, Server, ServerProtocol, SessionKey, Surroundings,
     },
     ExampleAgent, SessionServer,
 };
@@ -167,7 +165,7 @@ impl TokioChannelServer<ExampleAgent> {
     ) -> Result<()> {
         self.server_tx
             .send(ChannelMessage::Payload(Payload::Surroundings(
-                surroundings.try_into()?,
+                surroundings.clone(),
             )))
             .await?;
 

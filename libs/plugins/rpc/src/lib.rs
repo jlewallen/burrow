@@ -85,8 +85,9 @@ impl RpcServer {
 
     pub async fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
         let mut example = self.example.write().map_err(|_| anyhow!("Lock error"))?;
+        let surroundings: crate::proto::Surroundings = surroundings.try_into()?;
         example
-            .have_surroundings(surroundings, &self.server()?)
+            .have_surroundings(&surroundings, &self.server()?)
             .await?;
 
         Ok(())
