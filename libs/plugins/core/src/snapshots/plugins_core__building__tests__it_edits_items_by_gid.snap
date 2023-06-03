@@ -17,7 +17,7 @@ expression: reply.to_json()?
           "py/object": "",
           "signature": null
         },
-        "key": "world",
+        "key": "E-0",
         "klass": {
           "py/type": ""
         },
@@ -38,19 +38,27 @@ expression: reply.to_json()?
                 "rules": []
               },
               "py/object": "",
-              "value": "World"
+              "value": "Living"
             }
           },
           "py/object": "model.properties.Common"
         },
         "py/object": "",
         "scopes": {
-          "identifiers": {
-            "acls": {
-              "py/object": "",
-              "rules": []
-            },
-            "gid": 4
+          "containing": {
+            "capacity": null,
+            "holding": [],
+            "produces": {}
+          },
+          "occupying": {
+            "area": {
+              "gid": 3,
+              "key": "E-2",
+              "klass": "",
+              "name": "Welcome Area",
+              "py/object": "model.entity.EntityRef",
+              "py/ref": "model.entity.Entity"
+            }
           }
         },
         "version": {
@@ -59,6 +67,6 @@ expression: reply.to_json()?
         }
       }
     },
-    "key": "world"
+    "key": "E-0"
   }
 }

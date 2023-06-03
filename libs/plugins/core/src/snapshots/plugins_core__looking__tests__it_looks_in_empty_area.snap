@@ -1,5 +1,5 @@
 ---
-source: src/plugins/looking.rs
+source: libs/plugins/core/src/looking.rs
 expression: reply.to_json()?
 ---
 {
@@ -15,14 +15,14 @@ expression: reply.to_json()?
     "living": [
       {
         "desc": null,
-        "key": "E-1",
+        "key": "E-0",
         "name": "Living",
         "qualified": "a Living"
       }
     ],
     "person": {
       "desc": null,
-      "key": "E-1",
+      "key": "E-0",
       "name": "Living",
       "qualified": "a Living"
     },
