@@ -30,7 +30,7 @@ pub mod sqlite {
 
     use super::*;
     use anyhow::anyhow;
-    use rusqlite::Connection;
+    use rusqlite::{Connection, OpenFlags};
 
     pub struct SqliteStorage {
         conn: Connection,
@@ -39,7 +39,10 @@ pub mod sqlite {
     impl SqliteStorage {
         pub fn new(path: &str) -> Result<Rc<Self>> {
             let conn = if path == ":memory:" {
-                Connection::open_in_memory()?
+                Connection::open_with_flags(
+                    "file:burrow-1?mode=memory&cache=shared",
+                    OpenFlags::SQLITE_OPEN_URI | OpenFlags::SQLITE_OPEN_READ_WRITE,
+                )?
             } else {
                 Connection::open(path)?
             };
@@ -191,12 +194,20 @@ pub mod sqlite {
 
     pub struct Factory {
         path: String,
+        #[allow(dead_code)]
+        keep_alive: Option<std::sync::Mutex<Connection>>,
     }
 
     impl Factory {
         pub fn new(path: &str) -> Result<Arc<Factory>> {
+            let connection = Connection::open_with_flags(
+                "file:burrow-1?mode=memory&cache=shared",
+                OpenFlags::SQLITE_OPEN_URI | OpenFlags::SQLITE_OPEN_READ_WRITE,
+            )?;
+
             Ok(Arc::new(Factory {
                 path: path.to_string(),
+                keep_alive: Some(std::sync::Mutex::new(connection)),
             }))
         }
     }
