@@ -10,6 +10,10 @@ use crate::{
 };
 use kernel::{EntityKey, Identity, RegisteredPlugins};
 
+pub trait SessionOpener: Send + Sync + Clone {
+    fn open_session(&self) -> Result<Rc<Session>>;
+}
+
 #[derive(Clone)]
 pub struct Domain {
     storage_factory: Arc<dyn EntityStorageFactory>,
@@ -37,7 +41,15 @@ impl Domain {
         }
     }
 
-    pub fn open_session(&self) -> Result<Rc<Session>> {
+    pub fn stop(&self) -> Result<()> {
+        self.plugins.stop()?;
+
+        Ok(())
+    }
+}
+
+impl SessionOpener for Domain {
+    fn open_session(&self) -> Result<Rc<Session>> {
         info!("session-open");
 
         let storage = self.storage_factory.create_storage()?;
@@ -49,11 +61,5 @@ impl Domain {
             &self.finder,
             &self.plugins,
         )
-    }
-
-    pub fn stop(&self) -> Result<()> {
-        self.plugins.stop()?;
-
-        Ok(())
     }
 }

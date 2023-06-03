@@ -20,7 +20,7 @@ use tower_http::{
 };
 use tracing::{debug, info, warn};
 
-use engine::{DevNullNotifier, Domain, Notifier, Session};
+use engine::{DevNullNotifier, Domain, Notifier, Session, SessionOpener};
 use kernel::{EntityKey, Reply, SimpleReply};
 
 use crate::make_domain;

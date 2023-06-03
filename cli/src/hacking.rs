@@ -4,7 +4,7 @@ use tracing::info;
 use crate::make_domain;
 use crate::text::Renderer;
 
-use engine::{username_to_key, DevNullNotifier};
+use engine::{username_to_key, DevNullNotifier, SessionOpener};
 use kernel::{ActiveSession, DomainError, Entry, LookupBy};
 use plugins_core::carrying::model::{Carryable, Containing};
 use plugins_core::moving::model::Occupying;

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::{rc::Rc, sync::Arc};
 
-use engine::{add_username_to_key, domain, storage, DevNullNotifier, Session};
+use engine::{add_username_to_key, domain, storage, DevNullNotifier, Session, SessionOpener};
 use kernel::{EntityKey, EntityPtr, Entry, RegisteredPlugins, SessionRef, Surroundings, WORLD_KEY};
 
 use crate::{tools, DefaultFinder};

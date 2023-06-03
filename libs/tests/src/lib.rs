@@ -3,7 +3,7 @@ mod tests {
     use std::sync::Arc;
 
     use anyhow::Result;
-    use engine::{storage, DevNullNotifier, Domain, Session};
+    use engine::{storage, DevNullNotifier, Domain, Session, SessionOpener};
     use kernel::RegisteredPlugins;
     use plugins_core::{
         building::BuildingPluginFactory, carrying::CarryingPluginFactory,
@@ -15,7 +15,25 @@ mod tests {
     use plugins_wasm::WasmPluginFactory;
     use tokio::{runtime::Handle, task::JoinHandle};
 
-    async fn make_domain() -> Result<Domain> {
+    #[derive(Clone)]
+    struct BlockingStopDomain {
+        domain: Domain,
+    }
+
+    impl BlockingStopDomain {
+        pub async fn stop(&self) -> Result<()> {
+            let domain = self.domain.clone();
+            tokio::task::spawn_blocking(move || domain.stop()).await?
+        }
+    }
+
+    impl SessionOpener for BlockingStopDomain {
+        fn open_session(&self) -> Result<std::rc::Rc<Session>> {
+            self.domain.open_session()
+        }
+    }
+
+    async fn make_domain() -> Result<BlockingStopDomain> {
         let storage_factory = storage::sqlite::Factory::new(":memory:")?;
         let mut registered_plugins = RegisteredPlugins::default();
         registered_plugins.register(MovingPluginFactory::default());
@@ -27,12 +45,9 @@ mod tests {
         registered_plugins.register(WasmPluginFactory::default());
         registered_plugins.register(RpcPluginFactory::start(Handle::current()).await?);
         let finder = Arc::new(DefaultFinder::default());
-        Ok(Domain::new(
-            storage_factory,
-            Arc::new(registered_plugins),
-            finder,
-            true,
-        ))
+        Ok(BlockingStopDomain {
+            domain: Domain::new(storage_factory, Arc::new(registered_plugins), finder, true),
+        })
     }
 
     trait WorldFixture {
@@ -70,14 +85,15 @@ mod tests {
         }
     }
 
-    async fn evaluate<W>(domain: &engine::Domain, text: &'static [&'static str]) -> Result<()>
+    async fn evaluate<W, S>(sessions: &S, text: &'static [&'static str]) -> Result<()>
     where
         W: WorldFixture + Default,
+        S: SessionOpener + 'static,
     {
         let handle: JoinHandle<Result<()>> = tokio::task::spawn_blocking({
-            let domain = domain.clone();
+            let sessions = sessions.clone();
             move || {
-                let session = domain.open_session()?;
+                let session = sessions.open_session()?;
 
                 let fixture = W::default();
 
@@ -102,9 +118,9 @@ mod tests {
     async fn it_evaluates_a_simple_look() -> Result<()> {
         let domain = make_domain().await?;
 
-        evaluate::<KeyInVessel>(&domain, &["look"]).await?;
+        evaluate::<KeyInVessel, _>(&domain, &["look"]).await?;
 
-        tokio::task::spawn_blocking(move || domain.stop()).await??;
+        domain.stop().await?;
 
         Ok(())
     }
@@ -113,9 +129,9 @@ mod tests {
     async fn it_evaluates_two_simple_looks_same_session() -> Result<()> {
         let domain = make_domain().await?;
 
-        evaluate::<KeyInVessel>(&domain, &["look", "look"]).await?;
+        evaluate::<KeyInVessel, _>(&domain, &["look", "look"]).await?;
 
-        tokio::task::spawn_blocking(move || domain.stop()).await??;
+        domain.stop().await?;
 
         Ok(())
     }
@@ -124,10 +140,10 @@ mod tests {
     async fn it_evaluates_two_simple_looks_separate_session() -> Result<()> {
         let domain = make_domain().await?;
 
-        evaluate::<KeyInVessel>(&domain, &["look"]).await?;
-        evaluate::<Noop>(&domain, &["look"]).await?;
+        evaluate::<KeyInVessel, _>(&domain, &["look"]).await?;
+        evaluate::<Noop, _>(&domain, &["look"]).await?;
 
-        tokio::task::spawn_blocking(move || domain.stop()).await??;
+        domain.stop().await?;
 
         Ok(())
     }

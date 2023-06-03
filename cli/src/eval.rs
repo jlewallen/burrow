@@ -5,7 +5,7 @@ use clap::Args;
 use tokio::task::JoinHandle;
 
 use crate::{make_domain, text::Renderer};
-use engine::{DevNullNotifier, Session};
+use engine::{DevNullNotifier, Session, SessionOpener};
 
 #[derive(Debug, Args, Clone)]
 pub struct Command {

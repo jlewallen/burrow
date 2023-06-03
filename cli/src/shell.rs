@@ -9,7 +9,7 @@ use tokio::task::JoinHandle;
 
 use crate::terminal::Renderer;
 use crate::{make_domain, terminal::default_external_editor};
-use engine::{self, DevNullNotifier, Domain, Notifier, Session};
+use engine::{self, DevNullNotifier, Domain, Notifier, Session, SessionOpener};
 use kernel::{ActiveSession, EntityKey, Perform, Reply, SimpleReply};
 use replies::EditorReply;
 
