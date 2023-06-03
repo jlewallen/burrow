@@ -2,11 +2,12 @@ use crate::Surroundings;
 
 use super::{model::*, Action, ManagedHooks};
 use anyhow::Result;
-
 pub type EvaluationResult = Result<Box<dyn Action>, EvaluationError>;
 
 pub trait PluginFactory: Send + Sync {
     fn create_plugin(&self) -> Result<Box<dyn Plugin>>;
+
+    fn stop(&self) -> Result<()>;
 }
 
 #[derive(Default)]
@@ -30,6 +31,14 @@ impl RegisteredPlugins {
                 .collect::<Result<Vec<_>>>()?,
         ))
     }
+
+    pub fn stop(&self) -> Result<()> {
+        for factory in self.factories.iter() {
+            factory.stop()?;
+        }
+
+        Ok(())
+    }
 }
 
 pub trait ParsesActions {
@@ -46,6 +55,8 @@ pub trait Plugin: ParsesActions {
     fn register_hooks(&self, hooks: &ManagedHooks) -> Result<()>;
 
     fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()>;
+
+    fn stop(&self) -> Result<()>;
 }
 
 #[derive(Default)]
@@ -90,6 +101,13 @@ impl SessionPlugins {
     pub fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
         for plugin in self.plugins.iter() {
             plugin.have_surroundings(surroundings)?;
+        }
+        Ok(())
+    }
+
+    pub fn stop(&self) -> Result<()> {
+        for plugin in self.plugins.iter() {
+            plugin.stop()?;
         }
         Ok(())
     }

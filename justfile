@@ -4,6 +4,9 @@ default:
     cargo test --all
     cargo build --all
 
+test:
+    RUST_LOG={{ default_level }} cargo test --all
+
 eval: external
     RUST_LOG={{ default_level }} cargo run -- eval
 

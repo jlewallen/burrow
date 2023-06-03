@@ -13,6 +13,10 @@ impl PluginFactory for DynamicPluginFactory {
     fn create_plugin(&self) -> Result<Box<dyn Plugin>> {
         Ok(Box::<DynamicPlugin>::default())
     }
+
+    fn stop(&self) -> Result<()> {
+        Ok(())
+    }
 }
 
 struct DynamicRegistrar {
@@ -25,6 +29,7 @@ impl DynamicRegistrar {
         Self { library }
     }
 }
+
 impl PluginRegistrar for DynamicRegistrar {
     fn tracing_subscriber(&self) -> Box<dyn Subscriber + Send + Sync> {
         Box::new(PluginSubscriber::new())
@@ -133,6 +138,10 @@ impl Plugin for DynamicPlugin {
     }
 
     fn have_surroundings(&self, _surroundings: &Surroundings) -> Result<()> {
+        Ok(())
+    }
+
+    fn stop(&self) -> Result<()> {
         Ok(())
     }
 }

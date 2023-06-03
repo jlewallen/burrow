@@ -30,6 +30,10 @@ impl PluginFactory for WasmPluginFactory {
     fn create_plugin(&self) -> Result<Box<dyn Plugin>> {
         Ok(Box::<WasmPlugin>::default())
     }
+
+    fn stop(&self) -> Result<()> {
+        Ok(())
+    }
 }
 
 pub type Runners = Arc<RefCell<HashMap<ScriptSource, WasmRunner>>>;
@@ -85,6 +89,10 @@ impl Plugin for WasmPlugin {
             // runner.have_surroundings(surroundings)?;
         }
 
+        Ok(())
+    }
+
+    fn stop(&self) -> Result<()> {
         Ok(())
     }
 }

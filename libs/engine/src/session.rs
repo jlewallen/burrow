@@ -183,6 +183,8 @@ impl Session {
         let elapsed = self.opened.elapsed();
         let elapsed = format!("{:?}", elapsed);
 
+        self.plugins.stop()?;
+
         info!(%elapsed, %nentities, "closed");
 
         self.open.store(false, Ordering::Relaxed);

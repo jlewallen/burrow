@@ -1,8 +1,8 @@
-use std::{collections::HashSet, marker::PhantomData};
-
 use anyhow::{Context, Result};
 use kernel::{get_my_session, EntityGid, Entry, Surroundings};
 use plugins_core::tools;
+use std::{collections::HashSet, marker::PhantomData};
+use tokio::sync::mpsc;
 use tracing::{debug, info, span, trace, warn, Level};
 
 use crate::proto::{
@@ -153,7 +153,12 @@ impl Server for SessionServer {
     }
 }
 
-use tokio::sync::mpsc;
+#[derive(Debug)]
+enum ChannelMessage {
+    Query(Option<Query>),
+    Payload(Payload),
+    Shutdown,
+}
 
 #[allow(dead_code)]
 pub struct TokioChannelServer<P> {
@@ -162,13 +167,8 @@ pub struct TokioChannelServer<P> {
     agent_tx: mpsc::Sender<ChannelMessage>,
     rx_agent: mpsc::Receiver<ChannelMessage>,
     server: ServerProtocol,
+    rx_stopped: Option<tokio::sync::oneshot::Receiver<bool>>,
     _marker: PhantomData<P>,
-}
-
-#[derive(Debug)]
-enum ChannelMessage {
-    Query(Option<Query>),
-    Payload(Payload),
 }
 
 async fn process_payload<T: Inbox<PayloadMessage, QueryMessage>>(
@@ -227,32 +227,11 @@ async fn process_query(
 
 impl TokioChannelServer<ExampleAgent> {
     pub async fn new() -> Self {
+        let (stopped_tx, rx_stopped) = tokio::sync::oneshot::channel::<bool>();
         let (agent_tx, rx_agent) = tokio::sync::mpsc::channel::<ChannelMessage>(4);
         let (server_tx, mut rx_server) = tokio::sync::mpsc::channel::<ChannelMessage>(4);
 
         let session_key = SessionKey::new("SessionKey");
-
-        let server = ServerProtocol::new(session_key.clone());
-        /*
-        tokio::spawn({
-            let session_key = session_key.clone();
-            let server_tx = server_tx.clone();
-
-            async move {
-                let mut server = ServerProtocol::new(session_key.clone());
-
-                // Agent is transmitting queries to us and we're receiving from them.
-                while let Some(cm) = rx_agent.recv().await {
-                    if let ChannelMessage::Query(query) = cm {
-                        match process_query(&session_key, query, &server_tx, &mut server).await {
-                            Err(e) => panic!("Processing query: {:?}", e),
-                            Ok(()) => {}
-                        }
-                    }
-                }
-            }
-        });
-        */
 
         tokio::spawn({
             let session_key = session_key.clone();
@@ -268,10 +247,20 @@ impl TokioChannelServer<ExampleAgent> {
                             Err(e) => warn!("Payload error: {:?}", e),
                             Ok(()) => {}
                         }
+                    } else {
+                        debug!("{:?}", cm);
+                        break;
                     }
+                }
+
+                match stopped_tx.send(true) {
+                    Err(e) => warn!("Send stopped error: {:?}", e),
+                    Ok(_) => {}
                 }
             }
         });
+
+        let server = ServerProtocol::new(session_key.clone());
 
         Self {
             session_key,
@@ -279,6 +268,7 @@ impl TokioChannelServer<ExampleAgent> {
             agent_tx,
             rx_agent,
             server,
+            rx_stopped: Some(rx_stopped),
             _marker: Default::default(),
         }
     }
@@ -322,6 +312,22 @@ impl TokioChannelServer<ExampleAgent> {
             .await?;
 
         self.drive().await?;
+
+        Ok(())
+    }
+
+    pub async fn stop(&mut self) -> Result<()> {
+        debug!("stopping");
+
+        self.server_tx.send(ChannelMessage::Shutdown).await?;
+
+        if let Some(receiver) = self.rx_stopped.take() {
+            receiver.await?;
+        } else {
+            warn!("No rx_stopped in stop? Were we stopped before?");
+        }
+
+        info!("stopped");
 
         Ok(())
     }

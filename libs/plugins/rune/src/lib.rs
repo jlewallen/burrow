@@ -19,6 +19,10 @@ impl PluginFactory for RunePluginFactory {
     fn create_plugin(&self) -> Result<Box<dyn Plugin>> {
         Ok(Box::<RunePlugin>::default())
     }
+
+    fn stop(&self) -> Result<()> {
+        Ok(())
+    }
 }
 
 pub type Runners = Arc<RefCell<HashMap<ScriptSource, RuneRunner>>>;
@@ -74,6 +78,10 @@ impl Plugin for RunePlugin {
             runner.have_surroundings(surroundings)?;
         }
 
+        Ok(())
+    }
+
+    fn stop(&self) -> Result<()> {
         Ok(())
     }
 }

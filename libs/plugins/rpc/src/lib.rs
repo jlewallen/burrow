@@ -1,8 +1,12 @@
-use anyhow::anyhow;
-use std::sync::{Arc, RwLock};
+use anyhow::{anyhow, Context};
+use std::{
+    sync::{Arc, RwLock},
+    time::Duration,
+};
 use tokio::{
     runtime::{self, Handle},
     sync::mpsc::{self, Receiver, Sender},
+    time::interval,
 };
 
 mod example;
@@ -18,43 +22,67 @@ pub struct RpcPluginFactory {
     server: SynchronousWrapper,
 }
 
-enum RpcMessage {}
+#[derive(Debug)]
+enum RpcMessage {
+    Shutdown,
+}
 
 pub struct Task {
-    _rx: Receiver<RpcMessage>,
+    rx: Option<Receiver<RpcMessage>>,
 }
 
 impl Task {
-    pub async fn run(self) {
+    pub async fn run(mut self) {
+        let mut rx = self.rx.take().expect("No receiver");
+        let mut interval = interval(Duration::from_millis(1000));
+
         loop {
-            tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
-            info!("tick");
+            tokio::select! {
+                _ = interval.tick() => info!("tick"),
+                m = rx.recv() => {
+                    match m {
+                        Some(m) => debug!("{:?}", m),
+                        None => debug!("empty receive"),
+                    }
+                    break;
+                }
+            }
         }
+
+        info!("stopped");
     }
 }
 
 #[derive(Clone)]
 struct RpcServer {
-    _tx: Sender<RpcMessage>,
+    tx: Sender<RpcMessage>,
     example: Arc<RwLock<example::TokioChannelServer<example::ExampleAgent>>>,
 }
 
 impl RpcServer {
+    pub async fn new(handle: Handle) -> Result<Self> {
+        let (tx, rx) = mpsc::channel::<RpcMessage>(4);
+
+        let example = example::TokioChannelServer::<example::ExampleAgent>::new().await;
+        let server = RpcServer {
+            tx: tx.clone(),
+            example: Arc::new(RwLock::new(example)),
+        };
+
+        let _task = handle.spawn(server.task(rx).run());
+
+        Ok(server)
+    }
+
     pub async fn initialize(&self) -> Result<()> {
-        let mut example = self
-            .example
-            .write()
-            .map_err(|_| anyhow!("Read lock error"))?;
+        let mut example = self.example.write().map_err(|_| anyhow!("Lock error"))?;
         example.initialize().await?;
 
         Ok(())
     }
 
     pub async fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
-        let mut example = self
-            .example
-            .write()
-            .map_err(|_| anyhow!("Read lock error"))?;
+        let mut example = self.example.write().map_err(|_| anyhow!("Lock error"))?;
         example
             .have_surroundings(surroundings, &self.server()?)
             .await?;
@@ -63,17 +91,26 @@ impl RpcServer {
     }
 
     fn task(&self, rx: Receiver<RpcMessage>) -> Task {
-        Task { _rx: rx }
+        Task { rx: Some(rx) }
     }
 
     fn server(&self) -> Result<SessionServer> {
         SessionServer::new_for_my_session()
     }
+
+    pub async fn stop(&self) -> Result<()> {
+        self.tx
+            .send(RpcMessage::Shutdown)
+            .await
+            .with_context(|| "RpcMessage::Shutdown")?;
+
+        let mut example = self.example.write().map_err(|_| anyhow!("Lock error"))?;
+        example.stop().await.with_context(|| "Stopping agent")
+    }
 }
 
 #[derive(Clone)]
 struct SynchronousWrapper {
-    _handle: Handle,
     server: RpcServer,
 }
 
@@ -87,23 +124,18 @@ impl SynchronousWrapper {
         let rt = runtime::Builder::new_current_thread().build()?;
         rt.block_on(self.server.have_surroundings(surroundings))
     }
+
+    pub fn stop(&self) -> Result<()> {
+        info!("Sync::stop");
+        let rt = runtime::Builder::new_current_thread().build()?;
+        rt.block_on(self.server.stop())
+    }
 }
 
 impl RpcPluginFactory {
     pub async fn start(handle: Handle) -> Result<Self> {
-        let (tx, rx) = mpsc::channel::<RpcMessage>(32);
-
-        let example = example::TokioChannelServer::<example::ExampleAgent>::new().await;
-
-        let server = RpcServer {
-            _tx: tx.clone(),
-            example: Arc::new(RwLock::new(example)),
-        };
-        let _task = handle.spawn(server.task(rx).run());
-        let server = SynchronousWrapper {
-            _handle: handle,
-            server,
-        };
+        let server = RpcServer::new(handle).await?;
+        let server = SynchronousWrapper { server };
 
         Ok(Self { server })
     }
@@ -114,6 +146,10 @@ impl PluginFactory for RpcPluginFactory {
         Ok(Box::new(RpcPlugin {
             server: self.server.clone(),
         }))
+    }
+
+    fn stop(&self) -> Result<()> {
+        self.server.stop()
     }
 }
 
@@ -144,6 +180,12 @@ impl Plugin for RpcPlugin {
     #[tracing::instrument(name = "rpc-surroundings", skip_all)]
     fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
         self.server.have_surroundings(surroundings)
+    }
+
+    fn stop(&self) -> Result<()> {
+        // Server is stopped by the plugin factory.
+        // self.server.stop()
+        Ok(())
     }
 }
 

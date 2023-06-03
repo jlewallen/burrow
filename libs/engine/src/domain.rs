@@ -50,4 +50,10 @@ impl Domain {
             &self.plugins,
         )
     }
+
+    pub fn stop(&self) -> Result<()> {
+        self.plugins.stop()?;
+
+        Ok(())
+    }
 }

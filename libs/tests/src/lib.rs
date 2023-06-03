@@ -71,14 +71,22 @@ mod tests {
     async fn it_evaluates_a_simple_look() -> Result<()> {
         let domain = make_domain().await?;
 
-        Ok(evaluate(&domain, &["look"]).await?)
+        evaluate(&domain, &["look"]).await?;
+
+        tokio::task::spawn_blocking(move || domain.stop()).await??;
+
+        Ok(())
     }
 
     #[tokio::test]
     async fn it_evaluates_two_simple_looks_same_session() -> Result<()> {
         let domain = make_domain().await?;
 
-        Ok(evaluate(&domain, &["look", "look"]).await?)
+        evaluate(&domain, &["look", "look"]).await?;
+
+        tokio::task::spawn_blocking(move || domain.stop()).await??;
+
+        Ok(())
     }
 
     #[tokio::test]
@@ -86,7 +94,11 @@ mod tests {
         let domain = make_domain().await?;
 
         evaluate(&domain, &["look"]).await?;
-        Ok(evaluate(&domain, &["look"]).await?)
+        evaluate(&domain, &["look"]).await?;
+
+        tokio::task::spawn_blocking(move || domain.stop()).await??;
+
+        Ok(())
     }
 }
 

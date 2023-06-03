@@ -7,6 +7,10 @@ impl PluginFactory for LookingPluginFactory {
     fn create_plugin(&self) -> Result<Box<dyn Plugin>> {
         Ok(Box::new(LookingPlugin {}))
     }
+
+    fn stop(&self) -> Result<()> {
+        Ok(())
+    }
 }
 
 #[derive(Default)]
@@ -29,6 +33,10 @@ impl Plugin for LookingPlugin {
     }
 
     fn have_surroundings(&self, _surroundings: &Surroundings) -> Result<()> {
+        Ok(())
+    }
+
+    fn stop(&self) -> Result<()> {
         Ok(())
     }
 }
