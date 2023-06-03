@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use std::sync::{Arc, RwLock};
 use tokio::{
-    runtime::Handle,
+    runtime::{self, Handle},
     sync::mpsc::{self, Receiver, Sender},
 };
 
@@ -73,18 +73,19 @@ impl RpcServer {
 
 #[derive(Clone)]
 struct SynchronousWrapper {
-    handle: Handle,
+    _handle: Handle,
     server: RpcServer,
 }
 
 impl SynchronousWrapper {
     pub fn initialize(&self) -> Result<()> {
-        self.handle.block_on(self.server.initialize())
+        let rt = runtime::Builder::new_current_thread().build()?;
+        rt.block_on(self.server.initialize())
     }
 
     pub fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
-        self.handle
-            .block_on(self.server.have_surroundings(surroundings))
+        let rt = runtime::Builder::new_current_thread().build()?;
+        rt.block_on(self.server.have_surroundings(surroundings))
     }
 }
 
@@ -99,7 +100,10 @@ impl RpcPluginFactory {
             example: Arc::new(RwLock::new(example)),
         };
         let _task = handle.spawn(server.task(rx).run());
-        let server = SynchronousWrapper { handle, server };
+        let server = SynchronousWrapper {
+            _handle: handle,
+            server,
+        };
 
         Ok(Self { server })
     }
