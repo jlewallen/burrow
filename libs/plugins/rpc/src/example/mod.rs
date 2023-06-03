@@ -6,8 +6,9 @@ use plugins_core::tools;
 use tracing::{debug, info, span, trace, warn, Level};
 
 use crate::proto::{
-    AgentProtocol, AlwaysErrorsServer, DefaultResponses, EntityJson, EntityKey, LookupBy, Message,
-    Payload, PayloadMessage, Query, QueryMessage, Sender, Server, ServerProtocol, SessionKey,
+    AgentProtocol, AlwaysErrorsServer, Completed, DefaultResponses, EntityJson, EntityKey,
+    LookupBy, Message, Payload, PayloadMessage, Query, QueryMessage, Sender, Server,
+    ServerProtocol, SessionKey,
 };
 
 pub trait Inbox<T, R> {
@@ -27,7 +28,7 @@ impl ExampleAgent {
     }
 
     pub fn handle(&mut self, _message: &Payload) -> Result<()> {
-        debug!("(handle) {:?}", _message);
+        trace!("(handle) {:?}", _message);
 
         Ok(())
     }
@@ -39,8 +40,6 @@ impl Inbox<PayloadMessage, QueryMessage> for ExampleAgent {
         message: &PayloadMessage,
         replies: &mut Sender<QueryMessage>,
     ) -> Result<()> {
-        info!("{:?}", message.body());
-
         self.agent.apply(message, replies)?;
 
         self.handle(message.body())?;
@@ -158,8 +157,11 @@ use tokio::sync::mpsc;
 
 #[allow(dead_code)]
 pub struct TokioChannelServer<P> {
+    session_key: SessionKey,
     server_tx: mpsc::Sender<ChannelMessage>,
     agent_tx: mpsc::Sender<ChannelMessage>,
+    rx_agent: mpsc::Receiver<ChannelMessage>,
+    server: ServerProtocol,
     _marker: PhantomData<P>,
 }
 
@@ -180,7 +182,7 @@ async fn process_payload<T: Inbox<PayloadMessage, QueryMessage>>(
     agent.deliver(&message, &mut to_server)?;
 
     for sending in to_server.into_iter() {
-        info!("sending {:?}", sending);
+        trace!("sending {:?}", sending);
         agent_tx
             .send(ChannelMessage::Query(sending.into_body()))
             .await?;
@@ -194,7 +196,7 @@ async fn process_query(
     query: Option<Query>,
     server_tx: &mpsc::Sender<ChannelMessage>,
     mut server: &mut ServerProtocol,
-) -> Result<()> {
+) -> Result<Completed> {
     fn apply_query(
         server: &mut ServerProtocol,
         message: &Message<Option<Query>>,
@@ -214,22 +216,24 @@ async fn process_query(
     };
 
     for sending in to_agent.into_iter() {
-        info!("sending {:?}", sending);
+        trace!("sending {:?}", sending);
         server_tx
             .send(ChannelMessage::Payload(sending.into_body()))
             .await?;
     }
 
-    Ok(())
+    Ok(server.completed())
 }
 
 impl TokioChannelServer<ExampleAgent> {
     pub async fn new() -> Self {
-        let (agent_tx, mut rx_agent) = tokio::sync::mpsc::channel::<ChannelMessage>(4);
+        let (agent_tx, rx_agent) = tokio::sync::mpsc::channel::<ChannelMessage>(4);
         let (server_tx, mut rx_server) = tokio::sync::mpsc::channel::<ChannelMessage>(4);
 
         let session_key = SessionKey::new("SessionKey");
 
+        let server = ServerProtocol::new(session_key.clone());
+        /*
         tokio::spawn({
             let session_key = session_key.clone();
             let server_tx = server_tx.clone();
@@ -248,6 +252,7 @@ impl TokioChannelServer<ExampleAgent> {
                 }
             }
         });
+        */
 
         tokio::spawn({
             let session_key = session_key.clone();
@@ -269,14 +274,38 @@ impl TokioChannelServer<ExampleAgent> {
         });
 
         Self {
+            session_key,
             server_tx,
             agent_tx,
+            rx_agent,
+            server,
             _marker: Default::default(),
         }
     }
 
+    async fn drive(&mut self) -> Result<()> {
+        // Agent is transmitting queries to us and we're receiving from them.
+        while let Some(cm) = self.rx_agent.recv().await {
+            if let ChannelMessage::Query(query) = cm {
+                match process_query(&self.session_key, query, &self.server_tx, &mut self.server)
+                    .await
+                {
+                    Err(e) => panic!("Processing query: {:?}", e),
+                    Ok(completed) => match completed {
+                        Completed::Busy => continue,
+                        Completed::Continue => break,
+                    },
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     pub async fn initialize(&mut self) -> Result<()> {
         self.agent_tx.send(ChannelMessage::Query(None)).await?;
+
+        self.drive().await?;
 
         Ok(())
     }
@@ -291,6 +320,8 @@ impl TokioChannelServer<ExampleAgent> {
                 surroundings.try_into()?,
             )))
             .await?;
+
+        self.drive().await?;
 
         Ok(())
     }

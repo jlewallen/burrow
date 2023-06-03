@@ -21,7 +21,6 @@ where
     S: std::fmt::Debug,
 {
     pub fn send(&mut self, message: S) -> anyhow::Result<()> {
-        debug!("Sending {:?}", &message);
         self.queue.push(message);
 
         Ok(())
@@ -55,6 +54,7 @@ pub enum Transition<S, M> {
     None,
     Direct(S),
     Send(M, S),
+    #[allow(dead_code)]
     SendOnly(M),
 }
 
@@ -101,14 +101,14 @@ where
                 Ok(())
             }
             Transition::Send(sending, state) => {
-                debug!("(send) {:?}", &sending);
+                trace!("(send) {:?}", &sending);
                 sender.send(sending)?;
                 debug!("(send) {:?} -> {:?}", &self.state, &state);
                 self.state = state;
                 Ok(())
             }
             Transition::SendOnly(sending) => {
-                debug!("(send-only) {:?}", &sending);
+                trace!("(send-only) {:?}", &sending);
                 sender.send(sending)?;
                 Ok(())
             }

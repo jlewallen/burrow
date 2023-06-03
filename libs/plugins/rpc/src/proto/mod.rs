@@ -11,6 +11,7 @@ pub use agent::AgentProtocol;
 pub use agent::AgentResponses;
 pub use agent::DefaultResponses;
 pub use server::AlwaysErrorsServer;
+pub use server::Completed;
 pub use server::Server;
 pub use server::ServerProtocol;
 

@@ -3,10 +3,16 @@ use anyhow::{anyhow, Result};
 
 type ServerTransition = Transition<ServerState, Payload>;
 
+pub enum Completed {
+    Busy,
+    Continue,
+}
+
 #[derive(Debug, PartialEq, Eq)]
 enum ServerState {
     Initializing,
     Initialized,
+    Waiting,
     Failed,
 }
 
@@ -31,6 +37,15 @@ impl ServerProtocol {
         Self {
             session_key,
             machine: ServerMachine::new(),
+        }
+    }
+
+    pub fn completed(&self) -> Completed {
+        match &self.machine.state {
+            ServerState::Initializing => Completed::Busy,
+            ServerState::Initialized => Completed::Continue,
+            ServerState::Waiting => Completed::Busy,
+            ServerState::Failed => Completed::Continue,
         }
     }
 
@@ -59,12 +74,18 @@ impl ServerProtocol {
                 Payload::Initialize(message.session_key.clone()),
                 ServerState::Initialized,
             )),
+            (ServerState::Initialized, None) => Ok(ServerTransition::None),
             (ServerState::Initialized, Some(Query::Lookup(depth, lookup))) => {
                 let resolved = server.lookup(*depth, lookup)?;
 
-                Ok(ServerTransition::SendOnly(Payload::Resolved(resolved)))
+                Ok(ServerTransition::Send(
+                    Payload::Resolved(resolved),
+                    ServerState::Waiting,
+                ))
             }
-            (ServerState::Initialized, None) => Ok(ServerTransition::None),
+            (ServerState::Waiting, Some(Query::Complete)) => {
+                Ok(ServerTransition::Direct(ServerState::Initialized))
+            }
             (ServerState::Failed, query) => {
                 warn!("(failed) {:?}", &query);
 

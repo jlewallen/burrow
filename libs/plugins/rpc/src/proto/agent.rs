@@ -112,7 +112,7 @@ where
                 R::surroundings(surroundings)
             }
             (AgentState::Resolving, Payload::Resolved(_entities)) => {
-                AgentTransition::Direct(AgentState::Initialized)
+                AgentTransition::Send(Query::Complete, AgentState::Initialized)
             }
             (AgentState::Failed, payload) => {
                 warn!("(failed) {:?}", &payload);
