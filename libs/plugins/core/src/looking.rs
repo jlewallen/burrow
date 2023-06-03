@@ -147,6 +147,8 @@ pub mod model {
 }
 
 pub mod actions {
+    use anyhow::Context;
+
     use super::model::*;
     use crate::library::actions::*;
 
@@ -161,7 +163,9 @@ pub mod actions {
         fn perform(&self, _session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             let (_, user, area) = surroundings.unpack();
 
-            Ok(Box::new(new_area_observation(&user, &area)?))
+            Ok(Box::new(
+                new_area_observation(&user, &area).with_context(|| "Observing area")?,
+            ))
         }
     }
 

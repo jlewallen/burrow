@@ -1,3 +1,4 @@
+use anyhow::Context;
 use anyhow::Result;
 use std::rc::Rc;
 use std::rc::Weak;
@@ -55,13 +56,19 @@ impl StandardPerformer {
     fn perform_via_name(&self, name: &str, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
         info!("performing {:?}", action);
 
-        let surroundings = self.evaluate_name(name)?;
+        let surroundings = self
+            .evaluate_name(name)
+            .with_context(|| format!("Evaluating name: {}", name))?;
 
         let reply = {
             let _span = span!(Level::INFO, "action").entered();
             info!("{:?}", &surroundings);
-            self.plugins.have_surroundings(&surroundings)?;
-            action.perform(self.session()?, &surroundings)?
+            self.plugins
+                .have_surroundings(&surroundings)
+                .with_context(|| "Plugins:have_surroundings")?;
+            action
+                .perform(self.session()?, &surroundings)
+                .with_context(|| format!("Performing action: {:?}", &action))?
         };
 
         Ok(reply)
@@ -88,11 +95,16 @@ impl StandardPerformer {
 
         let session = self.session()?;
         let world = session.world()?;
-        let user_key = username_to_key(&world, name)?.ok_or_else(|| DomainError::EntityNotFound)?;
+        let user_key = username_to_key(&world, name)
+            .with_context(|| format!("World username to key"))?
+            .ok_or_else(|| DomainError::EntityNotFound)
+            .with_context(|| format!("Name: {}", name))?;
 
         let living = session
-            .entry(&LookupBy::Key(&user_key))?
-            .ok_or(DomainError::EntityNotFound)?;
+            .entry(&LookupBy::Key(&user_key))
+            .with_context(|| format!("Entry for key: {:?}", user_key))?
+            .ok_or(DomainError::EntityNotFound)
+            .with_context(|| format!("Key: {:?}", user_key))?;
 
         self.evaluate_living(&living)
     }
@@ -100,7 +112,10 @@ impl StandardPerformer {
     fn evaluate_living(&self, living: &Entry) -> Result<Surroundings, DomainError> {
         let session = self.session()?;
         let world = session.world()?;
-        let area: Entry = self.finder.find_location(living)?;
+        let area: Entry = self
+            .finder
+            .find_location(living)
+            .with_context(|| format!("Location of {:?}", living))?;
 
         Ok(Surroundings::Living {
             world,

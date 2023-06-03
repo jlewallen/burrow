@@ -14,4 +14,4 @@ pub use notifications::*;
 pub use session::*;
 pub use storage::*;
 
-pub use users::model::username_to_key;
+pub use users::model::{add_username_to_key, username_to_key};

@@ -9,6 +9,7 @@ members = [
     "libs/plugins/rpc",
     "libs/plugins/examples/shared",
     "libs/plugins/examples/rpc",
+    "libs/tests",
     "cli",
     "yew",
 ]

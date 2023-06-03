@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::{rc::Rc, sync::Arc};
 
-use engine::{domain, storage, DevNullNotifier, Session};
+use engine::{add_username_to_key, domain, storage, DevNullNotifier, Session};
 use kernel::{EntityKey, EntityPtr, Entry, RegisteredPlugins, SessionRef, Surroundings, WORLD_KEY};
 
 use crate::{tools, DefaultFinder};
@@ -57,6 +57,12 @@ impl Build {
 
     pub fn holding(&mut self, items: &Vec<Entry>) -> Result<&mut Self> {
         tools::set_container(&self.into_entry()?, items)?;
+
+        Ok(self)
+    }
+
+    pub fn with_username(&mut self, name: &str, key: &EntityKey) -> Result<&mut Self> {
+        add_username_to_key(&self.into_entry()?, name, key)?;
 
         Ok(self)
     }
@@ -157,11 +163,6 @@ impl BuildSurroundings {
     }
 
     pub fn build(&mut self) -> Result<(SessionRef, Surroundings)> {
-        let world = Build::new(&self.session)?
-            .key(&WORLD_KEY)?
-            .named("World")?
-            .into_entry()?;
-
         let person = Build::new(&self.session)?
             .named("Living")?
             .holding(
@@ -171,6 +172,12 @@ impl BuildSurroundings {
                     .map(|i| -> Result<_> { i.make(&self.session) })
                     .collect::<Result<Vec<_>>>()?,
             )?
+            .into_entry()?;
+
+        let world = Build::new(&self.session)?
+            .key(&WORLD_KEY)?
+            .named("World")?
+            .with_username("burrow", person.key())?
             .into_entry()?;
 
         let area = Build::new(&self.session)?

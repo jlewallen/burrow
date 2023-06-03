@@ -13,6 +13,10 @@ pub mod model {
         pub fn find(&self, name: &str) -> Option<&EntityKey> {
             self.users.get(name)
         }
+
+        pub fn set(&mut self, name: &str, key: &EntityKey) {
+            self.users.insert(name.to_owned(), key.clone());
+        }
     }
 
     impl Needs<SessionRef> for Usernames {
@@ -34,5 +38,11 @@ pub mod model {
     pub fn username_to_key(world: &Entry, username: &str) -> Result<Option<EntityKey>> {
         let usernames = world.scope::<Usernames>()?;
         Ok(usernames.find(username).cloned())
+    }
+
+    pub fn add_username_to_key(world: &Entry, username: &str, key: &EntityKey) -> Result<()> {
+        let mut usernames = world.scope_mut::<Usernames>()?;
+        usernames.set(username, key);
+        Ok(usernames.save()?)
     }
 }
