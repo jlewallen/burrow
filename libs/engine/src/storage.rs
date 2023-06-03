@@ -26,6 +26,8 @@ pub struct PersistedEntity {
 }
 
 pub mod sqlite {
+    use std::sync::Arc;
+
     use super::*;
     use anyhow::anyhow;
     use rusqlite::Connection;
@@ -192,8 +194,8 @@ pub mod sqlite {
     }
 
     impl Factory {
-        pub fn new(path: &str) -> Result<Box<Factory>> {
-            Ok(Box::new(Factory {
+        pub fn new(path: &str) -> Result<Arc<Factory>> {
+            Ok(Arc::new(Factory {
                 path: path.to_string(),
             }))
         }

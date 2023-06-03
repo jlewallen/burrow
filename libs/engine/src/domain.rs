@@ -10,8 +10,9 @@ use crate::{
 };
 use kernel::{EntityKey, Identity, RegisteredPlugins};
 
+#[derive(Clone)]
 pub struct Domain {
-    storage_factory: Box<dyn EntityStorageFactory>,
+    storage_factory: Arc<dyn EntityStorageFactory>,
     keys: Arc<dyn Sequence<EntityKey>>,
     identities: Arc<dyn Sequence<Identity>>,
     finder: Arc<dyn Finder>,
@@ -20,7 +21,7 @@ pub struct Domain {
 
 impl Domain {
     pub fn new(
-        storage_factory: Box<dyn EntityStorageFactory>,
+        storage_factory: Arc<dyn EntityStorageFactory>,
         plugins: Arc<RegisteredPlugins>,
         finder: Arc<dyn Finder>,
         deterministic: bool,

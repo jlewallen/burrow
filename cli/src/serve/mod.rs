@@ -12,15 +12,15 @@ use futures::{sink::SinkExt, stream::StreamExt};
 
 use serde::{Deserialize, Serialize};
 use std::{borrow::Borrow, net::SocketAddr, path::PathBuf, rc::Rc, sync::Arc};
-use tokio::signal;
 use tokio::sync::broadcast;
+use tokio::{signal, task::JoinHandle};
 use tower_http::{
     services::ServeDir,
     trace::{DefaultMakeSpan, TraceLayer},
 };
 use tracing::{debug, info, warn};
 
-use engine::{DevNullNotifier, Domain, Notifier};
+use engine::{DevNullNotifier, Domain, Notifier, Session};
 use kernel::{EntityKey, Reply, SimpleReply};
 
 use crate::make_domain;
@@ -62,6 +62,12 @@ impl AppState {
         })
     }
 
+    fn notifier(&self) -> SenderNotifier {
+        SenderNotifier {
+            tx: self.tx.clone(),
+        }
+    }
+
     fn find_user_key(&self, name: &str) -> Result<Option<EntityKey>> {
         let session = self.domain.open_session().expect("Error opening session");
 
@@ -75,7 +81,11 @@ impl AppState {
     fn remove_session(&self, _session: &ClientSession) {}
 }
 
-impl Notifier for AppState {
+struct SenderNotifier {
+    tx: broadcast::Sender<ServerMessage>,
+}
+
+impl Notifier for SenderNotifier {
     fn notify(&self, audience: &EntityKey, observed: &Rc<dyn replies::Observed>) -> Result<()> {
         debug!("notify {:?} -> {:?}", audience, observed);
 
@@ -161,6 +171,29 @@ async fn ws_handler(
     Extension(state): Extension<Arc<AppState>>,
 ) -> impl IntoResponse {
     ws.on_upgrade(|socket| handle_socket(socket, state))
+}
+
+fn evaluate_commands<T>(
+    session: Rc<Session>,
+    notifier: &T,
+    name: &str,
+    text: &str,
+) -> Result<Box<dyn Reply>>
+where
+    T: Notifier,
+{
+    let reply: Box<dyn Reply> = if let Some(reply) = session
+        .evaluate_and_perform(&name, text)
+        .expect("Evaluation error")
+    {
+        reply
+    } else {
+        Box::new(SimpleReply::What)
+    };
+
+    session.close(notifier).expect("Error closing session");
+
+    Ok(reply)
 }
 
 async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: Arc<AppState>) {
@@ -256,26 +289,28 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
             match message {
                 ClientMessage::Evaluate(text) => {
                     let app_state: &AppState = user_state.borrow();
-                    let session = app_state
-                        .domain
-                        .open_session()
-                        .expect("Error opening session");
 
-                    let reply: Box<dyn Reply> = if let Some(reply) = session
-                        .evaluate_and_perform(&name, text.as_str())
-                        .expect("Evaluation error")
-                    {
-                        reply
-                    } else {
-                        Box::new(SimpleReply::What)
+                    let handle: JoinHandle<Result<serde_json::Value>> =
+                        tokio::task::spawn_blocking({
+                            let domain = app_state.domain.clone();
+                            let notifier = app_state.notifier();
+                            let name = name.clone();
+                            let text = text.clone();
+
+                            move || {
+                                let session = domain.open_session().expect("Error opening session");
+                                let reply = evaluate_commands(session, &notifier, &name, &text)?;
+                                Ok(reply.to_json()?)
+                            }
+                        });
+
+                    match handle.await {
+                        Ok(Ok(reply)) => session_tx
+                            .send(ServerMessage::Reply(reply))
+                            .expect("Error sending reply"),
+                        Ok(Err(_)) => todo!(),
+                        Err(_) => todo!(),
                     };
-
-                    session.close(app_state).expect("Error closing session");
-
-                    // Forward to send task.
-                    let _ = session_tx.send(ServerMessage::Reply(
-                        reply.to_json().expect("Errror serializing reply JSON"),
-                    ));
                 }
                 _ => todo!(),
             }
