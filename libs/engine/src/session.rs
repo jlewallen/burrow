@@ -195,7 +195,7 @@ impl Session {
         use treediff::tools::ChangeType;
         use treediff::tools::Recorder;
 
-        let _span = span!(Level::DEBUG, "flushing", key = l.key.to_string()).entered();
+        let _span = span!(Level::TRACE, "flushing", key = l.key.to_string()).entered();
 
         let value_after = {
             let entity = l.entity.borrow();

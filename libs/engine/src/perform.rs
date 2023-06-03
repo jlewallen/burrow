@@ -58,7 +58,7 @@ impl StandardPerformer {
         let surroundings = self.evaluate_name(name)?;
 
         let reply = {
-            let _span = span!(Level::INFO, "A").entered();
+            let _span = span!(Level::INFO, "action").entered();
             info!("{:?}", &surroundings);
             self.plugins.have_surroundings(&surroundings)?;
             action.perform(self.session()?, &surroundings)?
@@ -84,7 +84,7 @@ impl StandardPerformer {
     }
 
     fn evaluate_name(&self, name: &str) -> Result<Surroundings, DomainError> {
-        let _span = span!(Level::DEBUG, "L").entered();
+        let _span = span!(Level::DEBUG, "who").entered();
 
         let session = self.session()?;
         let world = session.world()?;

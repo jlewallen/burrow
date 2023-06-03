@@ -42,6 +42,20 @@ enum Commands {
     Hacking,
 }
 
+enum LoggingStyle {
+    Default,
+    Hierarchical,
+}
+
+fn get_log_type() -> LoggingStyle {
+    std::env::var("RUST_LOG_STYLE")
+        .map(|v| match v.as_str() {
+            "hier" | "hierarchical" => LoggingStyle::Hierarchical,
+            _ => LoggingStyle::Default,
+        })
+        .unwrap_or(LoggingStyle::Default)
+}
+
 fn get_rust_log() -> String {
     let mut original = std::env::var("RUST_LOG").unwrap_or_else(|_| "burrow=info".into());
 
@@ -83,16 +97,21 @@ async fn make_domain() -> Result<Domain> {
 fn main() -> Result<(), Box<dyn Error>> {
     color_backtrace::install();
 
-    let create_tracing_subscriber = || {
-        // use tracing_tree::HierarchicalLayer;
-        // HierarchicalLayer::new(2)
-        tracing_subscriber::fmt::layer()
-    };
-
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::new(get_rust_log()))
-        .with(create_tracing_subscriber())
-        .init();
+    match get_log_type() {
+        LoggingStyle::Default => {
+            tracing_subscriber::registry()
+                .with(tracing_subscriber::EnvFilter::new(get_rust_log()))
+                .with(tracing_subscriber::fmt::layer().with_thread_ids(true))
+                .init();
+        }
+        LoggingStyle::Hierarchical => {
+            use tracing_tree::HierarchicalLayer;
+            tracing_subscriber::registry()
+                .with(tracing_subscriber::EnvFilter::new(get_rust_log()))
+                .with(HierarchicalLayer::new(2))
+                .init();
+        }
+    }
 
     info!("initialized, ready");
 

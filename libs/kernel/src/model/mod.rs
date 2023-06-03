@@ -547,7 +547,7 @@ impl Entity {
         let scope_key = <T as Scope>::scope_key();
 
         let _load_scope_span = span!(
-            Level::DEBUG,
+            Level::TRACE,
             "scope",
             key = self.key.key_to_string(),
             scope = scope_key
@@ -569,7 +569,7 @@ impl Entity {
             ScopeValue::Json(v) => serde_json::from_value(v)?,
         };
 
-        let _prepare_span = span!(Level::DEBUG, "prepare").entered();
+        let _prepare_span = span!(Level::TRACE, "prepare").entered();
         let session = get_my_session()?;
         scope.supply(&session)?;
 
@@ -580,7 +580,7 @@ impl Entity {
         let scope_key = <T as Scope>::scope_key();
 
         let _span = span!(
-            Level::DEBUG,
+            Level::TRACE,
             "scope",
             key = self.key.key_to_string(),
             scope = scope_key

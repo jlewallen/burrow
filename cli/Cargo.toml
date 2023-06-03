@@ -22,6 +22,7 @@ tower-http = { version = "0.3.0", features = ["fs", "trace"] }
 tera = "1.17.1"
 rustyline = "10.0.0"
 tempfile = "3.4.0"
+tracing-tree = "0.2.3"
  
 [dependencies.replies]
 path = "../libs/replies"
