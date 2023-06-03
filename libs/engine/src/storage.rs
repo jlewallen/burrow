@@ -26,26 +26,24 @@ pub struct PersistedEntity {
 }
 
 pub mod sqlite {
-    use std::sync::Arc;
+    use std::sync::{Arc, Mutex};
 
     use super::*;
     use anyhow::anyhow;
     use rusqlite::{Connection, OpenFlags};
+
+    const MEMORY_SPECIAL: &str = ":memory:";
 
     pub struct SqliteStorage {
         conn: Connection,
     }
 
     impl SqliteStorage {
-        pub fn new(path: &str) -> Result<Rc<Self>> {
-            let conn = if path == ":memory:" {
-                Connection::open_with_flags(
-                    "file:burrow-1?mode=memory&cache=shared",
-                    OpenFlags::SQLITE_OPEN_URI | OpenFlags::SQLITE_OPEN_READ_WRITE,
-                )?
-            } else {
-                Connection::open(path)?
-            };
+        pub fn new(uri: &str) -> Result<Rc<Self>> {
+            let conn = Connection::open_with_flags(
+                uri,
+                OpenFlags::SQLITE_OPEN_URI | OpenFlags::SQLITE_OPEN_READ_WRITE,
+            )?;
 
             let exec = |sql: &str| -> Result<usize> {
                 let mut stmt = conn.prepare(sql)?;
@@ -192,29 +190,53 @@ pub mod sqlite {
         }
     }
 
+    struct InMemoryKeepAlive {
+        _connection: Mutex<Connection>,
+        url: String,
+    }
+
+    impl InMemoryKeepAlive {
+        fn new(id: &str) -> Result<Self> {
+            let url = format!("file:burrow-{}?mode=memory&cache=shared", id);
+            Ok(Self {
+                _connection: Mutex::new(Connection::open_with_flags(
+                    &url,
+                    OpenFlags::SQLITE_OPEN_URI | OpenFlags::SQLITE_OPEN_READ_WRITE,
+                )?),
+                url,
+            })
+        }
+    }
+
+    #[allow(dead_code)]
     pub struct Factory {
-        path: String,
-        #[allow(dead_code)]
-        keep_alive: Option<std::sync::Mutex<Connection>>,
+        id: String,
+        uri: String,
+        keep_alive: Option<InMemoryKeepAlive>,
     }
 
     impl Factory {
         pub fn new(path: &str) -> Result<Arc<Factory>> {
-            let connection = Connection::open_with_flags(
-                "file:burrow-1?mode=memory&cache=shared",
-                OpenFlags::SQLITE_OPEN_URI | OpenFlags::SQLITE_OPEN_READ_WRITE,
-            )?;
+            let id = nanoid::nanoid!();
+            let (keep_alive, uri) = if path == MEMORY_SPECIAL {
+                let keep_alive = InMemoryKeepAlive::new(&id)?;
+                let uri = keep_alive.url.to_owned();
+                (Some(keep_alive), uri)
+            } else {
+                (None, format!("file:{}", path))
+            };
 
             Ok(Arc::new(Factory {
-                path: path.to_string(),
-                keep_alive: Some(std::sync::Mutex::new(connection)),
+                id,
+                uri,
+                keep_alive,
             }))
         }
     }
 
     impl EntityStorageFactory for Factory {
         fn create_storage(&self) -> Result<Rc<dyn EntityStorage>> {
-            Ok(SqliteStorage::new(&self.path)?)
+            Ok(SqliteStorage::new(&self.uri)?)
         }
     }
 
@@ -224,7 +246,7 @@ pub mod sqlite {
         use anyhow::Result;
 
         fn get_storage() -> Result<Rc<dyn EntityStorage>> {
-            let s = Factory::new(":memory:")?;
+            let s = Factory::new(MEMORY_SPECIAL)?;
 
             s.create_storage()
         }
