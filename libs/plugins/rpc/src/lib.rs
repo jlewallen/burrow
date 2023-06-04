@@ -42,11 +42,11 @@ impl Task {
 
         loop {
             tokio::select! {
-                _ = interval.tick() => info!("tick"),
+                _ = interval.tick() => {},
                 m = rx.recv() => {
                     match m {
                         Some(m) => debug!("{:?}", m),
-                        None => debug!("empty receive"),
+                        None => debug!("Empty receive"),
                     }
                     break;
                 }
@@ -95,14 +95,6 @@ impl RpcServer {
         Ok(())
     }
 
-    fn task(&self, rx: Receiver<RpcMessage>) -> Task {
-        Task { rx: Some(rx) }
-    }
-
-    fn server(&self) -> Result<SessionServer> {
-        SessionServer::new_for_my_session()
-    }
-
     pub async fn stop(&self) -> Result<()> {
         self.tx
             .send(RpcMessage::Shutdown)
@@ -111,6 +103,14 @@ impl RpcServer {
 
         let mut example = self.example.write().map_err(|_| anyhow!("Lock error"))?;
         example.stop().await.with_context(|| "Stopping agent")
+    }
+
+    fn task(&self, rx: Receiver<RpcMessage>) -> Task {
+        Task { rx: Some(rx) }
+    }
+
+    fn server(&self) -> Result<SessionServer> {
+        SessionServer::new_for_my_session()
     }
 }
 

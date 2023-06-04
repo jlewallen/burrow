@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Args;
 use plugins_rune::RUNE_EXTENSION;
 use rustyline::error::ReadlineError;
@@ -72,14 +72,22 @@ impl Notifier for StandardOutNotifier {
     }
 }
 
-fn find_user_key(domain: &Domain, name: &str) -> Result<Option<EntityKey>> {
-    let session = domain.open_session().expect("Error opening session");
+async fn find_user_key(domain: &Domain, name: &str) -> Result<Option<EntityKey>> {
+    tokio::task::spawn_blocking({
+        let domain = domain.clone();
+        let name = name.to_owned();
 
-    let maybe_key = session.find_name_key(name)?;
+        move || {
+            let session = domain.open_session().with_context(|| "Opening session")?;
 
-    session.close(&DevNullNotifier::default())?;
+            let maybe_key = session.find_name_key(&name)?;
 
-    Ok(maybe_key)
+            session.close(&DevNullNotifier::default())?;
+
+            Ok(maybe_key)
+        }
+    })
+    .await?
 }
 
 pub static TEXT_EXTENSION: &str = "txt";
@@ -144,7 +152,7 @@ fn evaluate_commands(
     username: String,
     line: String,
 ) -> Result<()> {
-    let session = domain.open_session()?;
+    let session = domain.open_session().with_context(|| "Opening session")?;
 
     let reply: Box<dyn Reply> =
         if let Some(reply) = session.evaluate_and_perform(&username, &line)? {
@@ -172,7 +180,9 @@ fn evaluate_commands(
 pub async fn execute_command(cmd: &Command) -> Result<()> {
     let domain = make_domain().await?;
 
-    let self_key = find_user_key(&domain, &cmd.username)?.expect("No such username");
+    let self_key = find_user_key(&domain, &cmd.username)
+        .await?
+        .expect("No such username");
 
     let mut rl = Editor::<()>::new()?;
     if rl.load_history("history.txt").is_err() {
