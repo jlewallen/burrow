@@ -1,7 +1,7 @@
 use anyhow::Context;
 use std::{sync::Arc, time::Duration};
 use tokio::{
-    runtime::{self, Handle},
+    runtime::{self},
     sync::mpsc::{self, Receiver, Sender},
     sync::RwLock,
     time::interval,
@@ -62,7 +62,7 @@ struct RpcServer {
 }
 
 impl RpcServer {
-    pub async fn new(handle: Handle) -> Result<Self> {
+    pub async fn new() -> Result<Self> {
         let (tx, rx) = mpsc::channel::<RpcMessage>(4);
 
         let example = async_tokio::TokioChannelServer::<example::ExampleAgent>::new().await;
@@ -71,7 +71,7 @@ impl RpcServer {
             example: Arc::new(RwLock::new(example)),
         };
 
-        let _task = handle.spawn(server.task(rx).run());
+        let _task = tokio::spawn(server.task(rx).run());
 
         Ok(server)
     }
@@ -129,8 +129,8 @@ impl SynchronousWrapper {
 }
 
 impl RpcPluginFactory {
-    pub async fn start(handle: Handle) -> Result<Self> {
-        let server = RpcServer::new(handle).await?;
+    pub async fn start() -> Result<Self> {
+        let server = RpcServer::new().await?;
         let server = SynchronousWrapper { server };
 
         Ok(Self { server })

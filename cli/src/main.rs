@@ -1,7 +1,6 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use std::{error::Error, path::PathBuf, sync::Arc};
-use tokio::runtime::Handle;
 use tracing::*;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -84,7 +83,7 @@ async fn make_domain() -> Result<Domain> {
     registered_plugins.register(DynamicPluginFactory::default());
     registered_plugins.register(RunePluginFactory::default());
     registered_plugins.register(WasmPluginFactory::default());
-    registered_plugins.register(RpcPluginFactory::start(Handle::current()).await?);
+    registered_plugins.register(RpcPluginFactory::start().await?);
     let finder = Arc::new(DefaultFinder::default());
     Ok(Domain::new(
         storage_factory,

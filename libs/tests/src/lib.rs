@@ -16,7 +16,7 @@ mod tests {
     use plugins_rpc::RpcPluginFactory;
     use plugins_rune::RunePluginFactory;
     use plugins_wasm::WasmPluginFactory;
-    use tokio::{runtime::Handle, task::JoinHandle};
+    use tokio::task::JoinHandle;
 
     const USERNAME: &str = "burrow";
 
@@ -106,7 +106,7 @@ mod tests {
         registered_plugins.register(DynamicPluginFactory::default());
         registered_plugins.register(RunePluginFactory::default());
         registered_plugins.register(WasmPluginFactory::default());
-        registered_plugins.register(RpcPluginFactory::start(Handle::current()).await?);
+        registered_plugins.register(RpcPluginFactory::start().await?);
         let finder = Arc::new(DefaultFinder::default());
         Ok(AsyncFriendlyDomain::new(
             storage_factory,
