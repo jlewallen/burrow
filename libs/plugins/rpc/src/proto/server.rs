@@ -60,11 +60,11 @@ impl ServerProtocol {
         &mut self,
         message: &QueryMessage,
         sender: &mut Sender<PayloadMessage>,
-        server: &dyn Server,
+        services: &dyn Services,
     ) -> Result<()> {
         let _span = span!(Level::INFO, "server").entered();
         let transition = self
-            .handle(message, server)?
+            .handle(message, services)?
             .map_message(|m| PayloadMessage {
                 session_key: self.session_key.clone(),
                 body: m,
@@ -75,7 +75,11 @@ impl ServerProtocol {
         Ok(())
     }
 
-    fn handle(&mut self, message: &QueryMessage, server: &dyn Server) -> Result<ServerTransition> {
+    fn handle(
+        &mut self,
+        message: &QueryMessage,
+        services: &dyn Services,
+    ) -> Result<ServerTransition> {
         match (&self.machine.state, &message.body) {
             (ServerState::Initializing, _) => Ok(ServerTransition::Send(
                 Payload::Initialize(message.session_key.clone()),
@@ -83,7 +87,7 @@ impl ServerProtocol {
             )),
             (ServerState::Initialized, None) => Ok(ServerTransition::None),
             (ServerState::Initialized, Some(Query::Lookup(depth, lookup))) => {
-                let resolved = server.lookup(*depth, lookup)?;
+                let resolved = services.lookup(*depth, lookup)?;
 
                 Ok(ServerTransition::Send(
                     Payload::Resolved(resolved),
@@ -107,7 +111,7 @@ impl ServerProtocol {
     }
 }
 
-pub trait Server {
+pub trait Services {
     fn lookup(
         &self,
         depth: u32,
@@ -115,9 +119,9 @@ pub trait Server {
     ) -> Result<Vec<(LookupBy, Option<EntityJson>)>>;
 }
 
-pub struct AlwaysErrorsServer {}
+pub struct AlwaysErrorsServices {}
 
-impl Server for AlwaysErrorsServer {
+impl Services for AlwaysErrorsServices {
     fn lookup(
         &self,
         _depth: u32,
@@ -135,11 +139,11 @@ mod tests {
 
     use crate::proto::{server::ServerState, EntityJson, LookupBy, Payload, SessionKey};
 
-    use super::{Server, ServerProtocol};
+    use super::{ServerProtocol, Services};
 
     struct DummyServer {}
 
-    impl Server for DummyServer {
+    impl Services for DummyServer {
         fn lookup(
             &self,
             _depth: u32,

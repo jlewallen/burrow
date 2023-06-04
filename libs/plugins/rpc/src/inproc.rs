@@ -2,8 +2,8 @@ use anyhow::Result;
 use tracing::*;
 
 use crate::proto::{
-    AlwaysErrorsServer, Inbox, Payload, PayloadMessage, QueryMessage, Sender, Server,
-    ServerProtocol, SessionKey, Surroundings,
+    AlwaysErrorsServices, Inbox, Payload, PayloadMessage, QueryMessage, Sender, ServerProtocol,
+    Services, SessionKey, Surroundings,
 };
 
 pub struct InProcessServer<P> {
@@ -25,29 +25,33 @@ where
     }
 
     pub fn initialize(&mut self) -> Result<()> {
-        self.handle(self.session_key.message(None), &AlwaysErrorsServer {})
+        self.handle(self.session_key.message(None), &AlwaysErrorsServices {})
     }
 
     pub fn have_surroundings(
         &mut self,
         surroundings: &Surroundings,
-        server: &dyn Server,
+        services: &dyn Services,
     ) -> Result<()> {
         let payload = Payload::Surroundings(surroundings.clone());
-        self.send(&self.session_key.message(payload), server)
+        self.send(&self.session_key.message(payload), services)
     }
 
-    fn handle(&mut self, query: QueryMessage, server: &dyn Server) -> Result<()> {
+    fn handle(&mut self, query: QueryMessage, services: &dyn Services) -> Result<()> {
         let mut to_server: Sender<_> = Default::default();
         to_server.send(query)?;
-        self.drain(to_server, server)
+        self.drain(to_server, services)
     }
 
-    fn drain(&mut self, mut to_server: Sender<QueryMessage>, server: &dyn Server) -> Result<()> {
+    fn drain(
+        &mut self,
+        mut to_server: Sender<QueryMessage>,
+        services: &dyn Services,
+    ) -> Result<()> {
         let mut to_agent: Sender<_> = Default::default();
 
         while let Some(sending) = to_server.pop() {
-            self.server.apply(&sending, &mut to_agent, server)?;
+            self.server.apply(&sending, &mut to_agent, services)?;
             for message in to_agent.iter() {
                 self.deliver(message, &mut to_server)?;
             }
@@ -56,12 +60,12 @@ where
         Ok(())
     }
 
-    fn send(&mut self, message: &PayloadMessage, server: &dyn Server) -> Result<()> {
+    fn send(&mut self, message: &PayloadMessage, services: &dyn Services) -> Result<()> {
         let mut to_server: Sender<_> = Default::default();
 
         self.deliver(message, &mut to_server)?;
 
-        self.drain(to_server, server)
+        self.drain(to_server, services)
     }
 
     fn deliver(

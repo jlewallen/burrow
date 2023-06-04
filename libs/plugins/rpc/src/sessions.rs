@@ -5,17 +5,17 @@ use tracing::*;
 use kernel::{get_my_session, EntityGid, Entry};
 use plugins_core::tools;
 
-use crate::proto::{EntityJson, EntityKey, LookupBy, Server};
+use crate::proto::{EntityJson, EntityKey, LookupBy, Services};
 
-pub struct SessionServer {}
+pub struct SessionServices {}
 
-impl SessionServer {
+impl SessionServices {
     pub fn new_for_my_session() -> Result<Self> {
         Ok(Self {})
     }
 }
 
-impl SessionServer {
+impl SessionServices {
     fn lookup_one(&self, lookup: &LookupBy) -> Result<(LookupBy, Option<(Entry, EntityJson)>)> {
         let session = get_my_session().with_context(|| "SessionServer::lookup_one")?;
         let entry = match lookup {
@@ -85,7 +85,7 @@ impl FoldToDepth {
     }
 }
 
-impl Server for SessionServer {
+impl Services for SessionServices {
     fn lookup(
         &self,
         depth: u32,

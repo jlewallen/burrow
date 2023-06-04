@@ -5,10 +5,10 @@ use tracing::*;
 
 use crate::{
     proto::{
-        AlwaysErrorsServer, Completed, Inbox, Message, Payload, PayloadMessage, Query,
-        QueryMessage, Sender, Server, ServerProtocol, SessionKey, Surroundings,
+        AlwaysErrorsServices, Completed, Inbox, Message, Payload, PayloadMessage, Query,
+        QueryMessage, Sender, ServerProtocol, Services, SessionKey, Surroundings,
     },
-    SessionServer,
+    SessionServices,
 };
 
 #[derive(Debug)]
@@ -48,29 +48,29 @@ async fn process_payload<T: Inbox<PayloadMessage, QueryMessage>>(
     Ok(())
 }
 
-async fn process_query(
+async fn process_query<H>(
     session_key: &SessionKey,
     query: Option<Query>,
     server_tx: &mpsc::Sender<ChannelMessage>,
     server: &mut ServerProtocol,
-) -> Result<Completed> {
+    services: &H,
+) -> Result<Completed>
+where
+    H: Services,
+{
     fn apply_query(
         server: &mut ServerProtocol,
         message: &Message<Option<Query>>,
-        session_server: &dyn Server,
+        services: &dyn Services,
     ) -> Result<Sender<PayloadMessage>> {
         let mut to_agent: Sender<_> = Default::default();
-        server.apply(message, &mut to_agent, session_server)?;
+        server.apply(message, &mut to_agent, services)?;
 
         Ok(to_agent)
     }
 
     let message = session_key.message(query);
-    let to_agent: Sender<_> = if message.body().is_none() {
-        apply_query(server, &message, &AlwaysErrorsServer {})?
-    } else {
-        apply_query(server, &message, &SessionServer::new_for_my_session()?)?
-    };
+    let to_agent: Sender<_> = apply_query(server, &message, services)?;
 
     for sending in to_agent.into_iter() {
         trace!("sending {:?}", sending);
@@ -132,12 +132,21 @@ where
         }
     }
 
-    async fn drive(&mut self) -> Result<()> {
+    async fn drive<H>(&mut self, services: &H) -> Result<()>
+    where
+        H: Services,
+    {
         // Agent is transmitting queries to us and we're receiving from them.
         while let Some(cm) = self.rx_agent.recv().await {
             if let ChannelMessage::Query(query) = cm {
-                match process_query(&self.session_key, query, &self.server_tx, &mut self.server)
-                    .await
+                match process_query(
+                    &self.session_key,
+                    query,
+                    &self.server_tx,
+                    &mut self.server,
+                    services,
+                )
+                .await
                 {
                     Err(e) => panic!("Processing query: {:?}", e),
                     Ok(completed) => match completed {
@@ -154,7 +163,7 @@ where
     pub async fn initialize(&mut self) -> Result<()> {
         self.agent_tx.send(ChannelMessage::Query(None)).await?;
 
-        self.drive().await?;
+        self.drive(&AlwaysErrorsServices {}).await?;
 
         Ok(())
     }
@@ -166,7 +175,7 @@ where
             )))
             .await?;
 
-        self.drive().await?;
+        self.drive(&SessionServices::new_for_my_session()?).await?;
 
         Ok(())
     }

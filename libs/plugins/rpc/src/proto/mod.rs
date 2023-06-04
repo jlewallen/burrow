@@ -8,10 +8,10 @@ mod server;
 pub use agent::AgentProtocol;
 pub use agent::AgentResponses;
 pub use agent::DefaultResponses;
-pub use server::AlwaysErrorsServer;
+pub use server::AlwaysErrorsServices;
 pub use server::Completed;
-pub use server::Server;
 pub use server::ServerProtocol;
+pub use server::Services;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Debug)]
 pub struct SessionKey(String);

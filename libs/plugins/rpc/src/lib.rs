@@ -18,7 +18,7 @@ use plugins_core::library::plugin::*;
 pub use async_tokio::TokioChannelServer;
 pub use example::ExampleAgent;
 pub use inproc::InProcessServer;
-pub use sessions::SessionServer;
+pub use sessions::SessionServices;
 
 pub struct RpcPluginFactory {
     server: SynchronousWrapper,
