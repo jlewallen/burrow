@@ -1,8 +1,9 @@
 use anyhow::{Context, Result};
-use kernel::{get_my_session, EntityGid, Entry};
-use plugins_core::tools;
 use std::collections::HashSet;
 use tracing::*;
+
+use kernel::{get_my_session, EntityGid, Entry};
+use plugins_core::tools;
 
 use crate::proto::{EntityJson, EntityKey, LookupBy, Server};
 
