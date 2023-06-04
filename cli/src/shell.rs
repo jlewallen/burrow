@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use clap::Args;
 use plugins_rune::RUNE_EXTENSION;
 use rustyline::error::ReadlineError;
-use rustyline::Editor;
+use rustyline::DefaultEditor;
 use std::cell::RefCell;
 use std::rc::Rc;
 use tokio::task::JoinHandle;
@@ -184,7 +184,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
         .await?
         .expect("No such username");
 
-    let mut rl = Editor::<()>::new()?;
+    let mut rl = DefaultEditor::new()?;
     if rl.load_history("history.txt").is_err() {
         println!("No previous history.");
     }
@@ -193,7 +193,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
         let readline = rl.readline(">> ");
         match readline {
             Ok(line) => {
-                rl.add_history_entry(line.as_str());
+                rl.add_history_entry(line.as_str())?;
 
                 let handle: JoinHandle<Result<()>> = tokio::task::spawn_blocking({
                     let username = cmd.username.clone();

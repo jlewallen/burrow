@@ -1,7 +1,6 @@
 use anyhow::Result;
 use axum::{
     extract::Extension,
-    http::StatusCode,
     response::IntoResponse,
     routing::{get, get_service},
     Router,
@@ -110,15 +109,9 @@ pub async fn execute_command(_cmd: &Command) -> Result<()> {
     let app_state = Arc::new(AppState { domain, tx });
 
     let app = Router::new()
-        .fallback(
-            get_service(ServeDir::new(assets_dir).append_index_html_on_directories(true))
-                .handle_error(|error: std::io::Error| async move {
-                    (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Unhandled internal error: {}", error),
-                    )
-                }),
-        )
+        .fallback(get_service(
+            ServeDir::new(assets_dir).append_index_html_on_directories(true),
+        ))
         .route("/ws", get(ws_handler))
         .layer(
             TraceLayer::new_for_http()
