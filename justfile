@@ -1,27 +1,24 @@
-default_level := "info"
+export RUST_LOG := "info"
 
-default:
-    cargo test --all
-    cargo build --all
+default: test
 
-test:
-    RUST_LOG={{ default_level }} cargo test --all
+build:
+    cargo build --workspace --all-targets
 
-eval: external
-    RUST_LOG={{ default_level }} cargo run -- eval
+test: build
+    cargo test --workspace
 
-shell: external
-    RUST_LOG={{ default_level }} cargo run -- shell
+eval: build
+    cargo run -- eval
 
-serve: external
-    RUST_LOG={{ default_level }} cargo run -- serve
+shell: build
+    cargo run -- shell
 
-external:
-    cargo build --package plugin-example-shared
-    cargo build --package plugin-example-rpc
+serve: build
+    cargo run -- serve
 
-look:
-    RUST_LOG={{ default_level }} cargo run -- eval --text look --text look --text look --separate-sessions
+look: build
+    cargo run -- eval --text look --text look --text look --separate-sessions
 
 clean:
     rm -rf target
