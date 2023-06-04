@@ -1,24 +1,13 @@
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use plugins_core::library::plugin::*;
-
-// Not super happy about Clone here, this is so we can store them mapped to
-// RuneRunners and makes building that hash easier. Maybe, move to generating a
-// key from this and using that.
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub enum ScriptSource {
-    File(PathBuf),
-    Entity(EntityKey, String),
-}
 
 #[allow(dead_code)]
 pub struct WasmRunner {}
 
 impl WasmRunner {
-    pub fn new(_sources: HashSet<ScriptSource>) -> Self {
+    pub fn new() -> Self {
         Self {}
     }
 }
@@ -36,29 +25,14 @@ impl PluginFactory for WasmPluginFactory {
     }
 }
 
-pub type Runners = Arc<RefCell<HashMap<ScriptSource, WasmRunner>>>;
+pub type Runners = Arc<RefCell<Vec<WasmRunner>>>;
 
 #[derive(Default)]
 pub struct WasmPlugin {
     runners: Runners,
 }
 
-impl WasmPlugin {
-    fn add_runners_for(&self, sources: impl Iterator<Item = ScriptSource>) -> Result<()> {
-        let mut runners = self.runners.borrow_mut();
-        for source in sources {
-            if !runners.contains_key(&source) {
-                runners.insert(source.clone(), self.create_runner(source)?);
-            }
-        }
-
-        Ok(())
-    }
-
-    fn create_runner(&self, source: ScriptSource) -> Result<WasmRunner> {
-        Ok(WasmRunner::new(HashSet::from([source])))
-    }
-}
+impl WasmPlugin {}
 
 impl Plugin for WasmPlugin {
     fn plugin_key() -> &'static str
@@ -69,12 +43,6 @@ impl Plugin for WasmPlugin {
     }
 
     fn initialize(&mut self) -> Result<()> {
-        self.add_runners_for(vec![].into_iter())?;
-
-        for (_, _runner) in self.runners.borrow_mut().iter_mut() {
-            // runner.user()?;
-        }
-
         Ok(())
     }
 
@@ -83,12 +51,6 @@ impl Plugin for WasmPlugin {
     }
 
     fn have_surroundings(&self, _surroundings: &Surroundings) -> Result<()> {
-        // self.add_runners_for(sources::load_sources_from_surroundings(surroundings)?.into_iter())?;
-
-        for (_, _runner) in self.runners.borrow_mut().iter_mut() {
-            // runner.have_surroundings(surroundings)?;
-        }
-
         Ok(())
     }
 
@@ -103,7 +65,7 @@ mod hooks {
 
     pub fn register(hooks: &ManagedHooks, runners: &Runners) -> Result<()> {
         hooks.with::<MovingHooks, _>(|h| {
-            let rune_moving_hooks = Box::new(RuneMovingHooks {
+            let rune_moving_hooks = Box::new(WasmMovingHooks {
                 _runners: Runners::clone(runners),
             });
             h.before_moving.register(rune_moving_hooks.clone());
@@ -113,17 +75,17 @@ mod hooks {
     }
 
     #[derive(Clone)]
-    struct RuneMovingHooks {
+    struct WasmMovingHooks {
         _runners: Runners,
     }
 
-    impl BeforeMovingHook for RuneMovingHooks {
+    impl BeforeMovingHook for WasmMovingHooks {
         fn before_moving(&self, _surroundings: &Surroundings, _to_area: &Entry) -> Result<CanMove> {
             Ok(CanMove::Allow)
         }
     }
 
-    impl AfterMoveHook for RuneMovingHooks {
+    impl AfterMoveHook for WasmMovingHooks {
         fn after_move(&self, _surroundings: &Surroundings, _from_area: &Entry) -> Result<()> {
             Ok(())
         }
@@ -134,13 +96,4 @@ impl ParsesActions for WasmPlugin {
     fn try_parse_action(&self, _i: &str) -> EvaluationResult {
         Err(EvaluationError::ParseFailed)
     }
-}
-
-pub mod actions {
-    // use kernel::*;
-}
-
-mod parser {
-    // use kernel::*;
-    // use plugins_core::library::parser::*;
 }
