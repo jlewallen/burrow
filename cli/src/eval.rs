@@ -2,7 +2,6 @@ use std::rc::Rc;
 
 use anyhow::Result;
 use clap::Args;
-use tokio::task::JoinHandle;
 
 use crate::{make_domain, text::Renderer};
 use engine::{DevNullNotifier, Session, SessionOpener};
@@ -57,8 +56,5 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
     let domain = make_domain().await?;
     let cmd = cmd.clone();
 
-    let handle: JoinHandle<Result<()>> =
-        tokio::task::spawn_blocking(|| evaluate_commands(domain, cmd));
-
-    handle.await?
+    tokio::task::spawn_blocking(|| evaluate_commands(domain, cmd)).await?
 }

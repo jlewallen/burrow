@@ -220,7 +220,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
         }
     }
 
-    domain.stop()?;
+    tokio::task::spawn_blocking(move || domain.stop()).await??;
 
     Ok(rl.save_history("history.txt")?)
 }
