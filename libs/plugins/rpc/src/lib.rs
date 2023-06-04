@@ -12,13 +12,14 @@ use tokio::{
 mod async_tokio;
 mod example;
 mod proto;
+mod sessions;
 
 use plugins_core::library::plugin::*;
 
 pub use async_tokio::TokioChannelServer;
 pub use example::ExampleAgent;
 pub use example::InProcessServer;
-pub use example::SessionServer;
+pub use sessions::SessionServer;
 
 pub struct RpcPluginFactory {
     server: SynchronousWrapper,
