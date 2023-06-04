@@ -11,6 +11,7 @@ use tokio::{
 
 mod async_tokio;
 mod example;
+mod inproc;
 mod proto;
 mod sessions;
 
@@ -18,7 +19,7 @@ use plugins_core::library::plugin::*;
 
 pub use async_tokio::TokioChannelServer;
 pub use example::ExampleAgent;
-pub use example::InProcessServer;
+pub use inproc::InProcessServer;
 pub use sessions::SessionServer;
 
 pub struct RpcPluginFactory {
