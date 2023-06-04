@@ -103,10 +103,7 @@ pub mod sqlite {
                 })
             })?;
 
-            Ok(entities
-                .into_iter()
-                .map(|v| Ok(v?))
-                .collect::<Result<_>>()?)
+            entities.into_iter().map(|v| Ok(v?)).collect::<Result<_>>()
         }
 
         fn load_by_key(&self, key: &EntityKey) -> Result<Option<PersistedEntity>> {

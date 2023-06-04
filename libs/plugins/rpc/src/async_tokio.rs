@@ -53,7 +53,7 @@ async fn process_query(
     session_key: &SessionKey,
     query: Option<Query>,
     server_tx: &mpsc::Sender<ChannelMessage>,
-    mut server: &mut ServerProtocol,
+    server: &mut ServerProtocol,
 ) -> Result<Completed> {
     fn apply_query(
         server: &mut ServerProtocol,
@@ -61,16 +61,16 @@ async fn process_query(
         session_server: &dyn Server,
     ) -> Result<Sender<PayloadMessage>> {
         let mut to_agent: Sender<_> = Default::default();
-        server.apply(&message, &mut to_agent, session_server)?;
+        server.apply(message, &mut to_agent, session_server)?;
 
         Ok(to_agent)
     }
 
     let message = session_key.message(query);
     let to_agent: Sender<_> = if message.body().is_none() {
-        apply_query(&mut server, &message, &AlwaysErrorsServer {})?
+        apply_query(server, &message, &AlwaysErrorsServer {})?
     } else {
-        apply_query(&mut server, &message, &SessionServer::new_for_my_session()?)?
+        apply_query(server, &message, &SessionServer::new_for_my_session()?)?
     };
 
     for sending in to_agent.into_iter() {
@@ -101,9 +101,10 @@ impl TokioChannelServer<ExampleAgent> {
                 // Server is transmitting paylods to us and we're receiving from them.
                 while let Some(cm) = rx_server.recv().await {
                     if let ChannelMessage::Payload(payload) = cm {
-                        match process_payload(&session_key, payload, &agent_tx, &mut agent).await {
-                            Err(e) => warn!("Payload error: {:?}", e),
-                            Ok(()) => {}
+                        if let Err(e) =
+                            process_payload(&session_key, payload, &agent_tx, &mut agent).await
+                        {
+                            warn!("Payload error: {:?}", e);
                         }
                     } else {
                         debug!("{:?}", cm);
@@ -111,9 +112,8 @@ impl TokioChannelServer<ExampleAgent> {
                     }
                 }
 
-                match stopped_tx.send(true) {
-                    Err(e) => warn!("Send stopped error: {:?}", e),
-                    Ok(_) => {}
+                if let Err(e) = stopped_tx.send(true) {
+                    warn!("Send stopped error: {:?}", e);
                 }
             }
         });

@@ -10,6 +10,12 @@ pub struct ExampleAgent {
     agent: AgentProtocol<DefaultResponses>,
 }
 
+impl Default for ExampleAgent {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ExampleAgent {
     pub fn new() -> Self {
         Self {

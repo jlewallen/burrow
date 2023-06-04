@@ -1,11 +1,9 @@
-use anyhow::{anyhow, Context};
-use std::{
-    sync::{Arc, RwLock},
-    time::Duration,
-};
+use anyhow::Context;
+use std::{sync::Arc, time::Duration};
 use tokio::{
     runtime::{self, Handle},
     sync::mpsc::{self, Receiver, Sender},
+    sync::RwLock,
     time::interval,
 };
 
@@ -79,14 +77,14 @@ impl RpcServer {
     }
 
     pub async fn initialize(&self) -> Result<()> {
-        let mut example = self.example.write().map_err(|_| anyhow!("Lock error"))?;
+        let mut example = self.example.write().await;
         example.initialize().await?;
 
         Ok(())
     }
 
     pub async fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
-        let mut example = self.example.write().map_err(|_| anyhow!("Lock error"))?;
+        let mut example = self.example.write().await;
         let surroundings: crate::proto::Surroundings = surroundings.try_into()?;
         example
             .have_surroundings(&surroundings, &self.server()?)
@@ -101,7 +99,7 @@ impl RpcServer {
             .await
             .with_context(|| "RpcMessage::Shutdown")?;
 
-        let mut example = self.example.write().map_err(|_| anyhow!("Lock error"))?;
+        let mut example = self.example.write().await;
         example.stop().await.with_context(|| "Stopping agent")
     }
 

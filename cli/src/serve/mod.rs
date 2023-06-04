@@ -183,7 +183,7 @@ where
     T: Notifier,
 {
     let reply: Box<dyn Reply> = if let Some(reply) = session
-        .evaluate_and_perform(&name, text)
+        .evaluate_and_perform(name, text)
         .expect("Evaluation error")
     {
         reply

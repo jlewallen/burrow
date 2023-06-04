@@ -96,7 +96,7 @@ impl StandardPerformer {
         let session = self.session()?;
         let world = session.world()?;
         let user_key = username_to_key(&world, name)
-            .with_context(|| format!("World username to key"))?
+            .with_context(|| "World username to key".to_string())?
             .ok_or_else(|| DomainError::EntityNotFound)
             .with_context(|| format!("Name: {}", name))?;
 

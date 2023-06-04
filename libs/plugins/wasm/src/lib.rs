@@ -3,12 +3,12 @@ use std::sync::Arc;
 
 use plugins_core::library::plugin::*;
 
-#[allow(dead_code)]
+#[derive(Default)]
 pub struct WasmRunner {}
 
 impl WasmRunner {
     pub fn new() -> Self {
-        Self {}
+        Self::default()
     }
 }
 

@@ -43,7 +43,7 @@ impl Domain {
 
     pub fn query_all(&self) -> Result<Vec<PersistedEntity>> {
         let storage = self.storage_factory.create_storage()?;
-        Ok(storage.query_all()?)
+        storage.query_all()
     }
 
     pub fn stop(&self) -> Result<()> {

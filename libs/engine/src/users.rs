@@ -43,6 +43,6 @@ pub mod model {
     pub fn add_username_to_key(world: &Entry, username: &str, key: &EntityKey) -> Result<()> {
         let mut usernames = world.scope_mut::<Usernames>()?;
         usernames.set(username, key);
-        Ok(usernames.save()?)
+        usernames.save()
     }
 }
