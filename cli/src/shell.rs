@@ -188,6 +188,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
     if rl.load_history("history.txt").is_err() {
         println!("No previous history.");
     }
+
     loop {
         let readline = rl.readline(">> ");
         match readline {
@@ -218,5 +219,8 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
             }
         }
     }
+
+    domain.stop()?;
+
     Ok(rl.save_history("history.txt")?)
 }

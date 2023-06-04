@@ -11,7 +11,6 @@ pub mod tools;
 pub use build::*;
 pub use finding::*;
 
-#[allow(dead_code)]
 pub fn log_test() {
     use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 

@@ -1,5 +1,6 @@
-use super::{fsm::*, *};
 use anyhow::{anyhow, Result};
+
+use super::{fsm::*, *};
 
 type ServerTransition = Transition<ServerState, Payload>;
 
@@ -14,6 +15,17 @@ enum ServerState {
     Initialized,
     Waiting,
     Failed,
+}
+
+impl ServerState {
+    pub fn completed(&self) -> Completed {
+        match &self {
+            ServerState::Initializing => Completed::Busy,
+            ServerState::Initialized => Completed::Continue,
+            ServerState::Waiting => Completed::Busy,
+            ServerState::Failed => Completed::Continue,
+        }
+    }
 }
 
 type ServerMachine = Machine<ServerState>;
@@ -41,12 +53,7 @@ impl ServerProtocol {
     }
 
     pub fn completed(&self) -> Completed {
-        match &self.machine.state {
-            ServerState::Initializing => Completed::Busy,
-            ServerState::Initialized => Completed::Continue,
-            ServerState::Waiting => Completed::Busy,
-            ServerState::Failed => Completed::Continue,
-        }
+        self.machine.state.completed()
     }
 
     pub fn apply(

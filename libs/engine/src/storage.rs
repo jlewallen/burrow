@@ -232,11 +232,10 @@ pub mod sqlite {
         }
     }
 
-    #[allow(dead_code)]
     pub struct Factory {
-        id: String,
         uri: String,
-        keep_alive: Option<InMemoryKeepAlive>,
+        _id: String,
+        _keep_alive: Option<InMemoryKeepAlive>,
     }
 
     impl Factory {
@@ -251,9 +250,9 @@ pub mod sqlite {
             };
 
             Ok(Arc::new(Factory {
-                id,
                 uri,
-                keep_alive,
+                _id: id,
+                _keep_alive: keep_alive,
             }))
         }
     }

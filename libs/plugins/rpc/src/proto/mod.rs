@@ -235,7 +235,6 @@ impl<S> Default for Sender<S> {
     }
 }
 
-#[allow(dead_code)]
 impl<S> Sender<S>
 where
     S: std::fmt::Debug,
@@ -250,16 +249,16 @@ where
         self.queue.iter()
     }
 
+    pub fn into_iter(self) -> impl Iterator<Item = S> {
+        self.queue.into_iter()
+    }
+
     pub fn clear(&mut self) {
         self.queue.clear()
     }
 
     pub fn pop(&mut self) -> Option<S> {
         self.queue.pop()
-    }
-
-    pub fn into_iter(self) -> impl Iterator<Item = S> {
-        self.queue.into_iter()
     }
 }
 

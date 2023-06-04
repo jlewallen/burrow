@@ -18,13 +18,12 @@ enum ChannelMessage {
     Shutdown,
 }
 
-#[allow(dead_code)]
 pub struct TokioChannelServer<P> {
     session_key: SessionKey,
+    server: ServerProtocol,
     server_tx: mpsc::Sender<ChannelMessage>,
     agent_tx: mpsc::Sender<ChannelMessage>,
     rx_agent: mpsc::Receiver<ChannelMessage>,
-    server: ServerProtocol,
     rx_stopped: Option<tokio::sync::oneshot::Receiver<bool>>,
     _marker: PhantomData<P>,
 }
@@ -107,7 +106,6 @@ impl TokioChannelServer<ExampleAgent> {
                             warn!("Payload error: {:?}", e);
                         }
                     } else {
-                        debug!("{:?}", cm);
                         break;
                     }
                 }
@@ -122,10 +120,10 @@ impl TokioChannelServer<ExampleAgent> {
 
         Self {
             session_key,
+            server,
             server_tx,
             agent_tx,
             rx_agent,
-            server,
             rx_stopped: Some(rx_stopped),
             _marker: Default::default(),
         }
@@ -175,17 +173,17 @@ impl TokioChannelServer<ExampleAgent> {
     }
 
     pub async fn stop(&mut self) -> Result<()> {
-        debug!("stopping");
+        trace!("stopping");
 
         self.server_tx.send(ChannelMessage::Shutdown).await?;
 
         if let Some(receiver) = self.rx_stopped.take() {
             receiver.await?;
         } else {
-            warn!("No rx_stopped in stop? Were we stopped before?");
+            warn!("No channel in stop, were we already stopped?");
         }
 
-        info!("stopped");
+        debug!("stopped");
 
         Ok(())
     }

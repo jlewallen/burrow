@@ -29,7 +29,6 @@ pub struct Machine<S> {
     pub state: S,
 }
 
-#[allow(dead_code)]
 impl<S> Machine<S>
 where
     S: std::fmt::Debug,

@@ -43,15 +43,15 @@ impl Task {
                 _ = interval.tick() => {},
                 m = rx.recv() => {
                     match m {
-                        Some(m) => debug!("{:?}", m),
-                        None => debug!("Empty receive"),
+                        Some(m) => trace!("{:?}", m),
+                        None => warn!("Empty receive"),
                     }
                     break;
                 }
             }
         }
 
-        info!("stopped");
+        debug!("stopped");
     }
 }
 

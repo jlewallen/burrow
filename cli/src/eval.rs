@@ -47,6 +47,8 @@ fn evaluate_commands(domain: engine::Domain, cmd: Command) -> Result<()> {
         session.close(&DevNullNotifier::default())?;
     }
 
+    domain.stop()?;
+
     Ok(())
 }
 
