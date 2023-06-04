@@ -8,7 +8,7 @@ use crate::{
         AlwaysErrorsServer, Completed, Inbox, Message, Payload, PayloadMessage, Query,
         QueryMessage, Sender, Server, ServerProtocol, SessionKey, Surroundings,
     },
-    ExampleAgent, SessionServer,
+    SessionServer,
 };
 
 #[derive(Debug)]
@@ -82,7 +82,10 @@ async fn process_query(
     Ok(server.completed())
 }
 
-impl TokioChannelServer<ExampleAgent> {
+impl<P> TokioChannelServer<P>
+where
+    P: Inbox<PayloadMessage, QueryMessage> + Send + Default,
+{
     pub async fn new() -> Self {
         let (stopped_tx, rx_stopped) = tokio::sync::oneshot::channel::<bool>();
         let (agent_tx, rx_agent) = tokio::sync::mpsc::channel::<ChannelMessage>(4);
@@ -95,7 +98,7 @@ impl TokioChannelServer<ExampleAgent> {
             let agent_tx = agent_tx.clone();
 
             async move {
-                let mut agent = ExampleAgent::new();
+                let mut agent = P::default();
 
                 // Server is transmitting paylods to us and we're receiving from them.
                 while let Some(cm) = rx_server.recv().await {
@@ -156,11 +159,7 @@ impl TokioChannelServer<ExampleAgent> {
         Ok(())
     }
 
-    pub async fn have_surroundings(
-        &mut self,
-        surroundings: &Surroundings,
-        _server: &dyn Server,
-    ) -> Result<()> {
+    pub async fn have_surroundings(&mut self, surroundings: &Surroundings) -> Result<()> {
         self.server_tx
             .send(ChannelMessage::Payload(Payload::Surroundings(
                 surroundings.clone(),

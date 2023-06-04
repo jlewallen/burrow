@@ -86,9 +86,7 @@ impl RpcServer {
     pub async fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
         let mut example = self.example.write().await;
         let surroundings: crate::proto::Surroundings = surroundings.try_into()?;
-        example
-            .have_surroundings(&surroundings, &self.server()?)
-            .await?;
+        example.have_surroundings(&surroundings).await?;
 
         Ok(())
     }
@@ -105,10 +103,6 @@ impl RpcServer {
 
     fn task(&self, rx: Receiver<RpcMessage>) -> Task {
         Task { rx: Some(rx) }
-    }
-
-    fn server(&self) -> Result<SessionServer> {
-        SessionServer::new_for_my_session()
     }
 }
 
