@@ -1,7 +1,15 @@
-use std::cell::RefCell;
+use anyhow::Result;
 use std::sync::Arc;
+use std::{cell::RefCell, path::PathBuf};
 
+use anyhow::Context;
 use plugins_core::library::plugin::*;
+
+use wasmer::{imports, Instance, Module, Store};
+
+// wai_bindgen_rust::import!("../examples/wasm/agent.wai");
+// use wai_bindgen_wasmer::wasmer::{imports, Instance, Module, Store};
+// wai_bindgen_wasmer::export!("../examples/wasm/agent.wai");
 
 #[derive(Default)]
 pub struct WasmRunner {}
@@ -32,6 +40,24 @@ pub struct WasmPlugin {
     runners: Runners,
 }
 
+fn get_assets_path() -> Result<PathBuf> {
+    let mut cwd = std::env::current_dir()?;
+    loop {
+        if cwd.join(".git").exists() {
+            break;
+        }
+
+        cwd = match cwd.parent() {
+            Some(cwd) => cwd.to_path_buf(),
+            None => {
+                return Err(anyhow::anyhow!("Error locating assets path"));
+            }
+        };
+    }
+
+    Ok(cwd.join("libs/plugins/wasm/assets"))
+}
+
 impl WasmPlugin {}
 
 impl Plugin for WasmPlugin {
@@ -43,6 +69,38 @@ impl Plugin for WasmPlugin {
     }
 
     fn initialize(&mut self) -> Result<()> {
+        let cwd = std::env::current_dir()?;
+
+        let path = get_assets_path()?.join("plugin_example_wasm.wasm");
+        let wasm_bytes = std::fs::read(&path).with_context(|| {
+            format!(
+                "Opening wasm: {} (from {})",
+                &path.display(),
+                &cwd.display()
+            )
+        })?;
+
+        let mut store = Store::default();
+        let imports = imports! {};
+        let module = Module::new(&store, wasm_bytes)?;
+        // let agent = agent::Agent::instantiate(&mut store, &module, &mut imports).with_context(|| anyhow!("Instantiate"))?;
+
+        let instance = Instance::new(&mut store, &module, &imports)?;
+        info!("instance {:?}", instance);
+
+        // agent.0.hello(&mut store, None)?;
+
+        info!("done");
+
+        /*
+        let add_one = instance
+            .exports
+            .get_function("add_one")
+            .with_context(|| anyhow!("Get `add_one`"))?;
+        let result = add_one.call(&mut store, &[Value::I32(42)])?;
+        assert_eq!(result[0], Value::I32(43));
+        */
+
         Ok(())
     }
 

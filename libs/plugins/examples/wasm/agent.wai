@@ -1,0 +1,6 @@
+record person {
+  name: string,
+  age: u32,
+}
+
+hello: func(who: option<person>) -> string

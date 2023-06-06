@@ -9,8 +9,17 @@ members = [
     "libs/plugins/rpc",
     "libs/plugins/examples/shared",
     "libs/plugins/examples/rpc",
+    "libs/plugins/examples/wasm",
     "libs/tests",
     "cli",
     "yew",
 ]
 default-members = [ "cli" ]
+
+[profile.release-wasm]
+debug = false
+inherits = "release"
+lto = true
+opt-level = 's'
+panic = "abort"
+strip = true

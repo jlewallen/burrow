@@ -3,6 +3,7 @@ name = "plugins-wasm"
 version = "0.1.0"
 authors = ["Jacob Lewallen <jlewallen@gmail.com>"]
 edition = "2021"
+build = "build.rs"
 
 [lib]
 doctest = false
@@ -22,6 +23,9 @@ tracing = "0.1.37"
 serde = { version = "1.0.163", features = ["derive"] }
 serde_json = "1.0.96"
 glob = "0.3.1"
+wasmer = "3.3.0"
+# wai-bindgen-rust = "0.2.3"
+# wai-bindgen-wasmer = { version = "0.6.0", features = ["sys", "cranelift"] }
 
 [dev-dependencies]
 insta = { version = "1.29.0", features = ["yaml", "json"] }
