@@ -7,25 +7,25 @@ edition = "2021"
 anyhow = "1.0.71"
 serde_json = "1.0.96"
 
-[dependencies.replies]
+[dev-dependencies.replies]
 path = "../replies"
 
-[dependencies.kernel]
+[dev-dependencies.kernel]
 path = "../kernel"
 
-[dependencies.engine]
+[dev-dependencies.engine]
 path = "../engine"
 
-[dependencies.plugins-core]
+[dev-dependencies.plugins-core]
 path = "../plugins/core"
 
-[dependencies.plugins-rune]
+[dev-dependencies.plugins-rune]
 path = "../plugins/rune"
 
-[dependencies.plugins-wasm]
+[dev-dependencies.plugins-wasm]
 path = "../plugins/wasm"
 
-[dependencies.plugins-rpc]
+[dev-dependencies.plugins-rpc]
 path = "../plugins/rpc"
 
 [dev-dependencies]

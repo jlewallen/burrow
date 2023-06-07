@@ -3,6 +3,7 @@ members = [
     "libs/replies",
     "libs/kernel",
     "libs/engine",
+    "libs/sqlite",
     "libs/plugins/core",
     "libs/plugins/rune",
     "libs/plugins/rpc",
