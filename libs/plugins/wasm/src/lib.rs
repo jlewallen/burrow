@@ -7,10 +7,6 @@ use plugins_core::library::plugin::*;
 
 use wasmer::{imports, Instance, Module, Store};
 
-// wai_bindgen_rust::import!("../examples/wasm/agent.wai");
-// use wai_bindgen_wasmer::wasmer::{imports, Instance, Module, Store};
-// wai_bindgen_wasmer::export!("../examples/wasm/agent.wai");
-
 #[derive(Default)]
 pub struct WasmRunner {}
 
@@ -83,23 +79,11 @@ impl Plugin for WasmPlugin {
         let mut store = Store::default();
         let imports = imports! {};
         let module = Module::new(&store, wasm_bytes)?;
-        // let agent = agent::Agent::instantiate(&mut store, &module, &mut imports).with_context(|| anyhow!("Instantiate"))?;
 
         let instance = Instance::new(&mut store, &module, &imports)?;
         info!("instance {:?}", instance);
 
-        // agent.0.hello(&mut store, None)?;
-
         info!("done");
-
-        /*
-        let add_one = instance
-            .exports
-            .get_function("add_one")
-            .with_context(|| anyhow!("Get `add_one`"))?;
-        let result = add_one.call(&mut store, &[Value::I32(42)])?;
-        assert_eq!(result[0], Value::I32(43));
-        */
 
         Ok(())
     }

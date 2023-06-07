@@ -8,7 +8,3 @@ crate-type = ["cdylib"]
 
 # [profile.release]
 # lto = true
-
-[dependencies]
-# wai-bindgen-rust = "0.2.3"
-# wai-bindgen-wasmer = { version = "0.6.0", features = ["sys"] }
