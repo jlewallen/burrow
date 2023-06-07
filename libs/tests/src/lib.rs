@@ -1,13 +1,14 @@
 #[cfg(test)]
 mod tests {
-    use std::{rc::Rc, sync::Arc};
-
     use anyhow::Result;
+    use std::{rc::Rc, sync::Arc};
+    use tokio::task::JoinHandle;
+
     use engine::{
-        storage, DevNullNotifier, Domain, EntityStorageFactory, Finder, PersistedEntity, Session,
+        storage, DevNullNotifier, Domain, EntityStorageFactory, PersistedEntity, Session,
         SessionOpener,
     };
-    use kernel::RegisteredPlugins;
+    use kernel::{Finder, RegisteredPlugins};
     use plugins_core::{
         building::BuildingPluginFactory, carrying::CarryingPluginFactory,
         dynamic::DynamicPluginFactory, looking::LookingPluginFactory, moving::MovingPluginFactory,
@@ -16,7 +17,6 @@ mod tests {
     use plugins_rpc::RpcPluginFactory;
     use plugins_rune::RunePluginFactory;
     use plugins_wasm::WasmPluginFactory;
-    use tokio::task::JoinHandle;
 
     const USERNAME: &str = "burrow";
 

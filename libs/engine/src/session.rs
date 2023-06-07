@@ -20,14 +20,6 @@ use kernel::*;
 
 struct ModifiedEntity(PersistedEntity);
 
-pub trait Finder: Send + Sync {
-    fn find_location(&self, entry: &Entry) -> Result<Entry>;
-
-    fn find_item(&self, surroundings: &Surroundings, item: &Item) -> Result<Option<Entry>>;
-
-    fn find_audience(&self, audience: &Audience) -> Result<Vec<EntityKey>>;
-}
-
 pub struct Session {
     opened: Instant,
     open: AtomicBool,

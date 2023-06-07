@@ -1,9 +1,8 @@
 use anyhow::{anyhow, Result};
-use engine::Finder;
 use tracing::{debug, info};
 
 use crate::{moving::model::Occupying, tools};
-use kernel::{Audience, Entry, Item, Surroundings};
+use kernel::{Audience, Entry, Finder, Item, Surroundings};
 
 /// Determines if an entity matches a user's description of that entity, given
 /// no other context at all.

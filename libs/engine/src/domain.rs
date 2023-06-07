@@ -6,9 +6,9 @@ use super::{sequences::Sequence, Session};
 use crate::{
     sequences::{make_identities, make_keys},
     storage::EntityStorageFactory,
-    Finder, PersistedEntity,
+    PersistedEntity,
 };
-use kernel::{EntityKey, Identity, RegisteredPlugins};
+use kernel::{EntityKey, Finder, Identity, RegisteredPlugins};
 
 pub trait SessionOpener: Send + Sync + Clone {
     fn open_session(&self) -> Result<Rc<Session>>;

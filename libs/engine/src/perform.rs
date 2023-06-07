@@ -8,7 +8,6 @@ use tracing::{debug, event, info, span, Level};
 
 use super::Session;
 use crate::username_to_key;
-use crate::Finder;
 use kernel::*;
 
 pub struct StandardPerformer {
