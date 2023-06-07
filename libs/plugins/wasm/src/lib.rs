@@ -1,4 +1,5 @@
 use anyhow::Result;
+use std::collections::VecDeque;
 use std::sync::Arc;
 use std::{cell::RefCell, path::PathBuf};
 
@@ -56,8 +57,11 @@ fn get_assets_path() -> Result<PathBuf> {
     Ok(cwd.join("libs/plugins/wasm/assets"))
 }
 
+#[derive(Default)]
 struct MyEnv {
     pub memory: Option<Memory>,
+    pub inbox: VecDeque<Arc<[u8]>>,
+    pub outbox: Vec<Box<[u8]>>,
 }
 
 impl WasmPlugin {}
@@ -83,27 +87,52 @@ impl Plugin for WasmPlugin {
         })?;
 
         let mut store = Store::default();
-        let env = FunctionEnv::new(&mut store, MyEnv { memory: None });
+        let env = FunctionEnv::new(&mut store, MyEnv::default());
 
-        fn console_info(mut env: FunctionEnvMut<MyEnv>, msg: WasmPtr<u8>, len: u32) {
+        fn agent_send(mut env: FunctionEnvMut<MyEnv>, msg: WasmPtr<u8>, len: u32) {
             let (data, store) = env.data_and_store_mut();
-            let view = data.memory.as_ref().expect("No memory").view(&store);
-            let line = msg.read_utf8_string(&view, len).expect("No string");
-            info!("{}", &line);
+            let view = data.memory.as_ref().expect("Memory error").view(&store);
+            let bytes = msg.slice(&view, len).expect("Slice error");
+            let bytes = bytes.read_to_vec().expect("Read message error").into();
+
+            data.outbox.push(bytes);
         }
 
-        fn console_warn(mut env: FunctionEnvMut<MyEnv>, msg: WasmPtr<u8>, len: u32) {
+        fn agent_recv(mut env: FunctionEnvMut<MyEnv>, msg: WasmPtr<u8>, len: u32) -> u32 {
             let (data, store) = env.data_and_store_mut();
-            let view = data.memory.as_ref().expect("No memory").view(&store);
-            let line = msg.read_utf8_string(&view, len).expect("No string");
-            warn!("{}", &line);
+            let view = data.memory.as_ref().expect("Memory error").view(&store);
+
+            let Some(sending) = data.inbox.pop_front() else { return 0 };
+
+            assert!(sending.len() < len as usize);
+
+            let values = msg.slice(&view, sending.len() as u32).expect("Slice error");
+            for i in 0..sending.len() {
+                values
+                    .index(i as u64)
+                    .write(sending[i])
+                    .expect("Write error");
+            }
+
+            sending.len() as u32
         }
 
-        fn console_error(mut env: FunctionEnvMut<MyEnv>, msg: WasmPtr<u8>, len: u32) {
+        fn get_string(mut env: FunctionEnvMut<MyEnv>, msg: WasmPtr<u8>, len: u32) -> String {
             let (data, store) = env.data_and_store_mut();
             let view = data.memory.as_ref().expect("No memory").view(&store);
-            let line = msg.read_utf8_string(&view, len).expect("No string");
-            error!("{}", &line);
+            msg.read_utf8_string(&view, len).expect("No string")
+        }
+
+        fn console_info(env: FunctionEnvMut<MyEnv>, msg: WasmPtr<u8>, len: u32) {
+            info!("{}", &get_string(env, msg, len));
+        }
+
+        fn console_warn(env: FunctionEnvMut<MyEnv>, msg: WasmPtr<u8>, len: u32) {
+            warn!("{}", &get_string(env, msg, len));
+        }
+
+        fn console_error(env: FunctionEnvMut<MyEnv>, msg: WasmPtr<u8>, len: u32) {
+            error!("{}", &get_string(env, msg, len));
         }
 
         let imports = imports! {
@@ -111,10 +140,12 @@ impl Plugin for WasmPlugin {
                 "console_info" => Function::new_typed_with_env(&mut store, &env, console_info),
                 "console_warn" => Function::new_typed_with_env(&mut store, &env, console_warn),
                 "console_error" => Function::new_typed_with_env(&mut store, &env, console_error),
+                "agent_send" => Function::new_typed_with_env(&mut store, &env, agent_send),
+                "agent_recv" => Function::new_typed_with_env(&mut store, &env, agent_recv),
             }
         };
-        let module = Module::new(&store, wasm_bytes)?;
 
+        let module = Module::new(&store, wasm_bytes)?;
         let instance = Instance::new(&mut store, &module, &imports)?;
         info!("instance {:?}", instance);
 

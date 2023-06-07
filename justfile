@@ -3,7 +3,7 @@ export RUST_LOG := "info"
 default: test
 
 build:
-    cargo build --workspace --all-targets
+    cargo build --workspace
 
 test: build
     cargo test --workspace

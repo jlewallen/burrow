@@ -1,7 +1,7 @@
 mod macros;
 
 mod ffi {
-    #![allow(missing_docs)]
+    #![allow(dead_code)]
 
     #[link(wasm_import_module = "burrow")]
     extern "C" {
@@ -17,8 +17,8 @@ mod ffi {
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
 pub unsafe extern "C" fn agent_initialize() {
-    println!("ok");
+    // println!("ok");
     info!("info!");
-    warn!("warn!");
-    error!("error!");
+    // warn!("warn!");
+    // error!("error!");
 }
