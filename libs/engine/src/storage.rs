@@ -1,8 +1,7 @@
 use anyhow::Result;
 use std::rc::Rc;
-use tracing::*;
 
-use kernel::{EntityGid, EntityKey, LookupBy};
+use kernel::LookupBy;
 
 pub trait EntityStorage {
     fn load(&self, lookup: &LookupBy) -> Result<Option<PersistedEntity>>;
@@ -37,7 +36,9 @@ pub mod sqlite {
 
     use super::*;
     use anyhow::anyhow;
+    use kernel::{EntityGid, EntityKey, LookupBy};
     use rusqlite::{Connection, OpenFlags};
+    use tracing::*;
 
     pub const MEMORY_SPECIAL: &str = ":memory:";
 

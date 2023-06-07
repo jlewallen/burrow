@@ -1,24 +1,21 @@
-mod macros;
+use bincode::{Decode, Encode};
 
-mod ffi {
-    #![allow(dead_code)]
-
-    #[link(wasm_import_module = "burrow")]
-    extern "C" {
-        pub fn console_info(msg: *const u8, len: usize);
-        pub fn console_warn(msg: *const u8, len: usize);
-        pub fn console_error(msg: *const u8, len: usize);
-
-        pub fn agent_send(event: *const u8, len: usize);
-        pub fn agent_recv(event: *const u8, len: usize) -> usize;
-    }
-}
+use wasm_sys::{info, ipc};
 
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
 pub unsafe extern "C" fn agent_initialize() {
-    // println!("ok");
-    info!("info!");
-    // warn!("warn!");
-    // error!("error!");
+    match ipc::recv::<Message>() {
+        Some(m) => {
+            info!("message: {:?}", m);
+            ipc::send(&Message::Pong);
+        }
+        None => info!("empty"),
+    }
+}
+
+#[derive(Debug, Encode, Decode)]
+pub enum Message {
+    Ping(String),
+    Pong,
 }

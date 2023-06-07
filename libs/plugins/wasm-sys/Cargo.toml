@@ -1,0 +1,13 @@
+[package]
+name = "wasm-sys"
+version = "0.1.0"
+edition = "2021"
+
+# [dependencies.plugins-core]
+# path = "../core"
+
+# [dependencies.engine]
+# path = "../../engine"
+
+[dependencies]
+bincode = { version = "2.0.0-rc", features = ["serde", "derive"] }

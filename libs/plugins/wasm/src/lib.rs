@@ -1,4 +1,5 @@
 use anyhow::Result;
+use bincode::{Decode, Encode};
 use std::collections::VecDeque;
 use std::sync::Arc;
 use std::{cell::RefCell, path::PathBuf};
@@ -10,12 +11,35 @@ use wasmer::{
     imports, Function, FunctionEnv, FunctionEnvMut, Instance, Memory, Module, Store, WasmPtr,
 };
 
-#[derive(Default)]
-pub struct WasmRunner {}
+pub struct WasmRunner {
+    store: Store,
+    env: FunctionEnv<MyEnv>,
+    instance: Instance,
+}
 
 impl WasmRunner {
-    pub fn new() -> Self {
-        Self::default()
+    fn new(store: Store, env: FunctionEnv<MyEnv>, instance: Instance) -> Self {
+        Self {
+            store,
+            env,
+            instance,
+        }
+    }
+
+    fn initialize(&mut self, inbox: &[Arc<[u8]>]) -> Result<Vec<Box<[u8]>>> {
+        {
+            let env_mut = self.env.as_mut(&mut self.store);
+            for message in inbox {
+                env_mut.inbox.push_back(message.clone());
+            }
+        }
+
+        self.instance
+            .exports
+            .get_function("agent_initialize")?
+            .call(&mut self.store, &[])?;
+
+        Ok(std::mem::take(&mut self.env.as_mut(&mut self.store).outbox))
     }
 }
 
@@ -31,6 +55,15 @@ impl PluginFactory for WasmPluginFactory {
         Ok(())
     }
 }
+
+#[derive(Default)]
+struct MyEnv {
+    pub memory: Option<Memory>,
+    pub inbox: VecDeque<Arc<[u8]>>,
+    pub outbox: Vec<Box<[u8]>>,
+}
+
+impl MyEnv {}
 
 pub type Runners = Arc<RefCell<Vec<WasmRunner>>>;
 
@@ -57,13 +90,6 @@ fn get_assets_path() -> Result<PathBuf> {
     Ok(cwd.join("libs/plugins/wasm/assets"))
 }
 
-#[derive(Default)]
-struct MyEnv {
-    pub memory: Option<Memory>,
-    pub inbox: VecDeque<Arc<[u8]>>,
-    pub outbox: Vec<Box<[u8]>>,
-}
-
 impl WasmPlugin {}
 
 impl Plugin for WasmPlugin {
@@ -76,7 +102,6 @@ impl Plugin for WasmPlugin {
 
     fn initialize(&mut self) -> Result<()> {
         let cwd = std::env::current_dir()?;
-
         let path = get_assets_path()?.join("plugin_example_wasm.wasm");
         let wasm_bytes = std::fs::read(&path).with_context(|| {
             format!(
@@ -104,7 +129,9 @@ impl Plugin for WasmPlugin {
 
             let Some(sending) = data.inbox.pop_front() else { return 0 };
 
-            assert!(sending.len() < len as usize);
+            if sending.len() as u32 > len {
+                return sending.len() as u32;
+            }
 
             let values = msg.slice(&view, sending.len() as u32).expect("Slice error");
             for i in 0..sending.len() {
@@ -147,18 +174,29 @@ impl Plugin for WasmPlugin {
 
         let module = Module::new(&store, wasm_bytes)?;
         let instance = Instance::new(&mut store, &module, &imports)?;
-        info!("instance {:?}", instance);
+        trace!("instance {:?}", instance);
 
         {
             let mut env_mut = env.as_mut(&mut store);
             env_mut.memory = Some(instance.exports.get_memory("memory")?.clone());
+            let mut runners = self.runners.borrow_mut();
+            runners.push(WasmRunner::new(store, env, instance));
         }
 
-        let agent_initialize = instance.exports.get_function("agent_initialize")?;
+        {
+            let bytes = Message::Ping("Ping!".to_owned()).to_bytes()?;
 
-        agent_initialize.call(&mut store, &[])?;
+            let mut runners = self.runners.borrow_mut();
+            let mut outbox = Vec::new();
+            for runner in runners.iter_mut() {
+                outbox.extend(runner.initialize(&[bytes.clone().into()])?);
+            }
 
-        info!("done");
+            let _outbox: Vec<Message> = outbox
+                .into_iter()
+                .map(|b| Ok(Message::from_bytes(&b)?))
+                .collect::<Result<Vec<_>>>()?;
+        }
 
         Ok(())
     }
@@ -173,6 +211,22 @@ impl Plugin for WasmPlugin {
 
     fn stop(&self) -> Result<()> {
         Ok(())
+    }
+}
+
+#[derive(Debug, Encode, Decode)]
+pub enum Message {
+    Ping(String),
+    Pong,
+}
+
+impl Message {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        Ok(bincode::decode_from_slice(bytes, bincode::config::legacy()).map(|(m, _)| m)?)
+    }
+
+    pub fn to_bytes(&self) -> Result<Vec<u8>> {
+        Ok(bincode::encode_to_vec(self, bincode::config::legacy())?)
     }
 }
 

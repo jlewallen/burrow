@@ -22,6 +22,7 @@ anyhow = "1.0.71"
 tracing = "0.1.37"
 serde = { version = "1.0.163", features = ["derive"] }
 serde_json = "1.0.96"
+bincode = { version = "2.0.0-rc", features = ["serde"] }
 glob = "0.3.1"
 wasmer = "3.3.0"
 
