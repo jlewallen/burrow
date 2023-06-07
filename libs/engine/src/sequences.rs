@@ -1,3 +1,4 @@
+use nanoid::nanoid;
 use std::rc::Rc;
 use std::sync::{
     atomic::{AtomicU64, Ordering},
@@ -56,7 +57,7 @@ struct RandomKeys {}
 
 impl Sequence<EntityKey> for RandomKeys {
     fn following(&self) -> EntityKey {
-        EntityKey::default()
+        EntityKey::from_string(nanoid!())
     }
 }
 

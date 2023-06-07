@@ -1,5 +1,4 @@
 use anyhow::Result;
-use nanoid::nanoid;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -34,18 +33,20 @@ pub static DESTROYED_PROPERTY: &str = "destroyed";
 pub struct EntityKey(String);
 
 impl EntityKey {
+    pub fn blank() -> EntityKey {
+        EntityKey("".to_string())
+    }
+
     pub fn new(s: &str) -> EntityKey {
         EntityKey(s.to_string())
     }
 
+    pub fn from_string(s: String) -> EntityKey {
+        EntityKey(s)
+    }
+
     pub fn key_to_string(&self) -> &str {
         &self.0
-    }
-}
-
-impl Default for EntityKey {
-    fn default() -> Self {
-        Self(nanoid!())
     }
 }
 
@@ -420,7 +421,7 @@ pub enum ScopeValue {
     Json(serde_json::Value),
 }
 
-#[derive(Clone, Serialize, Deserialize, Default)]
+#[derive(Clone, Serialize, Deserialize /*  Default*/)]
 pub struct Entity {
     #[serde(rename = "py/object")]
     py_object: String,
@@ -458,7 +459,15 @@ impl Entity {
     pub fn new_with_key(key: EntityKey) -> Self {
         Self {
             key,
-            ..Self::default()
+            py_object: Default::default(),
+            version: Default::default(),
+            parent: Default::default(),
+            creator: Default::default(),
+            identity: Default::default(),
+            class: Default::default(),
+            acls: Default::default(),
+            props: Default::default(),
+            scopes: Default::default(),
         }
     }
 
@@ -602,7 +611,7 @@ impl Entity {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Default)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct EntityRef {
     #[serde(rename = "py/object")]
     py_object: String,
@@ -615,6 +624,20 @@ pub struct EntityRef {
     gid: Option<EntityGid>,
     #[serde(skip)]
     entity: Option<Weak<RefCell<Entity>>>,
+}
+
+impl Default for EntityRef {
+    fn default() -> Self {
+        Self {
+            py_object: Default::default(),
+            py_ref: Default::default(),
+            key: EntityKey::blank(),
+            class: Default::default(),
+            name: Default::default(),
+            gid: Default::default(),
+            entity: Default::default(),
+        }
+    }
 }
 
 impl EntityRef {
