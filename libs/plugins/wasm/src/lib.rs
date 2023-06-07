@@ -5,7 +5,9 @@ use std::{cell::RefCell, path::PathBuf};
 use anyhow::Context;
 use plugins_core::library::plugin::*;
 
-use wasmer::{imports, Instance, Module, Store};
+use wasmer::{
+    imports, Function, FunctionEnv, FunctionEnvMut, Instance, Memory, Module, Store, WasmPtr,
+};
 
 #[derive(Default)]
 pub struct WasmRunner {}
@@ -54,6 +56,10 @@ fn get_assets_path() -> Result<PathBuf> {
     Ok(cwd.join("libs/plugins/wasm/assets"))
 }
 
+struct MyEnv {
+    pub memory: Option<Memory>,
+}
+
 impl WasmPlugin {}
 
 impl Plugin for WasmPlugin {
@@ -77,11 +83,49 @@ impl Plugin for WasmPlugin {
         })?;
 
         let mut store = Store::default();
-        let imports = imports! {};
+        let env = FunctionEnv::new(&mut store, MyEnv { memory: None });
+
+        fn console_info(mut env: FunctionEnvMut<MyEnv>, msg: WasmPtr<u8>, len: u32) {
+            let (data, store) = env.data_and_store_mut();
+            let view = data.memory.as_ref().expect("No memory").view(&store);
+            let line = msg.read_utf8_string(&view, len).expect("No string");
+            info!("{}", &line);
+        }
+
+        fn console_warn(mut env: FunctionEnvMut<MyEnv>, msg: WasmPtr<u8>, len: u32) {
+            let (data, store) = env.data_and_store_mut();
+            let view = data.memory.as_ref().expect("No memory").view(&store);
+            let line = msg.read_utf8_string(&view, len).expect("No string");
+            warn!("{}", &line);
+        }
+
+        fn console_error(mut env: FunctionEnvMut<MyEnv>, msg: WasmPtr<u8>, len: u32) {
+            let (data, store) = env.data_and_store_mut();
+            let view = data.memory.as_ref().expect("No memory").view(&store);
+            let line = msg.read_utf8_string(&view, len).expect("No string");
+            error!("{}", &line);
+        }
+
+        let imports = imports! {
+            "burrow" => {
+                "console_info" => Function::new_typed_with_env(&mut store, &env, console_info),
+                "console_warn" => Function::new_typed_with_env(&mut store, &env, console_warn),
+                "console_error" => Function::new_typed_with_env(&mut store, &env, console_error),
+            }
+        };
         let module = Module::new(&store, wasm_bytes)?;
 
         let instance = Instance::new(&mut store, &module, &imports)?;
         info!("instance {:?}", instance);
+
+        {
+            let mut env_mut = env.as_mut(&mut store);
+            env_mut.memory = Some(instance.exports.get_memory("memory")?.clone());
+        }
+
+        let agent_initialize = instance.exports.get_function("agent_initialize")?;
+
+        agent_initialize.call(&mut store, &[])?;
 
         info!("done");
 
