@@ -6,7 +6,7 @@ use super::{sequences::Sequence, Session};
 use crate::{
     sequences::{make_identities, make_keys},
     storage::EntityStorageFactory,
-    PersistedEntity,
+    storage::PersistedEntity,
 };
 use kernel::{EntityKey, Finder, Identity, RegisteredPlugins};
 

@@ -16,6 +16,9 @@ path = "../kernel"
 [dev-dependencies.engine]
 path = "../engine"
 
+[dev-dependencies.sqlite]
+path = "../sqlite"
+
 [dev-dependencies.plugins-core]
 path = "../plugins/core"
 

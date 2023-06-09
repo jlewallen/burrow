@@ -4,7 +4,7 @@ use std::{error::Error, path::PathBuf, sync::Arc};
 use tracing::*;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use engine::{storage, Domain};
+use engine::Domain;
 use kernel::RegisteredPlugins;
 use plugins_core::{
     building::BuildingPluginFactory, carrying::CarryingPluginFactory,
@@ -14,6 +14,7 @@ use plugins_core::{
 use plugins_rpc::RpcPluginFactory;
 use plugins_rune::RunePluginFactory;
 use plugins_wasm::WasmPluginFactory;
+use sqlite::Factory;
 
 mod eval;
 mod hacking;
@@ -74,7 +75,7 @@ fn get_rust_log() -> String {
 }
 
 async fn make_domain() -> Result<Domain> {
-    let storage_factory = storage::sqlite::Factory::new("world.sqlite3")?;
+    let storage_factory = Factory::new("world.sqlite3")?;
     let mut registered_plugins = RegisteredPlugins::default();
     registered_plugins.register(MovingPluginFactory::default());
     registered_plugins.register(LookingPluginFactory::default());

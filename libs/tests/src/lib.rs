@@ -5,7 +5,7 @@ mod tests {
     use tokio::task::JoinHandle;
 
     use engine::{
-        storage, DevNullNotifier, Domain, EntityStorageFactory, PersistedEntity, Session,
+        storage::EntityStorageFactory, storage::PersistedEntity, DevNullNotifier, Domain, Session,
         SessionOpener,
     };
     use kernel::{Finder, RegisteredPlugins};
@@ -97,7 +97,7 @@ mod tests {
     }
 
     async fn test_domain() -> Result<AsyncFriendlyDomain> {
-        let storage_factory = storage::sqlite::Factory::new(storage::sqlite::MEMORY_SPECIAL)?;
+        let storage_factory = sqlite::Factory::new(sqlite::MEMORY_SPECIAL)?;
         let mut registered_plugins = RegisteredPlugins::default();
         registered_plugins.register(MovingPluginFactory::default());
         registered_plugins.register(LookingPluginFactory::default());

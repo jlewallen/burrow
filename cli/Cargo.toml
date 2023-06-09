@@ -33,6 +33,9 @@ path = "../libs/kernel"
 [dependencies.engine]
 path = "../libs/engine"
 
+[dependencies.sqlite]
+path = "../libs/sqlite"
+
 [dependencies.plugins-core]
 path = "../libs/plugins/core"
 

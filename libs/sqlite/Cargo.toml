@@ -6,6 +6,9 @@ edition = "2021"
 [dependencies.kernel]
 path = "../kernel"
 
+[dependencies.engine]
+path = "../engine"
+
 [dependencies]
 anyhow = "1.0.71"
 serde = { version = "1.0.163", features = ["derive"] }
