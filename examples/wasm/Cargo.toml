@@ -10,7 +10,7 @@ crate-type = ["cdylib"]
 bincode = { version = "2.0.0-rc", features = ["serde"] }
 
 [dependencies.wasm-sys]
-path = "../../wasm-sys"
+path = "../../plugins/wasm-sys"
 
 # [profile.release]
 # lto = true

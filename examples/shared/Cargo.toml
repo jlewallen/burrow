@@ -7,7 +7,7 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies.plugins-core]
-path = "../../core"
+path = "../../plugins/core"
 
 [dependencies]
 tracing = "0.1.37"

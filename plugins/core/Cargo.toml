@@ -8,10 +8,10 @@ edition = "2021"
 doctest = false
 
 [dependencies.kernel]
-path = "../../kernel"
+path = "../../libs/kernel"
 
 [dependencies.engine]
-path = "../../engine"
+path = "../../libs/engine"
 
 [dependencies]
 anyhow = "1.0.71"

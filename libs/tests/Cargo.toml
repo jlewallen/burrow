@@ -20,16 +20,16 @@ path = "../engine"
 path = "../sqlite"
 
 [dev-dependencies.plugins-core]
-path = "../plugins/core"
+path = "../../plugins/core"
 
 [dev-dependencies.plugins-rune]
-path = "../plugins/rune"
+path = "../../plugins/rune"
 
 [dev-dependencies.plugins-wasm]
-path = "../plugins/wasm"
+path = "../../plugins/wasm"
 
 [dev-dependencies.plugins-rpc]
-path = "../plugins/rpc"
+path = "../../plugins/rpc"
 
 [dev-dependencies]
 ctor = "0.2.2"

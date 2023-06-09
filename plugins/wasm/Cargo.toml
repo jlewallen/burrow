@@ -9,7 +9,7 @@ build = "build.rs"
 doctest = false
 
 [dependencies.kernel]
-path = "../../kernel"
+path = "../../libs/kernel"
 
 [dependencies.plugins-core]
 path = "../core"

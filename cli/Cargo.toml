@@ -3,6 +3,30 @@ name = "cli"
 version = "0.1.0"
 authors = ["Jacob Lewallen <jlewallen@gmail.com>"]
 edition = "2021"
+ 
+[dependencies.replies]
+path = "../libs/replies"
+
+[dependencies.kernel]
+path = "../libs/kernel"
+
+[dependencies.engine]
+path = "../libs/engine"
+
+[dependencies.sqlite]
+path = "../libs/sqlite"
+
+[dependencies.plugins-core]
+path = "../plugins/core"
+
+[dependencies.plugins-rune]
+path = "../plugins/rune"
+
+[dependencies.plugins-wasm]
+path = "../plugins/wasm"
+
+[dependencies.plugins-rpc]
+path = "../plugins/rpc"
 
 [dependencies]
 anyhow = "1.0.71"
@@ -23,27 +47,3 @@ tera = "1.19.0"
 rustyline = "11.0.0"
 tempfile = "3.5.0"
 tracing-tree = "0.2.3"
- 
-[dependencies.replies]
-path = "../libs/replies"
-
-[dependencies.kernel]
-path = "../libs/kernel"
-
-[dependencies.engine]
-path = "../libs/engine"
-
-[dependencies.sqlite]
-path = "../libs/sqlite"
-
-[dependencies.plugins-core]
-path = "../libs/plugins/core"
-
-[dependencies.plugins-rune]
-path = "../libs/plugins/rune"
-
-[dependencies.plugins-wasm]
-path = "../libs/plugins/wasm"
-
-[dependencies.plugins-rpc]
-path = "../libs/plugins/rpc"
