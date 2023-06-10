@@ -87,7 +87,7 @@ fn get_assets_path() -> Result<PathBuf> {
         };
     }
 
-    Ok(cwd.join("libs/plugins/wasm/assets"))
+    Ok(cwd.join("plugins/wasm/assets"))
 }
 
 impl WasmPlugin {}
