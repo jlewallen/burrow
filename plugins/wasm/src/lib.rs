@@ -1,20 +1,22 @@
-use anyhow::Result;
-use bincode::{Decode, Encode};
+use anyhow::{anyhow, Result};
+use plugins_rpc_proto::{AlwaysErrorsServices, PayloadMessage, Query, Sender, ServerProtocol};
 use std::collections::VecDeque;
 use std::sync::Arc;
 use std::{cell::RefCell, path::PathBuf};
+use wasm_sys::ipc::WasmMessage;
 
 use anyhow::Context;
 use plugins_core::library::plugin::*;
 
 use wasmer::{
-    imports, Function, FunctionEnv, FunctionEnvMut, Instance, Memory, Module, Store, WasmPtr,
+    imports, Function, FunctionEnv, FunctionEnvMut, Instance, Memory, Module, Store, Value, WasmPtr,
 };
 
 pub struct WasmRunner {
     store: Store,
     env: FunctionEnv<MyEnv>,
     instance: Instance,
+    server: ServerProtocol,
 }
 
 impl WasmRunner {
@@ -23,6 +25,7 @@ impl WasmRunner {
             store,
             env,
             instance,
+            server: ServerProtocol::new("session-wasm".into()),
         }
     }
 
@@ -39,7 +42,23 @@ impl WasmRunner {
             .get_function("agent_initialize")?
             .call(&mut self.store, &[])?;
 
+        self.tick()?;
+
         Ok(std::mem::take(&mut self.env.as_mut(&mut self.store).outbox))
+    }
+
+    fn tick(&mut self) -> Result<()> {
+        let state = {
+            let env = self.env.as_ref(&mut self.store);
+            env.state.ok_or_else(|| anyhow!("Module missing state."))?
+        };
+
+        self.instance
+            .exports
+            .get_function("agent_tick")?
+            .call(&mut self.store, &[Value::I32(state)])?;
+
+        Ok(())
     }
 }
 
@@ -61,6 +80,7 @@ struct MyEnv {
     pub memory: Option<Memory>,
     pub inbox: VecDeque<Arc<[u8]>>,
     pub outbox: Vec<Box<[u8]>>,
+    pub state: Option<i32>,
 }
 
 impl MyEnv {}
@@ -144,6 +164,12 @@ impl Plugin for WasmPlugin {
             sending.len() as u32
         }
 
+        fn agent_store(mut env: FunctionEnvMut<MyEnv>, ptr: i32) {
+            let (data, _store) = env.data_and_store_mut();
+
+            data.state = Some(ptr);
+        }
+
         fn get_string(mut env: FunctionEnvMut<MyEnv>, msg: WasmPtr<u8>, len: u32) -> String {
             let (data, store) = env.data_and_store_mut();
             let view = data.memory.as_ref().expect("No memory").view(&store);
@@ -151,15 +177,15 @@ impl Plugin for WasmPlugin {
         }
 
         fn console_info(env: FunctionEnvMut<MyEnv>, msg: WasmPtr<u8>, len: u32) {
-            info!("{}", &get_string(env, msg, len));
+            info!("(agent) {}", &get_string(env, msg, len));
         }
 
         fn console_warn(env: FunctionEnvMut<MyEnv>, msg: WasmPtr<u8>, len: u32) {
-            warn!("{}", &get_string(env, msg, len));
+            warn!("(agent) {}", &get_string(env, msg, len));
         }
 
         fn console_error(env: FunctionEnvMut<MyEnv>, msg: WasmPtr<u8>, len: u32) {
-            error!("{}", &get_string(env, msg, len));
+            error!("(agent) {}", &get_string(env, msg, len));
         }
 
         let imports = imports! {
@@ -167,6 +193,7 @@ impl Plugin for WasmPlugin {
                 "console_info" => Function::new_typed_with_env(&mut store, &env, console_info),
                 "console_warn" => Function::new_typed_with_env(&mut store, &env, console_warn),
                 "console_error" => Function::new_typed_with_env(&mut store, &env, console_error),
+                "agent_store" => Function::new_typed_with_env(&mut store, &env, agent_store),
                 "agent_send" => Function::new_typed_with_env(&mut store, &env, agent_send),
                 "agent_recv" => Function::new_typed_with_env(&mut store, &env, agent_recv),
             }
@@ -184,18 +211,32 @@ impl Plugin for WasmPlugin {
         }
 
         {
-            let bytes = Message::Ping("Ping!".to_owned()).to_bytes()?;
+            let bytes =
+                WasmMessage::Payload(plugins_rpc_proto::Payload::Initialize("ignored".into()))
+                    .to_bytes()?;
 
+            let mut sender: Sender<PayloadMessage> = Default::default();
             let mut runners = self.runners.borrow_mut();
-            let mut outbox = Vec::new();
             for runner in runners.iter_mut() {
+                let mut outbox = Vec::new();
                 outbox.extend(runner.initialize(&[bytes.clone().into()])?);
-            }
 
-            let _outbox: Vec<Message> = outbox
-                .into_iter()
-                .map(|b| Ok(Message::from_bytes(&b)?))
-                .collect::<Result<Vec<_>>>()?;
+                let outbox: Vec<WasmMessage> = outbox
+                    .into_iter()
+                    .map(|b| Ok(WasmMessage::from_bytes(&b)?))
+                    .collect::<Result<Vec<_>>>()?;
+
+                for m in outbox.into_iter() {
+                    match m {
+                        WasmMessage::Query(q) => runner.server.apply(
+                            &Query::into_message(q, "ignored".into()),
+                            &mut sender,
+                            &AlwaysErrorsServices {},
+                        )?,
+                        WasmMessage::Payload(_) => unimplemented!(),
+                    }
+                }
+            }
         }
 
         Ok(())
@@ -206,27 +247,41 @@ impl Plugin for WasmPlugin {
     }
 
     fn have_surroundings(&self, _surroundings: &Surroundings) -> Result<()> {
+        /*
+        let bytes = WasmMessage::Payload(plugins_rpc_proto::Payload::Surroundings(
+            surroundings.try_into()?,
+        ))
+        .to_bytes()?;
+
+        let mut sender: Sender<PayloadMessage> = Default::default();
+        let mut runners = self.runners.borrow_mut();
+        for runner in runners.iter_mut() {
+            let mut outbox = Vec::new();
+            outbox.extend(runner.have_surroundings(&[bytes.clone().into()])?);
+
+            let outbox: Vec<WasmMessage> = outbox
+                .into_iter()
+                .map(|b| Ok(WasmMessage::from_bytes(&b)?))
+                .collect::<Result<Vec<_>>>()?;
+
+            for m in outbox.into_iter() {
+                match m {
+                    WasmMessage::Query(q) => runner.server.apply(
+                        &Query::into_message(q, "ignored".into()),
+                        &mut sender,
+                        &AlwaysErrorsServices {},
+                    )?,
+                    WasmMessage::Payload(_) => unimplemented!(),
+                }
+            }
+        }
+        */
+
         Ok(())
     }
 
     fn stop(&self) -> Result<()> {
         Ok(())
-    }
-}
-
-#[derive(Debug, Encode, Decode)]
-pub enum Message {
-    Ping(String),
-    Pong,
-}
-
-impl Message {
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        Ok(bincode::decode_from_slice(bytes, bincode::config::legacy()).map(|(m, _)| m)?)
-    }
-
-    pub fn to_bytes(&self) -> Result<Vec<u8>> {
-        Ok(bincode::encode_to_vec(self, bincode::config::legacy())?)
     }
 }
 

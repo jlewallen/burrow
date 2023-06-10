@@ -1,21 +1,27 @@
-use bincode::{Decode, Encode};
-
-use wasm_sys::{info, ipc};
+use wasm_sys::prelude::*;
 
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
 pub unsafe extern "C" fn agent_initialize() {
-    match ipc::recv::<Message>() {
-        Some(m) => {
-            info!("message: {:?}", m);
-            ipc::send(&Message::Pong);
+    let mut bridge = Box::new(AgentBridge::new());
+
+    match bridge.tick() {
+        Err(e) => {
+            error!("{:?}", e);
+            return;
         }
-        None => info!("empty"),
+        Ok(_) => {}
     }
+
+    agent_state(bridge);
 }
 
-#[derive(Debug, Encode, Decode)]
-pub enum Message {
-    Ping(String),
-    Pong,
+#[no_mangle]
+#[allow(clippy::missing_safety_doc)]
+pub unsafe extern "C" fn agent_tick(state: *mut std::ffi::c_void) {
+    let state = state as *mut AgentBridge;
+    match (*state).tick() {
+        Err(e) => error!("{:?}", e),
+        Ok(_) => {}
+    }
 }

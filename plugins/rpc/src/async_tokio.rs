@@ -90,7 +90,7 @@ where
         let (agent_tx, rx_agent) = tokio::sync::mpsc::channel::<ChannelMessage>(4);
         let (server_tx, mut rx_server) = tokio::sync::mpsc::channel::<ChannelMessage>(4);
 
-        let session_key = SessionKey::new("SessionKey");
+        let session_key: SessionKey = "session-tokio".into();
 
         tokio::spawn({
             let session_key = session_key.clone();

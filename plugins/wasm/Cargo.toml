@@ -17,6 +17,12 @@ path = "../core"
 [dependencies.plugins-rpc]
 path = "../rpc"
 
+[dependencies.plugins-rpc-proto]
+path = "../rpc-proto"
+
+[dependencies.wasm-sys]
+path = "../wasm-sys"
+
 [dependencies]
 anyhow = "1.0.71"
 tracing = "0.1.37"

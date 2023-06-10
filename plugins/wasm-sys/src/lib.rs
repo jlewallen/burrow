@@ -3,21 +3,84 @@ pub mod macros;
 pub mod ffi {
     #![allow(dead_code)]
 
+    use std::ffi::c_void;
+
     #[link(wasm_import_module = "burrow")]
     extern "C" {
         pub fn console_info(msg: *const u8, len: usize);
         pub fn console_warn(msg: *const u8, len: usize);
         pub fn console_error(msg: *const u8, len: usize);
 
+        pub fn agent_store(app: *const c_void);
         pub fn agent_send(event: *const u8, len: usize);
         pub fn agent_recv(event: *const u8, len: usize) -> usize;
     }
 }
 
 pub mod ipc {
+    use anyhow::Result;
     use bincode::{Decode, Encode};
 
-    use crate::error;
+    use crate::{error, info};
+
+    use plugins_rpc_proto::{
+        AgentProtocol, DefaultResponses, Payload, Query, QueryMessage, Sender,
+    };
+
+    pub struct AgentBridge {
+        agent: AgentProtocol<DefaultResponses>,
+    }
+
+    impl AgentBridge {
+        pub fn new() -> Self {
+            Self {
+                agent: AgentProtocol::new(),
+            }
+        }
+
+        pub fn drain(&mut self) -> anyhow::Result<()> {
+            while let Some(message) = recv::<WasmMessage>() {
+                info!("message: {:?}", message);
+                let mut replies: Sender<QueryMessage> = Default::default();
+
+                match message {
+                    WasmMessage::Query(_query) => unimplemented!(),
+                    WasmMessage::Payload(payload) => self
+                        .agent
+                        .apply(&payload.into_message("ignored".into()), &mut replies)?,
+                }
+
+                for m in replies.into_iter() {
+                    info!("to-server: {:?}", &m);
+                    send(&WasmMessage::Query(m.into_body()))
+                }
+            }
+
+            Ok(())
+        }
+
+        pub fn tick(&mut self) -> anyhow::Result<()> {
+            info!("tick!");
+
+            Ok(())
+        }
+    }
+
+    #[derive(Debug, Encode, Decode)]
+    pub enum WasmMessage {
+        Query(Option<Query>),
+        Payload(Payload),
+    }
+
+    impl WasmMessage {
+        pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
+            Ok(bincode::decode_from_slice(bytes, bincode::config::legacy()).map(|(m, _)| m)?)
+        }
+
+        pub fn to_bytes(&self) -> Result<Vec<u8>> {
+            Ok(bincode::encode_to_vec(self, bincode::config::legacy())?)
+        }
+    }
 
     pub fn send<T: Encode>(message: &T) {
         let encoded: Vec<u8> = match bincode::encode_to_vec(&message, bincode::config::legacy()) {
@@ -55,5 +118,17 @@ pub mod ipc {
                 None
             }
         }
+    }
+}
+
+pub mod prelude {
+    use std::ffi::c_void;
+
+    pub use crate::ffi;
+    pub use crate::ipc::{recv, send, AgentBridge};
+    pub use crate::{error, info, warn};
+
+    pub unsafe fn agent_state<T>(state: Box<T>) {
+        crate::ffi::agent_store(Box::into_raw(state) as *const c_void);
     }
 }

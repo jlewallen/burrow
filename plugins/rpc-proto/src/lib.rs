@@ -1,3 +1,4 @@
+use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use tracing::*;
 
@@ -13,7 +14,7 @@ pub use server::Completed;
 pub use server::ServerProtocol;
 pub use server::Services;
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Debug)]
+#[derive(Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Hash, Clone, Debug)]
 pub struct SessionKey(String);
 
 impl SessionKey {
@@ -29,11 +30,17 @@ impl SessionKey {
     }
 }
 
+impl From<&str> for SessionKey {
+    fn from(value: &str) -> Self {
+        Self(value.to_owned())
+    }
+}
+
 pub trait Inbox<T, R> {
     fn deliver(&mut self, message: &T, replies: &mut Sender<R>) -> anyhow::Result<()>;
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Debug)]
+#[derive(Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Hash, Clone, Debug)]
 pub struct EntityKey(String);
 
 impl EntityKey {
@@ -54,8 +61,8 @@ impl From<&EntityKey> for kernel::EntityKey {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone)]
-pub struct EntityJson(serde_json::Value);
+#[derive(Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
+pub struct EntityJson(String);
 
 impl std::fmt::Debug for EntityJson {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -63,13 +70,13 @@ impl std::fmt::Debug for EntityJson {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub struct EntityUpdate {
     entity_key: EntityKey,
     entity: EntityJson,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub enum Event {
     Arrived,
     Left,
@@ -77,29 +84,29 @@ pub enum Event {
     Dropped,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub enum Reply {
     Done,
     NotFound,
     Impossible,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub enum Find {}
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub enum Try {
     CanMove,
     Moved,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub enum Permission {}
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub enum Hook {}
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub enum LookupBy {
     Key(EntityKey),
     Gid(u64),
@@ -116,7 +123,7 @@ impl<'a> Into<kernel::LookupBy<'a>> for &LookupBy {
 }
 */
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub enum Query {
     Complete,
 
@@ -134,12 +141,12 @@ pub enum Query {
 }
 
 impl Query {
-    pub fn into_message(body: Option<Self>, session_key: SessionKey) -> Message<Option<Self>> {
+    pub fn into_message(body: Option<Self>, session_key: SessionKey) -> QueryMessage {
         Message { session_key, body }
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Encode, Decode)]
 pub struct Message<B> {
     session_key: SessionKey,
     body: B,
@@ -163,7 +170,7 @@ impl std::fmt::Debug for QueryMessage {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub enum Surroundings {
     Living {
         world: EntityKey,
@@ -177,7 +184,7 @@ impl TryFrom<&kernel::Entry> for EntityJson {
 
     fn try_from(value: &kernel::Entry) -> Result<Self, Self::Error> {
         let entity = value.entity()?;
-        Ok(Self(entity.to_json_value()?))
+        Ok(Self(entity.to_json_value()?.to_string())) // TODO Ew
     }
 }
 
@@ -199,7 +206,7 @@ impl TryFrom<&kernel::Surroundings> for Surroundings {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub enum Payload {
     Initialize(SessionKey), /* Complete */
 
@@ -212,6 +219,15 @@ pub enum Payload {
     Permission(Permission),
 
     Hook(Hook),
+}
+
+impl Payload {
+    pub fn into_message(self, session_key: SessionKey) -> PayloadMessage {
+        Message {
+            session_key,
+            body: self,
+        }
+    }
 }
 
 pub type PayloadMessage = Message<Payload>;

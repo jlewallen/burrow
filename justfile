@@ -5,19 +5,19 @@ default: test
 build:
     cargo build
 
-test: build
+test:
     cargo test --workspace
 
-eval: build
+eval:
     cargo run -- eval
 
-shell: build
+shell:
     cargo run -- shell
 
-serve: build
+serve:
     cargo run -- serve
 
-look: build
+look:
     cargo run -- eval --text look --text look --text look --separate-sessions
 
 clean:
