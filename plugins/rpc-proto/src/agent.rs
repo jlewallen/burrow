@@ -53,7 +53,6 @@ pub struct AgentProtocol<R>
 where
     R: AgentResponses,
 {
-    session_key: Option<SessionKey>,
     machine: AgentMachine,
     _marker: std::marker::PhantomData<R>,
 }
@@ -64,47 +63,23 @@ where
 {
     pub fn new() -> Self {
         Self {
-            session_key: None,
             machine: AgentMachine::new(),
             _marker: Default::default(),
         }
     }
 
-    #[cfg(test)]
-    pub fn new_with_session_key(session_key: SessionKey) -> Self {
-        Self {
-            session_key: Some(session_key),
-            machine: AgentMachine::new(),
-            _marker: Default::default(),
-        }
-    }
-
-    #[cfg(test)]
-    pub fn session_key(&self) -> Option<&SessionKey> {
-        self.session_key.as_ref()
-    }
-
-    pub fn apply(
-        &mut self,
-        message: &PayloadMessage,
-        sender: &mut Sender<QueryMessage>,
-    ) -> Result<()> {
+    pub fn apply(&mut self, message: &Payload, sender: &mut Sender<Query>) -> Result<()> {
         let _span = span!(Level::INFO, "agent").entered();
-        let transition = self.handle(message).map_message(|m| QueryMessage {
-            session_key: self.session_key.as_ref().unwrap().clone(),
-            body: Some(m),
-        });
+        let transition = self.handle(message);
 
         self.machine.apply(transition, sender)?;
 
         Ok(())
     }
 
-    fn handle(&mut self, message: &PayloadMessage) -> AgentTransition {
-        match (&self.machine.state, &message.body) {
-            (AgentState::Uninitialized, Payload::Initialize(session_key)) => {
-                self.session_key = Some(session_key.to_owned());
-
+    fn handle(&mut self, message: &Payload) -> AgentTransition {
+        match (&self.machine.state, &message) {
+            (AgentState::Uninitialized, Payload::Initialize) => {
                 AgentTransition::Direct(AgentState::Initialized)
             }
             (AgentState::Initialized, Payload::Surroundings(surroundings)) => {
@@ -138,15 +113,13 @@ mod tests {
 
     #[test]
     fn test_initialize() -> anyhow::Result<()> {
-        let session_key = SessionKey::new("session-key");
-        let mut proto = TestAgent::new_with_session_key(session_key.clone());
+        let mut proto = TestAgent::new();
 
         assert_eq!(proto.machine.state, AgentState::Uninitialized);
 
-        let session_key = proto.session_key().unwrap().to_owned();
-        let initialize = Payload::Initialize(session_key.clone());
+        let initialize = Payload::Initialize;
         let mut sender = Default::default();
-        proto.apply(&session_key.message(initialize), &mut sender)?;
+        proto.apply(&initialize, &mut sender)?;
 
         assert_eq!(proto.machine.state, AgentState::Initialized);
         assert!(sender.queue.is_empty());

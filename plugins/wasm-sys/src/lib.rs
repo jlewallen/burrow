@@ -23,9 +23,7 @@ pub mod ipc {
 
     use crate::{error, info};
 
-    use plugins_rpc_proto::{
-        AgentProtocol, DefaultResponses, Payload, Query, QueryMessage, Sender,
-    };
+    use plugins_rpc_proto::{AgentProtocol, DefaultResponses, Payload, Query, Sender};
 
     pub struct AgentBridge {
         agent: AgentProtocol<DefaultResponses>,
@@ -38,29 +36,23 @@ pub mod ipc {
             }
         }
 
-        pub fn drain(&mut self) -> anyhow::Result<()> {
+        pub fn tick(&mut self) -> anyhow::Result<()> {
+            info!("tick!");
+
             while let Some(message) = recv::<WasmMessage>() {
                 info!("message: {:?}", message);
-                let mut replies: Sender<QueryMessage> = Default::default();
+                let mut replies: Sender<Query> = Default::default();
 
                 match message {
                     WasmMessage::Query(_query) => unimplemented!(),
-                    WasmMessage::Payload(payload) => self
-                        .agent
-                        .apply(&payload.into_message("ignored".into()), &mut replies)?,
+                    WasmMessage::Payload(payload) => self.agent.apply(&payload, &mut replies)?,
                 }
 
                 for m in replies.into_iter() {
                     info!("to-server: {:?}", &m);
-                    send(&WasmMessage::Query(m.into_body()))
+                    send(&WasmMessage::Query(Some(m)))
                 }
             }
-
-            Ok(())
-        }
-
-        pub fn tick(&mut self) -> anyhow::Result<()> {
-            info!("tick!");
 
             Ok(())
         }

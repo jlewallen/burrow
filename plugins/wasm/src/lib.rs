@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use plugins_rpc_proto::{AlwaysErrorsServices, PayloadMessage, Query, Sender, ServerProtocol};
+use plugins_rpc_proto::{AlwaysErrorsServices, Payload, Sender, ServerProtocol};
 use std::collections::VecDeque;
 use std::sync::Arc;
 use std::{cell::RefCell, path::PathBuf};
@@ -25,7 +25,7 @@ impl WasmRunner {
             store,
             env,
             instance,
-            server: ServerProtocol::new("session-wasm".into()),
+            server: ServerProtocol::new(),
         }
     }
 
@@ -211,11 +211,9 @@ impl Plugin for WasmPlugin {
         }
 
         {
-            let bytes =
-                WasmMessage::Payload(plugins_rpc_proto::Payload::Initialize("ignored".into()))
-                    .to_bytes()?;
+            let bytes = WasmMessage::Payload(plugins_rpc_proto::Payload::Initialize).to_bytes()?;
 
-            let mut sender: Sender<PayloadMessage> = Default::default();
+            let mut sender: Sender<Payload> = Default::default();
             let mut runners = self.runners.borrow_mut();
             for runner in runners.iter_mut() {
                 let mut outbox = Vec::new();
@@ -229,7 +227,7 @@ impl Plugin for WasmPlugin {
                 for m in outbox.into_iter() {
                     match m {
                         WasmMessage::Query(q) => runner.server.apply(
-                            &Query::into_message(q, "ignored".into()),
+                            q.as_ref(),
                             &mut sender,
                             &AlwaysErrorsServices {},
                         )?,

@@ -40,14 +40,12 @@ impl ServerMachine {
 
 #[derive(Debug)]
 pub struct ServerProtocol {
-    session_key: SessionKey,
     machine: ServerMachine,
 }
 
 impl ServerProtocol {
-    pub fn new(session_key: SessionKey) -> Self {
+    pub fn new() -> Self {
         Self {
-            session_key,
             machine: ServerMachine::new(),
         }
     }
@@ -58,17 +56,12 @@ impl ServerProtocol {
 
     pub fn apply(
         &mut self,
-        message: &QueryMessage,
-        sender: &mut Sender<PayloadMessage>,
+        message: Option<&Query>,
+        sender: &mut Sender<Payload>,
         services: &dyn Services,
     ) -> Result<()> {
         let _span = span!(Level::INFO, "server").entered();
-        let transition = self
-            .handle(message, services)?
-            .map_message(|m| PayloadMessage {
-                session_key: self.session_key.clone(),
-                body: m,
-            });
+        let transition = self.handle(message, services)?;
 
         self.machine.apply(transition, sender)?;
 
@@ -77,12 +70,12 @@ impl ServerProtocol {
 
     fn handle(
         &mut self,
-        message: &QueryMessage,
+        message: Option<&Query>,
         services: &dyn Services,
     ) -> Result<ServerTransition> {
-        match (&self.machine.state, &message.body) {
+        match (&self.machine.state, &message) {
             (ServerState::Initializing, _) => Ok(ServerTransition::Send(
-                Payload::Initialize(message.session_key.clone()),
+                Payload::Initialize,
                 ServerState::Initialized,
             )),
             (ServerState::Initialized, None) => Ok(ServerTransition::None),
@@ -137,7 +130,7 @@ mod tests {
     #[allow(unused_imports)]
     use tracing::*;
 
-    use crate::{server::ServerState, EntityJson, LookupBy, Payload, SessionKey};
+    use crate::{server::ServerState, EntityJson, LookupBy, Payload};
 
     use super::{ServerProtocol, Services};
 
@@ -155,21 +148,16 @@ mod tests {
 
     #[test]
     fn test_initialize() -> anyhow::Result<()> {
-        let session_key = SessionKey::new("session-key");
-        let mut proto = ServerProtocol::new(session_key.clone());
+        let mut proto = ServerProtocol::new();
 
         assert_eq!(proto.machine.state, ServerState::Initializing);
 
         let mut sender = Default::default();
-        let start = session_key.message(None);
-        proto.apply(&start, &mut sender, &DummyServer {})?;
+        proto.apply(None, &mut sender, &DummyServer {})?;
 
         assert_eq!(proto.machine.state, ServerState::Initialized);
 
-        assert_eq!(
-            sender.bodies().next(),
-            Some(&Payload::Initialize(session_key))
-        );
+        assert_eq!(sender.iter().next(), Some(&Payload::Initialize));
 
         Ok(())
     }

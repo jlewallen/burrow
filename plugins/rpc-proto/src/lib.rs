@@ -14,28 +14,6 @@ pub use server::Completed;
 pub use server::ServerProtocol;
 pub use server::Services;
 
-#[derive(Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Hash, Clone, Debug)]
-pub struct SessionKey(String);
-
-impl SessionKey {
-    pub fn new(value: &str) -> Self {
-        Self(value.to_owned())
-    }
-
-    pub fn message<B>(&self, body: B) -> Message<B> {
-        Message {
-            session_key: self.clone(),
-            body,
-        }
-    }
-}
-
-impl From<&str> for SessionKey {
-    fn from(value: &str) -> Self {
-        Self(value.to_owned())
-    }
-}
-
 pub trait Inbox<T, R> {
     fn deliver(&mut self, message: &T, replies: &mut Sender<R>) -> anyhow::Result<()>;
 }
@@ -125,6 +103,8 @@ impl<'a> Into<kernel::LookupBy<'a>> for &LookupBy {
 
 #[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub enum Query {
+    Bootstrap,
+
     Complete,
 
     Update(EntityUpdate),
@@ -138,36 +118,6 @@ pub enum Query {
     Find(Find),
 
     Try(Try),
-}
-
-impl Query {
-    pub fn into_message(body: Option<Self>, session_key: SessionKey) -> QueryMessage {
-        Message { session_key, body }
-    }
-}
-
-#[derive(Serialize, Deserialize, Encode, Decode)]
-pub struct Message<B> {
-    session_key: SessionKey,
-    body: B,
-}
-
-impl<B> Message<B> {
-    pub fn body(&self) -> &B {
-        &self.body
-    }
-
-    pub fn into_body(self) -> B {
-        self.body
-    }
-}
-
-pub type QueryMessage = Message<Option<Query>>;
-
-impl std::fmt::Debug for QueryMessage {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Query").field("body", &self.body).finish()
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
@@ -208,7 +158,7 @@ impl TryFrom<&kernel::Surroundings> for Surroundings {
 
 #[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub enum Payload {
-    Initialize(SessionKey), /* Complete */
+    Initialize, /* Complete */
 
     Surroundings(Surroundings),
     Evaluate(String, Surroundings), /* Reply */
@@ -219,23 +169,6 @@ pub enum Payload {
     Permission(Permission),
 
     Hook(Hook),
-}
-
-impl Payload {
-    pub fn into_message(self, session_key: SessionKey) -> PayloadMessage {
-        Message {
-            session_key,
-            body: self,
-        }
-    }
-}
-
-pub type PayloadMessage = Message<Payload>;
-
-impl std::fmt::Debug for PayloadMessage {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Payload").field("body", &self.body).finish()
-    }
 }
 
 #[derive(Debug)]
@@ -275,12 +208,5 @@ where
 
     pub fn pop(&mut self) -> Option<S> {
         self.queue.pop()
-    }
-}
-
-impl<B> Sender<Message<B>> {
-    #[cfg(test)]
-    pub fn bodies(&self) -> impl Iterator<Item = &B> {
-        self.queue.iter().map(|m| &m.body)
     }
 }

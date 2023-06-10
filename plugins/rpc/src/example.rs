@@ -1,9 +1,7 @@
 use anyhow::Result;
 use tracing::*;
 
-use plugins_rpc_proto::{
-    AgentProtocol, DefaultResponses, Inbox, Payload, PayloadMessage, QueryMessage, Sender,
-};
+use plugins_rpc_proto::{AgentProtocol, DefaultResponses, Inbox, Payload, Query, Sender};
 
 #[derive(Debug)]
 pub struct ExampleAgent {
@@ -30,15 +28,11 @@ impl ExampleAgent {
     }
 }
 
-impl Inbox<PayloadMessage, QueryMessage> for ExampleAgent {
-    fn deliver(
-        &mut self,
-        message: &PayloadMessage,
-        replies: &mut Sender<QueryMessage>,
-    ) -> Result<()> {
+impl Inbox<Payload, Query> for ExampleAgent {
+    fn deliver(&mut self, message: &Payload, replies: &mut Sender<Query>) -> Result<()> {
         self.agent.apply(message, replies)?;
 
-        self.handle(message.body())?;
+        self.handle(message)?;
 
         Ok(())
     }
