@@ -1,8 +1,8 @@
 use dispatcher::Dispatch;
-use plugins_core::dynamic::PluginRegistrar;
+use plugins_dynlib::PluginRegistrar;
 use tracing::{dispatcher, info};
 
-plugins_core::export_plugin!(initialize);
+plugins_dynlib::export_plugin!(initialize);
 
 fn default_plugin_setup(registrar: &dyn PluginRegistrar) {
     if !dispatcher::has_been_set() {

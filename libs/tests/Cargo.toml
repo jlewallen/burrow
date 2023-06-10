@@ -31,6 +31,9 @@ path = "../../plugins/wasm"
 [dev-dependencies.plugins-rpc]
 path = "../../plugins/rpc"
 
+[dev-dependencies.plugins-dynlib]
+path = "../../plugins/dynlib"
+
 [dev-dependencies]
 ctor = "0.2.2"
 insta = { version = "1.29.0", features = ["json"] }

@@ -9,6 +9,7 @@ members = [
     "plugins/rpc",
     "plugins/wasm",
     "plugins/wasm-sys",
+    "plugins/dynlib",
     "examples/shared",
     "examples/rpc",
     "examples/wasm",

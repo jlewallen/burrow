@@ -1,10 +1,11 @@
+use anyhow::Result;
 use std::rc::Rc;
 
-use kernel::{EvaluationResult, ManagedHooks, ParsesActions, Plugin};
+use kernel::{EvaluationResult, ManagedHooks, ParsesActions, Plugin, PluginFactory};
 use libloading::Library;
-use tracing::dispatcher::get_default;
+use tracing::{dispatcher::get_default, Subscriber};
 
-use crate::library::plugin::*;
+use plugins_core::library::plugin::*;
 
 #[derive(Default)]
 pub struct DynamicPluginFactory {}
@@ -109,12 +110,11 @@ macro_rules! export_plugin {
     ($register:expr) => {
         #[doc(hidden)]
         #[no_mangle]
-        pub static plugin_declaration: $crate::dynamic::PluginDeclaration =
-            $crate::dynamic::PluginDeclaration {
-                core_version: $crate::dynamic::CORE_VERSION,
-                // rustc_version: $crate::RUSTC_VERSION,
-                register: $register,
-            };
+        pub static plugin_declaration: $crate::PluginDeclaration = $crate::PluginDeclaration {
+            core_version: $crate::CORE_VERSION,
+            // rustc_version: $crate::RUSTC_VERSION,
+            register: $register,
+        };
     };
 }
 
@@ -193,7 +193,7 @@ impl Subscriber for PluginSubscriber {
 }
 
 pub mod model {
-    use crate::library::model::*;
+    use plugins_core::library::model::*;
 
     #[derive(Debug, Serialize)]
     #[serde(rename_all = "camelCase")]
@@ -218,7 +218,7 @@ pub mod parser {
 
 #[cfg(test)]
 mod tests {
-    use crate::library::tests::*;
+    use plugins_core::library::tests::*;
     // use super::parser::*;
     use super::*;
 

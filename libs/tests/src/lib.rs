@@ -5,15 +5,18 @@ mod tests {
     use tokio::task::JoinHandle;
 
     use engine::{
-        storage::EntityStorageFactory, storage::PersistedEntity, DevNullNotifier, Domain, Session,
-        SessionOpener,
+        sequences::{DeterministicKeys, Sequence},
+        storage::EntityStorageFactory,
+        storage::PersistedEntity,
+        DevNullNotifier, Domain, Session, SessionOpener,
     };
-    use kernel::{Finder, RegisteredPlugins};
+    use kernel::{EntityKey, Finder, Identity, RegisteredPlugins};
     use plugins_core::{
         building::BuildingPluginFactory, carrying::CarryingPluginFactory,
-        dynamic::DynamicPluginFactory, looking::LookingPluginFactory, moving::MovingPluginFactory,
-        BuildSurroundings, DefaultFinder, QuickThing,
+        looking::LookingPluginFactory, moving::MovingPluginFactory, BuildSurroundings,
+        DefaultFinder, QuickThing,
     };
+    use plugins_dynlib::DynamicPluginFactory;
     use plugins_rpc::RpcPluginFactory;
     use plugins_rune::RunePluginFactory;
     use plugins_wasm::WasmPluginFactory;
@@ -30,13 +33,14 @@ mod tests {
             storage_factory: Arc<SF>,
             plugins: Arc<RegisteredPlugins>,
             finder: Arc<dyn Finder>,
-            deterministic: bool,
+            keys: Arc<dyn Sequence<EntityKey>>,
+            identities: Arc<dyn Sequence<Identity>>,
         ) -> Self
         where
             SF: EntityStorageFactory + 'static,
         {
             Self {
-                domain: Domain::new(storage_factory, plugins, finder, deterministic),
+                domain: Domain::new(storage_factory, plugins, finder, keys, identities),
             }
         }
 
@@ -108,11 +112,14 @@ mod tests {
         registered_plugins.register(WasmPluginFactory::default());
         registered_plugins.register(RpcPluginFactory::start().await?);
         let finder = Arc::new(DefaultFinder::default());
+        let keys = Arc::new(DeterministicKeys::new());
+        let identities = Arc::new(DeterministicKeys::new());
         Ok(AsyncFriendlyDomain::new(
             storage_factory,
             Arc::new(registered_plugins),
             finder,
-            true,
+            keys,
+            identities,
         ))
     }
 

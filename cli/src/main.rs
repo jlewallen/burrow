@@ -1,16 +1,17 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use nanoid::nanoid;
 use std::{error::Error, path::PathBuf, sync::Arc};
 use tracing::*;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use engine::Domain;
-use kernel::RegisteredPlugins;
+use engine::{sequences::Sequence, Domain};
+use kernel::{EntityKey, Identity, RegisteredPlugins};
 use plugins_core::{
     building::BuildingPluginFactory, carrying::CarryingPluginFactory,
-    dynamic::DynamicPluginFactory, looking::LookingPluginFactory, moving::MovingPluginFactory,
-    DefaultFinder,
+    looking::LookingPluginFactory, moving::MovingPluginFactory, DefaultFinder,
 };
+use plugins_dynlib::DynamicPluginFactory;
 use plugins_rpc::RpcPluginFactory;
 use plugins_rune::RunePluginFactory;
 use plugins_wasm::WasmPluginFactory;
@@ -74,6 +75,20 @@ fn get_rust_log() -> String {
     original
 }
 
+struct NanoIds {}
+
+impl Sequence<EntityKey> for NanoIds {
+    fn following(&self) -> EntityKey {
+        EntityKey::from_string(nanoid!())
+    }
+}
+
+impl Sequence<Identity> for NanoIds {
+    fn following(&self) -> Identity {
+        Identity::default()
+    }
+}
+
 async fn make_domain() -> Result<Domain> {
     let storage_factory = Factory::new("world.sqlite3")?;
     let mut registered_plugins = RegisteredPlugins::default();
@@ -90,8 +105,23 @@ async fn make_domain() -> Result<Domain> {
         storage_factory,
         Arc::new(registered_plugins),
         finder,
-        false,
+        Arc::new(NanoIds {}),
+        Arc::new(NanoIds {}),
     ))
+}
+
+struct RandomKeys {}
+
+impl Sequence<EntityKey> for RandomKeys {
+    fn following(&self) -> EntityKey {
+        EntityKey::from_string(nanoid!())
+    }
+}
+
+impl Sequence<Identity> for RandomKeys {
+    fn following(&self) -> Identity {
+        Identity::default()
+    }
 }
 
 fn main() -> Result<(), Box<dyn Error>> {

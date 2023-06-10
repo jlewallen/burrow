@@ -28,6 +28,9 @@ path = "../plugins/wasm"
 [dependencies.plugins-rpc]
 path = "../plugins/rpc"
 
+[dependencies.plugins-dynlib]
+path = "../plugins/dynlib"
+
 [dependencies]
 anyhow = "1.0.71"
 thiserror = "1.0.40"
@@ -47,3 +50,4 @@ tera = "1.19.0"
 rustyline = "11.0.0"
 tempfile = "3.5.0"
 tracing-tree = "0.2.3"
+nanoid = "0.4.0"

@@ -2,8 +2,8 @@ use anyhow::Result;
 use std::{rc::Rc, sync::Arc};
 
 use engine::{
-    add_username_to_key, domain, storage::InMemoryEntityStorageFactory, DevNullNotifier, Session,
-    SessionOpener,
+    add_username_to_key, domain, sequences::DeterministicKeys,
+    storage::InMemoryEntityStorageFactory, DevNullNotifier, Session, SessionOpener,
 };
 use kernel::{EntityKey, EntityPtr, Entry, RegisteredPlugins, SessionRef, Surroundings, WORLD_KEY};
 
@@ -116,10 +116,12 @@ pub struct BuildSurroundings {
 
 impl BuildSurroundings {
     pub fn new() -> Result<Self> {
+        let keys = Arc::new(DeterministicKeys::new());
+        let identities = Arc::new(DeterministicKeys::new());
         let storage_factory = Arc::new(InMemoryEntityStorageFactory::default());
         let plugins = Arc::new(RegisteredPlugins::default());
         let finder = Arc::new(DefaultFinder::default());
-        let domain = domain::Domain::new(storage_factory, plugins, finder, true);
+        let domain = domain::Domain::new(storage_factory, plugins, finder, keys, identities);
         let session = domain.open_session()?;
 
         Ok(Self {

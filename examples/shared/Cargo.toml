@@ -9,5 +9,8 @@ crate-type = ["cdylib"]
 [dependencies.plugins-core]
 path = "../../plugins/core"
 
+[dependencies.plugins-dynlib]
+path = "../../plugins/dynlib"
+
 [dependencies]
 tracing = "0.1.37"

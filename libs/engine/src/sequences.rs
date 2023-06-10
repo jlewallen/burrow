@@ -1,38 +1,22 @@
-use nanoid::nanoid;
 use std::rc::Rc;
-use std::sync::{
-    atomic::{AtomicU64, Ordering},
-    Arc,
-};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use kernel::{EntityGid, EntityKey, Identity};
-
-pub fn make_keys(deterministic: bool) -> Arc<dyn Sequence<EntityKey>> {
-    if deterministic {
-        Arc::new(DeterministicKeys {
-            sequence: AtomicU64::new(0),
-        })
-    } else {
-        Arc::new(RandomKeys {})
-    }
-}
-
-pub fn make_identities(deterministic: bool) -> Arc<dyn Sequence<Identity>> {
-    if deterministic {
-        Arc::new(DeterministicKeys {
-            sequence: AtomicU64::new(0),
-        })
-    } else {
-        Arc::new(RandomKeys {})
-    }
-}
 
 pub trait Sequence<T>: Send + Sync {
     fn following(&self) -> T;
 }
 
-struct DeterministicKeys {
+pub struct DeterministicKeys {
     sequence: AtomicU64,
+}
+
+impl DeterministicKeys {
+    pub fn new() -> Self {
+        Self {
+            sequence: AtomicU64::new(0),
+        }
+    }
 }
 
 impl Sequence<EntityKey> for DeterministicKeys {
@@ -50,20 +34,6 @@ impl Sequence<Identity> for DeterministicKeys {
         let public = format!("Public#{}", unique);
         let private = format!("Private#{}", unique);
         Identity::new(public, private)
-    }
-}
-
-struct RandomKeys {}
-
-impl Sequence<EntityKey> for RandomKeys {
-    fn following(&self) -> EntityKey {
-        EntityKey::from_string(nanoid!())
-    }
-}
-
-impl Sequence<Identity> for RandomKeys {
-    fn following(&self) -> Identity {
-        Identity::default()
     }
 }
 

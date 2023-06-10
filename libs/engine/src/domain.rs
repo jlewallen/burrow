@@ -3,11 +3,7 @@ use std::{rc::Rc, sync::Arc};
 use tracing::info;
 
 use super::{sequences::Sequence, Session};
-use crate::{
-    sequences::{make_identities, make_keys},
-    storage::EntityStorageFactory,
-    storage::PersistedEntity,
-};
+use crate::{storage::EntityStorageFactory, storage::PersistedEntity};
 use kernel::{EntityKey, Finder, Identity, RegisteredPlugins};
 
 pub trait SessionOpener: Send + Sync + Clone {
@@ -28,14 +24,15 @@ impl Domain {
         storage_factory: Arc<dyn EntityStorageFactory>,
         plugins: Arc<RegisteredPlugins>,
         finder: Arc<dyn Finder>,
-        deterministic: bool,
+        keys: Arc<dyn Sequence<EntityKey>>,
+        identities: Arc<dyn Sequence<Identity>>,
     ) -> Self {
         info!("domain-new");
 
         Domain {
             storage_factory,
-            keys: make_keys(deterministic),
-            identities: make_identities(deterministic),
+            keys,
+            identities,
             finder,
             plugins,
         }
