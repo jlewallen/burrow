@@ -1,7 +1,7 @@
 use anyhow::Result;
 use tracing::*;
 
-use crate::proto::{
+use plugins_rpc_proto::{
     AgentProtocol, DefaultResponses, Inbox, Payload, PayloadMessage, QueryMessage, Sender,
 };
 

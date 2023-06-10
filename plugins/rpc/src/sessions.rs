@@ -5,7 +5,7 @@ use tracing::*;
 use kernel::{get_my_session, EntityGid, Entry};
 use plugins_core::tools;
 
-use crate::proto::{EntityJson, EntityKey, LookupBy, Services};
+use plugins_rpc_proto::{EntityJson, EntityKey, LookupBy, Services};
 
 pub struct SessionServices {}
 

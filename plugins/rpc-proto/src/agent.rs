@@ -132,14 +132,12 @@ mod tests {
     #[allow(unused_imports)]
     use tracing::*;
 
-    use crate::proto::{agent::AgentState, Payload};
-
     use super::*;
 
     type TestAgent = AgentProtocol<DefaultResponses>;
 
-    #[tokio::test]
-    async fn test_initialize() -> anyhow::Result<()> {
+    #[test]
+    fn test_initialize() -> anyhow::Result<()> {
         let session_key = SessionKey::new("session-key");
         let mut proto = TestAgent::new_with_session_key(session_key.clone());
 

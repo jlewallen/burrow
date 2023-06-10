@@ -1,7 +1,7 @@
 use anyhow::Result;
 use tracing::*;
 
-use crate::proto::{
+use plugins_rpc_proto::{
     AlwaysErrorsServices, Inbox, Payload, PayloadMessage, QueryMessage, Sender, ServerProtocol,
     Services, SessionKey, Surroundings,
 };

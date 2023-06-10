@@ -9,6 +9,9 @@ doctest = false
 [dependencies.plugins-core]
 path = "../core"
 
+[dependencies.plugins-rpc-proto]
+path = "../rpc-proto"
+
 [dependencies.kernel]
 path = "../../libs/kernel"
 

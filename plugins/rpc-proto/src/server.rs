@@ -137,7 +137,7 @@ mod tests {
     #[allow(unused_imports)]
     use tracing::*;
 
-    use crate::proto::{server::ServerState, EntityJson, LookupBy, Payload, SessionKey};
+    use crate::{server::ServerState, EntityJson, LookupBy, Payload, SessionKey};
 
     use super::{ServerProtocol, Services};
 
@@ -153,8 +153,8 @@ mod tests {
         }
     }
 
-    #[tokio::test]
-    async fn test_initialize() -> anyhow::Result<()> {
+    #[test]
+    fn test_initialize() -> anyhow::Result<()> {
         let session_key = SessionKey::new("session-key");
         let mut proto = ServerProtocol::new(session_key.clone());
 

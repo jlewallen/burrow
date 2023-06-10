@@ -10,7 +10,6 @@ use tokio::{
 mod async_tokio;
 mod example;
 mod inproc;
-mod proto;
 mod sessions;
 
 use plugins_core::library::plugin::*;
@@ -85,7 +84,7 @@ impl RpcServer {
 
     pub async fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
         let mut example = self.example.write().await;
-        let surroundings: crate::proto::Surroundings = surroundings.try_into()?;
+        let surroundings: plugins_rpc_proto::Surroundings = surroundings.try_into()?;
         example.have_surroundings(&surroundings).await?;
 
         Ok(())

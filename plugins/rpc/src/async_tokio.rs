@@ -3,13 +3,12 @@ use std::marker::PhantomData;
 use tokio::sync::mpsc;
 use tracing::*;
 
-use crate::{
-    proto::{
-        AlwaysErrorsServices, Completed, Inbox, Message, Payload, PayloadMessage, Query,
-        QueryMessage, Sender, ServerProtocol, Services, SessionKey, Surroundings,
-    },
-    SessionServices,
+use plugins_rpc_proto::{
+    AlwaysErrorsServices, Completed, Inbox, Message, Payload, PayloadMessage, Query, QueryMessage,
+    Sender, ServerProtocol, Services, SessionKey, Surroundings,
 };
+
+use crate::SessionServices;
 
 #[derive(Debug)]
 enum ChannelMessage {
