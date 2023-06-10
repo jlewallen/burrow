@@ -44,7 +44,7 @@ where
         let mut to_agent: Sender<_> = Default::default();
 
         while let Some(sending) = to_server.pop() {
-            self.server.apply(Some(&sending), &mut to_agent, services)?;
+            self.server.apply(&sending, &mut to_agent, services)?;
             for message in to_agent.iter() {
                 self.deliver(message, &mut to_server)?;
             }

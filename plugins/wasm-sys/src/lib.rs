@@ -48,9 +48,9 @@ pub mod ipc {
                     WasmMessage::Payload(payload) => self.agent.apply(&payload, &mut replies)?,
                 }
 
-                for m in replies.into_iter() {
-                    info!("to-server: {:?}", &m);
-                    send(&WasmMessage::Query(Some(m)))
+                for query in replies.into_iter() {
+                    info!("query: {:?}", &query);
+                    send(&WasmMessage::Query(query))
                 }
             }
 
@@ -60,7 +60,7 @@ pub mod ipc {
 
     #[derive(Debug, Encode, Decode)]
     pub enum WasmMessage {
-        Query(Option<Query>),
+        Query(Query),
         Payload(Payload),
     }
 

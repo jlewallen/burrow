@@ -12,7 +12,7 @@ use crate::SessionServices;
 
 #[derive(Debug)]
 enum ChannelMessage {
-    Query(Option<Query>),
+    Query(Query),
     Payload(Payload),
     Shutdown,
 }
@@ -36,14 +36,14 @@ async fn process_payload<T: Inbox<Payload, Query>>(
 
     for sending in to_server.into_iter() {
         trace!("sending {:?}", sending);
-        agent_tx.send(ChannelMessage::Query(Some(sending))).await?;
+        agent_tx.send(ChannelMessage::Query(sending)).await?;
     }
 
     Ok(())
 }
 
 async fn process_query<H>(
-    query: Option<Query>,
+    query: &Query,
     server_tx: &mpsc::Sender<ChannelMessage>,
     server: &mut ServerProtocol,
     services: &H,
@@ -53,16 +53,16 @@ where
 {
     fn apply_query(
         server: &mut ServerProtocol,
-        message: Option<&Query>,
+        query: &Query,
         services: &dyn Services,
     ) -> Result<Sender<Payload>> {
         let mut to_agent: Sender<_> = Default::default();
-        server.apply(message, &mut to_agent, services)?;
+        server.apply(query, &mut to_agent, services)?;
 
         Ok(to_agent)
     }
 
-    let to_agent: Sender<_> = apply_query(server, query.as_ref(), services)?;
+    let to_agent: Sender<_> = apply_query(server, query, services)?;
 
     for sending in to_agent.into_iter() {
         trace!("sending {:?}", sending);
@@ -123,7 +123,7 @@ where
         // Agent is transmitting queries to us and we're receiving from them.
         while let Some(cm) = self.rx_agent.recv().await {
             if let ChannelMessage::Query(query) = cm {
-                match process_query(query, &self.server_tx, &mut self.server, services).await {
+                match process_query(&query, &self.server_tx, &mut self.server, services).await {
                     Err(e) => panic!("Processing query: {:?}", e),
                     Ok(completed) => match completed {
                         Completed::Busy => continue,
@@ -137,7 +137,9 @@ where
     }
 
     pub async fn initialize(&mut self) -> Result<()> {
-        self.agent_tx.send(ChannelMessage::Query(None)).await?;
+        self.agent_tx
+            .send(ChannelMessage::Query(Query::Bootstrap))
+            .await?;
 
         self.drive(&AlwaysErrorsServices {}).await?;
 

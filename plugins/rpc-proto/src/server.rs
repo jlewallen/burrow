@@ -56,7 +56,7 @@ impl ServerProtocol {
 
     pub fn apply(
         &mut self,
-        message: Option<&Query>,
+        message: &Query,
         sender: &mut Sender<Payload>,
         services: &dyn Services,
     ) -> Result<()> {
@@ -68,18 +68,14 @@ impl ServerProtocol {
         Ok(())
     }
 
-    fn handle(
-        &mut self,
-        message: Option<&Query>,
-        services: &dyn Services,
-    ) -> Result<ServerTransition> {
+    fn handle(&mut self, message: &Query, services: &dyn Services) -> Result<ServerTransition> {
         match (&self.machine.state, &message) {
             (ServerState::Initializing, _) => Ok(ServerTransition::Send(
                 Payload::Initialize,
                 ServerState::Initialized,
             )),
-            (ServerState::Initialized, None) => Ok(ServerTransition::None),
-            (ServerState::Initialized, Some(Query::Lookup(depth, lookup))) => {
+            (ServerState::Initialized, Query::Bootstrap) => Ok(ServerTransition::None),
+            (ServerState::Initialized, Query::Lookup(depth, lookup)) => {
                 let resolved = services.lookup(*depth, lookup)?;
 
                 Ok(ServerTransition::Send(
@@ -87,7 +83,7 @@ impl ServerProtocol {
                     ServerState::Waiting,
                 ))
             }
-            (ServerState::Waiting, Some(Query::Complete)) => {
+            (ServerState::Waiting, Query::Complete) => {
                 Ok(ServerTransition::Direct(ServerState::Initialized))
             }
             (ServerState::Failed, query) => {
@@ -153,7 +149,7 @@ mod tests {
         assert_eq!(proto.machine.state, ServerState::Initializing);
 
         let mut sender = Default::default();
-        proto.apply(None, &mut sender, &DummyServer {})?;
+        proto.apply(&crate::Query::Bootstrap, &mut sender, &DummyServer {})?;
 
         assert_eq!(proto.machine.state, ServerState::Initialized);
 

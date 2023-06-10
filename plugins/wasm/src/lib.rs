@@ -224,13 +224,13 @@ impl Plugin for WasmPlugin {
                     .map(|b| Ok(WasmMessage::from_bytes(&b)?))
                     .collect::<Result<Vec<_>>>()?;
 
-                for m in outbox.into_iter() {
-                    match m {
-                        WasmMessage::Query(q) => runner.server.apply(
-                            q.as_ref(),
-                            &mut sender,
-                            &AlwaysErrorsServices {},
-                        )?,
+                for query in outbox.into_iter() {
+                    match query {
+                        WasmMessage::Query(q) => {
+                            runner
+                                .server
+                                .apply(&q, &mut sender, &AlwaysErrorsServices {})?
+                        }
                         WasmMessage::Payload(_) => unimplemented!(),
                     }
                 }
