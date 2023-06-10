@@ -20,6 +20,7 @@ pub mod ffi {
 pub mod ipc {
     use anyhow::Result;
     use bincode::{Decode, Encode};
+    use tracing::trace;
 
     use crate::{error, info};
 
@@ -37,10 +38,8 @@ pub mod ipc {
         }
 
         pub fn tick(&mut self) -> anyhow::Result<()> {
-            info!("tick!");
-
             while let Some(message) = recv::<WasmMessage>() {
-                info!("message: {:?}", message);
+                info!("{:?}", message);
                 let mut replies: Sender<Query> = Default::default();
 
                 match message {
@@ -49,7 +48,7 @@ pub mod ipc {
                 }
 
                 for query in replies.into_iter() {
-                    info!("query: {:?}", &query);
+                    trace!("(to-server): {:?}", &query);
                     send(&WasmMessage::Query(query))
                 }
             }
@@ -91,7 +90,11 @@ pub mod ipc {
     }
 
     pub fn recv<T: Decode>() -> Option<T> {
-        let mut buffer = [0; 8192];
+        // For now this seems ok, but 'now' is basically the first test. So if
+        // you end up here in the future I think you'll probably be better off
+        // batching the protocol than you'll be worrying about memory
+        // management.
+        let mut buffer = [0; 65536];
         let len = unsafe { crate::ffi::agent_recv(buffer.as_mut_ptr(), buffer.len()) };
 
         if len == 0 {
@@ -99,7 +102,10 @@ pub mod ipc {
         }
 
         if len > buffer.len() {
-            error!("Serialized message is larger than buffer");
+            error!(
+                "Serialized message is larger than buffer (by {} bytes)",
+                len - buffer.len()
+            );
             return None;
         }
 

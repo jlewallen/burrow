@@ -82,6 +82,7 @@ where
             (AgentState::Uninitialized, Payload::Initialize) => {
                 AgentTransition::Direct(AgentState::Initialized)
             }
+            (AgentState::Initialized, Payload::Initialize) => AgentTransition::None,
             (AgentState::Initialized, Payload::Surroundings(surroundings)) => {
                 R::surroundings(surroundings)
             }

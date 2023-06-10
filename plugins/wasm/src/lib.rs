@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
-use plugins_rpc_proto::{AlwaysErrorsServices, Payload, Sender, ServerProtocol};
+use plugins_rpc::SessionServices;
+use plugins_rpc_proto::{Payload, Sender, ServerProtocol};
 use std::collections::VecDeque;
 use std::sync::Arc;
 use std::{cell::RefCell, path::PathBuf};
@@ -64,25 +65,27 @@ impl WasmRunner {
         self.process_queries(outbox)
     }
 
-    fn process_queries(&mut self, messages: Vec<Box<[u8]>>) -> Result<()> {
-        let outbox: Vec<WasmMessage> = messages
+    fn process_queries(&mut self, queries: Vec<Box<[u8]>>) -> Result<()> {
+        let queries: Vec<WasmMessage> = queries
             .into_iter()
             .map(|b| Ok(WasmMessage::from_bytes(&b)?))
             .collect::<Result<Vec<_>>>()?;
 
-        let mut sender: Sender<Payload> = Default::default();
-        for query in outbox.into_iter() {
+        let services = SessionServices::new_for_my_session()?;
+        for query in queries.into_iter() {
+            let mut sender: Sender<Payload> = Default::default();
             match query {
                 WasmMessage::Query(q) => {
-                    self.server
-                        .apply(&q, &mut sender, &AlwaysErrorsServices {})?
+                    info!("(server) {:?}", q);
+                    self.server.apply(&q, &mut sender, &services)?
                 }
-                WasmMessage::Payload(_) => unimplemented!(),
+                _ => unimplemented!(),
             }
-        }
 
-        for payload in sender.into_iter() {
-            self.send(WasmMessage::Payload(payload).to_bytes()?)?;
+            for payload in sender.into_iter() {
+                trace!("(to-agent) {:?}", &payload);
+                self.send(WasmMessage::Payload(payload).to_bytes()?)?;
+            }
         }
 
         Ok(())

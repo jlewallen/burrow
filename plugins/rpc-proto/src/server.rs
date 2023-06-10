@@ -11,7 +11,6 @@ pub enum Completed {
 
 #[derive(Debug, PartialEq, Eq)]
 enum ServerState {
-    Initializing,
     Initialized,
     Waiting,
     Failed,
@@ -20,7 +19,6 @@ enum ServerState {
 impl ServerState {
     pub fn completed(&self) -> Completed {
         match &self {
-            ServerState::Initializing => Completed::Busy,
             ServerState::Initialized => Completed::Continue,
             ServerState::Waiting => Completed::Busy,
             ServerState::Failed => Completed::Continue,
@@ -33,7 +31,7 @@ type ServerMachine = Machine<ServerState>;
 impl ServerMachine {
     fn new() -> Self {
         Self {
-            state: ServerState::Initializing,
+            state: ServerState::Initialized,
         }
     }
 }
@@ -70,11 +68,10 @@ impl ServerProtocol {
 
     fn handle(&mut self, message: &Query, services: &dyn Services) -> Result<ServerTransition> {
         match (&self.machine.state, &message) {
-            (ServerState::Initializing, _) => Ok(ServerTransition::Send(
+            (ServerState::Initialized, Query::Bootstrap) => Ok(ServerTransition::Send(
                 Payload::Initialize,
                 ServerState::Initialized,
             )),
-            (ServerState::Initialized, Query::Bootstrap) => Ok(ServerTransition::None),
             (ServerState::Initialized, Query::Lookup(depth, lookup)) => {
                 let resolved = services.lookup(*depth, lookup)?;
 
@@ -116,6 +113,7 @@ impl Services for AlwaysErrorsServices {
         _depth: u32,
         _lookup: &[LookupBy],
     ) -> Result<Vec<(LookupBy, Option<EntityJson>)>> {
+        warn!("AlwaysErrorsServices::lookup");
         Err(anyhow!("This server always errors"))
     }
 }
@@ -146,7 +144,7 @@ mod tests {
     fn test_initialize() -> anyhow::Result<()> {
         let mut proto = ServerProtocol::new();
 
-        assert_eq!(proto.machine.state, ServerState::Initializing);
+        assert_eq!(proto.machine.state, ServerState::Initialized);
 
         let mut sender = Default::default();
         proto.apply(&crate::Query::Bootstrap, &mut sender, &DummyServer {})?;
