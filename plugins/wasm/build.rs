@@ -3,11 +3,11 @@ use std::process::Command;
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=src");
-    println!("cargo:rerun-if-changed=../examples/wasm/src");
     println!("cargo:rerun-if-changed=../rpc/src");
     println!("cargo:rerun-if-changed=../core/src");
-    println!("cargo:rerun-if-changed=../../engine");
-    println!("cargo:rerun-if-changed=../../kernel");
+    println!("cargo:rerun-if-changed=../../examples/wasm/src");
+    println!("cargo:rerun-if-changed=../../libs/engine/src");
+    println!("cargo:rerun-if-changed=../../libs/kernel/src");
 
     let out_dir = std::env::var("OUT_DIR").unwrap();
     let dest_path = std::path::Path::new(&out_dir).join("scripts_target");
