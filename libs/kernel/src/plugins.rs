@@ -1,7 +1,10 @@
-use crate::Surroundings;
+use anyhow::Result;
+use std::time::Instant;
+use tracing::*;
 
 use super::{model::*, Action, ManagedHooks};
-use anyhow::Result;
+use crate::Surroundings;
+
 pub type EvaluationResult = Result<Box<dyn Action>, EvaluationError>;
 
 pub trait PluginFactory: Send + Sync {
@@ -44,7 +47,6 @@ impl RegisteredPlugins {
 pub trait ParsesActions {
     fn try_parse_action(&self, i: &str) -> EvaluationResult;
 }
-
 pub trait Plugin: ParsesActions {
     fn plugin_key() -> &'static str
     where
@@ -57,6 +59,15 @@ pub trait Plugin: ParsesActions {
     fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()>;
 
     fn stop(&self) -> Result<()>;
+
+    fn key(&self) -> &'static str;
+    /*
+    where
+        Self: Sized,
+    {
+        Self::plugin_key()
+    }
+    */
 }
 
 #[derive(Default)]
@@ -71,7 +82,14 @@ impl SessionPlugins {
 
     pub fn initialize(&mut self) -> anyhow::Result<()> {
         for plugin in self.plugins.iter_mut() {
+            let started = Instant::now();
             plugin.initialize()?;
+            let elapsed = Instant::now() - started;
+            if elapsed.as_millis() > 20 {
+                warn!("plugin:{} ready {:?}", plugin.key(), elapsed);
+            } else {
+                debug!("plugin:{} ready {:?}", plugin.key(), elapsed);
+            }
         }
         Ok(())
     }

@@ -118,12 +118,18 @@ macro_rules! export_plugin {
     };
 }
 
+const KEY: &'static str = "dynamic";
+
 impl Plugin for DynamicPlugin {
     fn plugin_key() -> &'static str
     where
         Self: Sized,
     {
-        "dynamic"
+        KEY
+    }
+
+    fn key(&self) -> &'static str {
+        KEY
     }
 
     fn initialize(&mut self) -> Result<()> {

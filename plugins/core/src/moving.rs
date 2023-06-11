@@ -16,12 +16,18 @@ impl PluginFactory for MovingPluginFactory {
 #[derive(Default)]
 pub struct MovingPlugin {}
 
+const KEY: &'static str = "moving";
+
 impl Plugin for MovingPlugin {
     fn plugin_key() -> &'static str
     where
         Self: Sized,
     {
-        "moving"
+        KEY
+    }
+
+    fn key(&self) -> &'static str {
+        KEY
     }
 
     fn initialize(&mut self) -> Result<()> {
