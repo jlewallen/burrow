@@ -1,17 +1,16 @@
-use anyhow::{anyhow, Result};
-use plugins_rpc::SessionServices;
-use plugins_rpc_proto::{Payload, Sender, ServerProtocol};
+use anyhow::{anyhow, Context, Result};
 use std::collections::VecDeque;
 use std::sync::Arc;
 use std::{cell::RefCell, path::PathBuf};
-use wasm_sys::ipc::WasmMessage;
-
-use anyhow::Context;
-use plugins_core::library::plugin::*;
 
 use wasmer::{
     imports, Function, FunctionEnv, FunctionEnvMut, Instance, Memory, Module, Store, Value, WasmPtr,
 };
+
+use plugins_core::library::plugin::*;
+use plugins_rpc::SessionServices;
+use plugins_rpc_proto::{Payload, Sender, ServerProtocol};
+use wasm_sys::ipc::WasmMessage;
 
 pub struct WasmRunner {
     store: Store,
@@ -280,16 +279,10 @@ impl Plugin for WasmPlugin {
     }
 
     fn initialize(&mut self) -> Result<()> {
-        {
-            let mut runners = self.runners.borrow_mut();
-            runners.extend(create_runners()?);
-        }
-
-        {
-            let mut runners = self.runners.borrow_mut();
-            for runner in runners.iter_mut() {
-                runner.initialize()?;
-            }
+        let mut runners = self.runners.borrow_mut();
+        runners.extend(create_runners()?);
+        for runner in runners.iter_mut() {
+            runner.initialize()?;
         }
 
         Ok(())
