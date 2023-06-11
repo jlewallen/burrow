@@ -285,8 +285,6 @@ impl Plugin for WasmPlugin {
             runners.extend(create_runners()?);
         }
 
-        info!("initializing");
-
         {
             let mut runners = self.runners.borrow_mut();
             for runner in runners.iter_mut() {

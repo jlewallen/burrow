@@ -39,12 +39,12 @@ pub mod ipc {
 
         pub fn tick(&mut self) -> anyhow::Result<()> {
             while let Some(message) = recv::<WasmMessage>() {
-                info!("{:?}", message);
                 let mut replies: Sender<Query> = Default::default();
+                info!("{:?}", message);
 
                 match message {
-                    WasmMessage::Query(_query) => unimplemented!(),
                     WasmMessage::Payload(payload) => self.agent.apply(&payload, &mut replies)?,
+                    _ => unimplemented!(),
                 }
 
                 for query in replies.into_iter() {
