@@ -48,6 +48,10 @@ impl AgentResponses for DefaultResponses {
     }
 }
 
+pub trait Agent {
+    fn ready(&mut self) -> Result<()>;
+}
+
 #[derive(Debug)]
 pub struct AgentProtocol<R>
 where
@@ -68,36 +72,50 @@ where
         }
     }
 
-    pub fn apply(&mut self, message: &Payload, sender: &mut Sender<Query>) -> Result<()> {
+    pub fn apply<AgentT>(
+        &mut self,
+        message: &Payload,
+        sender: &mut Sender<Query>,
+        agent: &mut AgentT,
+    ) -> Result<()>
+    where
+        AgentT: Agent,
+    {
         let _span = span!(Level::INFO, "agent").entered();
-        let transition = self.handle(message);
+        let transition = self.handle(message, agent)?;
 
-        self.machine.apply(transition, sender)?;
-
-        Ok(())
+        self.machine.apply(transition, sender)
     }
 
-    fn handle(&mut self, message: &Payload) -> AgentTransition {
+    fn handle<AgentT>(&mut self, message: &Payload, agent: &mut AgentT) -> Result<AgentTransition>
+    where
+        AgentT: Agent,
+    {
         match (&self.machine.state, &message) {
             (AgentState::Uninitialized, Payload::Initialize) => {
-                AgentTransition::Direct(AgentState::Initialized)
+                Ok(AgentTransition::Direct(AgentState::Initialized))
             }
-            (AgentState::Initialized, Payload::Initialize) => AgentTransition::None,
+            (AgentState::Initialized, Payload::Initialize) => Ok(AgentTransition::None),
             (AgentState::Initialized, Payload::Surroundings(surroundings)) => {
-                R::surroundings(surroundings)
+                Ok(R::surroundings(surroundings))
             }
             (AgentState::Resolving, Payload::Resolved(_entities)) => {
-                AgentTransition::Send(Query::Complete, AgentState::Initialized)
+                agent.ready()?;
+
+                Ok(AgentTransition::Send(
+                    Query::Complete,
+                    AgentState::Initialized,
+                ))
             }
             (AgentState::Failed, payload) => {
                 warn!("(failed) {:?}", &payload);
 
-                AgentTransition::None
+                Ok(AgentTransition::None)
             }
             (state, message) => {
                 warn!("(failing) {:?} {:?}", state, message);
 
-                AgentTransition::Direct(AgentState::Failed)
+                Ok(AgentTransition::Direct(AgentState::Failed))
             }
         }
     }
@@ -110,17 +128,25 @@ mod tests {
 
     use super::*;
 
-    type TestAgent = AgentProtocol<DefaultResponses>;
+    type TestAgentProtocol = AgentProtocol<DefaultResponses>;
+
+    struct TestAgent {}
+
+    impl Agent for TestAgent {
+        fn ready(&mut self) -> Result<()> {
+            Ok(())
+        }
+    }
 
     #[test]
     fn test_initialize() -> anyhow::Result<()> {
-        let mut proto = TestAgent::new();
+        let mut proto = TestAgentProtocol::new();
 
         assert_eq!(proto.machine.state, AgentState::Uninitialized);
 
         let initialize = Payload::Initialize;
         let mut sender = Default::default();
-        proto.apply(&initialize, &mut sender)?;
+        proto.apply(&initialize, &mut sender, &mut TestAgent {})?;
 
         assert_eq!(proto.machine.state, AgentState::Initialized);
         assert!(sender.queue.is_empty());

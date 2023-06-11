@@ -24,32 +24,46 @@ pub mod ipc {
 
     use crate::{error, info};
 
-    use plugins_rpc_proto::{AgentProtocol, DefaultResponses, Payload, Query, Sender};
+    use plugins_rpc_proto::{Agent, AgentProtocol, DefaultResponses, Payload, Query, Sender};
 
-    pub struct AgentBridge {
-        agent: AgentProtocol<DefaultResponses>,
+    pub trait WasmAgent: Agent {}
+
+    pub struct AgentBridge<T>
+    where
+        T: WasmAgent,
+    {
+        protocol: AgentProtocol<DefaultResponses>,
+        agent: T,
     }
 
-    impl AgentBridge {
-        pub fn new() -> Self {
+    impl<T> AgentBridge<T>
+    where
+        T: WasmAgent,
+    {
+        pub fn new(agent: T) -> Self {
             Self {
-                agent: AgentProtocol::new(),
+                protocol: AgentProtocol::new(),
+                agent,
             }
         }
 
         pub fn tick(&mut self) -> anyhow::Result<()> {
             while let Some(message) = recv::<WasmMessage>() {
-                let mut replies: Sender<Query> = Default::default();
                 info!("{:?}", message);
 
                 match message {
-                    WasmMessage::Payload(payload) => self.agent.apply(&payload, &mut replies)?,
-                    _ => unimplemented!(),
-                }
+                    WasmMessage::Payload(payload) => {
+                        let mut replies: Sender<Query> = Default::default();
 
-                for query in replies.into_iter() {
-                    trace!("(to-server): {:?}", &query);
-                    send(&WasmMessage::Query(query))
+                        self.protocol
+                            .apply(&payload, &mut replies, &mut self.agent)?;
+
+                        for query in replies.into_iter() {
+                            trace!("(to-server): {:?}", &query);
+                            send(&WasmMessage::Query(query))
+                        }
+                    }
+                    _ => unimplemented!("Wasm agent received {:?}", message),
                 }
             }
 
@@ -122,9 +136,15 @@ pub mod ipc {
 pub mod prelude {
     use std::ffi::c_void;
 
+    pub use anyhow::Result;
+
     pub use crate::ffi;
-    pub use crate::ipc::{recv, send, AgentBridge};
+    pub use crate::ipc::{recv, send, AgentBridge, WasmAgent};
     pub use crate::{error, info, warn};
+
+    pub use plugins_rpc_proto::Agent;
+    pub use plugins_rpc_proto::AgentResponses;
+    pub use plugins_rpc_proto::DefaultResponses;
 
     pub unsafe fn agent_state<T>(state: Box<T>) {
         crate::ffi::agent_store(Box::into_raw(state) as *const c_void);

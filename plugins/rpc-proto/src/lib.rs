@@ -6,6 +6,7 @@ mod agent;
 mod fsm;
 mod server;
 
+pub use agent::Agent;
 pub use agent::AgentProtocol;
 pub use agent::AgentResponses;
 pub use agent::DefaultResponses;

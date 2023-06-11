@@ -14,7 +14,7 @@ use wasm_sys::ipc::WasmMessage;
 
 pub struct WasmRunner {
     store: Store,
-    env: FunctionEnv<MyEnv>,
+    env: FunctionEnv<AgentEnv>,
     instance: Instance,
     server: ServerProtocol,
 }
@@ -25,7 +25,7 @@ enum AgentCall {
 }
 
 impl WasmRunner {
-    fn new(store: Store, env: FunctionEnv<MyEnv>, instance: Instance) -> Self {
+    fn new(store: Store, env: FunctionEnv<AgentEnv>, instance: Instance) -> Self {
         Self {
             store,
             env,
@@ -64,26 +64,27 @@ impl WasmRunner {
         self.process_queries(outbox)
     }
 
-    fn process_queries(&mut self, queries: Vec<Box<[u8]>>) -> Result<()> {
-        let queries: Vec<WasmMessage> = queries
+    fn process_queries(&mut self, messages: Vec<Box<[u8]>>) -> Result<()> {
+        let messages: Vec<WasmMessage> = messages
             .into_iter()
             .map(|b| Ok(WasmMessage::from_bytes(&b)?))
             .collect::<Result<Vec<_>>>()?;
 
         let services = SessionServices::new_for_my_session()?;
-        for query in queries.into_iter() {
-            let mut sender: Sender<Payload> = Default::default();
-            match query {
-                WasmMessage::Query(q) => {
-                    info!("(server) {:?}", q);
-                    self.server.apply(&q, &mut sender, &services)?
-                }
-                _ => unimplemented!(),
-            }
+        for message in messages.into_iter() {
+            info!("(server) {:?}", message);
 
-            for payload in sender.into_iter() {
-                trace!("(to-agent) {:?}", &payload);
-                self.send(WasmMessage::Payload(payload).to_bytes()?)?;
+            match message {
+                WasmMessage::Query(q) => {
+                    let mut sender: Sender<Payload> = Default::default();
+                    self.server.apply(&q, &mut sender, &services)?;
+
+                    for payload in sender.into_iter() {
+                        trace!("(to-agent) {:?}", &payload);
+                        self.send(WasmMessage::Payload(payload).to_bytes()?)?;
+                    }
+                }
+                _ => unimplemented!("Wasm server received {:?}", message),
             }
         }
 
@@ -137,14 +138,12 @@ impl PluginFactory for WasmPluginFactory {
 }
 
 #[derive(Default)]
-struct MyEnv {
+struct AgentEnv {
     pub memory: Option<Memory>,
     pub inbox: VecDeque<Arc<[u8]>>,
     pub outbox: Vec<Box<[u8]>>,
     pub state: Option<i32>,
 }
-
-impl MyEnv {}
 
 pub type Runners = Arc<RefCell<Vec<WasmRunner>>>;
 
@@ -165,9 +164,9 @@ fn create_runners() -> Result<Vec<WasmRunner>> {
     })?;
 
     let mut store = Store::default();
-    let env = FunctionEnv::new(&mut store, MyEnv::default());
+    let env = FunctionEnv::new(&mut store, AgentEnv::default());
 
-    fn agent_send(mut env: FunctionEnvMut<MyEnv>, msg: WasmPtr<u8>, len: u32) {
+    fn agent_send(mut env: FunctionEnvMut<AgentEnv>, msg: WasmPtr<u8>, len: u32) {
         let (data, store) = env.data_and_store_mut();
         let view = data.memory.as_ref().expect("Memory error").view(&store);
         let bytes = msg.slice(&view, len).expect("Slice error");
@@ -176,7 +175,7 @@ fn create_runners() -> Result<Vec<WasmRunner>> {
         data.outbox.push(bytes);
     }
 
-    fn agent_recv(mut env: FunctionEnvMut<MyEnv>, msg: WasmPtr<u8>, len: u32) -> u32 {
+    fn agent_recv(mut env: FunctionEnvMut<AgentEnv>, msg: WasmPtr<u8>, len: u32) -> u32 {
         let (data, store) = env.data_and_store_mut();
         let view = data.memory.as_ref().expect("Memory error").view(&store);
 
@@ -197,27 +196,27 @@ fn create_runners() -> Result<Vec<WasmRunner>> {
         sending.len() as u32
     }
 
-    fn agent_store(mut env: FunctionEnvMut<MyEnv>, ptr: i32) {
+    fn agent_store(mut env: FunctionEnvMut<AgentEnv>, ptr: i32) {
         let (data, _store) = env.data_and_store_mut();
 
         data.state = Some(ptr);
     }
 
-    fn get_string(mut env: FunctionEnvMut<MyEnv>, msg: WasmPtr<u8>, len: u32) -> String {
+    fn get_string(mut env: FunctionEnvMut<AgentEnv>, msg: WasmPtr<u8>, len: u32) -> String {
         let (data, store) = env.data_and_store_mut();
         let view = data.memory.as_ref().expect("No memory").view(&store);
         msg.read_utf8_string(&view, len).expect("No string")
     }
 
-    fn console_info(env: FunctionEnvMut<MyEnv>, msg: WasmPtr<u8>, len: u32) {
+    fn console_info(env: FunctionEnvMut<AgentEnv>, msg: WasmPtr<u8>, len: u32) {
         info!("(agent) {}", &get_string(env, msg, len));
     }
 
-    fn console_warn(env: FunctionEnvMut<MyEnv>, msg: WasmPtr<u8>, len: u32) {
+    fn console_warn(env: FunctionEnvMut<AgentEnv>, msg: WasmPtr<u8>, len: u32) {
         warn!("(agent) {}", &get_string(env, msg, len));
     }
 
-    fn console_error(env: FunctionEnvMut<MyEnv>, msg: WasmPtr<u8>, len: u32) {
+    fn console_error(env: FunctionEnvMut<AgentEnv>, msg: WasmPtr<u8>, len: u32) {
         error!("(agent) {}", &get_string(env, msg, len));
     }
 
