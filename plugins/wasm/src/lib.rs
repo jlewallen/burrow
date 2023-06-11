@@ -234,6 +234,8 @@ fn create_runners() -> Result<Vec<WasmRunner>> {
     };
 
     let module = Module::new(&store, wasm_bytes)?;
+    info!("module:ready");
+
     let instance = Instance::new(&mut store, &module, &imports)?;
     trace!("instance {:?}", instance);
 
@@ -282,6 +284,8 @@ impl Plugin for WasmPlugin {
             let mut runners = self.runners.borrow_mut();
             runners.extend(create_runners()?);
         }
+
+        info!("initializing");
 
         {
             let mut runners = self.runners.borrow_mut();
