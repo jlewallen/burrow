@@ -75,10 +75,20 @@ impl ServerProtocol {
             (ServerState::Initialized, Query::Lookup(depth, lookup)) => {
                 let resolved = services.lookup(*depth, lookup)?;
 
-                Ok(ServerTransition::Send(
-                    Payload::Resolved(resolved),
-                    ServerState::Waiting,
-                ))
+                if false {
+                    Ok(ServerTransition::SendMany(
+                        resolved
+                            .into_iter()
+                            .map(|m| Payload::Resolved(vec![m]))
+                            .collect(),
+                        ServerState::Waiting,
+                    ))
+                } else {
+                    Ok(ServerTransition::Send(
+                        Payload::Resolved(resolved),
+                        ServerState::Waiting,
+                    ))
+                }
             }
             (ServerState::Waiting, Query::Complete) => {
                 Ok(ServerTransition::Direct(ServerState::Initialized))

@@ -6,6 +6,7 @@ pub enum Transition<S, M> {
     None,
     Direct(S),
     Send(M, S),
+    SendMany(Vec<M>, S),
     #[allow(dead_code)]
     SendOnly(M),
 }
@@ -20,6 +21,9 @@ impl<S, M> Transition<S, M> {
             Transition::Direct(s) => Transition::<S, O>::Direct(s),
             Transition::Send(m, s) => Transition::<S, O>::Send(f(m), s),
             Transition::SendOnly(m) => Transition::<S, O>::SendOnly(f(m)),
+            Transition::SendMany(m, s) => {
+                Transition::<S, O>::SendMany(m.into_iter().map(f).collect(), s)
+            }
         }
     }
 }
@@ -61,6 +65,15 @@ where
             Transition::SendOnly(sending) => {
                 trace!("(send-only) {:?}", &sending);
                 sender.send(sending)?;
+                Ok(())
+            }
+            Transition::SendMany(sending, state) => {
+                for m in sending.into_iter() {
+                    trace!("(send) {:?}", m);
+                    sender.send(m)?;
+                }
+                debug!("(send) {:?} -> {:?}", &self.state, &state);
+                self.state = state;
                 Ok(())
             }
         }
