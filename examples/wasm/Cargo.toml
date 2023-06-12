@@ -7,6 +7,7 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
+anyhow = "1.0.71"
 bincode = { version = "2.0.0-rc", features = ["serde"] }
 
 [dependencies.wasm-sys]

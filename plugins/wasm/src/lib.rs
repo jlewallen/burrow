@@ -16,7 +16,6 @@ pub struct WasmRunner {
     store: Store,
     env: FunctionEnv<AgentEnv>,
     instance: Instance,
-    server: ServerProtocol,
 }
 
 enum AgentCall {
@@ -30,7 +29,6 @@ impl WasmRunner {
             store,
             env,
             instance,
-            server: ServerProtocol::new(),
         }
     }
 
@@ -77,7 +75,8 @@ impl WasmRunner {
             match message {
                 WasmMessage::Query(q) => {
                     let mut sender: Sender<Payload> = Default::default();
-                    self.server.apply(&q, &mut sender, &services)?;
+                    let mut server = ServerProtocol::new();
+                    server.apply(&q, &mut sender, &services)?;
 
                     for payload in sender.into_iter() {
                         trace!("(to-agent) {:?}", &payload);

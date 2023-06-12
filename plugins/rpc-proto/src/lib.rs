@@ -10,6 +10,7 @@ pub use agent::Agent;
 pub use agent::AgentProtocol;
 pub use agent::AgentResponses;
 pub use agent::DefaultResponses;
+pub use agent::DEFAULT_DEPTH;
 pub use server::AlwaysErrorsServices;
 pub use server::Completed;
 pub use server::ServerProtocol;

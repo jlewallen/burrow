@@ -3,7 +3,7 @@ use tracing::warn;
 
 use super::{fsm::*, *};
 
-const DEFAULT_DEPTH: u32 = 2;
+pub const DEFAULT_DEPTH: u32 = 2;
 
 type AgentTransition = Transition<AgentState, Query>;
 

@@ -145,6 +145,7 @@ pub mod prelude {
     pub use plugins_rpc_proto::Payload;
     pub use plugins_rpc_proto::Query;
     pub use plugins_rpc_proto::Surroundings;
+    pub use plugins_rpc_proto::{EntityJson, EntityKey, LookupBy, DEFAULT_DEPTH};
 
     pub use plugins_rpc_proto::Agent;
     pub use plugins_rpc_proto::AgentResponses;
