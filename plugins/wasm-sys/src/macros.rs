@@ -8,6 +8,16 @@ macro_rules! info {
     }};
 }
 
+/// Calls `tracing::debug!` macro on the host
+#[macro_export]
+macro_rules! debug {
+    ($($arg:tt)+) => {{
+        let string = format!($($arg)+);
+        #[allow(unused_unsafe)]
+        unsafe { $crate::ffi::console_debug(string.as_ptr(), string.len()) };
+    }};
+}
+
 /// Calls `tracing::warn!` macro on the host
 #[macro_export]
 macro_rules! warn {
