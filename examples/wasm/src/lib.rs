@@ -65,7 +65,6 @@ impl WasmExample {
                     }
                 }
                 WasmMessage::Payload(Payload::Surroundings(surroundings)) => {
-                    info!("surroundings {:?}", self.entities);
                     self.have_surroundings(
                         WithEntities::new(&self.entities, surroundings).try_into()?,
                     )?;
@@ -78,8 +77,8 @@ impl WasmExample {
         Ok(())
     }
 
-    fn have_surroundings(&mut self, _surroundings: kernel::Surroundings) -> Result<()> {
-        info!("surroundings");
+    fn have_surroundings(&mut self, surroundings: kernel::Surroundings) -> Result<()> {
+        info!("surroundings {:?}", surroundings);
 
         Ok(())
     }

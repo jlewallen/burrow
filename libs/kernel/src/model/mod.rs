@@ -145,13 +145,22 @@ pub fn deserialize_entity(serialized: &str) -> Result<Entity> {
 }
 
 pub fn deserialize_entity_from_value(serialized: serde_json::Value) -> Result<Entity> {
+    let session = get_my_session().with_context(|| "Session for deserialize")?;
+    deserialize_entity_from_value_with_session(serialized, Some(session))
+}
+
+pub fn deserialize_entity_from_value_with_session(
+    serialized: serde_json::Value,
+    session: Option<Rc<dyn ActiveSession>>,
+) -> Result<Entity> {
     trace!("parsing");
     let mut loaded: Entity = serde_json::from_value(serialized)?;
-    trace!("session");
-    let session = get_my_session().with_context(|| "Session for deserialize")?;
-    loaded
-        .supply(&session)
-        .with_context(|| "Supplying session")?;
+    if let Some(session) = session {
+        trace!("session");
+        loaded
+            .supply(&session)
+            .with_context(|| "Supplying session")?;
+    }
     Ok(loaded)
 }
 
@@ -171,7 +180,9 @@ impl EntityPtr {
     }
 
     pub fn new_from_json(value: serde_json::Value) -> Result<Self> {
-        Ok(Self::new(deserialize_entity_from_value(value)?))
+        Ok(Self::new(deserialize_entity_from_value_with_session(
+            value, None,
+        )?))
     }
 
     pub fn new_named(name: &str, desc: &str) -> Result<Self> {
