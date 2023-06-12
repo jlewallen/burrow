@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use std::rc::{Rc, Weak};
 use tracing::trace;
 
@@ -11,7 +11,7 @@ use crate::{
 pub struct Entry {
     key: EntityKey,
     entity: EntityPtr,
-    session: Weak<dyn ActiveSession>,
+    session: Option<Weak<dyn ActiveSession>>,
     debug: Option<String>,
 }
 
@@ -22,9 +22,18 @@ impl Entry {
         Self {
             key: key.clone(),
             entity,
-            session,
+            session: Some(session),
             debug,
         }
+    }
+
+    pub fn new_from_json(key: EntityKey, value: serde_json::Value) -> Result<Self> {
+        Ok(Self {
+            key,
+            entity: EntityPtr::new_from_json(value)?,
+            session: None,
+            debug: None,
+        })
     }
 
     pub fn key(&self) -> &EntityKey {
@@ -69,7 +78,15 @@ impl Entry {
         let entity = entity.borrow();
         let scope = entity.load_scope::<T>()?;
 
-        Ok(OpenedScopeMut::new(Weak::clone(&self.session), self, scope))
+        Ok(OpenedScopeMut::new(
+            Weak::clone(
+                self.session
+                    .as_ref()
+                    .ok_or_else(|| anyhow!("No session in Entry::scope_mut"))?,
+            ),
+            self,
+            scope,
+        ))
     }
 
     pub fn maybe_scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError> {

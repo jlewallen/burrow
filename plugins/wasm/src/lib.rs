@@ -9,7 +9,7 @@ use wasmer::{
 
 use plugins_core::library::plugin::*;
 use plugins_rpc::SessionServices;
-use plugins_rpc_proto::{Payload, Sender, ServerProtocol};
+use plugins_rpc_proto::{Payload, Sender, ServerProtocol, Services, DEFAULT_DEPTH};
 use wasm_sys::ipc::WasmMessage;
 
 pub struct WasmRunner {
@@ -118,6 +118,23 @@ impl WasmRunner {
     }
 
     fn have_surroundings(&mut self, surroundings: plugins_rpc_proto::Surroundings) -> Result<()> {
+        let services = SessionServices::new_for_my_session()?;
+        let keys = match &surroundings {
+            plugins_rpc_proto::Surroundings::Living {
+                world,
+                living,
+                area,
+            } => vec![world.clone(), living.clone(), area.clone()],
+        };
+        let lookups: Vec<_> = keys
+            .into_iter()
+            .map(|k| plugins_rpc_proto::LookupBy::Key(k))
+            .collect();
+        let resolved = services.lookup(DEFAULT_DEPTH, &lookups)?;
+        for resolved in resolved {
+            self.send(WasmMessage::Payload(Payload::Resolved(vec![resolved])).to_bytes()?)?;
+        }
+
         self.send(WasmMessage::Payload(Payload::Surroundings(surroundings)).to_bytes()?)?;
         self.tick()
     }

@@ -1,32 +1,85 @@
+use std::collections::HashMap;
+
+use anyhow::Context;
+use kernel::Entry;
 use wasm_sys::prelude::*;
 
-struct WasmExample {}
+#[derive(Default)]
+struct WasmExample {
+    entities: HashMap<EntityKey, Entry>,
+}
+
+struct WithEntities<'a, T> {
+    entities: &'a HashMap<EntityKey, Entry>,
+    value: T,
+}
+
+impl<'a, T> WithEntities<'a, T> {
+    pub fn new(entities: &'a HashMap<EntityKey, Entry>, value: T) -> Self {
+        Self { entities, value }
+    }
+}
+
+impl<'a> TryInto<kernel::Surroundings> for WithEntities<'a, Surroundings> {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> std::result::Result<kernel::Surroundings, Self::Error> {
+        match self.value {
+            Surroundings::Living {
+                world,
+                living,
+                area,
+            } => Ok(kernel::Surroundings::Living {
+                world: self.entities.get(&world.into()).expect("No world").clone(),
+                living: self
+                    .entities
+                    .get(&living.into())
+                    .expect("No living")
+                    .clone(),
+                area: self.entities.get(&area.into()).expect("No area").clone(),
+            }),
+        }
+    }
+}
 
 impl WasmExample {
     fn tick(&mut self) -> Result<()> {
         while let Some(message) = recv::<WasmMessage>() {
-            info!("(tick) {:?}", &message);
-            match message {
-                WasmMessage::Payload(Payload::Surroundings(surroundings)) => {
-                    let keys = match &surroundings {
-                        Surroundings::Living {
-                            world,
-                            living,
-                            area,
-                        } => vec![world, living, area],
-                    };
+            debug!("(tick) {:?}", &message);
 
-                    let lookups = keys.into_iter().map(|k| LookupBy::Key(k.clone())).collect();
-                    let lookup = Query::Lookup(DEFAULT_DEPTH, lookups);
-                    send(&WasmMessage::Query(lookup))
-                }
+            match message {
                 WasmMessage::Payload(Payload::Resolved(resolved)) => {
-                    info!("resolved {:?}", resolved);
+                    for resolved in resolved {
+                        match resolved {
+                            (LookupBy::Key(key), Some(entity)) => {
+                                let value: serde_json::Value = entity.try_into()?;
+                                self.entities.insert(
+                                    key.clone(),
+                                    Entry::new_from_json((&key).into(), value)
+                                        .with_context(|| "Entry from JSON")?,
+                                );
+                            }
+                            (LookupBy::Key(_key), None) => todo!(),
+                            _ => {}
+                        }
+                    }
+                }
+                WasmMessage::Payload(Payload::Surroundings(surroundings)) => {
+                    info!("surroundings {:?}", self.entities);
+                    self.have_surroundings(
+                        WithEntities::new(&self.entities, surroundings).try_into()?,
+                    )?;
                 }
                 WasmMessage::Query(_) => return Err(anyhow::anyhow!("Expecting payload only")),
                 _ => {}
             }
         }
+
+        Ok(())
+    }
+
+    fn have_surroundings(&mut self, _surroundings: kernel::Surroundings) -> Result<()> {
+        info!("surroundings");
 
         Ok(())
     }
@@ -45,7 +98,7 @@ impl WasmAgent for WasmExample {}
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
 pub unsafe extern "C" fn agent_initialize() {
-    let mut bridge = Box::new(WasmExample {});
+    let mut bridge = Box::new(WasmExample::default());
     match bridge.tick() {
         Ok(_) => agent_state(bridge),
         Err(e) => error!("{:?}", e),

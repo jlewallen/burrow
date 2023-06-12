@@ -50,6 +50,14 @@ impl std::fmt::Debug for EntityJson {
     }
 }
 
+impl TryInto<serde_json::Value> for EntityJson {
+    type Error = serde_json::Error;
+
+    fn try_into(self) -> Result<serde_json::Value, Self::Error> {
+        serde_json::from_str(&self.0)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub struct EntityUpdate {
     entity_key: EntityKey,

@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -148,8 +148,10 @@ pub fn deserialize_entity_from_value(serialized: serde_json::Value) -> Result<En
     trace!("parsing");
     let mut loaded: Entity = serde_json::from_value(serialized)?;
     trace!("session");
-    let session = get_my_session()?;
-    loaded.supply(&session)?;
+    let session = get_my_session().with_context(|| "Session for deserialize")?;
+    loaded
+        .supply(&session)
+        .with_context(|| "Supplying session")?;
     Ok(loaded)
 }
 
@@ -166,6 +168,10 @@ impl EntityPtr {
             entity: brand_new,
             lazy: lazy.into(),
         }
+    }
+
+    pub fn new_from_json(value: serde_json::Value) -> Result<Self> {
+        Ok(Self::new(deserialize_entity_from_value(value)?))
     }
 
     pub fn new_named(name: &str, desc: &str) -> Result<Self> {
