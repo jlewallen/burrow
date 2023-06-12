@@ -72,6 +72,10 @@ fn get_rust_log() -> String {
         original.push_str(",globset=info");
     }
 
+    if !original.contains("cranelift_codegen=") {
+        original.push_str(",cranelift_codegen=info");
+    }
+
     original
 }
 
