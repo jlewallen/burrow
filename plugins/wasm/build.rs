@@ -5,6 +5,7 @@ fn main() {
     println!("cargo:rerun-if-changed=src");
     println!("cargo:rerun-if-changed=../rpc/src");
     println!("cargo:rerun-if-changed=../core/src");
+    println!("cargo:rerun-if-changed=../wasm-sys/src");
     println!("cargo:rerun-if-changed=../../examples/wasm/src");
     println!("cargo:rerun-if-changed=../../libs/engine/src");
     println!("cargo:rerun-if-changed=../../libs/kernel/src");
