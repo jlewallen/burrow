@@ -139,8 +139,12 @@ pub mod prelude {
     pub use anyhow::Result;
 
     pub use crate::ffi;
-    pub use crate::ipc::{recv, send, AgentBridge, WasmAgent};
+    pub use crate::ipc::{recv, send, AgentBridge, WasmAgent, WasmMessage};
     pub use crate::{error, info, warn};
+
+    pub use plugins_rpc_proto::Payload;
+    pub use plugins_rpc_proto::Query;
+    pub use plugins_rpc_proto::Surroundings;
 
     pub use plugins_rpc_proto::Agent;
     pub use plugins_rpc_proto::AgentResponses;
