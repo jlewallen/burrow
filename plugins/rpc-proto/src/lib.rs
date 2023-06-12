@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use tracing::*;
@@ -42,7 +44,96 @@ impl From<&EntityKey> for kernel::EntityKey {
 }
 
 #[derive(Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
-pub struct EntityJson(String);
+pub enum JsonValue {
+    Null,
+    Bool(bool),
+    Number(JsonNumber),
+    String(String),
+    Array(Vec<JsonValue>),
+    Object(HashMap<String, JsonValue>),
+}
+
+impl From<serde_json::Value> for JsonValue {
+    fn from(value: serde_json::Value) -> Self {
+        match value {
+            serde_json::Value::Null => Self::Null,
+            serde_json::Value::Bool(b) => Self::Bool(b),
+            serde_json::Value::Number(n) => Self::Number(n.into()),
+            serde_json::Value::String(s) => Self::String(s),
+            serde_json::Value::Array(a) => Self::Array(a.into_iter().map(|i| i.into()).collect()),
+            serde_json::Value::Object(o) => {
+                Self::Object(o.into_iter().map(|(k, v)| (k, v.into())).collect())
+            }
+        }
+    }
+}
+
+impl Into<serde_json::Value> for JsonValue {
+    fn into(self) -> serde_json::Value {
+        match self {
+            JsonValue::Null => serde_json::Value::Null,
+            JsonValue::Bool(bool) => serde_json::Value::Bool(bool),
+            JsonValue::Number(n) => serde_json::Value::Number(n.into()),
+            JsonValue::String(s) => serde_json::Value::String(s),
+            JsonValue::Array(a) => {
+                serde_json::Value::Array(a.into_iter().map(|i| i.into()).collect())
+            }
+            JsonValue::Object(v) => {
+                serde_json::Value::Object(v.into_iter().map(|(k, v)| (k, v.into())).collect())
+            }
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Encode, Decode, Clone)]
+pub enum JsonNumber {
+    PosInt(u64),
+    NegInt(i64),
+    Float(f64),
+}
+
+impl PartialEq for JsonNumber {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::PosInt(l0), Self::PosInt(r0)) => l0 == r0,
+            (Self::NegInt(l0), Self::NegInt(r0)) => l0 == r0,
+            (Self::Float(l0), Self::Float(r0)) => l0 == r0,
+            _ => false,
+        }
+    }
+}
+
+impl Eq for JsonNumber {}
+
+impl From<serde_json::Number> for JsonNumber {
+    fn from(value: serde_json::Number) -> Self {
+        match (value.as_i64(), value.as_u64(), value.as_f64()) {
+            (Some(i), _, _) => Self::NegInt(i),
+            (_, Some(i), _) => Self::PosInt(i),
+            (_, _, Some(f)) => Self::Float(f),
+            (None, None, None) => {
+                error!("Strange serde_json::Number");
+                panic!("Strange serde_json::Number");
+            }
+        }
+    }
+}
+
+impl Into<serde_json::Number> for JsonNumber {
+    fn into(self) -> serde_json::Number {
+        match self {
+            JsonNumber::PosInt(i) => i.into(),
+            JsonNumber::NegInt(i) => i.into(),
+            JsonNumber::Float(f) => {
+                warn!("Strange float?");
+                serde_json::Number::from_f64(f).expect("Non-finite number")
+            }
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
+pub struct EntityJson(JsonValue);
 
 impl std::fmt::Debug for EntityJson {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -54,7 +145,7 @@ impl TryInto<serde_json::Value> for EntityJson {
     type Error = serde_json::Error;
 
     fn try_into(self) -> Result<serde_json::Value, Self::Error> {
-        serde_json::from_str(&self.0)
+        Ok(self.0.into())
     }
 }
 
@@ -144,7 +235,7 @@ impl TryFrom<&kernel::Entry> for EntityJson {
 
     fn try_from(value: &kernel::Entry) -> Result<Self, Self::Error> {
         let entity = value.entity()?;
-        Ok(Self(entity.to_json_value()?.to_string())) // TODO Ew
+        Ok(Self(entity.to_json_value()?.into())) // TODO Ew
     }
 }
 
