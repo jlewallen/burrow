@@ -4,6 +4,7 @@ members = [
     "libs/kernel",
     "libs/engine",
     "libs/sqlite",
+    "libs/english",
     "plugins/core",
     "plugins/rune",
     "plugins/rpc-proto",

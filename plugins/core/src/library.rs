@@ -2,6 +2,7 @@ pub mod plugin {
     pub use super::parser::{try_parsing, ParsesActions};
     pub use anyhow::Result;
     pub use kernel::*;
+    pub use tracing::*;
 }
 
 pub mod parser {
@@ -12,7 +13,7 @@ pub mod parser {
         bytes::complete::{tag, take_while, take_while1},
         character::complete::digit1,
         combinator::map,
-        combinator::{map_res, recognize},
+        combinator::{map_res, opt, recognize},
         sequence::{pair, preceded, separated_pair, tuple},
         IResult,
     };

@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use kernel::{EvaluationResult, ManagedHooks, ParsesActions, Plugin, PluginFactory};
 use libloading::Library;
-use tracing::{dispatcher::get_default, Subscriber};
+use tracing::{dispatcher::get_default, info, span, trace, warn, Level, Subscriber};
 
 use plugins_core::library::plugin::*;
 
