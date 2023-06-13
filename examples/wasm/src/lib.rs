@@ -1,35 +1,113 @@
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use anyhow::Context;
-use kernel::{DomainError, Entry};
+use kernel::{
+    get_my_session, set_my_session, ActiveSession, DomainError, DomainEvent, EntityPtr, Entry,
+    SessionRef,
+};
+use plugins_core::tools;
 use wasm_sys::prelude::*;
 
 #[derive(Default)]
 struct WorkingEntities {
-    entities: HashMap<EntityKey, Entry>,
+    entities: HashMap<kernel::EntityKey, Entry>,
 }
 
 impl WorkingEntities {
-    pub fn insert(&mut self, key: &EntityKey, entry: Entry) {
+    pub fn insert(&mut self, key: &kernel::EntityKey, entry: Entry) {
         self.entities.insert(key.clone(), entry);
     }
 
-    pub fn get(&self, key: impl Into<EntityKey>) -> Result<Entry, DomainError> {
-        Ok(self
-            .entities
-            .get(&key.into())
-            .ok_or(DomainError::EntityNotFound)?
-            .clone())
+    pub fn get(&self, key: &kernel::EntityKey) -> Result<Option<Entry>, DomainError> {
+        Ok(self.entities.get(key).cloned())
     }
 }
 
 #[derive(Default)]
-struct WasmExample {
-    entities: WorkingEntities,
+struct WasmExample {}
+
+#[derive(Default)]
+struct WasmSession {
+    entities: RefCell<WorkingEntities>,
+    raised: Rc<RefCell<Vec<Box<dyn DomainEvent>>>>,
+}
+
+impl ActiveSession for WasmSession {
+    fn entry(&self, lookup: &kernel::LookupBy) -> Result<Option<Entry>> {
+        let entities = self.entities.borrow();
+        match lookup {
+            kernel::LookupBy::Key(key) => Ok(entities.get(*key)?),
+            kernel::LookupBy::Gid(_) => todo!(),
+        }
+    }
+
+    fn find_item(
+        &self,
+        _surroundings: &kernel::Surroundings,
+        _item: &kernel::Item,
+    ) -> Result<Option<Entry>> {
+        warn!("session:find-item");
+        todo!()
+    }
+
+    fn ensure_entity(
+        &self,
+        entity_ref: &kernel::EntityRef,
+    ) -> Result<kernel::EntityRef, DomainError> {
+        if entity_ref.has_entity() {
+            Ok(entity_ref.clone())
+        } else if let Some(entity) = &self.entry(&kernel::LookupBy::Key(entity_ref.key()))? {
+            Ok(entity.entity()?.into())
+        } else {
+            Err(DomainError::EntityNotFound)
+        }
+    }
+
+    fn add_entity(&self, entity: &kernel::EntityPtr) -> Result<Entry> {
+        let key = entity.key();
+        let entry = Entry::new(&key, entity.clone(), Rc::downgrade(&get_my_session()?));
+        let mut entities = self.entities.borrow_mut();
+        entities.insert(&key, entry.clone());
+        Ok(entry)
+    }
+
+    fn obliterate(&self, _entity: &Entry) -> Result<()> {
+        warn!("session:obliterate");
+        todo!()
+    }
+
+    fn new_key(&self) -> kernel::EntityKey {
+        warn!("session:new-key");
+        todo!()
+    }
+
+    fn new_identity(&self) -> kernel::Identity {
+        warn!("session:new-identity");
+        todo!()
+    }
+
+    fn raise(&self, event: Box<dyn kernel::DomainEvent>) -> Result<()> {
+        self.raised.borrow_mut().push(event);
+
+        Ok(())
+    }
+
+    fn chain(&self, _perform: kernel::Perform) -> Result<Box<dyn kernel::Reply>> {
+        warn!("session:chain");
+        todo!()
+    }
+
+    fn hooks(&self) -> &kernel::ManagedHooks {
+        warn!("session:hooks");
+        todo!()
+    }
 }
 
 impl WasmExample {
     fn tick(&mut self) -> Result<()> {
+        let session: Rc<dyn ActiveSession> = Rc::new(WasmSession::default());
+
+        set_my_session(Some(&session))?;
+
         while let Some(message) = recv::<WasmMessage>() {
             debug!("(tick) {:?}", &message);
 
@@ -37,11 +115,9 @@ impl WasmExample {
                 WasmMessage::Payload(Payload::Resolved(resolved)) => {
                     for resolved in resolved {
                         match resolved {
-                            (LookupBy::Key(key), Some(entity)) => {
+                            (LookupBy::Key(_key), Some(entity)) => {
                                 let value: serde_json::Value = entity.try_into()?;
-                                let entry = Entry::new_from_json((&key).into(), value)
-                                    .with_context(|| "Entry from JSON")?;
-                                self.entities.insert(&key, entry);
+                                session.add_entity(&EntityPtr::new_from_json(value)?)?;
                             }
                             (LookupBy::Key(_key), None) => todo!(),
                             _ => {}
@@ -49,9 +125,7 @@ impl WasmExample {
                     }
                 }
                 WasmMessage::Payload(Payload::Surroundings(surroundings)) => {
-                    self.have_surroundings(
-                        WithEntities::new(&self.entities, surroundings).try_into()?,
-                    )?;
+                    self.have_surroundings(WithEntities::new(&session, surroundings).try_into()?)?;
                 }
                 WasmMessage::Query(_) => return Err(anyhow::anyhow!("Expecting payload only")),
                 _ => {}
@@ -62,7 +136,16 @@ impl WasmExample {
     }
 
     fn have_surroundings(&mut self, surroundings: kernel::Surroundings) -> Result<()> {
-        info!("surroundings {:?}", surroundings);
+        let (world, living, area) = surroundings.unpack();
+
+        trace!("surroundings {:?}", surroundings);
+        trace!("world {:?}", world);
+        trace!("living {:?}", living);
+        trace!("area {:?}", area);
+
+        let area_of = tools::area_of(&living)?;
+
+        info!("area-of: {:?}", area_of);
 
         Ok(())
     }
@@ -99,13 +182,22 @@ pub unsafe extern "C" fn agent_tick(state: *mut std::ffi::c_void) {
 }
 
 struct WithEntities<'a, T> {
-    entities: &'a WorkingEntities,
+    session: &'a SessionRef,
     value: T,
 }
 
 impl<'a, T> WithEntities<'a, T> {
-    pub fn new(entities: &'a WorkingEntities, value: T) -> Self {
-        Self { entities, value }
+    pub fn new(session: &'a SessionRef, value: T) -> Self {
+        Self { session, value }
+    }
+
+    fn get(
+        &self,
+        key: impl Into<kernel::EntityKey>,
+    ) -> std::result::Result<kernel::Entry, DomainError> {
+        self.session
+            .entry(&kernel::LookupBy::Key(&key.into()))?
+            .ok_or(DomainError::EntityNotFound)
     }
 }
 
@@ -113,15 +205,15 @@ impl<'a> TryInto<kernel::Surroundings> for WithEntities<'a, Surroundings> {
     type Error = DomainError;
 
     fn try_into(self) -> std::result::Result<kernel::Surroundings, Self::Error> {
-        match self.value {
+        match &self.value {
             Surroundings::Living {
                 world,
                 living,
                 area,
             } => Ok(kernel::Surroundings::Living {
-                world: self.entities.get(world)?,
-                living: self.entities.get(living)?,
-                area: self.entities.get(area)?,
+                world: self.get(world)?,
+                living: self.get(living)?,
+                area: self.get(area)?,
             }),
         }
     }

@@ -18,6 +18,16 @@ macro_rules! debug {
     }};
 }
 
+/// Calls `tracing::trace!` macro on the host
+#[macro_export]
+macro_rules! trace {
+    ($($arg:tt)+) => {{
+        let string = format!($($arg)+);
+        #[allow(unused_unsafe)]
+        unsafe { $crate::ffi::console_trace(string.as_ptr(), string.len()) };
+    }};
+}
+
 /// Calls `tracing::warn!` macro on the host
 #[macro_export]
 macro_rules! warn {

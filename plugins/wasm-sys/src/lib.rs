@@ -9,6 +9,7 @@ pub mod ffi {
     extern "C" {
         pub fn console_info(msg: *const u8, len: usize);
         pub fn console_debug(msg: *const u8, len: usize);
+        pub fn console_trace(msg: *const u8, len: usize);
         pub fn console_warn(msg: *const u8, len: usize);
         pub fn console_error(msg: *const u8, len: usize);
 
@@ -141,7 +142,7 @@ pub mod prelude {
 
     pub use crate::ffi;
     pub use crate::ipc::{recv, send, AgentBridge, WasmAgent, WasmMessage};
-    pub use crate::{debug, error, info, warn};
+    pub use crate::{debug, error, info, trace, warn};
 
     pub use plugins_rpc_proto::Payload;
     pub use plugins_rpc_proto::Query;

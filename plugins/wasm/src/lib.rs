@@ -232,6 +232,10 @@ fn create_runners() -> Result<Vec<WasmRunner>> {
         debug!("(agent) {}", &get_string(env, msg, len));
     }
 
+    fn console_trace(env: FunctionEnvMut<AgentEnv>, msg: WasmPtr<u8>, len: u32) {
+        trace!("(agent) {}", &get_string(env, msg, len));
+    }
+
     fn console_warn(env: FunctionEnvMut<AgentEnv>, msg: WasmPtr<u8>, len: u32) {
         warn!("(agent) {}", &get_string(env, msg, len));
     }
@@ -244,6 +248,7 @@ fn create_runners() -> Result<Vec<WasmRunner>> {
         "burrow" => {
             "console_info" => Function::new_typed_with_env(&mut store, &env, console_info),
             "console_debug" => Function::new_typed_with_env(&mut store, &env, console_debug),
+            "console_trace" => Function::new_typed_with_env(&mut store, &env, console_trace),
             "console_warn" => Function::new_typed_with_env(&mut store, &env, console_warn),
             "console_error" => Function::new_typed_with_env(&mut store, &env, console_error),
             "agent_store" => Function::new_typed_with_env(&mut store, &env, agent_store),

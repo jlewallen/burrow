@@ -17,5 +17,5 @@ path = "../../plugins/wasm-sys"
 [dependencies.kernel]
 path = "../../libs/kernel"
 
-# [profile.release]
-# lto = true
+[dependencies.plugins-core]
+path = "../../plugins/core"

@@ -10,7 +10,7 @@ use super::{LookupBy, ManagedHooks, Surroundings};
 pub type SessionRef = Rc<dyn ActiveSession>;
 
 pub trait ActiveSession {
-    fn entry(&self, key: &LookupBy) -> Result<Option<Entry>>;
+    fn entry(&self, lookup: &LookupBy) -> Result<Option<Entry>>;
 
     /// I think this will eventually need to return or take a construct that's
     /// builder-like so callers can take more control. Things to consider are:
