@@ -180,7 +180,7 @@ impl BuildSurroundings {
             .into_entry()?;
 
         let world = Build::new(&self.session)?
-            .key(&WORLD_KEY)?
+            .key(&WORLD_KEY.into())?
             .named("World")?
             .with_username("burrow", person.key())?
             .into_entry()?;

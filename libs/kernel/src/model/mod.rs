@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::{
     cell::RefCell,
@@ -19,7 +18,7 @@ pub use entry::*;
 
 use super::{session::*, Needs, Scope};
 
-pub static WORLD_KEY: Lazy<EntityKey> = Lazy::new(|| EntityKey("world".to_string()));
+pub static WORLD_KEY: &str = "world";
 
 pub static NAME_PROPERTY: &str = "name";
 
@@ -65,6 +64,12 @@ impl Display for EntityKey {
 impl From<EntityKey> for String {
     fn from(key: EntityKey) -> Self {
         key.to_string()
+    }
+}
+
+impl From<&str> for EntityKey {
+    fn from(value: &str) -> Self {
+        Self::new(value)
     }
 }
 

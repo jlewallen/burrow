@@ -79,7 +79,7 @@ impl Session {
 
         session.set_session()?;
 
-        if let Some(world) = session.entry(&LookupBy::Key(&WORLD_KEY))? {
+        if let Some(world) = session.entry(&LookupBy::Key(&WORLD_KEY.into()))? {
             if let Some(gid) = identifiers::model::get_gid(&world)? {
                 ids.set(&gid);
             }
@@ -100,7 +100,7 @@ impl Session {
     }
 
     pub fn world(&self) -> Result<Entry, DomainError> {
-        self.entry(&LookupBy::Key(&WORLD_KEY))?
+        self.entry(&LookupBy::Key(&WORLD_KEY.into()))?
             .ok_or(DomainError::EntityNotFound)
     }
 
