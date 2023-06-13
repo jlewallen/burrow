@@ -1,45 +1,31 @@
 use std::collections::HashMap;
 
 use anyhow::Context;
-use kernel::Entry;
+use kernel::{DomainError, Entry};
 use wasm_sys::prelude::*;
 
 #[derive(Default)]
-struct WasmExample {
+struct WorkingEntities {
     entities: HashMap<EntityKey, Entry>,
 }
 
-struct WithEntities<'a, T> {
-    entities: &'a HashMap<EntityKey, Entry>,
-    value: T,
-}
+impl WorkingEntities {
+    pub fn insert(&mut self, key: &EntityKey, entry: Entry) {
+        self.entities.insert(key.clone(), entry);
+    }
 
-impl<'a, T> WithEntities<'a, T> {
-    pub fn new(entities: &'a HashMap<EntityKey, Entry>, value: T) -> Self {
-        Self { entities, value }
+    pub fn get(&self, key: impl Into<EntityKey>) -> Result<Entry, DomainError> {
+        Ok(self
+            .entities
+            .get(&key.into())
+            .ok_or(DomainError::EntityNotFound)?
+            .clone())
     }
 }
 
-impl<'a> TryInto<kernel::Surroundings> for WithEntities<'a, Surroundings> {
-    type Error = anyhow::Error;
-
-    fn try_into(self) -> std::result::Result<kernel::Surroundings, Self::Error> {
-        match self.value {
-            Surroundings::Living {
-                world,
-                living,
-                area,
-            } => Ok(kernel::Surroundings::Living {
-                world: self.entities.get(&world.into()).expect("No world").clone(),
-                living: self
-                    .entities
-                    .get(&living.into())
-                    .expect("No living")
-                    .clone(),
-                area: self.entities.get(&area.into()).expect("No area").clone(),
-            }),
-        }
-    }
+#[derive(Default)]
+struct WasmExample {
+    entities: WorkingEntities,
 }
 
 impl WasmExample {
@@ -53,11 +39,9 @@ impl WasmExample {
                         match resolved {
                             (LookupBy::Key(key), Some(entity)) => {
                                 let value: serde_json::Value = entity.try_into()?;
-                                self.entities.insert(
-                                    key.clone(),
-                                    Entry::new_from_json((&key).into(), value)
-                                        .with_context(|| "Entry from JSON")?,
-                                );
+                                let entry = Entry::new_from_json((&key).into(), value)
+                                    .with_context(|| "Entry from JSON")?;
+                                self.entities.insert(&key, entry);
                             }
                             (LookupBy::Key(_key), None) => todo!(),
                             _ => {}
@@ -111,5 +95,34 @@ pub unsafe extern "C" fn agent_tick(state: *mut std::ffi::c_void) {
     match (*bridge).tick() {
         Err(e) => error!("{:?}", e),
         Ok(_) => {}
+    }
+}
+
+struct WithEntities<'a, T> {
+    entities: &'a WorkingEntities,
+    value: T,
+}
+
+impl<'a, T> WithEntities<'a, T> {
+    pub fn new(entities: &'a WorkingEntities, value: T) -> Self {
+        Self { entities, value }
+    }
+}
+
+impl<'a> TryInto<kernel::Surroundings> for WithEntities<'a, Surroundings> {
+    type Error = DomainError;
+
+    fn try_into(self) -> std::result::Result<kernel::Surroundings, Self::Error> {
+        match self.value {
+            Surroundings::Living {
+                world,
+                living,
+                area,
+            } => Ok(kernel::Surroundings::Living {
+                world: self.entities.get(world)?,
+                living: self.entities.get(living)?,
+                area: self.entities.get(area)?,
+            }),
+        }
     }
 }
