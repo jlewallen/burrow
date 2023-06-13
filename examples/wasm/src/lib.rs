@@ -45,8 +45,7 @@ impl ActiveSession for WasmSession {
         _surroundings: &kernel::Surroundings,
         _item: &kernel::Item,
     ) -> Result<Option<Entry>> {
-        warn!("session:find-item");
-        todo!()
+        fail!("session:find-item")
     }
 
     fn ensure_entity(
@@ -71,18 +70,15 @@ impl ActiveSession for WasmSession {
     }
 
     fn obliterate(&self, _entity: &Entry) -> Result<()> {
-        warn!("session:obliterate");
-        todo!()
+        fail!("session:obliterate")
     }
 
     fn new_key(&self) -> kernel::EntityKey {
-        warn!("session:new-key");
-        todo!()
+        fail!("session:new-key")
     }
 
     fn new_identity(&self) -> kernel::Identity {
-        warn!("session:new-identity");
-        todo!()
+        fail!("session:new-identity")
     }
 
     fn raise(&self, event: Box<dyn kernel::DomainEvent>) -> Result<()> {
@@ -92,13 +88,11 @@ impl ActiveSession for WasmSession {
     }
 
     fn chain(&self, _perform: kernel::Perform) -> Result<Box<dyn kernel::Reply>> {
-        warn!("session:chain");
-        todo!()
+        fail!("session:chain")
     }
 
     fn hooks(&self) -> &kernel::ManagedHooks {
-        warn!("session:hooks");
-        todo!()
+        fail!("session:hooks")
     }
 }
 
@@ -145,7 +139,7 @@ impl WasmExample {
 
         let area_of = tools::area_of(&living)?;
 
-        info!("area-of: {:?}", area_of);
+        trace!("area-of: {:?}", area_of);
 
         Ok(())
     }

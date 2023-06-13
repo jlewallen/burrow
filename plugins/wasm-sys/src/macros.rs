@@ -47,3 +47,14 @@ macro_rules! error {
         unsafe { $crate::ffi::console_error(string.as_ptr(), string.len()) };
     }};
 }
+
+/// Calls `tracing::error!` and panic's
+#[macro_export]
+macro_rules! fail {
+    ($($arg:tt)+) => {{
+        let string = format!($($arg)+);
+        #[allow(unused_unsafe)]
+        unsafe { $crate::ffi::console_error(string.as_ptr(), string.len()) };
+        panic!();
+    }};
+}
