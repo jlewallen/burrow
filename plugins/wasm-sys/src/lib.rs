@@ -22,20 +22,18 @@ pub mod ffi {
 pub mod ipc {
     use anyhow::Result;
     use bincode::{Decode, Encode};
-    use tracing::trace;
 
-    use crate::{error, info};
+    use crate::error;
 
-    use plugins_rpc_proto::{Agent, AgentProtocol, DefaultResponses, Payload, Query, Sender};
+    use plugins_rpc_proto::{Payload, Query};
 
-    pub trait WasmAgent: Agent {}
+    pub trait WasmAgent {}
 
     pub struct AgentBridge<T>
     where
         T: WasmAgent,
     {
-        protocol: AgentProtocol<DefaultResponses>,
-        agent: T,
+        _agent: T,
     }
 
     impl<T> AgentBridge<T>
@@ -43,33 +41,7 @@ pub mod ipc {
         T: WasmAgent,
     {
         pub fn new(agent: T) -> Self {
-            Self {
-                protocol: AgentProtocol::new(),
-                agent,
-            }
-        }
-
-        pub fn tick(&mut self) -> anyhow::Result<()> {
-            while let Some(message) = recv::<WasmMessage>() {
-                info!("{:?}", message);
-
-                match message {
-                    WasmMessage::Payload(payload) => {
-                        let mut replies: Sender<Query> = Default::default();
-
-                        self.protocol
-                            .apply(&payload, &mut replies, &mut self.agent)?;
-
-                        for query in replies.into_iter() {
-                            trace!("(to-server): {:?}", &query);
-                            send(&WasmMessage::Query(query))
-                        }
-                    }
-                    _ => unimplemented!("Wasm agent received {:?}", message),
-                }
-            }
-
-            Ok(())
+            Self { _agent: agent }
         }
     }
 
@@ -147,11 +119,7 @@ pub mod prelude {
     pub use plugins_rpc_proto::Payload;
     pub use plugins_rpc_proto::Query;
     pub use plugins_rpc_proto::Surroundings;
-    pub use plugins_rpc_proto::{EntityJson, EntityKey, LookupBy, DEFAULT_DEPTH};
-
-    pub use plugins_rpc_proto::Agent;
-    pub use plugins_rpc_proto::AgentResponses;
-    pub use plugins_rpc_proto::DefaultResponses;
+    pub use plugins_rpc_proto::{EntityJson, EntityKey, LookupBy};
 
     pub unsafe fn agent_state<T>(state: Box<T>) {
         crate::ffi::agent_store(Box::into_raw(state) as *const c_void);

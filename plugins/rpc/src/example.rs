@@ -1,12 +1,9 @@
 use anyhow::Result;
-use tracing::*;
 
-use plugins_rpc_proto::{Agent, AgentProtocol, DefaultResponses, Inbox, Payload, Query, Sender};
+use plugins_rpc_proto::{Inbox, Payload, Query, Sender};
 
 #[derive(Debug)]
-pub struct ExampleAgent {
-    agent: AgentProtocol<DefaultResponses>,
-}
+pub struct ExampleAgent {}
 
 impl Default for ExampleAgent {
     fn default() -> Self {
@@ -14,33 +11,23 @@ impl Default for ExampleAgent {
     }
 }
 
-struct EmptyAgent {}
-
-impl Agent for EmptyAgent {
-    fn ready(&mut self) -> Result<()> {
-        Ok(())
-    }
-}
-
 impl ExampleAgent {
     pub fn new() -> Self {
-        Self {
-            agent: AgentProtocol::new(),
-        }
-    }
-
-    pub fn handle(&mut self, _message: &Payload) -> Result<()> {
-        trace!("(handle) {:?}", _message);
-
-        Ok(())
+        Self {}
     }
 }
 
 impl Inbox<Payload, Query> for ExampleAgent {
     fn deliver(&mut self, message: &Payload, replies: &mut Sender<Query>) -> Result<()> {
-        self.agent.apply(message, replies, &mut EmptyAgent {})?;
-
-        self.handle(message)?;
+        match message {
+            Payload::Initialize => {}
+            Payload::Surroundings(_) => replies.send(Query::Complete)?,
+            Payload::Evaluate(_, _) => todo!(),
+            Payload::Resolved(_) => todo!(),
+            Payload::Found(_) => todo!(),
+            Payload::Permission(_) => todo!(),
+            Payload::Hook(_) => todo!(),
+        }
 
         Ok(())
     }

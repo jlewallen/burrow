@@ -3,12 +3,13 @@ use std::marker::PhantomData;
 use tokio::sync::mpsc;
 use tracing::*;
 
-use plugins_rpc_proto::{
-    AlwaysErrorsServices, Completed, Inbox, Payload, Query, Sender, ServerProtocol, Services,
-    Surroundings,
-};
+use plugins_rpc_proto::{Inbox, Payload, Query, Sender, Surroundings};
 
-use crate::SessionServices;
+use crate::{
+    querying::Querying,
+    sessions::{AlwaysErrorsServices, Services},
+    SessionServices,
+};
 
 #[derive(Debug)]
 enum ChannelMessage {
@@ -18,7 +19,6 @@ enum ChannelMessage {
 }
 
 pub struct TokioChannelServer<P> {
-    server: ServerProtocol,
     server_tx: mpsc::Sender<ChannelMessage>,
     agent_tx: mpsc::Sender<ChannelMessage>,
     rx_agent: mpsc::Receiver<ChannelMessage>,
@@ -45,31 +45,27 @@ async fn process_payload<T: Inbox<Payload, Query>>(
 async fn process_query<H>(
     query: &Query,
     server_tx: &mpsc::Sender<ChannelMessage>,
-    server: &mut ServerProtocol,
     services: &H,
-) -> Result<Completed>
+) -> Result<bool>
 where
     H: Services,
 {
-    fn apply_query(
-        server: &mut ServerProtocol,
-        query: &Query,
-        services: &dyn Services,
-    ) -> Result<Sender<Payload>> {
+    fn apply_query(query: &Query, services: &dyn Services) -> Result<Sender<Payload>> {
         let mut to_agent: Sender<_> = Default::default();
-        server.apply(query, &mut to_agent, services)?;
+        let querying = Querying::new();
+        querying.service(query, &mut to_agent, services)?;
 
         Ok(to_agent)
     }
 
-    let to_agent: Sender<_> = apply_query(server, query, services)?;
+    let to_agent: Sender<_> = apply_query(query, services)?;
 
     for sending in to_agent.into_iter() {
         trace!("sending {:?}", sending);
         server_tx.send(ChannelMessage::Payload(sending)).await?;
     }
 
-    Ok(server.completed())
+    Ok(true)
 }
 
 impl<P> TokioChannelServer<P>
@@ -104,10 +100,7 @@ where
             }
         });
 
-        let server = ServerProtocol::new();
-
         Self {
-            server,
             server_tx,
             agent_tx,
             rx_agent,
@@ -123,12 +116,10 @@ where
         // Agent is transmitting queries to us and we're receiving from them.
         while let Some(cm) = self.rx_agent.recv().await {
             if let ChannelMessage::Query(query) = cm {
-                match process_query(&query, &self.server_tx, &mut self.server, services).await {
+                match process_query(&query, &self.server_tx, services).await {
                     Err(e) => panic!("Processing query: {:?}", e),
-                    Ok(completed) => match completed {
-                        Completed::Busy => continue,
-                        Completed::Continue => break,
-                    },
+                    Ok(false) => continue,
+                    Ok(true) => break,
                 }
             }
         }

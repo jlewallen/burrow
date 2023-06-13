@@ -145,14 +145,6 @@ impl WasmExample {
     }
 }
 
-impl Agent for WasmExample {
-    fn ready(&mut self) -> Result<()> {
-        info!("ready");
-
-        Ok(())
-    }
-}
-
 impl WasmAgent for WasmExample {}
 
 #[no_mangle]

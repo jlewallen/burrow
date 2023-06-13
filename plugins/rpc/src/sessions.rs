@@ -1,11 +1,32 @@
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use std::collections::HashSet;
 use tracing::*;
 
 use kernel::{get_my_session, EntityGid, Entry};
 use plugins_core::tools;
 
-use plugins_rpc_proto::{EntityJson, EntityKey, LookupBy, Services};
+use plugins_rpc_proto::{EntityJson, EntityKey, LookupBy};
+
+pub trait Services {
+    fn lookup(
+        &self,
+        depth: u32,
+        lookup: &[LookupBy],
+    ) -> Result<Vec<(LookupBy, Option<EntityJson>)>>;
+}
+
+pub struct AlwaysErrorsServices {}
+
+impl Services for AlwaysErrorsServices {
+    fn lookup(
+        &self,
+        _depth: u32,
+        _lookup: &[LookupBy],
+    ) -> Result<Vec<(LookupBy, Option<EntityJson>)>> {
+        warn!("AlwaysErrorsServices::lookup");
+        Err(anyhow!("This server always errors"))
+    }
+}
 
 pub struct SessionServices {}
 
@@ -13,9 +34,7 @@ impl SessionServices {
     pub fn new_for_my_session() -> Result<Self> {
         Ok(Self {})
     }
-}
 
-impl SessionServices {
     fn lookup_one(&self, lookup: &LookupBy) -> Result<(LookupBy, Option<(Entry, EntityJson)>)> {
         let session = get_my_session().with_context(|| "SessionServer::lookup_one")?;
         let entry = match lookup {

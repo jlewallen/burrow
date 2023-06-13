@@ -10,6 +10,7 @@ use tokio::{
 mod async_tokio;
 mod example;
 mod inproc;
+mod querying;
 mod sessions;
 
 use plugins_core::library::plugin::*;
@@ -17,7 +18,8 @@ use plugins_core::library::plugin::*;
 pub use async_tokio::TokioChannelServer;
 pub use example::ExampleAgent;
 pub use inproc::InProcessServer;
-pub use sessions::SessionServices;
+pub use querying::Querying;
+pub use sessions::{Services, SessionServices};
 
 pub struct RpcPluginFactory {
     server: SynchronousWrapper,

@@ -1,12 +1,14 @@
 use anyhow::Result;
 use tracing::*;
 
-use plugins_rpc_proto::{
-    AlwaysErrorsServices, Inbox, Payload, Query, Sender, ServerProtocol, Services, Surroundings,
+use plugins_rpc_proto::{Inbox, Payload, Query, Sender, Surroundings};
+
+use crate::{
+    querying::Querying,
+    sessions::{AlwaysErrorsServices, Services},
 };
 
 pub struct InProcessServer<P> {
-    server: ServerProtocol,
     agent: P,
 }
 
@@ -16,7 +18,6 @@ where
 {
     pub fn new() -> Self {
         Self {
-            server: ServerProtocol::new(),
             agent: R::default(),
         }
     }
@@ -42,9 +43,10 @@ where
 
     fn drain(&mut self, mut to_server: Sender<Query>, services: &dyn Services) -> Result<()> {
         let mut to_agent: Sender<_> = Default::default();
+        let querying = Querying::new();
 
         while let Some(sending) = to_server.pop() {
-            self.server.apply(&sending, &mut to_agent, services)?;
+            querying.service(&sending, &mut to_agent, services)?;
             for message in to_agent.iter() {
                 self.deliver(message, &mut to_server)?;
             }

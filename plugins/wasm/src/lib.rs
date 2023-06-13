@@ -8,8 +8,8 @@ use wasmer::{
 };
 
 use plugins_core::library::plugin::*;
-use plugins_rpc::SessionServices;
-use plugins_rpc_proto::{Payload, Sender, ServerProtocol, Services, DEFAULT_DEPTH};
+use plugins_rpc::{Querying, Services, SessionServices};
+use plugins_rpc_proto::{Payload, Sender};
 use wasm_sys::ipc::WasmMessage;
 
 pub struct WasmRunner {
@@ -75,8 +75,8 @@ impl WasmRunner {
             match message {
                 WasmMessage::Query(q) => {
                     let mut sender: Sender<Payload> = Default::default();
-                    let mut server = ServerProtocol::new();
-                    server.apply(&q, &mut sender, &services)?;
+                    let querying = Querying::new();
+                    querying.service(&q, &mut sender, &services)?;
 
                     for payload in sender.into_iter() {
                         trace!("(to-agent) {:?}", &payload);
@@ -130,6 +130,7 @@ impl WasmRunner {
             .into_iter()
             .map(|k| plugins_rpc_proto::LookupBy::Key(k))
             .collect();
+        const DEFAULT_DEPTH: u32 = 2;
         let resolved = services.lookup(DEFAULT_DEPTH, &lookups)?;
         for resolved in resolved {
             self.send(WasmMessage::Payload(Payload::Resolved(vec![resolved])).to_bytes()?)?;

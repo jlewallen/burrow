@@ -1,22 +1,8 @@
-use std::collections::HashMap;
-
+use anyhow::Result;
 use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use tracing::*;
-
-mod agent;
-mod fsm;
-mod server;
-
-pub use agent::Agent;
-pub use agent::AgentProtocol;
-pub use agent::AgentResponses;
-pub use agent::DefaultResponses;
-pub use agent::DEFAULT_DEPTH;
-pub use server::AlwaysErrorsServices;
-pub use server::Completed;
-pub use server::ServerProtocol;
-pub use server::Services;
 
 pub trait Inbox<T, R> {
     fn deliver(&mut self, message: &T, replies: &mut Sender<R>) -> anyhow::Result<()>;
