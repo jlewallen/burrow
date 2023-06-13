@@ -110,7 +110,7 @@ impl WasmExample {
                     for resolved in resolved {
                         match resolved {
                             (LookupBy::Key(_key), Some(entity)) => {
-                                let value: serde_json::Value = entity.try_into()?;
+                                let value = entity.try_into()?;
                                 session.add_entity(&EntityPtr::new_from_json(value)?)?;
                             }
                             (LookupBy::Key(_key), None) => todo!(),

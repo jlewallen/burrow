@@ -10,6 +10,7 @@ pub mod tools;
 pub use build::*;
 pub use finding::*;
 
+/*
 pub fn log_test() {
     use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -20,3 +21,4 @@ pub fn log_test() {
         .with(tracing_subscriber::fmt::layer().with_thread_ids(true))
         .init();
 }
+*/

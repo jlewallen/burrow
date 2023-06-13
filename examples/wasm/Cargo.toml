@@ -9,7 +9,6 @@ crate-type = ["cdylib"]
 [dependencies]
 anyhow = "1.0.71"
 bincode = { version = "2.0.0-rc", features = ["serde"] }
-serde_json = "1.0.96"
 
 [dependencies.wasm-sys]
 path = "../../plugins/wasm-sys"

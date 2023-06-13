@@ -81,7 +81,6 @@ pub mod model {
 
 pub mod actions {
     pub use crate::library::parser::ParsesActions;
-    pub use crate::log_test;
     pub use crate::tools;
     pub use anyhow::Result;
     pub use kernel::*;

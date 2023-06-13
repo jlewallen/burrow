@@ -198,8 +198,10 @@ impl ParsesActions for RpcPlugin {
     }
 }
 
+/*
 #[cfg(test)]
 #[ctor::ctor]
 fn initialize_tests() {
     plugins_core::log_test();
 }
+*/
