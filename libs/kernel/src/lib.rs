@@ -19,3 +19,77 @@ pub trait Finder: Send + Sync {
 
     fn find_audience(&self, audience: &Audience) -> anyhow::Result<Vec<EntityKey>>;
 }
+
+pub mod compare {
+    use anyhow::Result;
+    use thiserror::Error;
+    use tracing::*;
+
+    use crate::EntityPtr;
+
+    pub struct AnyChanges<'a> {
+        pub entity: &'a EntityPtr,
+        pub original: Option<&'a String>,
+    }
+
+    #[derive(Clone, Debug)]
+    pub struct Modified {
+        pub entity: serde_json::Value,
+        pub original: serde_json::Value,
+    }
+
+    #[derive(Error, Debug)]
+    pub enum CompareError {
+        #[error("JSON Error")]
+        JsonError(#[source] serde_json::Error),
+    }
+
+    impl From<serde_json::Error> for CompareError {
+        fn from(source: serde_json::Error) -> Self {
+            CompareError::JsonError(source)
+        }
+    }
+
+    pub fn any_entity_changes(l: AnyChanges) -> Result<Option<Modified>, CompareError> {
+        use treediff::diff;
+        use treediff::tools::ChangeType;
+        use treediff::tools::Recorder;
+
+        let value_after = {
+            let entity = l.entity.borrow();
+
+            serde_json::to_value(&*entity)?
+        };
+
+        let value_before: serde_json::Value = if let Some(serialized) = &l.original {
+            serialized.parse()?
+        } else {
+            serde_json::Value::Null
+        };
+
+        let mut d = Recorder::default();
+        diff(&value_before, &value_after, &mut d);
+
+        let modifications = d
+            .calls
+            .iter()
+            .filter(|c| !matches!(c, ChangeType::Unchanged(_, _)))
+            .count();
+
+        if modifications > 0 {
+            for each in d.calls {
+                match each {
+                    ChangeType::Unchanged(_, _) => {}
+                    _ => debug!("modified: {:?}", each),
+                }
+            }
+
+            Ok(Some(Modified {
+                entity: value_after,
+                original: value_before,
+            }))
+        } else {
+            Ok(None)
+        }
+    }
+}

@@ -185,43 +185,16 @@ impl Session {
     }
 
     fn check_for_changes(&self, l: &mut LoadedEntity) -> Result<Option<ModifiedEntity>> {
-        use treediff::diff;
-        use treediff::tools::ChangeType;
-        use treediff::tools::Recorder;
+        use kernel::compare::*;
 
         let _span = span!(Level::TRACE, "flushing", key = l.key.to_string()).entered();
 
-        let value_after = {
-            let entity = l.entity.borrow();
-
-            serde_json::to_value(&*entity)?
-        };
-
-        let value_before: serde_json::Value = if let Some(serialized) = &l.serialized {
-            serialized.parse()?
-        } else {
-            serde_json::Value::Null
-        };
-
-        let mut d = Recorder::default();
-        diff(&value_before, &value_after, &mut d);
-
-        let modifications = d
-            .calls
-            .iter()
-            .filter(|c| !matches!(c, ChangeType::Unchanged(_, _)))
-            .count();
-
-        if modifications > 0 {
-            for each in d.calls {
-                match each {
-                    ChangeType::Unchanged(_, _) => {}
-                    _ => debug!("modified: {:?}", each),
-                }
-            }
-
+        if let Some(modified) = any_entity_changes(AnyChanges {
+            entity: &l.entity,
+            original: l.serialized.as_ref(),
+        })? {
             // Serialize to string now that we know we'll use this.
-            let serialized = value_after.to_string();
+            let serialized = modified.entity.to_string();
 
             // By now we should have a global identifier.
             if l.gid.is_none() {
