@@ -29,6 +29,12 @@ impl From<&EntityKey> for kernel::EntityKey {
     }
 }
 
+impl Into<kernel::EntityKey> for EntityKey {
+    fn into(self) -> kernel::EntityKey {
+        kernel::EntityKey::from_string(self.0)
+    }
+}
+
 #[derive(Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub enum JsonValue {
     Null,
@@ -110,10 +116,7 @@ impl Into<serde_json::Number> for JsonNumber {
         match self {
             JsonNumber::PosInt(i) => i.into(),
             JsonNumber::NegInt(i) => i.into(),
-            JsonNumber::Float(f) => {
-                warn!("Strange float?");
-                serde_json::Number::from_f64(f).expect("Non-finite number")
-            }
+            JsonNumber::Float(f) => serde_json::Number::from_f64(f).expect("Non-finite number"),
         }
     }
 }
@@ -127,18 +130,28 @@ impl std::fmt::Debug for EntityJson {
     }
 }
 
-impl TryInto<serde_json::Value> for EntityJson {
-    type Error = serde_json::Error;
+impl Into<serde_json::Value> for EntityJson {
+    fn into(self) -> serde_json::Value {
+        self.0.into()
+    }
+}
 
-    fn try_into(self) -> Result<serde_json::Value, Self::Error> {
-        Ok(self.0.into())
+impl From<serde_json::Value> for EntityJson {
+    fn from(value: serde_json::Value) -> Self {
+        Self(value.into())
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub struct EntityUpdate {
-    entity_key: EntityKey,
-    entity: EntityJson,
+    pub key: EntityKey,
+    pub entity: EntityJson,
+}
+
+impl EntityUpdate {
+    pub fn new(key: EntityKey, entity: EntityJson) -> Self {
+        Self { key, entity }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]

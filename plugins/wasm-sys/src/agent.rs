@@ -6,12 +6,9 @@ use kernel::{
     get_my_session, set_my_session, ActiveSession, DomainError, DomainEvent, EntityPtr, Entry,
     SessionRef,
 };
-use plugins_rpc_proto::{LookupBy, Payload, Query};
+use plugins_rpc_proto::{EntityUpdate, LookupBy, Payload, Query};
 
-use crate::{
-    debug, fail, info,
-    prelude::{recv, WasmMessage},
-};
+use crate::prelude::*;
 
 pub trait Agent {
     fn have_surroundings(&mut self, surroundings: kernel::Surroundings) -> Result<()>;
@@ -63,10 +60,10 @@ where
             }
         }
 
-        info!("flushing");
-        {
-            let mut entities = entities.borrow_mut();
-            entities.flush()?;
+        let mut entities = entities.borrow_mut();
+        let queries = entities.flush()?;
+        for query in queries.into_iter() {
+            send(&WasmMessage::Query(query));
         }
 
         Ok(())
@@ -107,10 +104,13 @@ impl WorkingEntities {
                     entity: modified.entry.entity()?,
                     original: Some(Original::Json(&modified.original)),
                 })? {
-                    info!("{:?} {:?}", key, modified);
-                    Ok(vec![])
+                    debug!("{:?} modified", key);
+                    Ok(vec![Query::Update(EntityUpdate::new(
+                        key.into(),
+                        modified.entity.into(),
+                    ))])
                 } else {
-                    debug!("{:?} unmodified", key);
+                    trace!("{:?} unmodified", key);
                     Ok(vec![])
                 }
             })

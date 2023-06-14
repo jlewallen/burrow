@@ -15,14 +15,12 @@ impl Querying {
         &self,
         query: &Query,
         replies: &mut Sender<Payload>,
-        _services: &dyn Services,
+        services: &dyn Services,
     ) -> Result<()> {
         match query {
-            Query::Bootstrap => {
-                replies.send(Payload::Initialize)?;
-            }
             Query::Complete => {}
-            Query::Update(_) => todo!(),
+            Query::Bootstrap => replies.send(Payload::Initialize)?,
+            Query::Update(update) => services.apply_update(update.clone())?,
             Query::Raise(_) => todo!(),
             Query::Chain(_) => todo!(),
             Query::Reply(_) => todo!(),

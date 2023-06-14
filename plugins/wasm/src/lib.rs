@@ -70,7 +70,7 @@ impl WasmRunner {
 
         let services = SessionServices::new_for_my_session()?;
         for message in messages.into_iter() {
-            info!("(server) {:?}", message);
+            debug!("(server) {:?}", message);
 
             match message {
                 WasmMessage::Query(q) => {

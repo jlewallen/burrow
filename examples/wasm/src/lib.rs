@@ -9,10 +9,9 @@ impl Agent for WasmExample {
     fn have_surroundings(&mut self, surroundings: Surroundings) -> Result<()> {
         let (world, living, area) = surroundings.unpack();
 
-        info!("surroundings {:?}", surroundings);
-
-        let area = area.entity()?;
-        area.set_name("My world now!")?;
+        // info!("surroundings {:?}", surroundings);
+        // let area = area.entity()?;
+        // area.set_name("My world now!")?;
 
         trace!("world {:?}", world);
         trace!("living {:?}", living);

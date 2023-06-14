@@ -2,10 +2,10 @@ use anyhow::{anyhow, Context, Result};
 use std::collections::HashSet;
 use tracing::*;
 
-use kernel::{get_my_session, EntityGid, Entry};
+use kernel::{deserialize_entity_from_value, get_my_session, EntityGid, Entry};
 use plugins_core::tools;
 
-use plugins_rpc_proto::{EntityJson, EntityKey, LookupBy};
+use plugins_rpc_proto::{EntityJson, EntityKey, EntityUpdate, LookupBy};
 
 pub trait Services {
     fn lookup(
@@ -13,6 +13,8 @@ pub trait Services {
         depth: u32,
         lookup: &[LookupBy],
     ) -> Result<Vec<(LookupBy, Option<EntityJson>)>>;
+
+    fn apply_update(&self, update: EntityUpdate) -> Result<()>;
 }
 
 pub struct AlwaysErrorsServices {}
@@ -24,6 +26,11 @@ impl Services for AlwaysErrorsServices {
         _lookup: &[LookupBy],
     ) -> Result<Vec<(LookupBy, Option<EntityJson>)>> {
         warn!("AlwaysErrorsServices::lookup");
+        Err(anyhow!("This server always errors"))
+    }
+
+    fn apply_update(&self, _update: EntityUpdate) -> Result<()> {
+        warn!("AlwaysErrorsServices::update");
         Err(anyhow!("This server always errors"))
     }
 }
@@ -128,5 +135,19 @@ impl Services for SessionServices {
             .into_iter()
             .map(|(lookup, maybe)| (lookup, maybe.map(|m| m.1)))
             .collect())
+    }
+
+    fn apply_update(&self, update: EntityUpdate) -> Result<()> {
+        let session = get_my_session().with_context(|| "SessionServer::apply_update")?;
+
+        if let Some(entry) = session.entry(&kernel::LookupBy::Key(&update.key.into()))? {
+            let value: serde_json::Value = update.entity.into();
+            let replacing = deserialize_entity_from_value(value)?;
+            let entity = entry.entity()?;
+            entity.replace(replacing);
+            Ok(())
+        } else {
+            Err(anyhow!("Updating (adding?) missing entity."))
+        }
     }
 }
