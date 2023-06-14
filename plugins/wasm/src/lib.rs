@@ -10,7 +10,7 @@ use wasmer::{
 use plugins_core::library::plugin::*;
 use plugins_rpc::{Querying, Services, SessionServices};
 use plugins_rpc_proto::{Payload, Sender};
-use wasm_sys::ipc::WasmMessage;
+use wasm_sys::prelude::WasmMessage;
 
 pub struct WasmRunner {
     store: Store,

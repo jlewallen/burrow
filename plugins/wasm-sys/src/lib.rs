@@ -1,4 +1,5 @@
-pub mod macros;
+mod agent;
+mod macros;
 
 pub mod ffi {
     #![allow(dead_code)]
@@ -19,31 +20,13 @@ pub mod ffi {
     }
 }
 
-pub mod ipc {
+mod ipc {
     use anyhow::Result;
     use bincode::{Decode, Encode};
 
-    use crate::error;
-
     use plugins_rpc_proto::{Payload, Query};
 
-    pub trait WasmAgent {}
-
-    pub struct AgentBridge<T>
-    where
-        T: WasmAgent,
-    {
-        _agent: T,
-    }
-
-    impl<T> AgentBridge<T>
-    where
-        T: WasmAgent,
-    {
-        pub fn new(agent: T) -> Self {
-            Self { _agent: agent }
-        }
-    }
+    use crate::error;
 
     #[derive(Debug, Encode, Decode)]
     pub enum WasmMessage {
@@ -112,14 +95,13 @@ pub mod prelude {
 
     pub use anyhow::Result;
 
+    pub use crate::agent::{Agent, AgentBridge};
     pub use crate::ffi;
-    pub use crate::ipc::{recv, send, AgentBridge, WasmAgent, WasmMessage};
+    pub use crate::ipc::{recv, send, WasmMessage};
     pub use crate::{debug, error, fail, info, trace, warn};
 
     pub use plugins_rpc_proto::Payload;
     pub use plugins_rpc_proto::Query;
-    pub use plugins_rpc_proto::Surroundings;
-    pub use plugins_rpc_proto::{EntityJson, EntityKey, LookupBy};
 
     pub unsafe fn agent_state<T>(state: Box<T>) {
         crate::ffi::agent_store(Box::into_raw(state) as *const c_void);
