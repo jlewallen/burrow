@@ -11,6 +11,9 @@ impl Agent for WasmExample {
 
         info!("surroundings {:?}", surroundings);
 
+        let area = area.entity()?;
+        area.set_name("My world now!")?;
+
         trace!("world {:?}", world);
         trace!("living {:?}", living);
         trace!("area {:?}", area);

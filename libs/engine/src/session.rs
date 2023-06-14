@@ -191,7 +191,7 @@ impl Session {
 
         if let Some(modified) = any_entity_changes(AnyChanges {
             entity: &l.entity,
-            original: l.serialized.as_ref(),
+            original: l.serialized.as_ref().map(Original::String),
         })? {
             // Serialize to string now that we know we'll use this.
             let serialized = modified.entity.to_string();

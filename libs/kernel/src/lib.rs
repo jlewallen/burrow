@@ -29,7 +29,12 @@ pub mod compare {
 
     pub struct AnyChanges<'a> {
         pub entity: &'a EntityPtr,
-        pub original: Option<&'a String>,
+        pub original: Option<Original<'a>>,
+    }
+
+    pub enum Original<'a> {
+        String(&'a String),
+        Json(&'a serde_json::Value),
     }
 
     #[derive(Clone, Debug)]
@@ -61,8 +66,11 @@ pub mod compare {
             serde_json::to_value(&*entity)?
         };
 
-        let value_before: serde_json::Value = if let Some(serialized) = &l.original {
-            serialized.parse()?
+        let value_before: serde_json::Value = if let Some(original) = &l.original {
+            match original {
+                Original::String(s) => s.parse()?,
+                Original::Json(v) => (*v).clone(),
+            }
         } else {
             serde_json::Value::Null
         };

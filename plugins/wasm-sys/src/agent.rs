@@ -2,13 +2,14 @@ use anyhow::Result;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use kernel::{
+    compare::{any_entity_changes, AnyChanges, Original},
     get_my_session, set_my_session, ActiveSession, DomainError, DomainEvent, EntityPtr, Entry,
     SessionRef,
 };
-use plugins_rpc_proto::{LookupBy, Payload};
+use plugins_rpc_proto::{LookupBy, Payload, Query};
 
 use crate::{
-    debug, fail,
+    debug, fail, info,
     prelude::{recv, WasmMessage},
 };
 
@@ -32,7 +33,8 @@ where
     }
 
     pub fn tick(&mut self) -> Result<()> {
-        let session: Rc<dyn ActiveSession> = Rc::new(WasmSession::default());
+        let entities: Rc<RefCell<_>> = Rc::new(RefCell::new(WorkingEntities::default()));
+        let session: Rc<dyn ActiveSession> = Rc::new(WasmSession::new(entities.clone()));
 
         set_my_session(Some(&session))?;
 
@@ -61,29 +63,76 @@ where
             }
         }
 
+        info!("flushing");
+        {
+            let mut entities = entities.borrow_mut();
+            entities.flush()?;
+        }
+
         Ok(())
     }
 }
 
+struct WorkingEntity {
+    original: serde_json::Value,
+    entry: Entry,
+}
+
 #[derive(Default)]
 struct WorkingEntities {
-    entities: HashMap<kernel::EntityKey, Entry>,
+    entities: HashMap<kernel::EntityKey, WorkingEntity>,
 }
 
 impl WorkingEntities {
-    pub fn insert(&mut self, key: &kernel::EntityKey, entry: Entry) {
-        self.entities.insert(key.clone(), entry);
+    pub fn insert(&mut self, key: &kernel::EntityKey, value: (serde_json::Value, Entry)) {
+        self.entities.insert(
+            key.clone(),
+            WorkingEntity {
+                original: value.0,
+                entry: value.1,
+            },
+        );
     }
 
     pub fn get(&self, key: &kernel::EntityKey) -> Result<Option<Entry>, DomainError> {
-        Ok(self.entities.get(key).cloned())
+        Ok(self.entities.get(key).map(|r| r.entry.clone()))
+    }
+
+    pub fn flush(&mut self) -> Result<Vec<Query>> {
+        Ok(self
+            .entities
+            .iter()
+            .map(|(key, modified)| {
+                if let Some(modified) = any_entity_changes(AnyChanges {
+                    entity: modified.entry.entity()?,
+                    original: Some(Original::Json(&modified.original)),
+                })? {
+                    info!("{:?} {:?}", key, modified);
+                    Ok(vec![])
+                } else {
+                    debug!("{:?} unmodified", key);
+                    Ok(vec![])
+                }
+            })
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .flatten()
+            .collect())
     }
 }
 
-#[derive(Default)]
 struct WasmSession {
-    entities: RefCell<WorkingEntities>,
+    entities: Rc<RefCell<WorkingEntities>>,
     raised: Rc<RefCell<Vec<Box<dyn DomainEvent>>>>,
+}
+
+impl WasmSession {
+    pub fn new(entities: Rc<RefCell<WorkingEntities>>) -> Self {
+        Self {
+            entities,
+            raised: Default::default(),
+        }
+    }
 }
 
 impl ActiveSession for WasmSession {
@@ -118,9 +167,10 @@ impl ActiveSession for WasmSession {
 
     fn add_entity(&self, entity: &kernel::EntityPtr) -> Result<Entry> {
         let key = entity.key();
+        let json_value = entity.to_json_value()?;
         let entry = Entry::new(&key, entity.clone(), Rc::downgrade(&get_my_session()?));
         let mut entities = self.entities.borrow_mut();
-        entities.insert(&key, entry.clone());
+        entities.insert(&key, (json_value, entry.clone()));
         Ok(entry)
     }
 
