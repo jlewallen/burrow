@@ -62,6 +62,7 @@ impl WasmRunner {
         self.process_queries(outbox)
     }
 
+    // TODO Dupe
     fn process_queries(&mut self, messages: Vec<Box<[u8]>>) -> Result<()> {
         let messages: Vec<WasmMessage> = messages
             .into_iter()

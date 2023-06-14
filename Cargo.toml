@@ -12,6 +12,7 @@ members = [
     "plugins/wasm",
     "plugins/wasm-sys",
     "plugins/dynlib",
+    "plugins/dynlib-sys",
     "examples/shared",
     "examples/rpc",
     "examples/wasm",
