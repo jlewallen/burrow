@@ -18,7 +18,7 @@ use plugins_core::library::plugin::*;
 pub use async_tokio::TokioChannelServer;
 pub use example::ExampleAgent;
 pub use inproc::InProcessServer;
-pub use querying::Querying;
+pub use querying::{have_surroundings, Querying};
 pub use sessions::{Services, SessionServices};
 
 pub struct RpcPluginFactory {

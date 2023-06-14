@@ -1,6 +1,7 @@
 use bincode::{Decode, Encode};
 use dispatcher::Dispatch;
 use plugins_dynlib::{DynMessage, DynamicHost};
+use plugins_rpc_proto::prelude::*;
 use tracing::{dispatcher, error, info};
 
 plugins_dynlib::export_plugin!(agent_initialize, agent_tick);
@@ -19,19 +20,15 @@ fn default_plugin_setup(dh: &dyn DynamicHost) {
 #[allow(improper_ctypes_definitions)]
 extern "C" fn agent_initialize(dh: &mut dyn DynamicHost) {
     default_plugin_setup(dh);
-
-    info!("hello, world!")
 }
 
 #[allow(improper_ctypes_definitions)]
 extern "C" fn agent_tick(dh: &mut dyn DynamicHost) {
-    info!("tick");
+    while let Some(message) = recv::<DynMessage>(dh) {
+        info!("message: {:?}", message);
+    }
 
-    let message: Option<DynMessage> = recv(dh);
-
-    send(dh, DynMessage::Query(plugins_rpc_proto::Query::Complete));
-
-    info!("message: {:?}", message);
+    send(dh, DynMessage::Query(Query::Complete));
 }
 
 fn recv<T: Decode>(dh: &mut dyn DynamicHost) -> Option<T> {

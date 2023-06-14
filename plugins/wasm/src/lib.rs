@@ -8,7 +8,7 @@ use wasmer::{
 };
 
 use plugins_core::library::plugin::*;
-use plugins_rpc::{Querying, Services, SessionServices};
+use plugins_rpc::{have_surroundings, Querying, SessionServices};
 use plugins_rpc_proto::{Payload, Sender};
 use wasm_sys::prelude::WasmMessage;
 
@@ -118,26 +118,16 @@ impl WasmRunner {
         self.call_agent(&AgentCall::Initialize)
     }
 
-    fn have_surroundings(&mut self, surroundings: plugins_rpc_proto::Surroundings) -> Result<()> {
+    fn have_surroundings(&mut self, surroundings: &kernel::Surroundings) -> Result<()> {
         let services = SessionServices::new_for_my_session()?;
-        let keys = match &surroundings {
-            plugins_rpc_proto::Surroundings::Living {
-                world,
-                living,
-                area,
-            } => vec![world.clone(), living.clone(), area.clone()],
-        };
-        let lookups: Vec<_> = keys
+        let messages: Vec<Vec<u8>> = have_surroundings(surroundings, &services)?
             .into_iter()
-            .map(|k| plugins_rpc_proto::LookupBy::Key(k))
-            .collect();
-        const DEFAULT_DEPTH: u32 = 2;
-        let resolved = services.lookup(DEFAULT_DEPTH, &lookups)?;
-        for resolved in resolved {
-            self.send(WasmMessage::Payload(Payload::Resolved(vec![resolved])).to_bytes()?)?;
-        }
+            .map(|m| Ok(WasmMessage::Payload(m).to_bytes()?))
+            .collect::<Result<Vec<_>>>()?;
 
-        self.send(WasmMessage::Payload(Payload::Surroundings(surroundings)).to_bytes()?)?;
+        for message in messages.into_iter() {
+            self.send(message)?;
+        }
         self.tick()
     }
 }
@@ -322,7 +312,7 @@ impl Plugin for WasmPlugin {
     fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
         let mut runners = self.runners.borrow_mut();
         for runner in runners.iter_mut() {
-            runner.have_surroundings(surroundings.try_into()?)?;
+            runner.have_surroundings(surroundings)?;
         }
 
         Ok(())

@@ -33,3 +33,34 @@ impl Querying {
         Ok(())
     }
 }
+
+pub fn have_surroundings(
+    surroundings: &kernel::Surroundings,
+    services: &dyn Services,
+) -> Result<Vec<Payload>> {
+    let mut messages: Vec<Payload> = Vec::new();
+    let keys = match &surroundings {
+        kernel::Surroundings::Living {
+            world,
+            living,
+            area,
+        } => vec![
+            world.key().clone(),
+            living.key().clone(),
+            area.key().clone(),
+        ],
+    };
+    let lookups: Vec<_> = keys
+        .into_iter()
+        .map(|k| plugins_rpc_proto::LookupBy::Key(k.into()))
+        .collect();
+    const DEFAULT_DEPTH: u32 = 2;
+    let resolved = services.lookup(DEFAULT_DEPTH, &lookups)?;
+    for resolved in resolved {
+        messages.push(Payload::Resolved(vec![resolved]));
+    }
+
+    messages.push(Payload::Surroundings(surroundings.try_into()?));
+
+    Ok(messages)
+}

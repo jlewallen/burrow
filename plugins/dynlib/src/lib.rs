@@ -1,7 +1,7 @@
 use anyhow::Result;
 use bincode::{Decode, Encode};
 use libloading::Library;
-use plugins_rpc::{Querying, SessionServices};
+use plugins_rpc::{have_surroundings, Querying, SessionServices};
 use plugins_rpc_proto::{Payload, Query, Sender};
 use std::{cell::RefCell, collections::VecDeque, rc::Rc, sync::Arc};
 use tracing::{dispatcher::get_default, info, span, trace, warn, Level, Subscriber};
@@ -245,7 +245,22 @@ impl Plugin for DynamicPlugin {
         Ok(())
     }
 
-    fn have_surroundings(&self, _surroundings: &Surroundings) -> Result<()> {
+    fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
+        let services = SessionServices::new_for_my_session()?;
+        let messages: Vec<Vec<u8>> = have_surroundings(surroundings, &services)?
+            .into_iter()
+            .map(|m| Ok(DynMessage::Payload(m).to_bytes()?))
+            .collect::<Result<Vec<_>>>()?;
+
+        {
+            let mut libraries = self.libraries.borrow_mut();
+            for library in libraries.iter_mut() {
+                for message in messages.iter() {
+                    library.inbox.push_back(message.clone().into());
+                }
+            }
+        }
+
         self.tick()?;
 
         Ok(())

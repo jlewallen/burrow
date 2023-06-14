@@ -29,6 +29,12 @@ impl From<&EntityKey> for kernel::EntityKey {
     }
 }
 
+impl Into<EntityKey> for kernel::EntityKey {
+    fn into(self) -> EntityKey {
+        EntityKey(self.into())
+    }
+}
+
 impl Into<kernel::EntityKey> for EntityKey {
     fn into(self) -> kernel::EntityKey {
         kernel::EntityKey::from_string(self.0)
@@ -309,4 +315,9 @@ where
     pub fn pop(&mut self) -> Option<S> {
         self.queue.pop()
     }
+}
+
+pub mod prelude {
+    pub use super::Payload;
+    pub use super::Query;
 }
