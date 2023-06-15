@@ -1,9 +1,8 @@
 mod agent;
 mod macros;
 
+#[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
 pub mod ffi {
-    #![allow(dead_code)]
-
     use std::ffi::c_void;
 
     #[link(wasm_import_module = "burrow")]
@@ -17,6 +16,23 @@ pub mod ffi {
         pub fn agent_store(app: *const c_void);
         pub fn agent_send(event: *const u8, len: usize);
         pub fn agent_recv(event: *const u8, len: usize) -> usize;
+    }
+}
+
+#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
+pub mod ffi {
+    use std::ffi::c_void;
+
+    pub fn console_info(_msg: *const u8, _len: usize) {}
+    pub fn console_debug(_msg: *const u8, _len: usize) {}
+    pub fn console_trace(_msg: *const u8, _len: usize) {}
+    pub fn console_warn(_msg: *const u8, _len: usize) {}
+    pub fn console_error(_msg: *const u8, _len: usize) {}
+
+    pub fn agent_store(_app: *const c_void) {}
+    pub fn agent_send(_event: *const u8, _len: usize) {}
+    pub fn agent_recv(_event: *const u8, _len: usize) -> usize {
+        unimplemented!()
     }
 }
 
@@ -53,6 +69,7 @@ mod ipc {
             }
         };
 
+        #[allow(unused_unsafe)] // Applies in non-wasm32 builds.
         unsafe {
             crate::ffi::agent_send(encoded.as_ptr(), encoded.len());
         }
@@ -66,6 +83,8 @@ mod ipc {
         // batching the protocol than you'll be worrying about memory
         // management.
         let mut buffer = [0; 65536];
+
+        #[allow(unused_unsafe)] // Applies in non-wasm32 builds.
         let len = unsafe { crate::ffi::agent_recv(buffer.as_mut_ptr(), buffer.len()) };
 
         if len == 0 {
