@@ -16,18 +16,16 @@ impl PluginFactory for CarryingPluginFactory {
 #[derive(Default)]
 pub struct CarryingPlugin {}
 
-const KEY: &'static str = "carrying";
-
 impl Plugin for CarryingPlugin {
     fn plugin_key() -> &'static str
     where
         Self: Sized,
     {
-        KEY
+        "carrying"
     }
 
     fn key(&self) -> &'static str {
-        KEY
+        Self::plugin_key()
     }
 
     fn initialize(&mut self) -> Result<()> {

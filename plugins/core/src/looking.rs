@@ -16,18 +16,16 @@ impl PluginFactory for LookingPluginFactory {
 #[derive(Default)]
 pub struct LookingPlugin {}
 
-const KEY: &'static str = "looking";
-
 impl Plugin for LookingPlugin {
     fn plugin_key() -> &'static str
     where
         Self: Sized,
     {
-        KEY
+        "looking"
     }
 
     fn key(&self) -> &'static str {
-        KEY
+        Self::plugin_key()
     }
 
     fn initialize(&mut self) -> Result<()> {

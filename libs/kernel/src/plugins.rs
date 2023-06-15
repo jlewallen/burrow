@@ -53,6 +53,8 @@ pub trait Plugin: ParsesActions {
     where
         Self: Sized;
 
+    fn key(&self) -> &'static str;
+
     fn initialize(&mut self) -> Result<()>;
 
     fn register_hooks(&self, hooks: &ManagedHooks) -> Result<()>;
@@ -60,15 +62,6 @@ pub trait Plugin: ParsesActions {
     fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()>;
 
     fn stop(&self) -> Result<()>;
-
-    fn key(&self) -> &'static str;
-    /*
-    where
-        Self: Sized,
-    {
-        Self::plugin_key()
-    }
-    */
 }
 
 #[derive(Default)]

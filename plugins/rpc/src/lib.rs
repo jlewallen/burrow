@@ -156,18 +156,16 @@ pub struct RpcPlugin {
 
 impl RpcPlugin {}
 
-const KEY: &'static str = "rpc";
-
 impl Plugin for RpcPlugin {
     fn plugin_key() -> &'static str
     where
         Self: Sized,
     {
-        KEY
+        "rpc"
     }
 
     fn key(&self) -> &'static str {
-        KEY
+        Self::plugin_key()
     }
 
     #[tracing::instrument(name = "rpc-initialize", skip(self))]

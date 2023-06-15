@@ -49,18 +49,16 @@ impl RunePlugin {
     }
 }
 
-const KEY: &'static str = "rune";
-
 impl Plugin for RunePlugin {
     fn plugin_key() -> &'static str
     where
         Self: Sized,
     {
-        KEY
+        "rune"
     }
 
     fn key(&self) -> &'static str {
-        KEY
+        Self::plugin_key()
     }
 
     fn initialize(&mut self) -> Result<()> {

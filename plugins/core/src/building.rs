@@ -18,18 +18,16 @@ impl PluginFactory for BuildingPluginFactory {
 #[derive(Default)]
 pub struct BuildingPlugin {}
 
-const KEY: &'static str = "building";
-
 impl Plugin for BuildingPlugin {
     fn plugin_key() -> &'static str
     where
         Self: Sized,
     {
-        KEY
+        "building"
     }
 
     fn key(&self) -> &'static str {
-        KEY
+        Self::plugin_key()
     }
 
     fn initialize(&mut self) -> Result<()> {

@@ -281,18 +281,16 @@ fn get_assets_path() -> Result<PathBuf> {
 
 impl WasmPlugin {}
 
-const KEY: &'static str = "wasm";
-
 impl Plugin for WasmPlugin {
     fn plugin_key() -> &'static str
     where
         Self: Sized,
     {
-        KEY
+        "wasm"
     }
 
     fn key(&self) -> &'static str {
-        KEY
+        Self::plugin_key()
     }
 
     fn initialize(&mut self) -> Result<()> {
