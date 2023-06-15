@@ -101,6 +101,24 @@ struct PluginConfiguration {
     rpc: bool,
 }
 
+fn get_assets_path() -> Result<PathBuf> {
+    let mut cwd = std::env::current_dir()?;
+    loop {
+        if cwd.join(".git").exists() {
+            break;
+        }
+
+        cwd = match cwd.parent() {
+            Some(cwd) => cwd.to_path_buf(),
+            None => {
+                return Err(anyhow::anyhow!("Error locating assets path"));
+            }
+        };
+    }
+
+    Ok(cwd.join("plugins/wasm/assets"))
+}
+
 async fn make_domain(plugins: PluginConfiguration) -> Result<Domain> {
     let storage_factory = Factory::new("world.sqlite3")?;
     let mut registered_plugins = RegisteredPlugins::default();
@@ -115,7 +133,7 @@ async fn make_domain(plugins: PluginConfiguration) -> Result<Domain> {
         registered_plugins.register(RunePluginFactory::default());
     }
     if plugins.wasm {
-        registered_plugins.register(WasmPluginFactory::default());
+        registered_plugins.register(WasmPluginFactory::new(&get_assets_path()?)?);
     }
     if plugins.rpc {
         registered_plugins.register(RpcPluginFactory::start().await?);

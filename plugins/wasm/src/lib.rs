@@ -1,7 +1,8 @@
 use anyhow::{anyhow, Context, Result};
+use std::cell::RefCell;
 use std::collections::VecDeque;
-use std::sync::Arc;
-use std::{cell::RefCell, path::PathBuf};
+use std::path::Path;
+use std::sync::{Arc, Mutex};
 
 use wasmer::{
     imports, Function, FunctionEnv, FunctionEnvMut, Instance, Memory, Module, Store, Value, WasmPtr,
@@ -132,12 +133,23 @@ impl WasmRunner {
     }
 }
 
-#[derive(Default)]
-pub struct WasmPluginFactory {}
+pub type Runners = Arc<Mutex<RefCell<Vec<WasmRunner>>>>;
+
+pub struct WasmPluginFactory {
+    runners: Runners,
+}
+
+impl WasmPluginFactory {
+    pub fn new(path: &Path) -> Result<Self> {
+        let runners = Arc::new(Mutex::new(RefCell::new(create_runners(path)?)));
+
+        Ok(Self { runners })
+    }
+}
 
 impl PluginFactory for WasmPluginFactory {
     fn create_plugin(&self) -> Result<Box<dyn Plugin>> {
-        Ok(Box::<WasmPlugin>::default())
+        Ok(Box::new(WasmPlugin::new(Arc::clone(&self.runners))))
     }
 
     fn stop(&self) -> Result<()> {
@@ -153,16 +165,19 @@ struct AgentEnv {
     pub state: Option<i32>,
 }
 
-pub type Runners = Arc<RefCell<Vec<WasmRunner>>>;
-
 #[derive(Default)]
 pub struct WasmPlugin {
     runners: Runners,
 }
 
-fn create_runners() -> Result<Vec<WasmRunner>> {
+fn create_runners(path: &Path) -> Result<Vec<WasmRunner>> {
     let cwd = std::env::current_dir()?;
-    let path = get_assets_path()?.join("plugin_example_wasm.wasm");
+    let path = path.join("plugin_example_wasm.wasm");
+    if std::fs::metadata(&path).is_err() {
+        info!("no wasm in {:?}", path);
+        return Ok(vec![]);
+    }
+
     let wasm_bytes = std::fs::read(&path).with_context(|| {
         format!(
             "Opening wasm: {} (from {})",
@@ -261,25 +276,11 @@ fn create_runners() -> Result<Vec<WasmRunner>> {
     Ok(vec![WasmRunner::new(store, env, instance)])
 }
 
-fn get_assets_path() -> Result<PathBuf> {
-    let mut cwd = std::env::current_dir()?;
-    loop {
-        if cwd.join(".git").exists() {
-            break;
-        }
-
-        cwd = match cwd.parent() {
-            Some(cwd) => cwd.to_path_buf(),
-            None => {
-                return Err(anyhow::anyhow!("Error locating assets path"));
-            }
-        };
+impl WasmPlugin {
+    fn new(runners: Runners) -> Self {
+        Self { runners }
     }
-
-    Ok(cwd.join("plugins/wasm/assets"))
 }
-
-impl WasmPlugin {}
 
 impl Plugin for WasmPlugin {
     fn plugin_key() -> &'static str
@@ -294,8 +295,8 @@ impl Plugin for WasmPlugin {
     }
 
     fn initialize(&mut self) -> Result<()> {
-        let mut runners = self.runners.borrow_mut();
-        runners.extend(create_runners()?);
+        let locked = self.runners.lock().map_err(|_| anyhow!("Lock error"))?;
+        let mut runners = locked.borrow_mut();
         for runner in runners.iter_mut() {
             runner.initialize()?;
         }
@@ -308,7 +309,8 @@ impl Plugin for WasmPlugin {
     }
 
     fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
-        let mut runners = self.runners.borrow_mut();
+        let locked = self.runners.lock().map_err(|_| anyhow!("Lock error"))?;
+        let mut runners = locked.borrow_mut();
         for runner in runners.iter_mut() {
             runner.have_surroundings(surroundings)?;
         }

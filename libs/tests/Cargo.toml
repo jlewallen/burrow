@@ -9,6 +9,7 @@ doctest = false
 [dependencies]
 anyhow = "1.0.71"
 serde_json = "1.0.96"
+tempfile = "3.6.0"
 
 [dev-dependencies.replies]
 path = "../replies"

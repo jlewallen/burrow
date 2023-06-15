@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use std::{rc::Rc, sync::Arc};
+    use std::{env::temp_dir, rc::Rc, sync::Arc};
     use tokio::task::JoinHandle;
 
     use engine::{
@@ -109,7 +109,7 @@ mod tests {
         registered_plugins.register(BuildingPluginFactory::default());
         registered_plugins.register(DynamicPluginFactory::default());
         registered_plugins.register(RunePluginFactory::default());
-        registered_plugins.register(WasmPluginFactory::default());
+        registered_plugins.register(WasmPluginFactory::new(&temp_dir())?);
         registered_plugins.register(RpcPluginFactory::start().await?);
         let finder = Arc::new(DefaultFinder::default());
         let keys = Arc::new(DeterministicKeys::new());
