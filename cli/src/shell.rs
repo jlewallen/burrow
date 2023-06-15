@@ -8,6 +8,7 @@ use std::rc::Rc;
 use tokio::task::JoinHandle;
 
 use crate::terminal::Renderer;
+use crate::PluginConfiguration;
 use crate::{make_domain, terminal::default_external_editor};
 use engine::{self, DevNullNotifier, Domain, Notifier, Session, SessionOpener};
 use kernel::{ActiveSession, EntityKey, Perform, Reply, SimpleReply};
@@ -20,6 +21,12 @@ use plugins_rune::actions::SaveScriptAction;
 pub struct Command {
     #[arg(short, long, default_value = "jlewallen")]
     username: String,
+}
+
+impl Command {
+    fn plugin_configuration(&self) -> PluginConfiguration {
+        PluginConfiguration::default()
+    }
 }
 
 #[derive(Default)]
@@ -178,7 +185,7 @@ fn evaluate_commands(
 
 #[tokio::main]
 pub async fn execute_command(cmd: &Command) -> Result<()> {
-    let domain = make_domain().await?;
+    let domain = make_domain(cmd.plugin_configuration()).await?;
 
     let self_key = find_user_key(&domain, &cmd.username)
         .await?

@@ -22,10 +22,16 @@ use tracing::{debug, info, warn};
 use engine::{DevNullNotifier, Domain, Notifier, Session, SessionOpener};
 use kernel::{EntityKey, Reply, SimpleReply};
 
-use crate::make_domain;
+use crate::{make_domain, PluginConfiguration};
 
 #[derive(Debug, Args)]
 pub struct Command {}
+
+impl Command {
+    fn plugin_configuration(&self) -> PluginConfiguration {
+        PluginConfiguration::default()
+    }
+}
 
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -97,10 +103,10 @@ impl Notifier for SenderNotifier {
 }
 
 #[tokio::main]
-pub async fn execute_command(_cmd: &Command) -> Result<()> {
+pub async fn execute_command(cmd: &Command) -> Result<()> {
     info!("serving");
 
-    let domain = make_domain().await?;
+    let domain = make_domain(cmd.plugin_configuration()).await?;
 
     let assets_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
 

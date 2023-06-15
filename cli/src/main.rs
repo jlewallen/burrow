@@ -93,17 +93,33 @@ impl Sequence<Identity> for NanoIds {
     }
 }
 
-async fn make_domain() -> Result<Domain> {
+#[derive(Default)]
+struct PluginConfiguration {
+    wasm: bool,
+    dynlib: bool,
+    rune: bool,
+    rpc: bool,
+}
+
+async fn make_domain(plugins: PluginConfiguration) -> Result<Domain> {
     let storage_factory = Factory::new("world.sqlite3")?;
     let mut registered_plugins = RegisteredPlugins::default();
-    registered_plugins.register(MovingPluginFactory::default());
     registered_plugins.register(LookingPluginFactory::default());
+    registered_plugins.register(MovingPluginFactory::default());
     registered_plugins.register(CarryingPluginFactory::default());
     registered_plugins.register(BuildingPluginFactory::default());
-    registered_plugins.register(DynamicPluginFactory::default());
-    registered_plugins.register(RunePluginFactory::default());
-    registered_plugins.register(WasmPluginFactory::default());
-    registered_plugins.register(RpcPluginFactory::start().await?);
+    if plugins.dynlib {
+        registered_plugins.register(DynamicPluginFactory::default());
+    }
+    if plugins.rune {
+        registered_plugins.register(RunePluginFactory::default());
+    }
+    if plugins.wasm {
+        registered_plugins.register(WasmPluginFactory::default());
+    }
+    if plugins.rpc {
+        registered_plugins.register(RpcPluginFactory::start().await?);
+    }
     let finder = Arc::new(DefaultFinder::default());
     Ok(Domain::new(
         storage_factory,

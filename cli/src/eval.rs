@@ -3,8 +3,8 @@ use std::rc::Rc;
 use anyhow::Result;
 use clap::Args;
 
-use crate::{make_domain, text::Renderer};
-use engine::{DevNullNotifier, Session, SessionOpener};
+use crate::{make_domain, text::Renderer, PluginConfiguration};
+use engine::{DevNullNotifier, Domain, Session, SessionOpener};
 
 #[derive(Debug, Args, Clone)]
 pub struct Command {
@@ -16,7 +16,18 @@ pub struct Command {
     separate_sessions: bool,
 }
 
-fn evaluate_commands(domain: engine::Domain, cmd: Command) -> Result<()> {
+impl Command {
+    fn plugin_configuration(&self) -> PluginConfiguration {
+        PluginConfiguration {
+            wasm: false,
+            dynlib: true,
+            rune: false,
+            rpc: false,
+        }
+    }
+}
+
+fn evaluate_commands(domain: Domain, cmd: Command) -> Result<()> {
     let renderer = Renderer::new()?;
 
     let mut open_session: Option<Rc<Session>> = None;
@@ -53,7 +64,7 @@ fn evaluate_commands(domain: engine::Domain, cmd: Command) -> Result<()> {
 
 #[tokio::main]
 pub async fn execute_command(cmd: &Command) -> Result<()> {
-    let domain = make_domain().await?;
+    let domain = make_domain(cmd.plugin_configuration()).await?;
     let cmd = cmd.clone();
 
     tokio::task::spawn_blocking(|| evaluate_commands(domain, cmd)).await?
