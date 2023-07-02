@@ -10,7 +10,7 @@ use wasmer::{
 
 use plugins_core::library::plugin::*;
 use plugins_rpc::{have_surroundings, Querying, SessionServices};
-use plugins_rpc_proto::{Payload, Sender};
+use plugins_rpc_proto::Query;
 use wasm_sys::prelude::WasmMessage;
 
 pub struct WasmRunner {
@@ -63,30 +63,22 @@ impl WasmRunner {
         self.process_queries(outbox)
     }
 
-    // TODO Dupe
     fn process_queries(&mut self, messages: Vec<Box<[u8]>>) -> Result<()> {
-        let messages: Vec<WasmMessage> = messages
+        let services = SessionServices::new_for_my_session()?;
+        let messages: Vec<Query> = messages
             .into_iter()
             .map(|b| Ok(WasmMessage::from_bytes(&b)?))
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .map(|m| match m {
+                WasmMessage::Query(query) => query,
+                WasmMessage::Payload(_) => unimplemented!(),
+            })
+            .collect();
 
-        let services = SessionServices::new_for_my_session()?;
-        for message in messages.into_iter() {
-            debug!("(server) {:?}", message);
-
-            match message {
-                WasmMessage::Query(q) => {
-                    let mut sender: Sender<Payload> = Default::default();
-                    let querying = Querying::new();
-                    querying.service(&q, &mut sender, &services)?;
-
-                    for payload in sender.into_iter() {
-                        trace!("(to-agent) {:?}", &payload);
-                        self.send(WasmMessage::Payload(payload).to_bytes()?)?;
-                    }
-                }
-                _ => unimplemented!("Wasm server received {:?}", message),
-            }
+        let querying = Querying::new();
+        for payload in querying.process(messages, &services)? {
+            self.send(WasmMessage::Payload(payload).to_bytes()?)?;
         }
 
         Ok(())

@@ -2,7 +2,7 @@ use anyhow::Result;
 use bincode::{Decode, Encode};
 use libloading::Library;
 use plugins_rpc::{have_surroundings, Querying, SessionServices};
-use plugins_rpc_proto::{Payload, Query, Sender};
+use plugins_rpc_proto::{Payload, Query};
 use std::{cell::RefCell, collections::VecDeque, rc::Rc, sync::Arc};
 use tracing::{dispatcher::get_default, info, span, trace, warn, Level, Subscriber};
 
@@ -113,30 +113,22 @@ impl LoadedLibrary {
         Ok(())
     }
 
-    // TODO Dupe from wasm
     fn process_queries(&mut self, messages: Vec<Box<[u8]>>) -> Result<()> {
-        let messages: Vec<DynMessage> = messages
+        let services = SessionServices::new_for_my_session()?;
+        let messages: Vec<Query> = messages
             .into_iter()
             .map(|b| Ok(DynMessage::from_bytes(&b)?))
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .map(|m| match m {
+                DynMessage::Query(query) => query,
+                DynMessage::Payload(_) => unimplemented!(),
+            })
+            .collect();
 
-        let services = SessionServices::new_for_my_session()?;
-        for message in messages.into_iter() {
-            debug!("(server) {:?}", message);
-
-            match message {
-                DynMessage::Query(q) => {
-                    let mut sender: Sender<Payload> = Default::default();
-                    let querying = Querying::new();
-                    querying.service(&q, &mut sender, &services)?;
-
-                    for payload in sender.into_iter() {
-                        trace!("(to-agent) {:?}", &payload);
-                        self.send(&DynMessage::Payload(payload).to_bytes()?);
-                    }
-                }
-                _ => unimplemented!("Wasm server received {:?}", message),
-            }
+        let querying = Querying::new();
+        for payload in querying.process(messages, &services)? {
+            self.send(&DynMessage::Payload(payload).to_bytes()?);
         }
 
         Ok(())

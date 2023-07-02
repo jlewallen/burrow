@@ -1,4 +1,5 @@
 use anyhow::Result;
+use tracing::{debug, trace};
 
 use plugins_rpc_proto::{Payload, Query, Sender};
 
@@ -9,6 +10,24 @@ pub struct Querying {}
 impl Querying {
     pub fn new() -> Self {
         Self {}
+    }
+
+    pub fn process(&self, messages: Vec<Query>, services: &dyn Services) -> Result<Vec<Payload>> {
+        let mut payloads = Vec::new();
+
+        for message in messages.into_iter() {
+            debug!("(server) {:?}", message);
+
+            let mut sender: Sender<Payload> = Default::default();
+            self.service(&message, &mut sender, services)?;
+
+            for payload in sender.into_iter() {
+                trace!("(to-agent) {:?}", &payload);
+                payloads.push(payload);
+            }
+        }
+
+        Ok(payloads)
     }
 
     pub fn service(
