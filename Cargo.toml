@@ -9,6 +9,7 @@ members = [
     "plugins/rune",
     "plugins/rpc-proto",
     "plugins/rpc",
+    "plugins/agent-sys",
     "plugins/wasm",
     "plugins/wasm-sys",
     "plugins/dynlib",

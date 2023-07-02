@@ -1,4 +1,3 @@
-mod agent;
 mod macros;
 
 #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
@@ -114,13 +113,15 @@ pub mod prelude {
 
     pub use anyhow::Result;
 
-    pub use crate::agent::{Agent, AgentBridge};
     pub use crate::ffi;
     pub use crate::ipc::{recv, send, WasmMessage};
     pub use crate::{debug, error, fail, info, trace, warn};
 
     pub use plugins_rpc_proto::Payload;
     pub use plugins_rpc_proto::Query;
+
+    pub use plugins_agent_sys::Agent;
+    pub use plugins_agent_sys::AgentBridge;
 
     pub unsafe fn agent_state<T>(state: Box<T>) {
         crate::ffi::agent_store(Box::into_raw(state) as *const c_void);

@@ -8,16 +8,19 @@ build:
 test:
     cargo test --workspace
 
-eval:
+plugins:
+    cargo build --package plugin-example-shared
+
+eval: plugins
     cargo run -- eval
 
-shell:
+shell: plugins
     cargo run -- shell
 
-serve:
+serve: plugins
     cargo run -- serve
 
-look:
+look: plugins
     cargo run -- eval --text look --text look --text look --separate-sessions
 
 clean:

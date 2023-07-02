@@ -29,7 +29,13 @@ impl Agent for WasmExample {
 #[allow(clippy::missing_safety_doc)]
 pub unsafe extern "C" fn agent_initialize() {
     let mut bridge = Box::new(AgentBridge::<WasmExample>::new(WasmExample::default()));
-    match bridge.tick() {
+    match bridge.tick(|| match recv::<WasmMessage>() {
+        Some(m) => match m {
+            WasmMessage::Payload(m) => Some(m),
+            WasmMessage::Query(_) => unimplemented!(),
+        },
+        None => None,
+    }) {
         Ok(_) => agent_state(bridge),
         Err(e) => error!("{:?}", e),
     };
@@ -39,7 +45,13 @@ pub unsafe extern "C" fn agent_initialize() {
 #[allow(clippy::missing_safety_doc)]
 pub unsafe extern "C" fn agent_tick(state: *mut std::ffi::c_void) {
     let bridge = state as *mut AgentBridge<WasmExample>;
-    match (*bridge).tick() {
+    match (*bridge).tick(|| match recv::<WasmMessage>() {
+        Some(m) => match m {
+            WasmMessage::Payload(m) => Some(m),
+            WasmMessage::Query(_) => unimplemented!(),
+        },
+        None => None,
+    }) {
         Err(e) => error!("{:?}", e),
         Ok(_) => {}
     }

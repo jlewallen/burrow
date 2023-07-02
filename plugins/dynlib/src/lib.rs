@@ -22,19 +22,27 @@ impl PluginFactory for DynamicPluginFactory {
     }
 }
 
-impl DynamicHost for LoadedLibrary {
-    fn tracing_subscriber(&self) -> Box<dyn Subscriber + Send + Sync> {
-        Box::new(PluginSubscriber::new())
-    }
+#[derive(Default)]
+pub struct Outbox {
+    messages: Vec<Box<[u8]>>,
+}
 
-    fn send(&mut self, bytes: &[u8]) -> usize {
-        self.outbox.push(bytes.into());
+impl Outbox {
+    pub fn send(&mut self, bytes: &[u8]) -> usize {
+        self.messages.push(bytes.into());
 
         bytes.len()
     }
+}
 
-    fn recv(&mut self, bytes: &mut [u8]) -> usize {
-        let Some(sending) = self.inbox.pop_front() else { return 0 };
+#[derive(Default)]
+pub struct Inbox {
+    messages: VecDeque<Arc<[u8]>>,
+}
+
+impl Inbox {
+    pub fn recv(&mut self, bytes: &mut [u8]) -> usize {
+        let Some(sending) = self.messages.pop_front() else { return 0 };
 
         if sending.len() > bytes.len() {
             return sending.len();
@@ -46,10 +54,24 @@ impl DynamicHost for LoadedLibrary {
     }
 }
 
+impl DynamicHost for LoadedLibrary {
+    fn tracing_subscriber(&self) -> Box<dyn Subscriber + Send + Sync> {
+        Box::new(PluginSubscriber::new())
+    }
+
+    fn send(&mut self, bytes: &[u8]) -> usize {
+        self.outbox.send(bytes)
+    }
+
+    fn recv(&mut self, bytes: &mut [u8]) -> usize {
+        self.inbox.recv(bytes)
+    }
+}
+
 struct LoadedLibrary {
     library: Rc<Library>,
-    inbox: VecDeque<Arc<[u8]>>,
-    outbox: Vec<Box<[u8]>>,
+    inbox: Inbox,
+    outbox: Outbox,
     _state: Option<i32>,
 }
 
@@ -87,7 +109,7 @@ impl LoadedLibrary {
         Ok(())
     }
 
-    // TODO Dupe
+    // TODO Dupe from wasm
     fn process_queries(&mut self, messages: Vec<Box<[u8]>>) -> Result<()> {
         let messages: Vec<DynMessage> = messages
             .into_iter()
@@ -123,10 +145,10 @@ impl LoadedLibrary {
                 .get::<*mut PluginDeclaration>(b"plugin_declaration\0")?;
             let decl = sym.read();
 
-            while !self.inbox.is_empty() {
+            while !self.inbox.messages.is_empty() {
                 (decl.tick)(self);
 
-                let outbox = std::mem::take(&mut self.outbox);
+                let outbox = std::mem::take(&mut self.outbox.messages);
 
                 self.process_queries(outbox)?;
             }
@@ -254,7 +276,7 @@ impl Plugin for DynamicPlugin {
             let mut libraries = self.libraries.borrow_mut();
             for library in libraries.iter_mut() {
                 for message in messages.iter() {
-                    library.inbox.push_back(message.clone().into());
+                    library.inbox.messages.push_back(message.clone().into());
                 }
             }
         }

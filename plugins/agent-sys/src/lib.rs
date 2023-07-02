@@ -1,5 +1,6 @@
 use anyhow::Result;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use tracing::*;
 
 use kernel::{
     compare::{any_entity_changes, AnyChanges, Original},
@@ -8,79 +9,21 @@ use kernel::{
 };
 use plugins_rpc_proto::{EntityUpdate, LookupBy, Payload, Query};
 
-use crate::prelude::*;
-
-pub trait Agent {
-    fn have_surroundings(&mut self, surroundings: kernel::Surroundings) -> Result<()>;
-}
-
-pub struct AgentBridge<T>
-where
-    T: Agent,
-{
-    agent: T,
-}
-
-impl<T> AgentBridge<T>
-where
-    T: Agent,
-{
-    pub fn new(agent: T) -> Self {
-        Self { agent }
-    }
-
-    pub fn tick(&mut self) -> Result<()> {
-        let entities: Rc<RefCell<_>> = Rc::new(RefCell::new(WorkingEntities::default()));
-        let session: Rc<dyn ActiveSession> = Rc::new(WasmSession::new(entities.clone()));
-
-        set_my_session(Some(&session))?;
-
-        while let Some(message) = recv::<WasmMessage>() {
-            debug!("(tick) {:?}", &message);
-
-            match message {
-                WasmMessage::Payload(Payload::Resolved(resolved)) => {
-                    for resolved in resolved {
-                        match resolved {
-                            (LookupBy::Key(_key), Some(entity)) => {
-                                let value = entity.try_into()?;
-                                session.add_entity(&EntityPtr::new_from_json(value)?)?;
-                            }
-                            (LookupBy::Key(_key), None) => todo!(),
-                            _ => {}
-                        }
-                    }
-                }
-                WasmMessage::Payload(Payload::Surroundings(surroundings)) => {
-                    self.agent
-                        .have_surroundings(WithEntities::new(&session, surroundings).try_into()?)?;
-                }
-                WasmMessage::Query(_) => return Err(anyhow::anyhow!("Expecting payload only")),
-                _ => {}
-            }
-        }
-
-        let mut entities = entities.borrow_mut();
-        let queries = entities.flush()?;
-        for query in queries.into_iter() {
-            send(&WasmMessage::Query(query));
-        }
-
-        Ok(())
-    }
-}
-
 struct WorkingEntity {
     original: serde_json::Value,
     entry: Entry,
 }
 
 #[derive(Default)]
-struct WorkingEntities {
+pub struct WorkingEntities {
     entities: HashMap<kernel::EntityKey, WorkingEntity>,
 }
 
 impl WorkingEntities {
+    pub fn new() -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(Self::default()))
+    }
+
     pub fn insert(&mut self, key: &kernel::EntityKey, value: (serde_json::Value, Entry)) {
         self.entities.insert(
             key.clone(),
@@ -121,21 +64,21 @@ impl WorkingEntities {
     }
 }
 
-struct WasmSession {
+pub struct AgentSession {
     entities: Rc<RefCell<WorkingEntities>>,
     raised: Rc<RefCell<Vec<Box<dyn DomainEvent>>>>,
 }
 
-impl WasmSession {
-    pub fn new(entities: Rc<RefCell<WorkingEntities>>) -> Self {
-        Self {
+impl AgentSession {
+    pub fn new(entities: Rc<RefCell<WorkingEntities>>) -> Rc<Self> {
+        Rc::new(Self {
             entities,
             raised: Default::default(),
-        }
+        })
     }
 }
 
-impl ActiveSession for WasmSession {
+impl ActiveSession for AgentSession {
     fn entry(&self, lookup: &kernel::LookupBy) -> Result<Option<Entry>> {
         let entities = self.entities.borrow();
         match lookup {
@@ -149,7 +92,7 @@ impl ActiveSession for WasmSession {
         _surroundings: &kernel::Surroundings,
         _item: &kernel::Item,
     ) -> Result<Option<Entry>> {
-        fail!("session:find-item")
+        unimplemented!("session:find-item")
     }
 
     fn ensure_entity(
@@ -175,15 +118,15 @@ impl ActiveSession for WasmSession {
     }
 
     fn obliterate(&self, _entity: &Entry) -> Result<()> {
-        fail!("session:obliterate")
+        unimplemented!("session:obliterate")
     }
 
     fn new_key(&self) -> kernel::EntityKey {
-        fail!("session:new-key")
+        unimplemented!("session:new-key")
     }
 
     fn new_identity(&self) -> kernel::Identity {
-        fail!("session:new-identity")
+        unimplemented!("session:new-identity")
     }
 
     fn raise(&self, event: Box<dyn kernel::DomainEvent>) -> Result<()> {
@@ -193,15 +136,15 @@ impl ActiveSession for WasmSession {
     }
 
     fn chain(&self, _perform: kernel::Perform) -> Result<Box<dyn kernel::Reply>> {
-        fail!("session:chain")
+        unimplemented!("session:chain")
     }
 
     fn hooks(&self) -> &kernel::ManagedHooks {
-        fail!("session:hooks")
+        unimplemented!("session:hooks")
     }
 }
 
-struct WithEntities<'a, T> {
+pub struct WithEntities<'a, T> {
     session: &'a SessionRef,
     value: T,
 }
@@ -236,5 +179,64 @@ impl<'a> TryInto<kernel::Surroundings> for WithEntities<'a, plugins_rpc_proto::S
                 area: self.get(area)?,
             }),
         }
+    }
+}
+
+pub trait Agent {
+    fn have_surroundings(&mut self, surroundings: kernel::Surroundings) -> Result<()>;
+}
+
+pub struct AgentBridge<T>
+where
+    T: Agent,
+{
+    agent: T,
+}
+
+impl<T> AgentBridge<T>
+where
+    T: Agent,
+{
+    pub fn new(agent: T) -> Self {
+        Self { agent }
+    }
+
+    pub fn tick<TRecvFn>(&mut self, mut recv: TRecvFn) -> Result<Vec<Query>>
+    where
+        TRecvFn: FnMut() -> Option<Payload>,
+    {
+        let entities = WorkingEntities::new();
+        let session: Rc<dyn ActiveSession> = AgentSession::new(entities.clone());
+
+        set_my_session(Some(&session))?;
+
+        while let Some(message) = recv() {
+            debug!("(tick) {:?}", &message);
+
+            match message {
+                Payload::Resolved(resolved) => {
+                    for resolved in resolved {
+                        match resolved {
+                            (LookupBy::Key(_key), Some(entity)) => {
+                                let value = entity.try_into()?;
+                                session.add_entity(&EntityPtr::new_from_json(value)?)?;
+                            }
+                            (LookupBy::Key(_key), None) => todo!(),
+                            _ => {}
+                        }
+                    }
+                }
+                Payload::Surroundings(surroundings) => {
+                    self.agent
+                        .have_surroundings(WithEntities::new(&session, surroundings).try_into()?)?;
+                }
+                _ => {}
+            }
+        }
+
+        let mut entities = entities.borrow_mut();
+        let queries = entities.flush()?;
+
+        Ok(queries)
     }
 }

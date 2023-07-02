@@ -1,8 +1,11 @@
+use anyhow::Result;
 use bincode::{Decode, Encode};
 use dispatcher::Dispatch;
+use tracing::*;
+
+use plugins_agent_sys::{Agent, AgentBridge};
+use plugins_core::{library::plugin::Surroundings, tools};
 use plugins_dynlib::{DynMessage, DynamicHost};
-use plugins_rpc_proto::prelude::*;
-use tracing::{dispatcher, error, info};
 
 plugins_dynlib::export_plugin!(agent_initialize, agent_tick);
 
@@ -17,6 +20,29 @@ fn default_plugin_setup(dh: &dyn DynamicHost) {
     }
 }
 
+#[derive(Default)]
+struct ExampleAgent {}
+
+impl Agent for ExampleAgent {
+    fn have_surroundings(&mut self, surroundings: Surroundings) -> Result<()> {
+        let (world, living, area) = surroundings.unpack();
+
+        // info!("surroundings {:?}", surroundings);
+        // let area = area.entity()?;
+        // area.set_name("My world now!")?;
+
+        trace!("world {:?}", world);
+        trace!("living {:?}", living);
+        trace!("area {:?}", area);
+
+        let area_of = tools::area_of(&living)?;
+
+        trace!("area-of: {:?}", area_of);
+
+        Ok(())
+    }
+}
+
 #[allow(improper_ctypes_definitions)]
 extern "C" fn agent_initialize(dh: &mut dyn DynamicHost) {
     default_plugin_setup(dh);
@@ -24,11 +50,24 @@ extern "C" fn agent_initialize(dh: &mut dyn DynamicHost) {
 
 #[allow(improper_ctypes_definitions)]
 extern "C" fn agent_tick(dh: &mut dyn DynamicHost) {
-    while let Some(message) = recv::<DynMessage>(dh) {
-        info!("message: {:?}", message);
-    }
+    let mut bridge = Box::new(AgentBridge::<ExampleAgent>::new(ExampleAgent::default()));
+    let sending = match bridge.tick(|| match recv::<DynMessage>(dh) {
+        Some(m) => match m {
+            DynMessage::Payload(m) => Some(m),
+            DynMessage::Query(_) => unimplemented!(),
+        },
+        None => None,
+    }) {
+        Ok(sending) => sending, // agent_state(bridge),
+        Err(e) => {
+            error!("{:?}", e);
+            vec![]
+        }
+    };
 
-    send(dh, DynMessage::Query(Query::Complete));
+    for m in sending {
+        send(dh, DynMessage::Query(m));
+    }
 }
 
 fn recv<T: Decode>(dh: &mut dyn DynamicHost) -> Option<T> {
