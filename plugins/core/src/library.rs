@@ -50,7 +50,7 @@ pub mod parser {
     }
 
     pub fn surrounding_area(i: &str) -> IResult<&str, Item> {
-        map(tag("area"), |_s: &str| Item::Area)(i)
+        map(alt((tag("area"), tag("here"))), |_s: &str| Item::Area)(i)
     }
 
     pub fn noun_or_specific(i: &str) -> IResult<&str, Item> {
