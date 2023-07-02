@@ -66,13 +66,17 @@ impl DynamicHost for LoadedLibrary {
     fn recv(&mut self, bytes: &mut [u8]) -> usize {
         self.inbox.recv(bytes)
     }
+
+    fn state(&mut self, state: *const std::ffi::c_void) {
+        self.state = Some(state);
+    }
 }
 
 struct LoadedLibrary {
     library: Rc<Library>,
     inbox: Inbox,
     outbox: Outbox,
-    _state: Option<i32>,
+    state: Option<*const std::ffi::c_void>,
 }
 
 #[derive(Debug, Encode, Decode)]
@@ -187,7 +191,7 @@ impl DynamicPlugin {
                 library,
                 inbox: Default::default(),
                 outbox: Default::default(),
-                _state: None,
+                state: None,
             })
         }
     }
@@ -219,6 +223,8 @@ pub trait DynamicHost {
     fn send(&mut self, bytes: &[u8]) -> usize;
 
     fn recv(&mut self, bytes: &mut [u8]) -> usize;
+
+    fn state(&mut self, state: *const std::ffi::c_void);
 }
 
 #[macro_export]

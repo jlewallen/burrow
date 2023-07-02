@@ -31,13 +31,11 @@ impl Agent for ExampleAgent {
         // let area = area.entity()?;
         // area.set_name("My world now!")?;
 
-        trace!("world {:?}", world);
-        trace!("living {:?}", living);
-        trace!("area {:?}", area);
-
+        info!("world {:?}", world);
+        info!("living {:?}", living);
+        info!("area {:?}", area);
         let area_of = tools::area_of(&living)?;
-
-        trace!("area-of: {:?}", area_of);
+        info!("area-of: {:?}", area_of);
 
         Ok(())
     }
@@ -58,7 +56,10 @@ extern "C" fn agent_tick(dh: &mut dyn DynamicHost) {
         },
         None => None,
     }) {
-        Ok(sending) => sending, // agent_state(bridge),
+        Ok(sending) => {
+            dh.state(Box::into_raw(bridge) as *const std::ffi::c_void);
+            sending
+        }
         Err(e) => {
             error!("{:?}", e);
             vec![]
