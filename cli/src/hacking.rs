@@ -1,7 +1,6 @@
 use anyhow::Result;
 use tracing::info;
 
-use crate::text::Renderer;
 use crate::{make_domain, PluginConfiguration};
 
 use engine::{username_to_key, DevNullNotifier, SessionOpener};
@@ -31,7 +30,6 @@ pub fn set_containing_quantities_to_1(thing: Entry) -> Result<()> {
 
 #[tokio::main]
 pub async fn execute_command() -> Result<()> {
-    let _renderer = Renderer::new()?;
     let domain = make_domain(PluginConfiguration::default()).await?;
     let session = domain.open_session()?;
 

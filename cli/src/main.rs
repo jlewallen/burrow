@@ -17,6 +17,7 @@ use plugins_rune::RunePluginFactory;
 use plugins_wasm::WasmPluginFactory;
 use sqlite::Factory;
 
+mod dump;
 mod eval;
 mod hacking;
 mod serve;
@@ -40,6 +41,7 @@ enum Commands {
     Serve(serve::Command),
     Shell(shell::Command),
     Eval(eval::Command),
+    Dump(dump::Command),
     Hacking,
 }
 
@@ -189,6 +191,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Some(Commands::Serve(cmd)) => Ok(serve::execute_command(cmd)?),
         Some(Commands::Shell(cmd)) => Ok(shell::execute_command(cmd)?),
         Some(Commands::Eval(cmd)) => Ok(eval::execute_command(cmd)?),
+        Some(Commands::Dump(cmd)) => Ok(dump::execute_command(cmd)?),
         Some(Commands::Hacking) => Ok(hacking::execute_command()?),
         None => Ok(()),
     }
