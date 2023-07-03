@@ -40,13 +40,7 @@ impl Querying {
             Query::Complete => {}
             Query::Bootstrap => replies.send(Payload::Initialize)?,
             Query::Update(update) => services.apply_update(update.clone())?,
-            Query::Raise(_) => todo!(),
-            Query::Chain(_) => todo!(),
-            Query::Reply(_) => todo!(),
-            Query::Permission(_) => todo!(),
-            Query::Lookup(_, _) => todo!(),
-            Query::Find(_) => todo!(),
-            Query::Try(_) => todo!(),
+            Query::Raise(raised) => services.raise(raised.clone().into())?,
         }
 
         Ok(())

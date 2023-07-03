@@ -2,36 +2,37 @@ use anyhow::{anyhow, Context, Result};
 use std::collections::HashSet;
 use tracing::*;
 
-use kernel::{deserialize_entity_from_value, get_my_session, EntityGid, Entry};
+use kernel::{
+    deserialize_entity_from_value, get_my_session, DomainEvent, EntityGid, Entry, Observed, ToJson,
+};
 use plugins_core::tools;
 
-use plugins_rpc_proto::{EntityJson, EntityKey, EntityUpdate, LookupBy};
+use plugins_rpc_proto::{EntityKey, EntityUpdate, Json, LookupBy};
 
 pub trait Services {
-    fn lookup(
-        &self,
-        depth: u32,
-        lookup: &[LookupBy],
-    ) -> Result<Vec<(LookupBy, Option<EntityJson>)>>;
+    fn lookup(&self, depth: u32, lookup: &[LookupBy]) -> Result<Vec<(LookupBy, Option<Json>)>>;
 
     fn apply_update(&self, update: EntityUpdate) -> Result<()>;
+
+    fn raise(&self, raised: serde_json::Value) -> Result<()>;
 }
 
 pub struct AlwaysErrorsServices {}
 
 impl Services for AlwaysErrorsServices {
-    fn lookup(
-        &self,
-        _depth: u32,
-        _lookup: &[LookupBy],
-    ) -> Result<Vec<(LookupBy, Option<EntityJson>)>> {
+    fn lookup(&self, _depth: u32, _lookup: &[LookupBy]) -> Result<Vec<(LookupBy, Option<Json>)>> {
         warn!("AlwaysErrorsServices::lookup");
-        Err(anyhow!("This server always errors"))
+        Err(anyhow!("This server always errors (lookup)"))
     }
 
     fn apply_update(&self, _update: EntityUpdate) -> Result<()> {
         warn!("AlwaysErrorsServices::update");
-        Err(anyhow!("This server always errors"))
+        Err(anyhow!("This server always errors (apply_update)"))
+    }
+
+    fn raise(&self, _raised: serde_json::Value) -> Result<()> {
+        warn!("AlwaysErrorsServices::raise");
+        Err(anyhow!("This server always errors (raise)"))
     }
 }
 
@@ -42,7 +43,7 @@ impl SessionServices {
         Ok(Self {})
     }
 
-    fn lookup_one(&self, lookup: &LookupBy) -> Result<(LookupBy, Option<(Entry, EntityJson)>)> {
+    fn lookup_one(&self, lookup: &LookupBy) -> Result<(LookupBy, Option<(Entry, Json)>)> {
         let session = get_my_session().with_context(|| "SessionServer::lookup_one")?;
         let entry = match lookup {
             LookupBy::Key(key) => session.entry(&kernel::LookupBy::Key(&key.into()))?,
@@ -59,7 +60,7 @@ impl SessionServices {
 #[derive(Default)]
 struct FoldToDepth {
     queue: Vec<LookupBy>,
-    entities: Vec<(LookupBy, Option<(Entry, EntityJson)>)>,
+    entities: Vec<(LookupBy, Option<(Entry, Json)>)>,
 }
 
 impl FoldToDepth {
@@ -72,7 +73,7 @@ impl FoldToDepth {
 
     pub fn into_with<F>(self, f: F) -> Result<Self>
     where
-        F: FnMut(LookupBy) -> Result<(LookupBy, Option<(Entry, EntityJson)>)>,
+        F: FnMut(LookupBy) -> Result<(LookupBy, Option<(Entry, Json)>)>,
     {
         debug!(queue = self.queue.len(), "discovering");
 
@@ -112,11 +113,7 @@ impl FoldToDepth {
 }
 
 impl Services for SessionServices {
-    fn lookup(
-        &self,
-        depth: u32,
-        lookup: &[LookupBy],
-    ) -> Result<Vec<(LookupBy, Option<EntityJson>)>> {
+    fn lookup(&self, depth: u32, lookup: &[LookupBy]) -> Result<Vec<(LookupBy, Option<Json>)>> {
         let done = (0..depth).fold(
             Ok::<_, anyhow::Error>(FoldToDepth::new(lookup)),
             |acc, depth| match acc {
@@ -150,4 +147,38 @@ impl Services for SessionServices {
             Err(anyhow!("Updating (adding?) missing entity."))
         }
     }
+
+    fn raise(&self, raised: serde_json::Value) -> Result<()> {
+        let session = get_my_session().with_context(|| "SessionServer::raise")?;
+        session.raise(Box::new(RpcDomainEvent { value: raised }))
+    }
 }
+
+#[derive(Debug)]
+pub struct RpcDomainEvent {
+    value: serde_json::Value,
+}
+
+impl DomainEvent for RpcDomainEvent {
+    fn audience(&self) -> kernel::Audience {
+        todo!()
+    }
+
+    fn observe(&self, _user: &Entry) -> Result<Box<dyn kernel::Observed>> {
+        Ok(Box::new(RpcDomainEvent {
+            value: self.value.clone(),
+        }))
+    }
+
+    fn to_json_value(&self) -> Result<serde_json::Value> {
+        Ok(self.value.clone())
+    }
+}
+
+impl ToJson for RpcDomainEvent {
+    fn to_json(&self) -> std::result::Result<serde_json::Value, serde_json::Error> {
+        Ok(self.value.clone())
+    }
+}
+
+impl Observed for RpcDomainEvent {}

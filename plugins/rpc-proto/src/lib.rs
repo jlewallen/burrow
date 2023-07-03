@@ -128,21 +128,21 @@ impl Into<serde_json::Number> for JsonNumber {
 }
 
 #[derive(Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
-pub struct EntityJson(JsonValue);
+pub struct Json(JsonValue);
 
-impl std::fmt::Debug for EntityJson {
+impl std::fmt::Debug for Json {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("EntityJson").finish()
     }
 }
 
-impl Into<serde_json::Value> for EntityJson {
+impl Into<serde_json::Value> for Json {
     fn into(self) -> serde_json::Value {
         self.0.into()
     }
 }
 
-impl From<serde_json::Value> for EntityJson {
+impl From<serde_json::Value> for Json {
     fn from(value: serde_json::Value) -> Self {
         Self(value.into())
     }
@@ -151,21 +151,13 @@ impl From<serde_json::Value> for EntityJson {
 #[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub struct EntityUpdate {
     pub key: EntityKey,
-    pub entity: EntityJson,
+    pub entity: Json,
 }
 
 impl EntityUpdate {
-    pub fn new(key: EntityKey, entity: EntityJson) -> Self {
+    pub fn new(key: EntityKey, entity: Json) -> Self {
         Self { key, entity }
     }
-}
-
-#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
-pub enum Event {
-    Arrived,
-    Left,
-    Held,
-    Dropped,
 }
 
 #[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
@@ -210,20 +202,14 @@ impl<'a> Into<kernel::LookupBy<'a>> for &LookupBy {
 #[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub enum Query {
     Bootstrap,
-
-    Complete,
-
     Update(EntityUpdate),
-    Raise(Event),
-    Chain(String),
-    Reply(Reply),
-
-    Permission(Try),
-
-    Lookup(u32, Vec<LookupBy>),
-    Find(Find),
-
-    Try(Try),
+    Raise(Json),
+    Complete,
+    // Chain(String),
+    // Reply(Reply),
+    // Permission(Try),
+    // Lookup(u32, Vec<LookupBy>),
+    // Try(Try),
 }
 
 #[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
@@ -235,7 +221,7 @@ pub enum Surroundings {
     },
 }
 
-impl TryFrom<&kernel::Entry> for EntityJson {
+impl TryFrom<&kernel::Entry> for Json {
     type Error = anyhow::Error;
 
     fn try_from(value: &kernel::Entry) -> Result<Self, Self::Error> {
@@ -265,16 +251,11 @@ impl TryFrom<&kernel::Surroundings> for Surroundings {
 #[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub enum Payload {
     Initialize, /* Complete */
-
+    // Evaluate(String, Surroundings), /* Reply */
+    Resolved(Vec<(LookupBy, Option<Json>)>),
     Surroundings(Surroundings),
-    Evaluate(String, Surroundings), /* Reply */
-
-    Resolved(Vec<(LookupBy, Option<EntityJson>)>),
-    Found(Vec<EntityJson>),
-
-    Permission(Permission),
-
-    Hook(Hook),
+    // Permission(Permission),
+    // Hook(Hook),
 }
 
 #[derive(Debug)]

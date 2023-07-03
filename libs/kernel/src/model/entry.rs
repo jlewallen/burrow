@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use serde::{ser::SerializeStruct, Serialize};
 use std::rc::{Rc, Weak};
 use tracing::trace;
 
@@ -103,6 +104,17 @@ impl Entry {
 
     pub fn debug(&self) -> Option<&String> {
         self.debug.as_ref()
+    }
+}
+
+impl Serialize for Entry {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut state = serializer.serialize_struct("Entry", 1)?;
+        state.serialize_field("key", &self.key)?;
+        state.end()
     }
 }
 

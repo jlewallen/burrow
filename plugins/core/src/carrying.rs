@@ -59,7 +59,7 @@ pub mod model {
 
     pub type CarryingResult = Result<DomainOutcome>;
 
-    #[derive(Debug)]
+    #[derive(Debug, Serialize)]
     pub enum CarryingEvent {
         ItemHeld {
             living: Entry,
@@ -106,6 +106,10 @@ pub mod model {
                         "living": living.observe(user)?,
                          "item": item.observe(user)?}}))),
             })
+        }
+
+        fn to_json_value(&self) -> Result<serde_json::Value> {
+            Ok(serde_json::to_value(self)?)
         }
     }
 

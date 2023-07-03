@@ -5,7 +5,6 @@ use tracing::*;
 use kernel::{
     compare::{any_entity_changes, AnyChanges, Original},
     get_my_session, set_my_session, ActiveSession, DomainError, DomainEvent, EntityPtr, Entry,
-    SessionRef,
 };
 use plugins_rpc_proto::{EntityUpdate, LookupBy, Payload, Query};
 
@@ -83,7 +82,7 @@ impl ActiveSession for AgentSession {
         let entities = self.entities.borrow();
         match lookup {
             kernel::LookupBy::Key(key) => Ok(entities.get(*key)?),
-            kernel::LookupBy::Gid(_) => todo!(),
+            kernel::LookupBy::Gid(_) => unimplemented!("Entry by Gid"),
         }
     }
 
@@ -92,7 +91,7 @@ impl ActiveSession for AgentSession {
         _surroundings: &kernel::Surroundings,
         _item: &kernel::Item,
     ) -> Result<Option<Entry>> {
-        unimplemented!("session:find-item")
+        unimplemented!("AgentSession:find-item")
     }
 
     fn ensure_entity(
@@ -118,15 +117,15 @@ impl ActiveSession for AgentSession {
     }
 
     fn obliterate(&self, _entity: &Entry) -> Result<()> {
-        unimplemented!("session:obliterate")
+        unimplemented!("AgentSession:obliterate")
     }
 
     fn new_key(&self) -> kernel::EntityKey {
-        unimplemented!("session:new-key")
+        unimplemented!("AgentSession:new-key")
     }
 
     fn new_identity(&self) -> kernel::Identity {
-        unimplemented!("session:new-identity")
+        unimplemented!("AgentSession:new-identity")
     }
 
     fn raise(&self, event: Box<dyn kernel::DomainEvent>) -> Result<()> {
@@ -136,11 +135,11 @@ impl ActiveSession for AgentSession {
     }
 
     fn chain(&self, _perform: kernel::Perform) -> Result<Box<dyn kernel::Reply>> {
-        unimplemented!("session:chain")
+        unimplemented!("AgentSession:chain")
     }
 
     fn hooks(&self) -> &kernel::ManagedHooks {
-        unimplemented!("session:hooks")
+        unimplemented!("AgentSession:hooks")
     }
 }
 
@@ -168,9 +167,9 @@ where
         TRecvFn: FnMut() -> Option<Payload>,
     {
         let entities = WorkingEntities::new();
-        let session: Rc<dyn ActiveSession> = AgentSession::new(entities.clone());
+        let session = AgentSession::new(entities.clone());
 
-        set_my_session(Some(&session))?;
+        set_my_session(Some(&(session.clone() as Rc<dyn ActiveSession>)))?;
 
         while let Some(message) = recv() {
             debug!("(tick) {:?}", &message);
@@ -189,7 +188,7 @@ where
                     }
                 }
                 Payload::Surroundings(surroundings) => {
-                    let with = WithEntities::new(&session, surroundings);
+                    let with = WithEntities::new(Rc::clone(&session), surroundings);
                     self.agent.have_surroundings(with.try_into()?)?;
                 }
                 _ => {}
@@ -199,19 +198,30 @@ where
         set_my_session(None)?;
 
         let entities = entities.borrow();
-        let queries = entities.flush()?;
+        let mut queries = entities.flush()?;
+
+        let raised = session.raised.borrow();
+        for raised in raised.iter() {
+            queries.push(Query::Raise(raised.to_json_value()?.into()));
+        }
 
         Ok(queries)
     }
 }
 
-pub struct WithEntities<'a, T> {
-    session: &'a SessionRef,
+pub struct WithEntities<T, S>
+where
+    S: ActiveSession,
+{
+    session: Rc<S>,
     value: T,
 }
 
-impl<'a, T> WithEntities<'a, T> {
-    pub fn new(session: &'a SessionRef, value: T) -> Self {
+impl<'a, T, S> WithEntities<T, S>
+where
+    S: ActiveSession,
+{
+    pub fn new(session: Rc<S>, value: T) -> Self {
         Self { session, value }
     }
 
@@ -225,7 +235,10 @@ impl<'a, T> WithEntities<'a, T> {
     }
 }
 
-impl<'a> TryInto<kernel::Surroundings> for WithEntities<'a, plugins_rpc_proto::Surroundings> {
+impl<S> TryInto<kernel::Surroundings> for WithEntities<plugins_rpc_proto::Surroundings, S>
+where
+    S: ActiveSession,
+{
     type Error = DomainError;
 
     fn try_into(self) -> std::result::Result<kernel::Surroundings, Self::Error> {

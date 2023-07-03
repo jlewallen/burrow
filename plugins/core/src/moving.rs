@@ -121,7 +121,7 @@ pub mod model {
         }
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Serialize)]
     pub enum MovingEvent {
         Left { living: Entry, area: Entry },
         Arrived { living: Entry, area: Entry },
@@ -150,6 +150,10 @@ pub mod model {
                     json!({ "arrived": { "living": living.observe(user)?}}),
                 )),
             })
+        }
+
+        fn to_json_value(&self) -> Result<serde_json::Value> {
+            Ok(serde_json::to_value(self)?)
         }
     }
 

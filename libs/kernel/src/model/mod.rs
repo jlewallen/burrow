@@ -121,6 +121,8 @@ pub trait DomainEvent: Debug {
     fn audience(&self) -> Audience;
 
     fn observe(&self, user: &Entry) -> Result<Box<dyn Observed>>;
+
+    fn to_json_value(&self) -> Result<serde_json::Value>;
 }
 
 #[derive(Debug)]

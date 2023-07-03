@@ -21,12 +21,8 @@ impl Inbox<Payload, Query> for ExampleAgent {
     fn deliver(&mut self, message: &Payload, replies: &mut Sender<Query>) -> Result<()> {
         match message {
             Payload::Initialize => {}
+            Payload::Resolved(_) => {}
             Payload::Surroundings(_) => replies.send(Query::Complete)?,
-            Payload::Evaluate(_, _) => todo!(),
-            Payload::Resolved(_) => todo!(),
-            Payload::Found(_) => todo!(),
-            Payload::Permission(_) => todo!(),
-            Payload::Hook(_) => todo!(),
         }
 
         Ok(())
