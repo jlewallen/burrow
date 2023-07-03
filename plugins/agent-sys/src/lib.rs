@@ -234,6 +234,8 @@ where
             }
         }
 
+        set_my_session(None)?;
+
         let mut entities = entities.borrow_mut();
         let queries = entities.flush()?;
 
