@@ -52,6 +52,8 @@ impl ParsesActions for LookingPlugin {
 }
 
 pub mod model {
+    use thiserror::Error;
+
     use crate::library::model::*;
     use crate::{
         carrying::model::{Carryable, Containing},
@@ -79,32 +81,38 @@ pub mod model {
     }
 
     pub trait Observe<T> {
-        fn observe(&self, user: &Entry) -> Result<T>;
+        fn observe(&self, user: &Entry) -> Result<Option<T>>;
     }
 
     impl Observe<ObservedEntity> for &Entry {
-        fn observe(&self, _user: &Entry) -> Result<ObservedEntity> {
+        fn observe(&self, _user: &Entry) -> Result<Option<ObservedEntity>> {
             let name = self.name()?;
             let carryable = self.scope::<Carryable>()?;
             let qualified = name.as_ref().map(|n| qualify_name(carryable.quantity(), n));
 
-            Ok(ObservedEntity {
+            Ok(Some(ObservedEntity {
                 key: self.key().to_string(),
                 name,
                 qualified,
                 desc: self.desc()?,
-            })
+            }))
         }
     }
 
-    pub fn new_entity_observation(user: &Entry, entity: &Entry) -> Result<EntityObservation> {
-        Ok(EntityObservation {
-            entity: entity.observe(user)?,
-        })
+    pub fn new_entity_observation(
+        user: &Entry,
+        entity: &Entry,
+    ) -> Result<Option<EntityObservation>> {
+        Ok(entity
+            .observe(user)?
+            .map(|entity| EntityObservation { entity }))
     }
 
-    pub fn new_inside_observation(user: &Entry, vessel: &Entry) -> Result<InsideObservation> {
-        let mut items = vec![];
+    pub fn new_inside_observation(
+        user: &Entry,
+        vessel: &Entry,
+    ) -> Result<Option<InsideObservation>> {
+        let mut items = Vec::new();
         if let Ok(containing) = vessel.scope::<Containing>() {
             for lazy_entity in &containing.holding {
                 let entity = &lazy_entity.into_entry()?;
@@ -112,17 +120,19 @@ pub mod model {
             }
         }
 
-        Ok(InsideObservation {
-            vessel: vessel.observe(user)?,
-            items,
-        })
+        Ok(vessel.observe(user)?.map(|vessel| InsideObservation {
+            vessel,
+            items: items.into_iter().flatten().collect(),
+        }))
     }
 
     pub fn new_area_observation(user: &Entry, area: &Entry) -> Result<AreaObservation> {
         let mut living: Vec<ObservedEntity> = vec![];
         if let Ok(occupyable) = area.scope::<Occupyable>() {
             for entity in &occupyable.occupied {
-                living.push((&entity.into_entry()?).observe(user)?);
+                if let Some(observed) = (&entity.into_entry()?).observe(user)? {
+                    living.push(observed);
+                }
             }
         }
 
@@ -148,13 +158,25 @@ pub mod model {
         }
 
         Ok(AreaObservation {
-            area: area.observe(user)?,
-            person: user.observe(user)?,
+            area: area
+                .observe(user)?
+                .ok_or_else(|| LookError::InvisibleSurroundingArea)?,
+            person: user
+                .observe(user)?
+                .ok_or_else(|| LookError::InvisibleSelf)?,
             living,
-            items,
-            carrying,
-            routes,
+            items: items.into_iter().flatten().collect(),
+            carrying: carrying.into_iter().flatten().collect(),
+            routes: routes.into_iter().flatten().collect(),
         })
+    }
+
+    #[derive(Error, Debug)]
+    pub enum LookError {
+        #[error("Invisible surrounding area")]
+        InvisibleSurroundingArea,
+        #[error("Invisible self")]
+        InvisibleSelf,
     }
 }
 
@@ -197,7 +219,10 @@ pub mod actions {
             match session.find_item(surroundings, &self.item)? {
                 Some(target) => {
                     if tools::is_container(&target)? {
-                        Ok(Box::new(new_inside_observation(&user, &target)?))
+                        match new_inside_observation(&user, &target)? {
+                            Some(observation) => Ok(Box::new(observation)),
+                            None => Ok(Box::new(SimpleReply::NotFound)),
+                        }
                     } else {
                         Ok(Box::new(SimpleReply::Impossible))
                     }
@@ -221,7 +246,10 @@ pub mod actions {
             let (_, user, _area) = surroundings.unpack();
 
             match session.find_item(surroundings, &self.item)? {
-                Some(target) => Ok(Box::new(new_entity_observation(&user, &target)?)),
+                Some(target) => match new_entity_observation(&user, &target)? {
+                    Some(observation) => Ok(Box::new(observation)),
+                    None => Ok(Box::new(SimpleReply::NotFound)),
+                },
                 None => Ok(Box::new(SimpleReply::NotFound)),
             }
         }
