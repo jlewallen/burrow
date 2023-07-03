@@ -283,8 +283,6 @@ impl Debug for EntityPtr {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct Identity {
-    #[serde(rename = "py/object")]
-    py_object: String,
     private: String,
     public: String,
     signature: Option<String>, // TODO Why does this happen in the model?
@@ -293,7 +291,6 @@ pub struct Identity {
 impl Identity {
     pub fn new(public: String, private: String) -> Self {
         Self {
-            py_object: String::default(),
             private,
             public,
             signature: None,
@@ -303,8 +300,6 @@ impl Identity {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct Kind {
-    #[serde(rename = "py/object")]
-    py_object: String,
     identity: Identity,
 }
 
@@ -325,39 +320,28 @@ pub struct EntityClass {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AclRule {
-    #[serde(rename = "py/object")]
-    py_object: String,
     keys: Vec<String>,
     perm: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Acls {
-    #[serde(rename = "py/object")]
-    py_object: String,
     rules: Vec<AclRule>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Version {
-    #[serde(rename = "py/object")]
-    py_object: String,
     i: u64,
 }
 
 impl Default for Version {
     fn default() -> Self {
-        Self {
-            py_object: Default::default(),
-            i: 1,
-        }
+        Self { i: 1 }
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Property {
-    #[serde(rename = "py/object")]
-    py_object: String,
     acls: Acls,
     value: serde_json::Value,
 }
@@ -365,7 +349,6 @@ pub struct Property {
 impl Property {
     pub fn new(value: serde_json::Value) -> Self {
         Self {
-            py_object: "".to_string(),
             acls: Default::default(),
             value,
         }
@@ -374,15 +357,12 @@ impl Property {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Props {
-    #[serde(rename = "py/object")]
-    py_object: String,
     map: HashMap<String, Property>,
 }
 
 impl Default for Props {
     fn default() -> Self {
         Self {
-            py_object: "model.properties.Common".to_string(), // #python-class
             map: Default::default(),
         }
     }
@@ -445,8 +425,6 @@ pub enum ScopeValue {
 
 #[derive(Clone, Serialize, Deserialize /*  Default*/)]
 pub struct Entity {
-    #[serde(rename = "py/object")]
-    py_object: String,
     key: EntityKey,
     version: Version,
     parent: Option<EntityRef>,
@@ -481,7 +459,6 @@ impl Entity {
     pub fn new_with_key(key: EntityKey) -> Self {
         Self {
             key,
-            py_object: Default::default(),
             version: Default::default(),
             parent: Default::default(),
             creator: Default::default(),
@@ -635,10 +612,6 @@ impl Entity {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct EntityRef {
-    #[serde(rename = "py/object")]
-    py_object: String,
-    #[serde(rename = "py/ref")]
-    py_ref: String,
     key: EntityKey,
     #[serde(rename = "klass")]
     class: String,
@@ -651,8 +624,6 @@ pub struct EntityRef {
 impl Default for EntityRef {
     fn default() -> Self {
         Self {
-            py_object: Default::default(),
-            py_ref: Default::default(),
             key: EntityKey::blank(),
             class: Default::default(),
             name: Default::default(),
@@ -670,8 +641,6 @@ impl EntityRef {
     fn new_from_raw(entity: &Rc<RefCell<Entity>>) -> Self {
         let shared_entity = entity.borrow();
         Self {
-            py_object: "model.entity.EntityRef".to_string(), // #python-class
-            py_ref: "model.entity.Entity".to_string(),       // #python-class
             key: shared_entity.key.clone(),
             class: shared_entity.class.py_type.clone(),
             name: shared_entity.name().unwrap_or_default(),
