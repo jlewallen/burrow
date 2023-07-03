@@ -38,7 +38,7 @@ impl WorkingEntities {
         Ok(self.entities.get(key).map(|r| r.entry.clone()))
     }
 
-    pub fn flush(&mut self) -> Result<Vec<Query>> {
+    pub fn flush(&self) -> Result<Vec<Query>> {
         Ok(self
             .entities
             .iter()
@@ -144,44 +144,6 @@ impl ActiveSession for AgentSession {
     }
 }
 
-pub struct WithEntities<'a, T> {
-    session: &'a SessionRef,
-    value: T,
-}
-
-impl<'a, T> WithEntities<'a, T> {
-    pub fn new(session: &'a SessionRef, value: T) -> Self {
-        Self { session, value }
-    }
-
-    fn get(
-        &self,
-        key: impl Into<kernel::EntityKey>,
-    ) -> std::result::Result<kernel::Entry, DomainError> {
-        self.session
-            .entry(&kernel::LookupBy::Key(&key.into()))?
-            .ok_or(DomainError::EntityNotFound)
-    }
-}
-
-impl<'a> TryInto<kernel::Surroundings> for WithEntities<'a, plugins_rpc_proto::Surroundings> {
-    type Error = DomainError;
-
-    fn try_into(self) -> std::result::Result<kernel::Surroundings, Self::Error> {
-        match &self.value {
-            plugins_rpc_proto::Surroundings::Living {
-                world,
-                living,
-                area,
-            } => Ok(kernel::Surroundings::Living {
-                world: self.get(world)?,
-                living: self.get(living)?,
-                area: self.get(area)?,
-            }),
-        }
-    }
-}
-
 pub trait Agent {
     fn have_surroundings(&mut self, surroundings: kernel::Surroundings) -> Result<()>;
 }
@@ -227,8 +189,8 @@ where
                     }
                 }
                 Payload::Surroundings(surroundings) => {
-                    self.agent
-                        .have_surroundings(WithEntities::new(&session, surroundings).try_into()?)?;
+                    let with = WithEntities::new(&session, surroundings);
+                    self.agent.have_surroundings(with.try_into()?)?;
                 }
                 _ => {}
             }
@@ -236,9 +198,47 @@ where
 
         set_my_session(None)?;
 
-        let mut entities = entities.borrow_mut();
+        let entities = entities.borrow();
         let queries = entities.flush()?;
 
         Ok(queries)
+    }
+}
+
+pub struct WithEntities<'a, T> {
+    session: &'a SessionRef,
+    value: T,
+}
+
+impl<'a, T> WithEntities<'a, T> {
+    pub fn new(session: &'a SessionRef, value: T) -> Self {
+        Self { session, value }
+    }
+
+    fn get(
+        &self,
+        key: impl Into<kernel::EntityKey>,
+    ) -> std::result::Result<kernel::Entry, DomainError> {
+        self.session
+            .entry(&kernel::LookupBy::Key(&key.into()))?
+            .ok_or(DomainError::EntityNotFound)
+    }
+}
+
+impl<'a> TryInto<kernel::Surroundings> for WithEntities<'a, plugins_rpc_proto::Surroundings> {
+    type Error = DomainError;
+
+    fn try_into(self) -> std::result::Result<kernel::Surroundings, Self::Error> {
+        match &self.value {
+            plugins_rpc_proto::Surroundings::Living {
+                world,
+                living,
+                area,
+            } => Ok(kernel::Surroundings::Living {
+                world: self.get(world)?,
+                living: self.get(living)?,
+                area: self.get(area)?,
+            }),
+        }
     }
 }
