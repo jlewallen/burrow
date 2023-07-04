@@ -212,7 +212,7 @@ where
         for raised in raised.iter() {
             queries.push(Query::Raise(
                 raised.audience.clone().into(),
-                raised.event.to_json_value()?.into(),
+                raised.event.to_json()?.into(),
             ));
         }
 

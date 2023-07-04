@@ -10,7 +10,7 @@ use std::{
 use thiserror::Error;
 use tracing::*;
 
-use replies::Observed;
+use replies::{Observed, ToJson};
 
 pub mod entry;
 
@@ -118,10 +118,8 @@ pub enum Audience {
     Area(EntityKey),
 }
 
-pub trait DomainEvent: Debug {
+pub trait DomainEvent: ToJson + Debug {
     fn observe(&self, user: &Entry) -> Result<Box<dyn Observed>, DomainError>;
-
-    fn to_json_value(&self) -> Result<serde_json::Value, DomainError>;
 }
 
 #[derive(Debug)]

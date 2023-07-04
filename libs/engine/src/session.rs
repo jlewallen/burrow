@@ -157,7 +157,7 @@ impl Session {
 
         for raised in pending.iter() {
             debug!("{:?}", raised.event);
-            debug!("{:?}", raised.event.to_json_value()?);
+            debug!("{:?}", raised.event.to_json()?);
             let audience_keys = self.finder.find_audience(&raised.audience)?;
             for key in audience_keys {
                 let user = self.load_entity(&LookupBy::Key(&key))?.unwrap();

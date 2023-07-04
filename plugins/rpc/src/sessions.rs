@@ -166,10 +166,6 @@ impl DomainEvent for RpcDomainEvent {
             value: self.value.clone(),
         }))
     }
-
-    fn to_json_value(&self) -> Result<serde_json::Value, DomainError> {
-        Ok(self.value.clone())
-    }
 }
 
 impl ToJson for RpcDomainEvent {

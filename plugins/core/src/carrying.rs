@@ -73,6 +73,12 @@ pub mod model {
         },
     }
 
+    impl ToJson for CarryingEvent {
+        fn to_json(&self) -> std::result::Result<Value, serde_json::Error> {
+            Ok(serde_json::to_value(self)?)
+        }
+    }
+
     impl DomainEvent for CarryingEvent {
         fn observe(&self, user: &Entry) -> Result<Box<dyn Observed>, DomainError> {
             Ok(match self {
@@ -91,10 +97,6 @@ pub mod model {
                         "living": living.observe(user)?,
                          "item": item.observe(user)?}}))),
             })
-        }
-
-        fn to_json_value(&self) -> Result<serde_json::Value, DomainError> {
-            Ok(serde_json::to_value(self)?)
         }
     }
 
