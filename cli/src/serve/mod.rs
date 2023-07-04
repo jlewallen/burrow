@@ -20,7 +20,7 @@ use tower_http::{
 use tracing::{debug, info, warn};
 
 use engine::{DevNullNotifier, Domain, Notifier, Session, SessionOpener};
-use kernel::{EntityKey, Reply, SimpleReply};
+use kernel::{DomainEvent, EntityKey, Reply, SimpleReply};
 
 use crate::{make_domain, PluginConfiguration};
 
@@ -91,7 +91,7 @@ struct SenderNotifier {
 }
 
 impl Notifier for SenderNotifier {
-    fn notify(&self, audience: &EntityKey, observed: &Rc<dyn replies::Observed>) -> Result<()> {
+    fn notify(&self, audience: &EntityKey, observed: &Rc<dyn DomainEvent>) -> Result<()> {
         debug!("notify {:?} -> {:?}", audience, observed);
 
         let serialized = observed.to_json()?;

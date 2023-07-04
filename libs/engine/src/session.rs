@@ -22,7 +22,7 @@ struct ModifiedEntity(PersistedEntity);
 
 struct RaisedEvent {
     audience: Audience,
-    event: Box<dyn DomainEvent>,
+    event: Rc<dyn DomainEvent>,
 }
 
 pub struct Session {
@@ -160,11 +160,7 @@ impl Session {
             debug!("{:?}", raised.event.to_json()?);
             let audience_keys = self.finder.find_audience(&raised.audience)?;
             for key in audience_keys {
-                let user = self.load_entity(&LookupBy::Key(&key))?.unwrap();
-                debug!(%key, "observing {:?}", user);
-                let observed = raised.event.observe(&user.try_into()?)?;
-                let rc: Rc<dyn Observed> = observed.into();
-                notifier.notify(&key, &rc)?;
+                notifier.notify(&key, &raised.event)?;
             }
         }
 
@@ -371,9 +367,10 @@ impl ActiveSession for Session {
     }
 
     fn raise(&self, audience: Audience, event: Box<dyn DomainEvent>) -> Result<()> {
-        self.raised
-            .borrow_mut()
-            .push(RaisedEvent { audience, event });
+        self.raised.borrow_mut().push(RaisedEvent {
+            audience,
+            event: event.into(),
+        });
 
         Ok(())
     }

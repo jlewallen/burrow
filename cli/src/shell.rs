@@ -11,7 +11,7 @@ use crate::terminal::Renderer;
 use crate::PluginConfiguration;
 use crate::{make_domain, terminal::default_external_editor};
 use engine::{self, DevNullNotifier, Domain, Notifier, Session, SessionOpener};
-use kernel::{ActiveSession, EntityKey, Perform, Reply, SimpleReply};
+use kernel::{ActiveSession, DomainEvent, EntityKey, Perform, Reply, SimpleReply};
 use replies::EditorReply;
 
 use plugins_core::building::actions::SaveWorkingCopyAction;
@@ -31,7 +31,7 @@ impl Command {
 
 #[derive(Default)]
 pub struct QueuedNotifier {
-    queue: RefCell<Vec<(EntityKey, Rc<dyn replies::Observed>)>>,
+    queue: RefCell<Vec<(EntityKey, Rc<dyn DomainEvent>)>>,
 }
 
 impl QueuedNotifier {
@@ -49,7 +49,7 @@ impl QueuedNotifier {
 }
 
 impl Notifier for QueuedNotifier {
-    fn notify(&self, audience: &EntityKey, observed: &Rc<dyn replies::Observed>) -> Result<()> {
+    fn notify(&self, audience: &EntityKey, observed: &Rc<dyn DomainEvent>) -> Result<()> {
         self.queue
             .borrow_mut()
             .push((audience.clone(), observed.clone()));
@@ -69,7 +69,7 @@ impl StandardOutNotifier {
 }
 
 impl Notifier for StandardOutNotifier {
-    fn notify(&self, audience: &EntityKey, observed: &Rc<dyn replies::Observed>) -> Result<()> {
+    fn notify(&self, audience: &EntityKey, observed: &Rc<dyn DomainEvent>) -> Result<()> {
         if *audience == self.key {
             let serialized = observed.to_json()?;
             println!("{:?}", serialized);

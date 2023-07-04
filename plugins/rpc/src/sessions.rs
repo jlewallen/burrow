@@ -3,8 +3,7 @@ use std::collections::HashSet;
 use tracing::*;
 
 use kernel::{
-    deserialize_entity_from_value, get_my_session, Audience, DomainError, DomainEvent, EntityGid,
-    Entry, Observed, ToJson,
+    deserialize_entity_from_value, get_my_session, Audience, DomainEvent, EntityGid, Entry, ToJson,
 };
 use plugins_core::tools;
 
@@ -160,18 +159,10 @@ pub struct RpcDomainEvent {
     value: serde_json::Value,
 }
 
-impl DomainEvent for RpcDomainEvent {
-    fn observe(&self, _user: &Entry) -> Result<Box<dyn kernel::Observed>, DomainError> {
-        Ok(Box::new(RpcDomainEvent {
-            value: self.value.clone(),
-        }))
-    }
-}
-
 impl ToJson for RpcDomainEvent {
     fn to_json(&self) -> std::result::Result<serde_json::Value, serde_json::Error> {
         Ok(self.value.clone())
     }
 }
 
-impl Observed for RpcDomainEvent {}
+impl DomainEvent for RpcDomainEvent {}

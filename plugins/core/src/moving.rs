@@ -52,7 +52,7 @@ impl ParsesActions for MovingPlugin {
 }
 
 pub mod model {
-    use crate::{library::model::*, looking::model::Observe};
+    use crate::library::model::*;
 
     pub trait BeforeMovingHook {
         fn before_moving(&self, surroundings: &Surroundings, to_area: &Entry) -> Result<CanMove>;
@@ -133,24 +133,7 @@ pub mod model {
         }
     }
 
-    impl DomainEvent for MovingEvent {
-        fn observe(&self, user: &Entry) -> Result<Box<dyn Observed>, DomainError> {
-            Ok(match self {
-                Self::Left {
-                    living,
-                    area: _area,
-                } => Box::new(SimpleObservation::new(
-                    json!({ "left": { "living": living.observe(user)?}}),
-                )),
-                Self::Arrived {
-                    living,
-                    area: _area,
-                } => Box::new(SimpleObservation::new(
-                    json!({ "arrived": { "living": living.observe(user)?}}),
-                )),
-            })
-        }
-    }
+    impl DomainEvent for MovingEvent {}
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Occupying {

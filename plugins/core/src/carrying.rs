@@ -55,7 +55,7 @@ impl ParsesActions for CarryingPlugin {
 }
 
 pub mod model {
-    use crate::{library::model::*, looking::model::Observe, tools};
+    use crate::{library::model::*, tools};
 
     pub type CarryingResult = Result<DomainOutcome>;
 
@@ -79,26 +79,7 @@ pub mod model {
         }
     }
 
-    impl DomainEvent for CarryingEvent {
-        fn observe(&self, user: &Entry) -> Result<Box<dyn Observed>, DomainError> {
-            Ok(match self {
-                CarryingEvent::ItemHeld {
-                    living,
-                    item,
-                    area: _area,
-                } => Box::new(SimpleObservation::new(json!({ "held": {
-                        "living": living.observe(user)?,
-                         "item": item.observe(user)?}}))),
-                CarryingEvent::ItemDropped {
-                    living,
-                    item,
-                    area: _area,
-                } => Box::new(SimpleObservation::new(json!({ "dropped": {
-                        "living": living.observe(user)?,
-                         "item": item.observe(user)?}}))),
-            })
-        }
-    }
+    impl DomainEvent for CarryingEvent {}
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Location {
