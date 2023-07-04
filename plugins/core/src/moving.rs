@@ -128,7 +128,7 @@ pub mod model {
     }
 
     impl DomainEvent for MovingEvent {
-        fn observe(&self, user: &Entry) -> Result<Box<dyn Observed>> {
+        fn observe(&self, user: &Entry) -> Result<Box<dyn Observed>, DomainError> {
             Ok(match self {
                 Self::Left {
                     living,
@@ -145,7 +145,7 @@ pub mod model {
             })
         }
 
-        fn to_json_value(&self) -> Result<serde_json::Value> {
+        fn to_json_value(&self) -> Result<serde_json::Value, DomainError> {
             Ok(serde_json::to_value(self)?)
         }
     }

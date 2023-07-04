@@ -35,12 +35,19 @@ pub mod model {
         }
     }
 
-    pub fn username_to_key(world: &Entry, username: &str) -> Result<Option<EntityKey>> {
+    pub fn username_to_key(
+        world: &Entry,
+        username: &str,
+    ) -> Result<Option<EntityKey>, DomainError> {
         let usernames = world.scope::<Usernames>()?;
         Ok(usernames.find(username).cloned())
     }
 
-    pub fn add_username_to_key(world: &Entry, username: &str, key: &EntityKey) -> Result<()> {
+    pub fn add_username_to_key(
+        world: &Entry,
+        username: &str,
+        key: &EntityKey,
+    ) -> Result<(), DomainError> {
         let mut usernames = world.scope_mut::<Usernames>()?;
         usernames.set(username, key);
         usernames.save()

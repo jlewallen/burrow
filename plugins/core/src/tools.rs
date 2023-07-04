@@ -7,11 +7,11 @@ use super::{
 };
 use kernel::{get_my_session, model::*, DomainOutcome, EntityPtr};
 
-pub fn is_container(item: &Entry) -> Result<bool> {
+pub fn is_container(item: &Entry) -> Result<bool, DomainError> {
     item.has_scope::<Containing>()
 }
 
-pub fn move_between(from: &Entry, to: &Entry, item: &Entry) -> Result<DomainOutcome> {
+pub fn move_between(from: &Entry, to: &Entry, item: &Entry) -> Result<DomainOutcome, DomainError> {
     info!("moving {:?} {:?} {:?}", item, from, to);
 
     let mut from = from.scope_mut::<Containing>()?;
@@ -33,7 +33,11 @@ pub fn move_between(from: &Entry, to: &Entry, item: &Entry) -> Result<DomainOutc
     }
 }
 
-pub fn navigate_between(from: &Entry, to: &Entry, item: &Entry) -> Result<DomainOutcome> {
+pub fn navigate_between(
+    from: &Entry,
+    to: &Entry,
+    item: &Entry,
+) -> Result<DomainOutcome, DomainError> {
     info!("navigating {:?}", item);
 
     let mut from = from.scope_mut::<Occupyable>()?;
@@ -55,7 +59,7 @@ pub fn navigate_between(from: &Entry, to: &Entry, item: &Entry) -> Result<Domain
     }
 }
 
-pub fn container_of(item: &Entry) -> Result<EntityPtr> {
+pub fn container_of(item: &Entry) -> Result<EntityPtr, DomainError> {
     let location = item.scope::<Location>()?;
     if let Some(container) = &location.container {
         Ok(container.into_entity()?)
@@ -64,13 +68,13 @@ pub fn container_of(item: &Entry) -> Result<EntityPtr> {
     }
 }
 
-pub fn area_of(living: &Entry) -> Result<EntityPtr> {
+pub fn area_of(living: &Entry) -> Result<EntityPtr, DomainError> {
     let occupying = living.scope::<Occupying>()?;
 
     Ok(occupying.area.into_entity()?)
 }
 
-pub fn get_contained_keys(area: &Entry) -> Result<Vec<EntityKey>> {
+pub fn get_contained_keys(area: &Entry) -> Result<Vec<EntityKey>, DomainError> {
     let containing = area.scope::<Containing>()?;
 
     Ok(containing
@@ -80,7 +84,7 @@ pub fn get_contained_keys(area: &Entry) -> Result<Vec<EntityKey>> {
         .collect::<Vec<EntityKey>>())
 }
 
-pub fn set_container(container: &Entry, items: &Vec<Entry>) -> Result<()> {
+pub fn set_container(container: &Entry, items: &Vec<Entry>) -> Result<(), DomainError> {
     let mut containing = container.scope_mut::<Containing>()?;
     for item in items {
         containing.start_carrying(item)?;
@@ -91,7 +95,7 @@ pub fn set_container(container: &Entry, items: &Vec<Entry>) -> Result<()> {
     containing.save()
 }
 
-pub fn set_occupying(area: &Entry, living: &Vec<Entry>) -> Result<()> {
+pub fn set_occupying(area: &Entry, living: &Vec<Entry>) -> Result<(), DomainError> {
     let mut occupyable = area.scope_mut::<Occupyable>()?;
     for item in living {
         occupyable.start_occupying(item)?;
@@ -102,7 +106,7 @@ pub fn set_occupying(area: &Entry, living: &Vec<Entry>) -> Result<()> {
     occupyable.save()
 }
 
-pub fn contained_by(container: &Entry) -> Result<Vec<Entry>> {
+pub fn contained_by(container: &Entry) -> Result<Vec<Entry>, DomainError> {
     let mut entities: Vec<Entry> = vec![];
     if let Ok(containing) = container.scope::<Containing>() {
         for entity in &containing.holding {

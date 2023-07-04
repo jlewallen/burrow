@@ -119,9 +119,9 @@ pub enum Audience {
 }
 
 pub trait DomainEvent: Debug {
-    fn observe(&self, user: &Entry) -> Result<Box<dyn Observed>>;
+    fn observe(&self, user: &Entry) -> Result<Box<dyn Observed>, DomainError>;
 
-    fn to_json_value(&self) -> Result<serde_json::Value>;
+    fn to_json_value(&self) -> Result<serde_json::Value, DomainError>;
 }
 
 #[derive(Debug)]
@@ -146,11 +146,11 @@ pub struct EntityPtr {
     lazy: RefCell<EntityRef>,
 }
 
-pub fn deserialize_entity(serialized: &str) -> Result<Entity> {
+pub fn deserialize_entity(serialized: &str) -> Result<Entity, DomainError> {
     deserialize_entity_from_value(serde_json::from_str(serialized)?)
 }
 
-pub fn deserialize_entity_from_value(serialized: serde_json::Value) -> Result<Entity> {
+pub fn deserialize_entity_from_value(serialized: serde_json::Value) -> Result<Entity, DomainError> {
     let session = get_my_session().with_context(|| "Session for deserialize")?;
     deserialize_entity_from_value_with_session(serialized, Some(session))
 }
@@ -158,7 +158,7 @@ pub fn deserialize_entity_from_value(serialized: serde_json::Value) -> Result<En
 pub fn deserialize_entity_from_value_with_session(
     serialized: serde_json::Value,
     session: Option<Rc<dyn ActiveSession>>,
-) -> Result<Entity> {
+) -> Result<Entity, DomainError> {
     trace!("parsing");
     let mut loaded: Entity = serde_json::from_value(serialized)?;
     if let Some(session) = session {
@@ -171,7 +171,7 @@ pub fn deserialize_entity_from_value_with_session(
 }
 
 impl EntityPtr {
-    pub fn new_blank() -> Result<Self> {
+    pub fn new_blank() -> Result<Self, DomainError> {
         Ok(Self::new(Entity::new_blank()?))
     }
 
@@ -185,13 +185,13 @@ impl EntityPtr {
         }
     }
 
-    pub fn new_from_json(value: serde_json::Value) -> Result<Self> {
+    pub fn new_from_json(value: serde_json::Value) -> Result<Self, DomainError> {
         Ok(Self::new(deserialize_entity_from_value_with_session(
             value, None,
         )?))
     }
 
-    pub fn new_named(name: &str, desc: &str) -> Result<Self> {
+    pub fn new_named(name: &str, desc: &str) -> Result<Self, DomainError> {
         let brand_new = Self::new_blank()?;
 
         brand_new.mutate(|e| {
@@ -208,22 +208,22 @@ impl EntityPtr {
         self.lazy.borrow().key.clone()
     }
 
-    pub fn set_key(&self, key: &EntityKey) -> Result<()> {
+    pub fn set_key(&self, key: &EntityKey) -> Result<(), DomainError> {
         self.mutate(|e| e.set_key(key))?;
         self.modified()
     }
 
-    pub fn set_name(&self, name: &str) -> Result<()> {
+    pub fn set_name(&self, name: &str) -> Result<(), DomainError> {
         self.mutate(|e| e.set_name(name))?;
         self.modified()
     }
 
-    pub fn set_desc(&self, desc: &str) -> Result<()> {
+    pub fn set_desc(&self, desc: &str) -> Result<(), DomainError> {
         self.mutate(|e| e.set_desc(desc))?;
         self.modified()
     }
 
-    fn modified(&self) -> Result<()> {
+    fn modified(&self) -> Result<(), DomainError> {
         let entity = self.borrow();
         let mut lazy = self.lazy.borrow_mut();
         if let Some(name) = entity.name() {
@@ -239,8 +239,8 @@ impl EntityPtr {
         mutator(&mut self.borrow_mut())
     }
 
-    pub fn to_json_value(&self) -> Result<serde_json::Value> {
-        self.entity.borrow().to_json_value()
+    pub fn to_json_value(&self) -> Result<serde_json::Value, DomainError> {
+        Ok(self.entity.borrow().to_json_value()?)
     }
 }
 
@@ -585,7 +585,7 @@ impl Entity {
         Ok(scope)
     }
 
-    pub fn replace_scope<T: Scope>(&mut self, scope: &T) -> Result<()> {
+    pub fn replace_scope<T: Scope>(&mut self, scope: &T) -> Result<(), DomainError> {
         let scope_key = <T as Scope>::scope_key();
 
         let _span = span!(
@@ -606,7 +606,7 @@ impl Entity {
         Ok(())
     }
 
-    pub fn to_json_value(&self) -> Result<serde_json::Value> {
+    pub fn to_json_value(&self) -> Result<serde_json::Value, DomainError> {
         Ok(serde_json::to_value(self)?)
     }
 }

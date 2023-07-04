@@ -28,7 +28,7 @@ impl Entry {
         }
     }
 
-    pub fn new_from_json(key: EntityKey, value: serde_json::Value) -> Result<Self> {
+    pub fn new_from_json(key: EntityKey, value: serde_json::Value) -> Result<Self, DomainError> {
         Ok(Self {
             key,
             entity: EntityPtr::new_from_json(value)?,
@@ -41,32 +41,32 @@ impl Entry {
         &self.key
     }
 
-    pub fn entity(&self) -> Result<&EntityPtr> {
+    pub fn entity(&self) -> Result<&EntityPtr, DomainError> {
         Ok(&self.entity)
     }
 
-    pub fn name(&self) -> Result<Option<String>> {
+    pub fn name(&self) -> Result<Option<String>, DomainError> {
         let entity = self.entity()?;
         let entity = entity.borrow();
 
         Ok(entity.name())
     }
 
-    pub fn desc(&self) -> Result<Option<String>> {
+    pub fn desc(&self) -> Result<Option<String>, DomainError> {
         let entity = self.entity()?;
         let entity = entity.borrow();
 
         Ok(entity.desc())
     }
 
-    pub fn has_scope<T: Scope>(&self) -> Result<bool> {
+    pub fn has_scope<T: Scope>(&self) -> Result<bool, DomainError> {
         let entity = self.entity()?;
         let entity = entity.borrow();
 
         Ok(entity.has_scope::<T>())
     }
 
-    pub fn scope<T: Scope>(&self) -> Result<OpenedScope<T>> {
+    pub fn scope<T: Scope>(&self) -> Result<OpenedScope<T>, DomainError> {
         let entity = self.entity()?;
         let entity = entity.borrow();
         let scope = entity.load_scope::<T>()?;
@@ -74,7 +74,7 @@ impl Entry {
         Ok(OpenedScope::new(scope))
     }
 
-    pub fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeMut<T>> {
+    pub fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeMut<T>, DomainError> {
         let entity = self.entity()?;
         let entity = entity.borrow();
         let scope = entity.load_scope::<T>()?;
@@ -112,8 +112,13 @@ impl Serialize for Entry {
     where
         S: serde::Serializer,
     {
-        let mut state = serializer.serialize_struct("Entry", 1)?;
+        let name = self
+            .name()
+            .map_err(|e| serde::ser::Error::custom(e))?
+            .unwrap_or_else(|| "None".to_owned());
+        let mut state = serializer.serialize_struct("Entry", 2)?;
         state.serialize_field("key", &self.key)?;
+        state.serialize_field("name", &name)?;
         state.end()
     }
 }
@@ -200,7 +205,7 @@ impl<T: Scope> OpenedScopeMut<T> {
         }
     }
 
-    pub fn save(&mut self) -> Result<()> {
+    pub fn save(&mut self) -> Result<(), DomainError> {
         let entity = self.owner.entity()?;
         let mut entity = entity.borrow_mut();
 
