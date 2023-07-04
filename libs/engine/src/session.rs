@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use chrono::Utc;
 use std::rc::Weak;
 use std::sync::Arc;
 use std::time::Instant;
@@ -15,7 +16,7 @@ use super::perform::StandardPerformer;
 use super::sequences::{GlobalIds, Sequence};
 use super::Notifier;
 use crate::identifiers;
-use crate::storage::{EntityStorage, PersistedEntity};
+use crate::storage::{EntityStorage, PersistedEntity, PersistedFuture};
 use kernel::*;
 
 struct ModifiedEntity(PersistedEntity);
@@ -377,6 +378,25 @@ impl ActiveSession for Session {
 
     fn hooks(&self) -> &ManagedHooks {
         &self.hooks
+    }
+
+    fn schedule(&self, key: String, when: When, message: &dyn ToJson) -> Result<()> {
+        let time = match when {
+            When::Interval(duration) => Utc::now()
+                .checked_add_signed(duration)
+                .ok_or_else(|| anyhow!("Overflow"))?,
+            When::Time(time) => time.clone(),
+        };
+        let serialized = message.to_json()?.to_string();
+        let future = PersistedFuture {
+            key,
+            time,
+            serialized,
+        };
+
+        self.storage.queue(future)?;
+
+        Ok(())
     }
 }
 

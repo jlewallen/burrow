@@ -149,6 +149,15 @@ impl ActiveSession for AgentSession {
     fn hooks(&self) -> &kernel::ManagedHooks {
         unimplemented!("AgentSession:hooks")
     }
+
+    fn schedule(
+        &self,
+        _key: String,
+        _when: kernel::When,
+        _message: &dyn kernel::ToJson,
+    ) -> Result<()> {
+        todo!()
+    }
 }
 
 pub trait Agent {

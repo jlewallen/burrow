@@ -1,11 +1,14 @@
 use anyhow::Result;
 use std::{cell::RefCell, rc::Rc};
 
+use replies::ToJson;
+
 use super::model::{
     Audience, DomainError, DomainEvent, EntityKey, EntityPtr, EntityRef, Entry, Identity, Item,
+    LookupBy, When,
 };
 use super::scopes::{Perform, Reply};
-use super::{LookupBy, ManagedHooks, Surroundings};
+use super::{ManagedHooks, Surroundings};
 
 pub type SessionRef = Rc<dyn ActiveSession>;
 
@@ -57,6 +60,9 @@ pub trait ActiveSession {
     fn chain(&self, perform: Perform) -> Result<Box<dyn Reply>>;
 
     fn hooks(&self) -> &ManagedHooks;
+
+    // We may want to just make `when` be something that can be Into'd a DateTime<Utc>?
+    fn schedule(&self, key: String, when: When, message: &dyn ToJson) -> Result<()>;
 }
 
 thread_local! {

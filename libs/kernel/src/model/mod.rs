@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::{
     cell::RefCell,
@@ -108,6 +109,12 @@ impl From<&EntityGid> for u64 {
 pub enum LookupBy<'a> {
     Key(&'a EntityKey),
     Gid(&'a EntityGid),
+}
+
+#[derive(Debug, Clone)]
+pub enum When {
+    Interval(Duration),
+    Time(DateTime<Utc>),
 }
 
 #[derive(Debug, Clone)]

@@ -1,10 +1,15 @@
 use anyhow::{anyhow, Result};
+use chrono::{DateTime, Utc};
 use std::{
     rc::Rc,
     sync::{Arc, Mutex},
 };
 
-use engine::{storage::EntityStorage, storage::EntityStorageFactory, storage::PersistedEntity};
+use engine::{
+    storage::EntityStorage,
+    storage::{EntityStorageFactory, FutureStorage},
+    storage::{PersistedEntity, PersistedFuture},
+};
 use kernel::{EntityGid, EntityKey, LookupBy};
 use rusqlite::{Connection, OpenFlags};
 use tracing::*;
@@ -38,6 +43,17 @@ impl SqliteStorage {
         )?;
 
         exec(r#"CREATE UNIQUE INDEX IF NOT EXISTS entities_gid ON entities (gid)"#)?;
+
+        exec(
+            r#"
+                CREATE TABLE IF NOT EXISTS futures (
+                    key TEXT NOT NULL PRIMARY KEY,
+                    time TIMESTAMP NOT NULL,
+                    serialized TEXT NOT NULL
+                )"#,
+        )?;
+
+        exec(r#"CREATE UNIQUE INDEX IF NOT EXISTS futures_time ON futures (time)"#)?;
 
         Ok(Rc::new(SqliteStorage { conn }))
     }
@@ -88,6 +104,53 @@ impl SqliteStorage {
             "SELECT key, gid, version, serialized FROM entities WHERE gid = ?;",
             [gid.gid_to_string()],
         )
+    }
+}
+
+impl FutureStorage for SqliteStorage {
+    fn queue(&self, future: PersistedFuture) -> Result<()> {
+        let mut stmt = self
+            .conn
+            .prepare("INSERT INTO futures (key, time, serialized) VALUES (?1, ?2, ?3)")?;
+
+        let affected = stmt.execute((&future.key, &future.time, &future.serialized))?;
+
+        if affected != 1 {
+            Err(anyhow!("no rows affected by save"))
+        } else {
+            Ok(())
+        }
+    }
+
+    fn cancel(&self, key: &str) -> Result<()> {
+        let mut stmt = self.conn.prepare("DELETE FROM futures WHERE key = ?1")?;
+
+        stmt.execute((key,))?;
+
+        Ok(())
+    }
+
+    fn query_futures_before(&self, now: DateTime<Utc>) -> Result<Vec<PersistedFuture>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT key, time, serialized FROM futures WHERE time <= ?1 ORDER BY time")?;
+
+        let futures = stmt.query_map((&now,), |row| {
+            Ok(PersistedFuture {
+                key: row.get(0)?,
+                time: row.get(1)?,
+                serialized: row.get(2)?,
+            })
+        })?;
+
+        let pending: Vec<PersistedFuture> =
+            futures.into_iter().map(|v| Ok(v?)).collect::<Result<_>>()?;
+
+        for future in pending.iter() {
+            self.cancel(&future.key)?;
+        }
+
+        Ok(pending)
     }
 }
 
@@ -237,6 +300,7 @@ impl EntityStorageFactory for Factory {
 mod tests {
     use super::*;
     use anyhow::Result;
+    use chrono::Days;
 
     fn get_storage() -> Result<Rc<dyn EntityStorage>> {
         let s = Factory::new(MEMORY_SPECIAL)?;
@@ -367,6 +431,50 @@ mod tests {
         let p2 = s.load(&LookupBy::Key(&EntityKey::new("world")))?;
 
         assert!(p2.is_none());
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_queues_futures() -> Result<()> {
+        let s = get_storage()?;
+
+        let time = Utc::now();
+
+        s.queue(PersistedFuture {
+            key: "test-1".to_owned(),
+            time,
+            serialized: "{}".to_owned(),
+        })?;
+
+        let pending = s.query_futures_before(time.checked_add_days(Days::new(1)).unwrap())?;
+
+        assert_eq!(pending.len(), 1);
+
+        let pending = s.query_futures_before(time.checked_add_days(Days::new(1)).unwrap())?;
+
+        assert_eq!(pending.len(), 0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_cancels_queued_futures() -> Result<()> {
+        let s = get_storage()?;
+
+        let time = Utc::now();
+
+        s.queue(PersistedFuture {
+            key: "test-1".to_owned(),
+            time,
+            serialized: "{}".to_owned(),
+        })?;
+
+        s.cancel("test-1")?;
+
+        let pending = s.query_futures_before(time.checked_add_days(Days::new(1)).unwrap())?;
+
+        assert_eq!(pending.len(), 0);
 
         Ok(())
     }
