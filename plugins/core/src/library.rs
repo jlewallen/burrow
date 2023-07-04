@@ -86,8 +86,11 @@ pub mod actions {
     pub use kernel::*;
     pub use tracing::*;
 
-    pub fn reply_done<T: DomainEvent + 'static>(raise: T) -> Result<SimpleReply> {
-        get_my_session()?.raise(Box::new(raise))?;
+    pub fn reply_done<T: DomainEvent + 'static>(
+        audience: Audience,
+        raise: T,
+    ) -> Result<SimpleReply> {
+        get_my_session()?.raise(audience, Box::new(raise))?;
 
         Ok(SimpleReply::Done)
     }

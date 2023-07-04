@@ -6,7 +6,7 @@ use tracing::*;
 use plugins_agent_sys::{Agent, AgentBridge};
 use plugins_core::{
     carrying::model::CarryingEvent,
-    library::plugin::{get_my_session, Surroundings},
+    library::plugin::{get_my_session, Audience, Surroundings},
     tools,
 };
 use plugins_dynlib::{DynMessage, DynamicHost};
@@ -42,14 +42,12 @@ impl Agent for ExampleAgent {
         info!("area-of: {:?}", area_of);
 
         for dropping in tools::contained_by(&area)? {
-            if false {
-                let raise = CarryingEvent::ItemDropped {
-                    living: living.clone(),
-                    item: dropping,
-                    area: area.clone(),
-                };
-                get_my_session()?.raise(Box::new(raise))?;
-            }
+            let raise = CarryingEvent::ItemDropped {
+                living: living.clone(),
+                item: dropping,
+                area: area.clone(),
+            };
+            get_my_session()?.raise(Audience::Area(area.key().clone()), Box::new(raise))?;
         }
 
         Ok(())

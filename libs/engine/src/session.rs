@@ -20,6 +20,11 @@ use kernel::*;
 
 struct ModifiedEntity(PersistedEntity);
 
+struct RaisedEvent {
+    audience: Audience,
+    event: Box<dyn DomainEvent>,
+}
+
 pub struct Session {
     opened: Instant,
     open: AtomicBool,
@@ -28,7 +33,7 @@ pub struct Session {
     keys: Arc<dyn Sequence<EntityKey>>,
     identities: Arc<dyn Sequence<Identity>>,
     performer: Rc<StandardPerformer>,
-    raised: Rc<RefCell<Vec<Box<dyn DomainEvent>>>>,
+    raised: Rc<RefCell<Vec<RaisedEvent>>>,
     weak: Weak<Session>,
     entities: Rc<Entities>,
     destroyed: RefCell<Vec<EntityKey>>,
@@ -150,12 +155,14 @@ impl Session {
 
         info!(%npending, "raising");
 
-        for event in pending.iter() {
-            let audience_keys = self.finder.find_audience(&event.audience())?;
+        for raised in pending.iter() {
+            debug!("{:?}", raised.event);
+            debug!("{:?}", raised.event.to_json_value()?);
+            let audience_keys = self.finder.find_audience(&raised.audience)?;
             for key in audience_keys {
                 let user = self.load_entity(&LookupBy::Key(&key))?.unwrap();
                 debug!(%key, "observing {:?}", user);
-                let observed = event.observe(&user.try_into()?)?;
+                let observed = raised.event.observe(&user.try_into()?)?;
                 let rc: Rc<dyn Observed> = observed.into();
                 notifier.notify(&key, &rc)?;
             }
@@ -363,8 +370,10 @@ impl ActiveSession for Session {
         self.identities.following()
     }
 
-    fn raise(&self, event: Box<dyn DomainEvent>) -> Result<()> {
-        self.raised.borrow_mut().push(event);
+    fn raise(&self, audience: Audience, event: Box<dyn DomainEvent>) -> Result<()> {
+        self.raised
+            .borrow_mut()
+            .push(RaisedEvent { audience, event });
 
         Ok(())
     }

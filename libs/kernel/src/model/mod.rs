@@ -110,16 +110,15 @@ pub enum LookupBy<'a> {
     Gid(&'a EntityGid),
 }
 
+#[derive(Debug, Clone)]
 pub enum Audience {
     Nobody,
     Everybody,
     Individuals(Vec<EntityKey>),
-    Area(Entry),
+    Area(EntityKey),
 }
 
 pub trait DomainEvent: Debug {
-    fn audience(&self) -> Audience;
-
     fn observe(&self, user: &Entry) -> Result<Box<dyn Observed>>;
 
     fn to_json_value(&self) -> Result<serde_json::Value>;

@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::{cell::RefCell, rc::Rc};
 
 use super::model::{
-    DomainError, DomainEvent, EntityKey, EntityPtr, EntityRef, Entry, Identity, Item,
+    Audience, DomainError, DomainEvent, EntityKey, EntityPtr, EntityRef, Entry, Identity, Item,
 };
 use super::scopes::{Perform, Reply};
 use super::{LookupBy, ManagedHooks, Surroundings};
@@ -52,7 +52,7 @@ pub trait ActiveSession {
 
     fn new_identity(&self) -> Identity;
 
-    fn raise(&self, event: Box<dyn DomainEvent>) -> Result<()>;
+    fn raise(&self, audience: Audience, event: Box<dyn DomainEvent>) -> Result<()>;
 
     fn chain(&self, perform: Perform) -> Result<Box<dyn Reply>>;
 

@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use tracing::{debug, info};
 
 use crate::{moving::model::Occupying, tools};
-use kernel::{Audience, Entry, Finder, Item, Surroundings};
+use kernel::{get_my_session, Audience, DomainError, Entry, Finder, Item, Surroundings};
 
 /// Determines if an entity matches a user's description of that entity, given
 /// no other context at all.
@@ -236,7 +236,15 @@ impl Finder for DefaultFinder {
             Audience::Nobody => Ok(Vec::new()),
             Audience::Everybody => todo![],
             Audience::Individuals(keys) => Ok(keys.to_vec()),
-            Audience::Area(area) => tools::get_occupant_keys(area),
+            Audience::Area(area) => {
+                // If you find yourself here in the future, consider doing this
+                // lookup when the event is raised rather than in here.
+                let session = get_my_session()?;
+                let area = session
+                    .entry(&kernel::LookupBy::Key(area))?
+                    .ok_or(DomainError::EntityNotFound)?;
+                tools::get_occupant_keys(&area)
+            }
         }
     }
 }

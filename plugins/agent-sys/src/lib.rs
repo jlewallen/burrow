@@ -4,7 +4,8 @@ use tracing::*;
 
 use kernel::{
     compare::{any_entity_changes, AnyChanges, Original},
-    get_my_session, set_my_session, ActiveSession, DomainError, DomainEvent, EntityPtr, Entry,
+    get_my_session, set_my_session, ActiveSession, Audience, DomainError, DomainEvent, EntityPtr,
+    Entry,
 };
 use plugins_rpc_proto::{EntityUpdate, LookupBy, Payload, Query};
 
@@ -63,9 +64,14 @@ impl WorkingEntities {
     }
 }
 
+struct RaisedEvent {
+    audience: Audience,
+    event: Box<dyn DomainEvent>,
+}
+
 pub struct AgentSession {
     entities: Rc<RefCell<WorkingEntities>>,
-    raised: Rc<RefCell<Vec<Box<dyn DomainEvent>>>>,
+    raised: Rc<RefCell<Vec<RaisedEvent>>>,
 }
 
 impl AgentSession {
@@ -128,8 +134,10 @@ impl ActiveSession for AgentSession {
         unimplemented!("AgentSession:new-identity")
     }
 
-    fn raise(&self, event: Box<dyn kernel::DomainEvent>) -> Result<()> {
-        self.raised.borrow_mut().push(event);
+    fn raise(&self, audience: Audience, event: Box<dyn kernel::DomainEvent>) -> Result<()> {
+        self.raised
+            .borrow_mut()
+            .push(RaisedEvent { audience, event });
 
         Ok(())
     }
@@ -202,7 +210,10 @@ where
 
         let raised = session.raised.borrow();
         for raised in raised.iter() {
-            queries.push(Query::Raise(raised.to_json_value()?.into()));
+            queries.push(Query::Raise(
+                raised.audience.clone().into(),
+                raised.event.to_json_value()?.into(),
+            ));
         }
 
         Ok(queries)

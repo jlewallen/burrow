@@ -203,13 +203,47 @@ impl<'a> Into<kernel::LookupBy<'a>> for &LookupBy {
 pub enum Query {
     Bootstrap,
     Update(EntityUpdate),
-    Raise(Json),
+    Raise(Audience, Json),
     Complete,
     // Chain(String),
     // Reply(Reply),
     // Permission(Try),
     // Lookup(u32, Vec<LookupBy>),
     // Try(Try),
+}
+
+impl Into<kernel::Audience> for Audience {
+    fn into(self) -> kernel::Audience {
+        match self {
+            Audience::Nobody => kernel::Audience::Nobody,
+            Audience::Everybody => kernel::Audience::Everybody,
+            Audience::Individuals(keys) => {
+                kernel::Audience::Individuals(keys.into_iter().map(|k| k.into()).collect())
+            }
+            Audience::Area(area) => kernel::Audience::Area(area.into()),
+        }
+    }
+}
+
+impl From<kernel::Audience> for Audience {
+    fn from(value: kernel::Audience) -> Self {
+        match value {
+            kernel::Audience::Nobody => Audience::Nobody,
+            kernel::Audience::Everybody => Audience::Everybody,
+            kernel::Audience::Individuals(keys) => {
+                Audience::Individuals(keys.into_iter().map(|k| k.into()).collect())
+            }
+            kernel::Audience::Area(area) => Audience::Area(area.into()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
+pub enum Audience {
+    Nobody,
+    Everybody,
+    Individuals(Vec<EntityKey>),
+    Area(EntityKey),
 }
 
 #[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]

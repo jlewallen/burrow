@@ -40,7 +40,9 @@ impl Querying {
             Query::Complete => {}
             Query::Bootstrap => replies.send(Payload::Initialize)?,
             Query::Update(update) => services.apply_update(update.clone())?,
-            Query::Raise(raised) => services.raise(raised.clone().into())?,
+            Query::Raise(audience, raised) => {
+                services.raise(audience.clone().into(), raised.clone().into())?
+            }
         }
 
         Ok(())

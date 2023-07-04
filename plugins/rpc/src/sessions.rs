@@ -3,7 +3,8 @@ use std::collections::HashSet;
 use tracing::*;
 
 use kernel::{
-    deserialize_entity_from_value, get_my_session, DomainEvent, EntityGid, Entry, Observed, ToJson,
+    deserialize_entity_from_value, get_my_session, Audience, DomainEvent, EntityGid, Entry,
+    Observed, ToJson,
 };
 use plugins_core::tools;
 
@@ -14,7 +15,7 @@ pub trait Services {
 
     fn apply_update(&self, update: EntityUpdate) -> Result<()>;
 
-    fn raise(&self, raised: serde_json::Value) -> Result<()>;
+    fn raise(&self, audience: Audience, raised: serde_json::Value) -> Result<()>;
 }
 
 pub struct AlwaysErrorsServices {}
@@ -30,7 +31,7 @@ impl Services for AlwaysErrorsServices {
         Err(anyhow!("This server always errors (apply_update)"))
     }
 
-    fn raise(&self, _raised: serde_json::Value) -> Result<()> {
+    fn raise(&self, _audience: Audience, _raised: serde_json::Value) -> Result<()> {
         warn!("AlwaysErrorsServices::raise");
         Err(anyhow!("This server always errors (raise)"))
     }
@@ -148,9 +149,9 @@ impl Services for SessionServices {
         }
     }
 
-    fn raise(&self, raised: serde_json::Value) -> Result<()> {
+    fn raise(&self, audience: Audience, raised: serde_json::Value) -> Result<()> {
         let session = get_my_session().with_context(|| "SessionServer::raise")?;
-        session.raise(Box::new(RpcDomainEvent { value: raised }))
+        session.raise(audience, Box::new(RpcDomainEvent { value: raised }))
     }
 }
 
@@ -160,10 +161,6 @@ pub struct RpcDomainEvent {
 }
 
 impl DomainEvent for RpcDomainEvent {
-    fn audience(&self) -> kernel::Audience {
-        todo!()
-    }
-
     fn observe(&self, _user: &Entry) -> Result<Box<dyn kernel::Observed>> {
         Ok(Box::new(RpcDomainEvent {
             value: self.value.clone(),

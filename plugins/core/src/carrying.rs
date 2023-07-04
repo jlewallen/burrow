@@ -74,21 +74,6 @@ pub mod model {
     }
 
     impl DomainEvent for CarryingEvent {
-        fn audience(&self) -> Audience {
-            match self {
-                Self::ItemHeld {
-                    living: _,
-                    item: _,
-                    area,
-                } => Audience::Area(area.clone()),
-                Self::ItemDropped {
-                    living: _,
-                    item: _,
-                    area,
-                } => Audience::Area(area.clone()),
-            }
-        }
-
         fn observe(&self, user: &Entry) -> Result<Box<dyn Observed>> {
             Ok(match self {
                 CarryingEvent::ItemHeld {
@@ -336,11 +321,14 @@ pub mod actions {
 
             match session.find_item(surroundings, &self.item)? {
                 Some(holding) => match tools::move_between(&area, &user, &holding)? {
-                    DomainOutcome::Ok => Ok(Box::new(reply_done(CarryingEvent::ItemHeld {
-                        living: user,
-                        item: holding,
-                        area,
-                    })?)),
+                    DomainOutcome::Ok => Ok(Box::new(reply_done(
+                        Audience::Area(area.key().clone()),
+                        CarryingEvent::ItemHeld {
+                            living: user,
+                            item: holding,
+                            area,
+                        },
+                    )?)),
                     DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
                 },
                 None => Ok(Box::new(SimpleReply::NotFound)),
@@ -366,13 +354,14 @@ pub mod actions {
             match &self.maybe_item {
                 Some(item) => match session.find_item(surroundings, item)? {
                     Some(dropping) => match tools::move_between(&user, &area, &dropping)? {
-                        DomainOutcome::Ok => {
-                            Ok(Box::new(reply_done(CarryingEvent::ItemDropped {
+                        DomainOutcome::Ok => Ok(Box::new(reply_done(
+                            Audience::Area(area.key().clone()),
+                            CarryingEvent::ItemDropped {
                                 living: user,
                                 item: dropping,
                                 area,
-                            })?))
-                        }
+                            },
+                        )?)),
                         DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
                     },
                     None => Ok(Box::new(SimpleReply::NotFound)),

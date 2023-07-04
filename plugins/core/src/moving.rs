@@ -128,13 +128,6 @@ pub mod model {
     }
 
     impl DomainEvent for MovingEvent {
-        fn audience(&self) -> Audience {
-            match self {
-                Self::Left { living: _, area } => Audience::Area(area.clone()),
-                Self::Arrived { living: _, area } => Audience::Area(area.clone()),
-            }
-        }
-
         fn observe(&self, user: &Entry) -> Result<Box<dyn Observed>> {
             Ok(match self {
                 Self::Left {
@@ -314,14 +307,20 @@ pub mod actions {
                                         h.after_move(surroundings, &area)
                                     })?;
 
-                                    session.raise(Box::new(MovingEvent::Left {
-                                        living: living.clone(),
-                                        area,
-                                    }))?;
-                                    session.raise(Box::new(MovingEvent::Arrived {
-                                        living: living.clone(),
-                                        area: to_area,
-                                    }))?;
+                                    session.raise(
+                                        Audience::Area(area.key().clone()),
+                                        Box::new(MovingEvent::Left {
+                                            living: living.clone(),
+                                            area,
+                                        }),
+                                    )?;
+                                    session.raise(
+                                        Audience::Area(to_area.key().clone()),
+                                        Box::new(MovingEvent::Arrived {
+                                            living: living.clone(),
+                                            area: to_area,
+                                        }),
+                                    )?;
 
                                     session.chain(Perform::Living {
                                         living,
