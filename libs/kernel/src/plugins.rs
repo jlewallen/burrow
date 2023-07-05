@@ -48,6 +48,8 @@ pub trait ParsesActions {
     fn try_parse_action(&self, i: &str) -> EvaluationResult;
 }
 
+pub struct Incoming {}
+
 pub trait Plugin: ParsesActions {
     fn plugin_key() -> &'static str
     where
@@ -60,6 +62,8 @@ pub trait Plugin: ParsesActions {
     fn register_hooks(&self, hooks: &ManagedHooks) -> Result<()>;
 
     fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()>;
+
+    fn deliver(&self, incoming: Incoming) -> Result<()>;
 
     fn stop(&self) -> Result<()>;
 }

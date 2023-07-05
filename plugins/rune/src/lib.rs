@@ -85,6 +85,10 @@ impl Plugin for RunePlugin {
         Ok(())
     }
 
+    fn deliver(&self, _incoming: Incoming) -> Result<()> {
+        Ok(())
+    }
+
     fn stop(&self) -> Result<()> {
         Ok(())
     }

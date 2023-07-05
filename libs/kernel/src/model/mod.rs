@@ -117,6 +117,17 @@ pub enum When {
     Time(DateTime<Utc>),
 }
 
+impl When {
+    pub fn to_utc_time(&self) -> std::result::Result<DateTime<Utc>, DomainError> {
+        match self {
+            When::Interval(duration) => Ok(Utc::now()
+                .checked_add_signed(*duration)
+                .ok_or_else(|| DomainError::Overflow)?),
+            When::Time(time) => Ok(time.clone()),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Audience {
     Nobody,
@@ -726,6 +737,8 @@ pub enum DomainError {
     EntityNotFound,
     #[error("Impossible")]
     Impossible,
+    #[error("Overflow")]
+    Overflow,
 }
 
 impl From<serde_json::Error> for DomainError {

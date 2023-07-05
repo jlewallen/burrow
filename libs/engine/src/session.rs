@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Result};
-use chrono::Utc;
 use std::rc::Weak;
 use std::sync::Arc;
 use std::time::Instant;
@@ -380,13 +379,9 @@ impl ActiveSession for Session {
         &self.hooks
     }
 
-    fn schedule(&self, key: String, when: When, message: &dyn ToJson) -> Result<()> {
-        let time = match when {
-            When::Interval(duration) => Utc::now()
-                .checked_add_signed(duration)
-                .ok_or_else(|| anyhow!("Overflow"))?,
-            When::Time(time) => time.clone(),
-        };
+    fn schedule(&self, key: &str, when: When, message: &dyn ToJson) -> Result<()> {
+        let key = key.to_owned();
+        let time = when.to_utc_time()?;
         let serialized = message.to_json()?.to_string();
         let future = PersistedFuture {
             key,

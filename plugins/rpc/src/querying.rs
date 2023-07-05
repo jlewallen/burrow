@@ -43,6 +43,9 @@ impl Querying {
             Query::Raise(audience, raised) => {
                 services.raise(audience.clone().into(), raised.clone().into())?
             }
+            Query::Schedule(key, millis, serialized) => {
+                services.schedule(key, *millis, serialized.clone())?
+            }
         }
 
         Ok(())

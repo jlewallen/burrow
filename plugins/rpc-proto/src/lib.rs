@@ -1,5 +1,6 @@
 use anyhow::Result;
 use bincode::{Decode, Encode};
+use kernel::ToJson;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::*;
@@ -148,6 +149,12 @@ impl From<serde_json::Value> for Json {
     }
 }
 
+impl ToJson for Json {
+    fn to_json(&self) -> std::result::Result<serde_json::Value, serde_json::Error> {
+        Ok(self.0.clone().into())
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub struct EntityUpdate {
     pub key: EntityKey,
@@ -204,6 +211,7 @@ pub enum Query {
     Bootstrap,
     Update(EntityUpdate),
     Raise(Audience, Json),
+    Schedule(String, i64, Json),
     Complete,
     // Chain(String),
     // Reply(Reply),

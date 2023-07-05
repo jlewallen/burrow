@@ -62,7 +62,7 @@ pub trait ActiveSession {
     fn hooks(&self) -> &ManagedHooks;
 
     // We may want to just make `when` be something that can be Into'd a DateTime<Utc>?
-    fn schedule(&self, key: String, when: When, message: &dyn ToJson) -> Result<()>;
+    fn schedule(&self, key: &str, when: When, message: &dyn ToJson) -> Result<()>;
 }
 
 thread_local! {

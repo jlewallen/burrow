@@ -1,4 +1,5 @@
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use tracing::*;
 
@@ -69,9 +70,16 @@ struct RaisedEvent {
     event: Box<dyn DomainEvent>,
 }
 
+pub struct ScheduledFuture {
+    pub key: String,
+    pub time: DateTime<Utc>,
+    pub serialized: serde_json::Value,
+}
+
 pub struct AgentSession {
     entities: Rc<RefCell<WorkingEntities>>,
     raised: Rc<RefCell<Vec<RaisedEvent>>>,
+    futures: Rc<RefCell<Vec<ScheduledFuture>>>,
 }
 
 impl AgentSession {
@@ -79,6 +87,7 @@ impl AgentSession {
         Rc::new(Self {
             entities,
             raised: Default::default(),
+            futures: Default::default(),
         })
     }
 }
@@ -150,18 +159,20 @@ impl ActiveSession for AgentSession {
         unimplemented!("AgentSession:hooks")
     }
 
-    fn schedule(
-        &self,
-        _key: String,
-        _when: kernel::When,
-        _message: &dyn kernel::ToJson,
-    ) -> Result<()> {
-        todo!()
+    fn schedule(&self, key: &str, time: kernel::When, message: &dyn kernel::ToJson) -> Result<()> {
+        let mut futures = self.futures.borrow_mut();
+        futures.push(ScheduledFuture {
+            key: key.to_owned(),
+            time: time.to_utc_time()?,
+            serialized: message.to_json()?,
+        });
+        Ok(())
     }
 }
 
 pub trait Agent {
     fn have_surroundings(&mut self, surroundings: kernel::Surroundings) -> Result<()>;
+    fn deliver(&mut self, incoming: kernel::Incoming) -> Result<()>;
 }
 
 pub struct AgentBridge<T>
@@ -222,6 +233,15 @@ where
             queries.push(Query::Raise(
                 raised.audience.clone().into(),
                 raised.event.to_json()?.into(),
+            ));
+        }
+
+        let futures = session.futures.borrow();
+        for future in futures.iter() {
+            queries.push(Query::Schedule(
+                future.key.clone(),
+                future.time.timestamp_millis(),
+                future.serialized.clone().into(),
             ));
         }
 

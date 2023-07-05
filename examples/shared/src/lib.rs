@@ -1,12 +1,16 @@
 use anyhow::Result;
 use bincode::{Decode, Encode};
+use chrono::Duration;
 use dispatcher::Dispatch;
 use tracing::*;
 
 use plugins_agent_sys::{Agent, AgentBridge};
 use plugins_core::{
     carrying::model::CarryingEvent,
-    library::plugin::{get_my_session, Audience, Surroundings},
+    library::{
+        model::Serialize,
+        plugin::{get_my_session, Audience, Incoming, Surroundings, ToJson, When},
+    },
     tools,
 };
 use plugins_dynlib::{DynMessage, DynamicHost};
@@ -21,6 +25,17 @@ fn default_plugin_setup(dh: &dyn DynamicHost) {
             Err(_) => println!("Error configuring plugin tracing"),
             Ok(_) => {}
         };
+    }
+}
+
+#[derive(Debug, Serialize)]
+enum ExampleFuture {
+    Wakeup,
+}
+
+impl ToJson for ExampleFuture {
+    fn to_json(&self) -> std::result::Result<serde_json::Value, serde_json::Error> {
+        Ok(serde_json::to_value(self)?)
     }
 }
 
@@ -50,6 +65,16 @@ impl Agent for ExampleAgent {
             get_my_session()?.raise(Audience::Area(area.key().clone()), Box::new(raise))?;
         }
 
+        get_my_session()?.schedule(
+            "example-test",
+            When::Interval(Duration::seconds(10)),
+            &ExampleFuture::Wakeup,
+        )?;
+
+        Ok(())
+    }
+
+    fn deliver(&mut self, _incoming: Incoming) -> Result<()> {
         Ok(())
     }
 }

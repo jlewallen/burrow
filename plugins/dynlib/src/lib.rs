@@ -284,6 +284,10 @@ impl Plugin for DynamicPlugin {
         Ok(())
     }
 
+    fn deliver(&self, _incoming: Incoming) -> Result<()> {
+        Ok(())
+    }
+
     fn stop(&self) -> Result<()> {
         Ok(())
     }

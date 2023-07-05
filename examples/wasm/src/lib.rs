@@ -1,4 +1,4 @@
-use kernel::Surroundings;
+use kernel::{Incoming, Surroundings};
 use plugins_core::tools;
 use wasm_sys::prelude::*;
 
@@ -21,6 +21,10 @@ impl Agent for WasmExample {
 
         trace!("area-of: {:?}", area_of);
 
+        Ok(())
+    }
+
+    fn deliver(&mut self, _incoming: Incoming) -> Result<()> {
         Ok(())
     }
 }

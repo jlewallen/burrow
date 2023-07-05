@@ -1,9 +1,11 @@
 use anyhow::{anyhow, Context, Result};
+use chrono::NaiveDateTime;
 use std::collections::HashSet;
 use tracing::*;
 
 use kernel::{
-    deserialize_entity_from_value, get_my_session, Audience, DomainEvent, EntityGid, Entry, ToJson,
+    deserialize_entity_from_value, get_my_session, Audience, DomainError, DomainEvent, EntityGid,
+    Entry, ToJson, When,
 };
 use plugins_core::tools;
 
@@ -15,6 +17,8 @@ pub trait Services {
     fn apply_update(&self, update: EntityUpdate) -> Result<()>;
 
     fn raise(&self, audience: Audience, raised: serde_json::Value) -> Result<()>;
+
+    fn schedule(&self, key: &str, millis: i64, serialized: Json) -> Result<()>;
 }
 
 pub struct AlwaysErrorsServices {}
@@ -33,6 +37,11 @@ impl Services for AlwaysErrorsServices {
     fn raise(&self, _audience: Audience, _raised: serde_json::Value) -> Result<()> {
         warn!("AlwaysErrorsServices::raise");
         Err(anyhow!("This server always errors (raise)"))
+    }
+
+    fn schedule(&self, _key: &str, _millis: i64, _serialized: Json) -> Result<()> {
+        warn!("AlwaysErrorsServices::schedule");
+        Err(anyhow!("This server always errors (schedule)"))
     }
 }
 
@@ -151,6 +160,17 @@ impl Services for SessionServices {
     fn raise(&self, audience: Audience, raised: serde_json::Value) -> Result<()> {
         let session = get_my_session().with_context(|| "SessionServer::raise")?;
         session.raise(audience, Box::new(RpcDomainEvent { value: raised }))
+    }
+
+    fn schedule(&self, key: &str, millis: i64, serialized: Json) -> Result<()> {
+        let session = get_my_session().with_context(|| "SessionServer::schedule")?;
+        let time = NaiveDateTime::from_timestamp_opt(
+            (millis / 1000) as i64,
+            ((millis % 1000) * 1_000_000) as u32,
+        )
+        .ok_or_else(|| DomainError::Overflow)?;
+
+        session.schedule(key, When::Time(time.and_utc()), &serialized)
     }
 }
 
