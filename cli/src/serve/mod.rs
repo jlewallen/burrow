@@ -6,13 +6,14 @@ use axum::{
     Router,
 };
 use axum_typed_websockets::{Message, WebSocket, WebSocketUpgrade};
+use chrono::Utc;
 use clap::Args;
 use futures::{sink::SinkExt, stream::StreamExt};
 
 use serde::{Deserialize, Serialize};
 use std::{borrow::Borrow, net::SocketAddr, path::PathBuf, rc::Rc, sync::Arc};
-use tokio::sync::broadcast;
 use tokio::{signal, task::JoinHandle};
+use tokio::{sync::broadcast, time::sleep};
 use tower_http::{
     services::ServeDir,
     trace::{DefaultMakeSpan, TraceLayer},
@@ -112,7 +113,10 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
 
     let (tx, _rx) = broadcast::channel(100);
 
-    let app_state = Arc::new(AppState { domain, tx });
+    let app_state = Arc::new(AppState {
+        domain: domain.clone(),
+        tx,
+    });
 
     let app = Router::new()
         .fallback(get_service(
@@ -127,6 +131,20 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     debug!("listening on {}", addr);
+
+    tokio::task::spawn({
+        let domain = domain.clone();
+        async move {
+            loop {
+                sleep(std::time::Duration::from_secs(1)).await;
+                let now = Utc::now();
+                match domain.tick(now) {
+                    Err(e) => warn!("tick failed: {:?}", e),
+                    Ok(_) => {}
+                }
+            }
+        }
+    });
 
     axum::Server::bind(&addr)
         .serve(app.into_make_service())

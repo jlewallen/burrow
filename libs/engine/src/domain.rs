@@ -1,6 +1,7 @@
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use std::{rc::Rc, sync::Arc};
-use tracing::info;
+use tracing::{info, trace};
 
 use super::{sequences::Sequence, Session};
 use crate::{storage::EntityStorageFactory, storage::PersistedEntity};
@@ -36,6 +37,18 @@ impl Domain {
             finder,
             plugins,
         }
+    }
+
+    pub fn tick(&self, now: DateTime<Utc>) -> Result<()> {
+        trace!("{:?} tick", now);
+
+        let storage = self.storage_factory.create_storage()?;
+        let futures = storage.query_futures_before(now)?;
+        for future in futures {
+            info!("delivering {:?}", future);
+        }
+
+        Ok(())
     }
 
     pub fn query_all(&self) -> Result<Vec<PersistedEntity>> {

@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use chrono::Utc;
 use clap::Args;
 use plugins_rune::RUNE_EXTENSION;
 use rustyline::error::ReadlineError;
@@ -6,6 +7,8 @@ use rustyline::DefaultEditor;
 use std::cell::RefCell;
 use std::rc::Rc;
 use tokio::task::JoinHandle;
+use tokio::time::sleep;
+use tracing::warn;
 
 use crate::terminal::Renderer;
 use crate::PluginConfiguration;
@@ -195,6 +198,20 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
     if rl.load_history("history.txt").is_err() {
         println!("No previous history.");
     }
+
+    tokio::task::spawn({
+        let domain = domain.clone();
+        async move {
+            loop {
+                sleep(std::time::Duration::from_secs(1)).await;
+                let now = Utc::now();
+                match domain.tick(now) {
+                    Err(e) => warn!("tick failed: {:?}", e),
+                    Ok(_) => {}
+                }
+            }
+        }
+    });
 
     loop {
         let readline = rl.readline(">> ");
