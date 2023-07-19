@@ -56,13 +56,15 @@ impl Agent for ExampleAgent {
         let area_of = tools::area_of(&living)?;
         info!("area-of: {:?}", area_of);
 
-        for dropping in tools::contained_by(&area)? {
-            let raise = CarryingEvent::ItemDropped {
-                living: living.clone(),
-                item: dropping,
-                area: area.clone(),
-            };
-            get_my_session()?.raise(Audience::Area(area.key().clone()), Box::new(raise))?;
+        if false {
+            for dropping in tools::contained_by(&area)? {
+                let raise = CarryingEvent::ItemDropped {
+                    living: living.clone(),
+                    item: dropping,
+                    area: area.clone(),
+                };
+                get_my_session()?.raise(Audience::Area(area.key().clone()), Box::new(raise))?;
+            }
         }
 
         get_my_session()?.schedule(
