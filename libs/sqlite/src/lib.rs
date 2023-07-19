@@ -109,8 +109,6 @@ impl SqliteStorage {
 
 impl FutureStorage for SqliteStorage {
     fn queue(&self, future: PersistedFuture) -> Result<()> {
-        info!("queuing {:?}", future);
-
         let mut stmt = self
             .conn
             .prepare("INSERT OR IGNORE INTO futures (key, time, serialized) VALUES (?1, ?2, ?3)")?;
@@ -118,19 +116,24 @@ impl FutureStorage for SqliteStorage {
         let affected = stmt.execute((&future.key, &future.time, &future.serialized))?;
 
         if affected != 1 {
-            warn!("schedule:collision");
-            Ok(())
+            warn!(key = %future.key, "schedule:noop");
         } else {
-            Ok(())
+            info!(key = %future.key, time = %future.time, "schedule");
         }
+
+        Ok(())
     }
 
     fn cancel(&self, key: &str) -> Result<()> {
-        info!("cancel {:?}", key);
-
         let mut stmt = self.conn.prepare("DELETE FROM futures WHERE key = ?1")?;
 
-        stmt.execute((key,))?;
+        let affected = stmt.execute((key,))?;
+
+        if affected != 1 {
+            warn!("cancel:noop");
+        } else {
+            info!(%key, "cancel");
+        }
 
         Ok(())
     }
@@ -153,8 +156,16 @@ impl FutureStorage for SqliteStorage {
         let pending: Vec<PersistedFuture> =
             futures.into_iter().map(|v| Ok(v?)).collect::<Result<_>>()?;
 
-        for future in pending.iter() {
-            self.cancel(&future.key)?;
+        let mut stmt = self.conn.prepare("DELETE FROM futures WHERE time <= ?1")?;
+
+        let deleted = stmt.execute((now,))?;
+
+        if deleted != pending.len() {
+            warn!(
+                pending = %pending.len(),
+                deleted = %deleted,
+                "query-futures:mismatch",
+            );
         }
 
         Ok(pending)

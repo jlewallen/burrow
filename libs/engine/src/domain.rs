@@ -45,7 +45,7 @@ impl Domain {
         let storage = self.storage_factory.create_storage()?;
         let futures = storage.query_futures_before(now)?;
         for future in futures {
-            info!("delivering {:?}", future);
+            info!(key = %future.key, time = %future.time, "delivering");
         }
 
         Ok(())
