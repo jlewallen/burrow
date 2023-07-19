@@ -1,18 +1,21 @@
 use anyhow::Result;
 use axum::{
     extract::Extension,
+    http::StatusCode,
     response::IntoResponse,
-    routing::{get, get_service},
-    Router,
+    routing::{get, get_service, post},
+    Json, Router,
 };
 use axum_typed_websockets::{Message, WebSocket, WebSocketUpgrade};
-use chrono::Utc;
+use chrono::{DateTime, Duration, Utc};
 use clap::Args;
 use futures::{sink::SinkExt, stream::StreamExt};
 
 use serde::{Deserialize, Serialize};
-use std::{borrow::Borrow, net::SocketAddr, path::PathBuf, rc::Rc, sync::Arc};
-use tokio::{signal, task::JoinHandle};
+use std::{
+    borrow::Borrow, collections::HashMap, net::SocketAddr, path::PathBuf, rc::Rc, sync::Arc,
+};
+use tokio::{signal, sync::Mutex, task::JoinHandle};
 use tokio::{sync::broadcast, time::sleep};
 use tower_http::{
     services::ServeDir,
@@ -57,6 +60,7 @@ struct ClientSession {
 
 struct AppState {
     domain: Domain,
+    last_tick: Mutex<Option<DateTime<Utc>>>,
     tx: broadcast::Sender<ServerMessage>,
 }
 
@@ -66,6 +70,27 @@ impl AppState {
             name: name.to_string(),
             key: key.clone(),
         })
+    }
+
+    pub async fn tick(&self, now: DateTime<Utc>) -> Result<Option<DateTime<Utc>>> {
+        let can_tick = {
+            let last_tick = self.last_tick.lock().await;
+            last_tick
+                .map(|last| now.signed_duration_since(last))
+                .map(|d| Duration::seconds(1) <= d)
+                .unwrap_or(true)
+        };
+
+        if can_tick {
+            self.domain.tick(now)?;
+
+            let mut last_tick = self.last_tick.lock().await;
+            *last_tick = Some(now);
+
+            Ok(Some(now))
+        } else {
+            Ok(None)
+        }
     }
 
     fn notifier(&self) -> SenderNotifier {
@@ -115,6 +140,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
 
     let app_state = Arc::new(AppState {
         domain: domain.clone(),
+        last_tick: Default::default(),
         tx,
     });
 
@@ -122,6 +148,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
         .fallback(get_service(
             ServeDir::new(assets_dir).append_index_html_on_directories(true),
         ))
+        .route("/tick", post(tick_handler))
         .route("/ws", get(ws_handler))
         .layer(
             TraceLayer::new_for_http()
@@ -130,7 +157,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
         .layer(Extension(app_state));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
-    debug!("listening on {}", addr);
+    info!("listening on {}", addr);
 
     tokio::task::spawn({
         let domain = domain.clone();
@@ -181,6 +208,24 @@ async fn shutdown_signal() {
     println!();
 
     info!("signal received, starting graceful shutdown");
+}
+
+async fn tick_handler(
+    Extension(state): Extension<Arc<AppState>>,
+) -> (StatusCode, Json<HashMap<String, String>>) {
+    match state.tick(Utc::now()).await {
+        Ok(Some(_)) => {
+            info!("tick:run");
+
+            (StatusCode::OK, Json(Default::default()))
+        }
+        Ok(None) => {
+            info!("tick:too-many");
+
+            (StatusCode::TOO_MANY_REQUESTS, Json(Default::default()))
+        }
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, Json(Default::default())),
+    }
 }
 
 async fn ws_handler(
