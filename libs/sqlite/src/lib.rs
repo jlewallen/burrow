@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use chrono::{DateTime, Utc};
 use std::{
     rc::Rc,
@@ -20,6 +20,11 @@ pub struct SqliteStorage {
     conn: Connection,
 }
 
+enum SetupQuery {
+    Execute(&'static str),
+    Query(&'static str),
+}
+
 impl SqliteStorage {
     pub fn new(uri: &str) -> Result<Rc<Self>> {
         let conn = Connection::open_with_flags(
@@ -27,12 +32,23 @@ impl SqliteStorage {
             OpenFlags::SQLITE_OPEN_URI | OpenFlags::SQLITE_OPEN_READ_WRITE,
         )?;
 
-        let exec = |sql: &str| -> Result<usize> {
-            let mut stmt = conn.prepare(sql)?;
-            Ok(stmt.execute([])?)
+        let exec = |query: SetupQuery| -> Result<()> {
+            match query {
+                SetupQuery::Execute(sql) => {
+                    let mut stmt = conn.prepare(sql)?;
+                    stmt.execute([])?;
+                }
+                SetupQuery::Query(sql) => {
+                    let mut stmt = conn.prepare(sql)?;
+                    let _ = stmt.query([])?;
+                }
+            };
+            Ok(())
         };
 
-        exec(
+        exec(SetupQuery::Query("PRAGMA journal_mode = WAL"))?;
+
+        exec(SetupQuery::Execute(
             r#"
                 CREATE TABLE IF NOT EXISTS entities (
                     key TEXT NOT NULL PRIMARY KEY,
@@ -40,20 +56,24 @@ impl SqliteStorage {
                     gid INTEGER,
                     serialized TEXT NOT NULL
                 )"#,
-        )?;
+        ))?;
 
-        exec(r#"CREATE UNIQUE INDEX IF NOT EXISTS entities_gid ON entities (gid)"#)?;
+        exec(SetupQuery::Execute(
+            r#"CREATE UNIQUE INDEX IF NOT EXISTS entities_gid ON entities (gid)"#,
+        ))?;
 
-        exec(
+        exec(SetupQuery::Execute(
             r#"
                 CREATE TABLE IF NOT EXISTS futures (
                     key TEXT NOT NULL PRIMARY KEY,
                     time TIMESTAMP NOT NULL,
                     serialized TEXT NOT NULL
                 )"#,
-        )?;
+        ))?;
 
-        exec(r#"CREATE UNIQUE INDEX IF NOT EXISTS futures_time ON futures (time)"#)?;
+        exec(SetupQuery::Execute(
+            r#"CREATE UNIQUE INDEX IF NOT EXISTS futures_time ON futures (time)"#,
+        ))?;
 
         Ok(Rc::new(SqliteStorage { conn }))
     }
@@ -113,7 +133,9 @@ impl FutureStorage for SqliteStorage {
             .conn
             .prepare("INSERT OR IGNORE INTO futures (key, time, serialized) VALUES (?1, ?2, ?3)")?;
 
-        let affected = stmt.execute((&future.key, &future.time, &future.serialized))?;
+        let affected = stmt
+            .execute((&future.key, &future.time, &future.serialized))
+            .with_context(|| "inserting future")?;
 
         if affected != 1 {
             warn!(key = %future.key, "schedule:noop");
@@ -127,7 +149,7 @@ impl FutureStorage for SqliteStorage {
     fn cancel(&self, key: &str) -> Result<()> {
         let mut stmt = self.conn.prepare("DELETE FROM futures WHERE key = ?1")?;
 
-        let affected = stmt.execute((key,))?;
+        let affected = stmt.execute((key,)).with_context(|| "cancelling future")?;
 
         if affected != 1 {
             warn!("cancel:noop");
@@ -156,7 +178,10 @@ impl FutureStorage for SqliteStorage {
         let pending: Vec<PersistedFuture> =
             futures.into_iter().map(|v| Ok(v?)).collect::<Result<_>>()?;
 
-        let mut stmt = self.conn.prepare("DELETE FROM futures WHERE time <= ?1")?;
+        let mut stmt = self
+            .conn
+            .prepare("DELETE FROM futures WHERE time <= ?1")
+            .with_context(|| "deleting pending futures")?;
 
         let deleted = stmt.execute((now,))?;
 
