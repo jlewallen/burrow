@@ -73,6 +73,7 @@ impl DynamicHost for LoadedLibrary {
 }
 
 struct LoadedLibrary {
+    prefix: String,
     library: Rc<Library>,
     inbox: Inbox,
     outbox: Outbox,
@@ -114,7 +115,7 @@ impl LoadedLibrary {
     }
 
     fn process_queries(&mut self, messages: Vec<Box<[u8]>>) -> Result<()> {
-        let services = SessionServices::new_for_my_session()?;
+        let services = SessionServices::new_for_my_session(Some(&self.prefix))?;
         let messages: Vec<Query> = messages
             .into_iter()
             .map(|b| Ok(DynMessage::from_bytes(&b)?))
@@ -161,25 +162,30 @@ pub struct DynamicPlugin {
 
 impl DynamicPlugin {
     fn open_dynamic(&mut self) -> Result<()> {
-        let filename = libloading::library_filename("plugin_example_shared");
-        let path = format!("target/debug/{}", filename.to_string_lossy());
-        if std::fs::metadata(&path).is_ok() {
-            let mut libraries = self.libraries.borrow_mut();
-            libraries.push(self.load(&path)?);
+        match self.load("plugin_example_shared") {
+            Ok(library) => {
+                let mut libraries = self.libraries.borrow_mut();
+                libraries.push(library);
+            }
+            Err(e) => warn!("failed to load dynamic library: {:?}", e),
         }
 
         Ok(())
     }
 
-    fn load(&self, path: &str) -> Result<LoadedLibrary> {
+    fn load(&self, name: &str) -> Result<LoadedLibrary> {
         unsafe {
-            let _span = span!(Level::INFO, "regdyn", lib = path).entered();
+            let _span = span!(Level::INFO, "regdyn", lib = name).entered();
 
-            info!("loading");
+            let filename = libloading::library_filename(name);
+            let path = format!("target/debug/{}", filename.to_string_lossy());
+
+            info!(%path, "loading");
 
             let library = Rc::new(libloading::Library::new(path)?);
 
             Ok(LoadedLibrary {
+                prefix: name.to_owned(),
                 library,
                 inbox: Default::default(),
                 outbox: Default::default(),
@@ -264,7 +270,7 @@ impl Plugin for DynamicPlugin {
     }
 
     fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
-        let services = SessionServices::new_for_my_session()?;
+        let services = SessionServices::new_for_my_session(None)?;
         let messages: Vec<Vec<u8>> = have_surroundings(surroundings, &services)?
             .into_iter()
             .map(|m| Ok(DynMessage::Payload(m).to_bytes()?))

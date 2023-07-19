@@ -64,7 +64,7 @@ impl WasmRunner {
     }
 
     fn process_queries(&mut self, messages: Vec<Box<[u8]>>) -> Result<()> {
-        let services = SessionServices::new_for_my_session()?;
+        let services = SessionServices::new_for_my_session(None)?;
         let messages: Vec<Query> = messages
             .into_iter()
             .map(|b| Ok(WasmMessage::from_bytes(&b)?))
@@ -112,7 +112,7 @@ impl WasmRunner {
     }
 
     fn have_surroundings(&mut self, surroundings: &kernel::Surroundings) -> Result<()> {
-        let services = SessionServices::new_for_my_session()?;
+        let services = SessionServices::new_for_my_session(None)?;
         let messages: Vec<Vec<u8>> = have_surroundings(surroundings, &services)?
             .into_iter()
             .map(|m| Ok(WasmMessage::Payload(m).to_bytes()?))

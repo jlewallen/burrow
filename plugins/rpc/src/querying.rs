@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use tracing::{debug, trace};
 
 use plugins_rpc_proto::{Payload, Query, Sender};
@@ -40,12 +40,12 @@ impl Querying {
             Query::Complete => {}
             Query::Bootstrap => replies.send(Payload::Initialize)?,
             Query::Update(update) => services.apply_update(update.clone())?,
-            Query::Raise(audience, raised) => {
-                services.raise(audience.clone().into(), raised.clone().into())?
-            }
-            Query::Schedule(key, millis, serialized) => {
-                services.schedule(key, *millis, serialized.clone())?
-            }
+            Query::Raise(audience, raised) => services
+                .raise(audience.clone().into(), raised.clone().into())
+                .with_context(|| "rpc event")?,
+            Query::Schedule(key, millis, serialized) => services
+                .schedule(key, *millis, serialized.clone())
+                .with_context(|| "rpc schedule")?,
         }
 
         Ok(())

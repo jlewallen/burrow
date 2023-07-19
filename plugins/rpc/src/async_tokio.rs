@@ -144,7 +144,8 @@ where
             )))
             .await?;
 
-        self.drive(&SessionServices::new_for_my_session()?).await?;
+        self.drive(&SessionServices::new_for_my_session(None)?)
+            .await?;
 
         Ok(())
     }

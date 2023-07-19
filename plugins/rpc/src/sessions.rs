@@ -45,11 +45,15 @@ impl Services for AlwaysErrorsServices {
     }
 }
 
-pub struct SessionServices {}
+pub struct SessionServices {
+    prefix: Option<String>,
+}
 
 impl SessionServices {
-    pub fn new_for_my_session() -> Result<Self> {
-        Ok(Self {})
+    pub fn new_for_my_session(prefix: Option<&str>) -> Result<Self> {
+        Ok(Self {
+            prefix: prefix.map(|s| s.to_owned()),
+        })
     }
 
     fn lookup_one(&self, lookup: &LookupBy) -> Result<(LookupBy, Option<(Entry, Json)>)> {
@@ -170,7 +174,16 @@ impl Services for SessionServices {
         )
         .ok_or_else(|| DomainError::Overflow)?;
 
-        session.schedule(key, When::Time(time.and_utc()), &serialized)
+        let prefix = self
+            .prefix
+            .as_ref()
+            .ok_or_else(|| anyhow!("session prefix required"))?;
+
+        session.schedule(
+            &format!("{}/{}", prefix, key),
+            When::Time(time.and_utc()),
+            &serialized,
+        )
     }
 }
 
