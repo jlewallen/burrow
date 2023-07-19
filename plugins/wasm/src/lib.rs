@@ -262,7 +262,7 @@ fn create_runners(path: &Path) -> Result<Vec<WasmRunner>> {
     let instance = Instance::new(&mut store, &module, &imports)?;
     trace!("instance {:?}", instance);
 
-    let mut env_mut = env.as_mut(&mut store);
+    let env_mut = env.as_mut(&mut store);
     env_mut.memory = Some(instance.exports.get_memory("memory")?.clone());
 
     Ok(vec![WasmRunner::new(store, env, instance)])
