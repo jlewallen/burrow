@@ -95,12 +95,22 @@ impl Sequence<Identity> for NanoIds {
     }
 }
 
-#[derive(Default)]
 struct PluginConfiguration {
     wasm: bool,
     dynlib: bool,
     rune: bool,
     rpc: bool,
+}
+
+impl Default for PluginConfiguration {
+    fn default() -> Self {
+        Self {
+            wasm: false,
+            dynlib: true,
+            rune: false,
+            rpc: false,
+        }
+    }
 }
 
 fn get_assets_path() -> Result<PathBuf> {

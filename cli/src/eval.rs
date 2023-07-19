@@ -18,12 +18,7 @@ pub struct Command {
 
 impl Command {
     fn plugin_configuration(&self) -> PluginConfiguration {
-        PluginConfiguration {
-            wasm: false,
-            dynlib: true,
-            rune: false,
-            rpc: false,
-        }
+        PluginConfiguration::default()
     }
 }
 
