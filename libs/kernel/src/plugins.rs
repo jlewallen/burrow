@@ -48,6 +48,7 @@ pub trait ParsesActions {
     fn try_parse_action(&self, i: &str) -> EvaluationResult;
 }
 
+#[derive(Debug)]
 pub struct Incoming {}
 
 pub trait Plugin: ParsesActions {

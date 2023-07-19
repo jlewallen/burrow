@@ -228,6 +228,8 @@ where
         let entities = entities.borrow();
         let mut queries = entities.flush()?;
 
+        // TODO Can we use Into here for converting to the Query?
+
         let raised = session.raised.borrow();
         for raised in raised.iter() {
             queries.push(Query::Raise(

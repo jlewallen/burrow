@@ -171,6 +171,12 @@ impl Session {
         Ok(())
     }
 
+    pub fn deliver(&self, incoming: Incoming) -> Result<()> {
+        warn!("unhandled {:?}", &incoming);
+
+        Ok(())
+    }
+
     pub fn close<T: Notifier>(&self, notifier: &T) -> Result<()> {
         self.save_entity_changes()?;
 

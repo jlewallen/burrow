@@ -201,12 +201,21 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
 
     tokio::task::spawn({
         let domain = domain.clone();
+        let self_key = self_key.clone();
+
         async move {
             loop {
                 sleep(std::time::Duration::from_secs(1)).await;
+
+                let notifier = QueuedNotifier::default();
                 let now = Utc::now();
-                match domain.tick(now) {
+                match domain.tick(now, &notifier) {
                     Err(e) => warn!("tick failed: {:?}", e),
+                    Ok(_) => {}
+                }
+
+                match notifier.forward(&StandardOutNotifier::new(&self_key)) {
+                    Err(e) => warn!("tick failed forwarding notifications: {:?}", e),
                     Ok(_) => {}
                 }
             }

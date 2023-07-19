@@ -99,7 +99,7 @@ impl DynMessage {
 impl LoadedLibrary {
     fn initialize(&mut self) -> Result<()> {
         unsafe {
-            info!("initializing");
+            trace!("initializing");
 
             let sym = self
                 .library

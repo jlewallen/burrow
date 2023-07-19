@@ -82,7 +82,7 @@ impl AppState {
         };
 
         if can_tick {
-            self.domain.tick(now)?;
+            self.domain.tick(now, &self.notifier())?;
 
             let mut last_tick = self.last_tick.lock().await;
             *last_tick = Some(now);
@@ -144,6 +144,8 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
         tx,
     });
 
+    let notifier = app_state.notifier();
+
     let app = Router::new()
         .fallback(get_service(
             ServeDir::new(assets_dir).append_index_html_on_directories(true),
@@ -165,7 +167,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
             loop {
                 sleep(std::time::Duration::from_secs(1)).await;
                 let now = Utc::now();
-                match domain.tick(now) {
+                match domain.tick(now, &notifier) {
                     Err(e) => warn!("tick failed: {:?}", e),
                     Ok(_) => {}
                 }

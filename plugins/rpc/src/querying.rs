@@ -42,10 +42,10 @@ impl Querying {
             Query::Update(update) => services.apply_update(update.clone())?,
             Query::Raise(audience, raised) => services
                 .raise(audience.clone().into(), raised.clone().into())
-                .with_context(|| "rpc event")?,
+                .with_context(|| "raising (rpc)")?,
             Query::Schedule(key, millis, serialized) => services
                 .schedule(key, *millis, serialized.clone())
-                .with_context(|| "rpc schedule")?,
+                .with_context(|| "scheduling (rpc)")?,
         }
 
         Ok(())
