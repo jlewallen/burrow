@@ -109,20 +109,25 @@ impl SqliteStorage {
 
 impl FutureStorage for SqliteStorage {
     fn queue(&self, future: PersistedFuture) -> Result<()> {
+        info!("queuing {:?}", future);
+
         let mut stmt = self
             .conn
-            .prepare("INSERT INTO futures (key, time, serialized) VALUES (?1, ?2, ?3)")?;
+            .prepare("INSERT OR IGNORE INTO futures (key, time, serialized) VALUES (?1, ?2, ?3)")?;
 
         let affected = stmt.execute((&future.key, &future.time, &future.serialized))?;
 
         if affected != 1 {
-            Err(anyhow!("no rows affected by save"))
+            warn!("schedule:collision");
+            Ok(())
         } else {
             Ok(())
         }
     }
 
     fn cancel(&self, key: &str) -> Result<()> {
+        info!("cancel {:?}", key);
+
         let mut stmt = self.conn.prepare("DELETE FROM futures WHERE key = ?1")?;
 
         stmt.execute((key,))?;
@@ -131,6 +136,8 @@ impl FutureStorage for SqliteStorage {
     }
 
     fn query_futures_before(&self, now: DateTime<Utc>) -> Result<Vec<PersistedFuture>> {
+        trace!("query-futures {:?}", now);
+
         let mut stmt = self
             .conn
             .prepare("SELECT key, time, serialized FROM futures WHERE time <= ?1 ORDER BY time")?;

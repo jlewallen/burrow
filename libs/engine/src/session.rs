@@ -28,6 +28,7 @@ struct RaisedEvent {
 pub struct Session {
     opened: Instant,
     open: AtomicBool,
+    save_required: AtomicBool,
     storage: Rc<dyn EntityStorage>,
     ids: Rc<GlobalIds>,
     keys: Arc<dyn Sequence<EntityKey>>,
@@ -69,6 +70,7 @@ impl Session {
             opened,
             storage: Rc::clone(&storage),
             open: AtomicBool::new(true),
+            save_required: AtomicBool::new(false),
             performer: StandardPerformer::new(weak, Arc::clone(finder), Arc::clone(&plugins)),
             ids: Rc::clone(&ids),
             raised: Rc::new(RefCell::new(Vec::new())),
@@ -240,7 +242,7 @@ impl Session {
         // state in the world Entity gets saved.
         self.save_modified_ids()?;
 
-        if self.save_modified_entities()? {
+        if self.save_modified_entities()? || self.save_required.load(Ordering::SeqCst) {
             // Check for a force rollback, usually debugging purposes.
             if should_force_rollback() {
                 let _span = span!(Level::DEBUG, "FORCED").entered();
@@ -390,6 +392,8 @@ impl ActiveSession for Session {
         };
 
         self.storage.queue(future)?;
+
+        self.save_required.store(true, Ordering::SeqCst);
 
         Ok(())
     }
