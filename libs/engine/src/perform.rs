@@ -61,7 +61,7 @@ impl StandardPerformer {
 
         let reply = {
             let _span = span!(Level::INFO, "action").entered();
-            info!("{:?}", &surroundings);
+            debug!("{:?}", &surroundings);
             self.plugins
                 .have_surroundings(&surroundings)
                 .with_context(|| "Plugins:have_surroundings")?;

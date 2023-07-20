@@ -300,7 +300,7 @@ impl Session {
             info!(%previous_gid, %new_gid, "gid:changed");
             identifiers::model::set_gid(&world, new_gid)?;
         } else {
-            info!(%previous_gid, "gid:same");
+            debug!(gid = %previous_gid, "gid:same");
         }
 
         Ok(())
