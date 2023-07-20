@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use anyhow::Result;
+use chrono::Utc;
 use clap::Args;
 
 use crate::{make_domain, text::Renderer, PluginConfiguration};
@@ -10,10 +11,12 @@ use engine::{DevNullNotifier, Domain, Session, SessionOpener};
 pub struct Command {
     #[arg(short, long, default_value = "jlewallen")]
     username: String,
-    #[arg(short, long, default_value = "look")]
+    #[arg(short, long)]
     text: Vec<String>,
     #[arg(short, long)]
     separate_sessions: bool,
+    #[arg(short, long)]
+    deliver: bool,
 }
 
 impl Command {
@@ -48,8 +51,14 @@ fn evaluate_commands(domain: Domain, cmd: Command) -> Result<()> {
         }
     }
 
+    let notifier = DevNullNotifier::default();
+
     if let Some(session) = open_session.take() {
-        session.close(&DevNullNotifier::default())?;
+        session.close(&notifier)?;
+    }
+
+    if cmd.deliver {
+        domain.tick(Utc::now(), &notifier)?;
     }
 
     domain.stop()?;

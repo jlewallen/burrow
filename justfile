@@ -11,6 +11,9 @@ test:
 plugins:
     cargo build --package plugin-example-shared
 
+deliver: plugins
+    cargo run -- eval --text '' --deliver
+
 eval: plugins
     cargo run -- eval
 
@@ -20,8 +23,8 @@ shell: plugins
 serve: plugins
     cargo run -- serve
 
-look: plugins
-    cargo run -- eval --text look --text look --text look --separate-sessions
+look *args='': plugins
+    cargo run -- eval --text look --text look --text look --separate-sessions {{args}}
 
 clean:
     rm -rf target
