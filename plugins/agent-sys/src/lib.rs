@@ -219,6 +219,9 @@ where
                     let with = WithEntities::new(Rc::clone(&session), surroundings);
                     self.agent.have_surroundings(with.try_into()?)?;
                 }
+                Payload::Deliver(incoming) => {
+                    self.agent.deliver(incoming.into())?;
+                }
                 _ => {}
             }
         }

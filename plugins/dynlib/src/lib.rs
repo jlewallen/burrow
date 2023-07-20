@@ -1,13 +1,13 @@
 use anyhow::Result;
 use bincode::{Decode, Encode};
 use libloading::Library;
-use plugins_rpc::{have_surroundings, Querying, SessionServices};
-use plugins_rpc_proto::{Payload, Query};
 use std::{cell::RefCell, collections::VecDeque, rc::Rc, sync::Arc};
 use tracing::{dispatcher::get_default, info, span, trace, warn, Level, Subscriber};
 
 use kernel::{EvaluationResult, ManagedHooks, ParsesActions, Plugin, PluginFactory};
 use plugins_core::library::plugin::*;
+use plugins_rpc::{have_surroundings, Querying, SessionServices};
+use plugins_rpc_proto::{IncomingMessage, Payload, Query};
 
 #[derive(Default)]
 pub struct DynamicPluginFactory {}
@@ -80,7 +80,7 @@ struct LoadedLibrary {
     state: Option<*const std::ffi::c_void>,
 }
 
-#[derive(Debug, Encode, Decode)]
+#[derive(Debug, Encode, Decode, Clone)]
 pub enum DynMessage {
     Query(Query),
     Payload(Payload),
@@ -194,6 +194,43 @@ impl DynamicPlugin {
         }
     }
 
+    fn push_messages_with<F>(&self, mut f: F) -> Result<()>
+    where
+        F: FnMut(&LoadedLibrary) -> Option<Vec<DynMessage>>,
+    {
+        let mut libraries = self.libraries.borrow_mut();
+        for library in libraries.iter_mut() {
+            if let Some(messages) = f(library) {
+                for message in messages.iter() {
+                    library.inbox.messages.push_back(message.to_bytes()?.into());
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn push_messages_to_all(&self, pushing: &Vec<DynMessage>) -> Result<()> {
+        self.push_messages_with(move |_ll| Some(pushing.to_vec()))
+    }
+
+    fn push_messages_to_prefix<F>(&self, prefix: &str, mut f: F) -> Result<()>
+    where
+        F: FnMut(&LoadedLibrary) -> Vec<DynMessage>,
+    {
+        let mut libraries = self.libraries.borrow_mut();
+        for library in libraries.iter_mut() {
+            if prefix.starts_with(&library.prefix) {
+                info!(prefix = library.prefix, "deliver-library");
+                for message in f(library).iter() {
+                    library.inbox.messages.push_back(message.to_bytes()?.into());
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     fn tick(&self) -> Result<()> {
         let mut libraries = self.libraries.borrow_mut();
         for library in libraries.iter_mut() {
@@ -271,26 +308,27 @@ impl Plugin for DynamicPlugin {
 
     fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
         let services = SessionServices::new_for_my_session(None)?;
-        let messages: Vec<Vec<u8>> = have_surroundings(surroundings, &services)?
+        let messages = have_surroundings(surroundings, &services)?
             .into_iter()
-            .map(|m| Ok(DynMessage::Payload(m).to_bytes()?))
-            .collect::<Result<Vec<_>>>()?;
+            .map(|m| DynMessage::Payload(m))
+            .collect::<Vec<_>>();
 
-        {
-            let mut libraries = self.libraries.borrow_mut();
-            for library in libraries.iter_mut() {
-                for message in messages.iter() {
-                    library.inbox.messages.push_back(message.clone().into());
-                }
-            }
-        }
+        self.push_messages_to_all(&messages)?;
 
         self.tick()?;
 
         Ok(())
     }
 
-    fn deliver(&self, _incoming: Incoming) -> Result<()> {
+    fn deliver(&self, incoming: &Incoming) -> Result<()> {
+        self.push_messages_to_prefix(&incoming.key, |_ll| {
+            vec![DynMessage::Payload(Payload::Deliver(
+                IncomingMessage::from(incoming),
+            ))]
+        })?;
+
+        self.tick()?;
+
         Ok(())
     }
 

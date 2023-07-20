@@ -184,7 +184,7 @@ impl Plugin for RpcPlugin {
     }
 
     #[tracing::instrument(name = "rpc-deliver", skip_all)]
-    fn deliver(&self, _incoming: Incoming) -> Result<()> {
+    fn deliver(&self, _incoming: &Incoming) -> Result<()> {
         Ok(())
     }
 

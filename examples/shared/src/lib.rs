@@ -2,6 +2,7 @@ use anyhow::Result;
 use bincode::{Decode, Encode};
 use chrono::Duration;
 use dispatcher::Dispatch;
+use serde::Deserialize;
 use tracing::*;
 
 use plugins_agent_sys::{Agent, AgentBridge};
@@ -28,9 +29,17 @@ fn default_plugin_setup(dh: &dyn DynamicHost) {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 enum ExampleFuture {
     Wakeup,
+}
+
+impl TryInto<ExampleFuture> for Incoming {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> std::result::Result<ExampleFuture, Self::Error> {
+        Ok(serde_json::from_slice(&self.serialized)?)
+    }
 }
 
 impl ToJson for ExampleFuture {
@@ -76,8 +85,13 @@ impl Agent for ExampleAgent {
         Ok(())
     }
 
-    fn deliver(&mut self, _incoming: Incoming) -> Result<()> {
-        Ok(())
+    fn deliver(&mut self, incoming: Incoming) -> Result<()> {
+        let incoming: ExampleFuture = incoming.try_into()?;
+        info!("{:?}", incoming);
+
+        match incoming {
+            ExampleFuture::Wakeup => Ok(()),
+        }
     }
 }
 

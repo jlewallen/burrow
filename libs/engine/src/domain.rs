@@ -55,7 +55,7 @@ impl Domain {
 
             // TODO We should build a list of known prefixes so we don't need to
             // iterate over all plugins.
-            session.deliver(Incoming {})?;
+            session.deliver(Incoming::new(future.key, future.serialized.into_bytes()))?;
         }
 
         session.close(notifier)?;

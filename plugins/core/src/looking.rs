@@ -40,7 +40,7 @@ impl Plugin for LookingPlugin {
         Ok(())
     }
 
-    fn deliver(&self, _incoming: Incoming) -> Result<()> {
+    fn deliver(&self, _incoming: &Incoming) -> Result<()> {
         Ok(())
     }
 

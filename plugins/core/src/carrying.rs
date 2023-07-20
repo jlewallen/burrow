@@ -40,7 +40,7 @@ impl Plugin for CarryingPlugin {
         Ok(())
     }
 
-    fn deliver(&self, _incoming: Incoming) -> Result<()> {
+    fn deliver(&self, _incoming: &Incoming) -> Result<()> {
         Ok(())
     }
 

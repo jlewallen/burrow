@@ -172,7 +172,7 @@ impl Session {
     }
 
     pub fn deliver(&self, incoming: Incoming) -> Result<()> {
-        warn!("unhandled {:?}", &incoming);
+        self.plugins.deliver(incoming)?;
 
         Ok(())
     }

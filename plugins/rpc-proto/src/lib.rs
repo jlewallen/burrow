@@ -1,6 +1,6 @@
 use anyhow::Result;
 use bincode::{Decode, Encode};
-use kernel::ToJson;
+use kernel::{Incoming, ToJson};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::*;
@@ -291,13 +291,35 @@ impl TryFrom<&kernel::Surroundings> for Surroundings {
 }
 
 #[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
+pub struct IncomingMessage {
+    pub key: String,
+    pub serialized: Vec<u8>,
+}
+
+impl IncomingMessage {
+    pub fn from(incoming: &Incoming) -> Self {
+        Self {
+            key: incoming.key.clone(),
+            serialized: incoming.serialized.clone(),
+        }
+    }
+}
+
+impl Into<Incoming> for IncomingMessage {
+    fn into(self) -> Incoming {
+        Incoming {
+            key: self.key,
+            serialized: self.serialized,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub enum Payload {
     Initialize, /* Complete */
-    // Evaluate(String, Surroundings), /* Reply */
     Resolved(Vec<(LookupBy, Option<Json>)>),
     Surroundings(Surroundings),
-    // Permission(Permission),
-    // Hook(Hook),
+    Deliver(IncomingMessage),
 }
 
 #[derive(Debug)]

@@ -49,7 +49,20 @@ pub trait ParsesActions {
 }
 
 #[derive(Debug)]
-pub struct Incoming {}
+pub struct Incoming {
+    pub key: String,
+    pub serialized: Vec<u8>,
+}
+
+impl Incoming {
+    pub fn new(key: String, serialized: Vec<u8>) -> Self {
+        Self { key, serialized }
+    }
+
+    pub fn has_prefix(&self, prefix: &str) -> bool {
+        self.key.starts_with(prefix)
+    }
+}
 
 pub trait Plugin: ParsesActions {
     fn plugin_key() -> &'static str
@@ -64,7 +77,7 @@ pub trait Plugin: ParsesActions {
 
     fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()>;
 
-    fn deliver(&self, incoming: Incoming) -> Result<()>;
+    fn deliver(&self, incoming: &Incoming) -> Result<()>;
 
     fn stop(&self) -> Result<()>;
 }
@@ -118,6 +131,13 @@ impl SessionPlugins {
     pub fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
         for plugin in self.plugins.iter() {
             plugin.have_surroundings(surroundings)?;
+        }
+        Ok(())
+    }
+
+    pub fn deliver(&self, incoming: Incoming) -> Result<()> {
+        for plugin in self.plugins.iter() {
+            plugin.deliver(&incoming)?;
         }
         Ok(())
     }

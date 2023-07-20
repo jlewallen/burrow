@@ -23,6 +23,7 @@ impl Inbox<Payload, Query> for ExampleAgent {
             Payload::Initialize => {}
             Payload::Resolved(_) => {}
             Payload::Surroundings(_) => replies.send(Query::Complete)?,
+            Payload::Deliver(_) => {}
         }
 
         Ok(())
