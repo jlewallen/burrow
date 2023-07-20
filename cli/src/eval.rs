@@ -1,11 +1,11 @@
-use std::rc::Rc;
-
 use anyhow::Result;
 use chrono::Utc;
 use clap::Args;
+use std::{ops::Sub, rc::Rc};
+use tracing::info;
 
 use crate::{make_domain, text::Renderer, PluginConfiguration};
-use engine::{DevNullNotifier, Domain, Session, SessionOpener};
+use engine::{AfterTick, DevNullNotifier, Domain, Session, SessionOpener};
 
 #[derive(Debug, Args, Clone)]
 pub struct Command {
@@ -58,7 +58,15 @@ fn evaluate_commands(domain: Domain, cmd: Command) -> Result<()> {
     }
 
     if cmd.deliver {
-        domain.tick(Utc::now(), &notifier)?;
+        let now = Utc::now();
+        match domain.tick(now, &notifier)? {
+            AfterTick::Deadline(deadline) => {
+                let delay = deadline.sub(now).num_milliseconds();
+                info!(%deadline, delay_ms = delay, "deadline")
+            }
+            AfterTick::Processed(processed) => info!(%processed, "delivered"),
+            AfterTick::Empty => {}
+        }
     }
 
     domain.stop()?;

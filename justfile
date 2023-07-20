@@ -12,7 +12,7 @@ plugins:
     cargo build --package plugin-example-shared
 
 deliver: plugins
-    cargo run -- eval --text '' --deliver
+    cargo run -- eval --deliver
 
 eval: plugins
     cargo run -- eval

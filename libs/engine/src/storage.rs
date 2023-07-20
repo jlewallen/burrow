@@ -22,17 +22,32 @@ pub trait EntityStorageFactory: Send + Sync {
     fn create_storage(&self) -> Result<Rc<dyn EntityStorage>>;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PersistedFuture {
     pub key: String,
     pub time: chrono::DateTime<chrono::Utc>,
     pub serialized: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PendingFutures {
+    Futures(Vec<PersistedFuture>),
+    Waiting(Option<DateTime<Utc>>),
+}
+
+impl PendingFutures {
+    pub fn number_futures(&self) -> Option<usize> {
+        match self {
+            PendingFutures::Futures(futures) => Some(futures.len()),
+            PendingFutures::Waiting(_) => None,
+        }
+    }
+}
+
 pub trait FutureStorage {
     fn queue(&self, future: PersistedFuture) -> Result<()>;
     fn cancel(&self, key: &str) -> Result<()>;
-    fn query_futures_before(&self, now: DateTime<Utc>) -> Result<Vec<PersistedFuture>>;
+    fn query_futures_before(&self, now: DateTime<Utc>) -> Result<PendingFutures>;
 }
 
 #[derive(Clone, Debug)]
@@ -90,7 +105,7 @@ impl FutureStorage for InMemoryEntityStorage {
         Ok(())
     }
 
-    fn query_futures_before(&self, now: DateTime<Utc>) -> Result<Vec<PersistedFuture>> {
+    fn query_futures_before(&self, now: DateTime<Utc>) -> Result<PendingFutures> {
         let mut futures = self.futures.write().expect("Lock error");
         let mut pending = Vec::new();
 
@@ -104,7 +119,11 @@ impl FutureStorage for InMemoryEntityStorage {
             futures.remove(&future.key);
         }
 
-        Ok(pending)
+        if pending.is_empty() {
+            Ok(PendingFutures::Waiting(None))
+        } else {
+            Ok(PendingFutures::Futures(pending))
+        }
     }
 }
 

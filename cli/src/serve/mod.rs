@@ -1,19 +1,20 @@
 use anyhow::Result;
 use axum::{
     extract::Extension,
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
     routing::{get, get_service, post},
     Json, Router,
 };
 use axum_typed_websockets::{Message, WebSocket, WebSocketUpgrade};
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 use clap::Args;
 use futures::{sink::SinkExt, stream::StreamExt};
 
 use serde::{Deserialize, Serialize};
 use std::{
-    borrow::Borrow, collections::HashMap, net::SocketAddr, path::PathBuf, rc::Rc, sync::Arc,
+    borrow::Borrow, collections::HashMap, net::SocketAddr, ops::Sub, path::PathBuf, rc::Rc,
+    sync::Arc,
 };
 use tokio::{signal, sync::Mutex, task::JoinHandle};
 use tokio::{sync::broadcast, time::sleep};
@@ -23,7 +24,7 @@ use tower_http::{
 };
 use tracing::{debug, info, warn};
 
-use engine::{DevNullNotifier, Domain, Notifier, Session, SessionOpener};
+use engine::{AfterTick, DevNullNotifier, Domain, Notifier, Session, SessionOpener};
 use kernel::{DomainEvent, EntityKey, Reply, SimpleReply};
 
 use crate::{make_domain, PluginConfiguration};
@@ -60,7 +61,7 @@ struct ClientSession {
 
 struct AppState {
     domain: Domain,
-    last_tick: Mutex<Option<DateTime<Utc>>>,
+    tick_deadline: Mutex<Option<DateTime<Utc>>>,
     tx: broadcast::Sender<ServerMessage>,
 }
 
@@ -72,24 +73,29 @@ impl AppState {
         })
     }
 
-    pub async fn tick(&self, now: DateTime<Utc>) -> Result<Option<DateTime<Utc>>> {
+    pub async fn tick(&self, now: DateTime<Utc>) -> Result<AfterTick> {
         let can_tick = {
-            let last_tick = self.last_tick.lock().await;
-            last_tick
-                .map(|last| now.signed_duration_since(last))
-                .map(|d| Duration::seconds(1) <= d)
-                .unwrap_or(true)
+            let tick_deadline = self.tick_deadline.lock().await;
+
+            tick_deadline.filter(|deadline| *deadline > now)
         };
 
-        if can_tick {
-            self.domain.tick(now, &self.notifier())?;
+        match can_tick {
+            Some(deadline) => Ok(AfterTick::Deadline(deadline)),
+            None => {
+                Ok(self.domain.tick(now, &self.notifier())?)
 
-            let mut last_tick = self.last_tick.lock().await;
-            *last_tick = Some(now);
+                /*
+                match maybe_deadline {
+                    Some(deadline) => {
+                        let mut tick_deadline = self.tick_deadline.lock().await;
+                        *tick_deadline = Some(deadline.clone());
 
-            Ok(Some(now))
-        } else {
-            Ok(None)
+                        Ok(AfterTick::Deadline(deadline.clone()))
+                    }
+                    None => Ok(AfterTick::Flushed),
+                }*/
+            }
         }
     }
 
@@ -140,7 +146,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
 
     let app_state = Arc::new(AppState {
         domain: domain.clone(),
-        last_tick: Default::default(),
+        tick_deadline: Default::default(),
         tx,
     });
 
@@ -212,21 +218,64 @@ async fn shutdown_signal() {
     info!("signal received, starting graceful shutdown");
 }
 
-async fn tick_handler(
-    Extension(state): Extension<Arc<AppState>>,
-) -> (StatusCode, Json<HashMap<String, String>>) {
+fn empty_map() -> HashMap<String, String> {
+    Default::default()
+}
+
+fn empty_headers() -> HeaderMap {
+    Default::default()
+}
+
+fn deadline_headers(now: DateTime<Utc>, deadline: Option<DateTime<Utc>>) -> HeaderMap {
+    match deadline {
+        Some(deadline) => {
+            let mut headers = HeaderMap::new();
+            let remaining = deadline.sub(now);
+            let remaining = format!("{:?}", remaining.num_milliseconds());
+            headers.insert("retry-after", format!("{:?}", deadline).parse().unwrap());
+            headers.insert("retry-delay-ms", remaining.parse().unwrap());
+            headers
+        }
+        None => {
+            let mut headers = HeaderMap::new();
+            let remaining = format!("{}", 1000);
+            headers.insert("retry-delay-ms", remaining.parse().unwrap());
+            headers
+        }
+    }
+}
+
+async fn tick_handler(Extension(state): Extension<Arc<AppState>>) -> impl IntoResponse {
+    let now = Utc::now();
     match state.tick(Utc::now()).await {
-        Ok(Some(_)) => {
-            info!("tick:run");
+        Ok(AfterTick::Processed(_)) => {
+            info!("tick:processed");
 
-            (StatusCode::OK, Json(Default::default()))
+            (StatusCode::OK, empty_headers(), Json(empty_map()))
         }
-        Ok(None) => {
-            info!("tick:too-many");
+        Ok(AfterTick::Deadline(deadline)) => {
+            info!(%deadline, "tick:too-many");
 
-            (StatusCode::TOO_MANY_REQUESTS, Json(Default::default()))
+            (
+                StatusCode::TOO_MANY_REQUESTS,
+                deadline_headers(now, Some(deadline)),
+                Json(empty_map()),
+            )
         }
-        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, Json(Default::default())),
+        Ok(AfterTick::Empty) => {
+            info!("tick:empty");
+
+            (
+                StatusCode::TOO_MANY_REQUESTS,
+                deadline_headers(now, None),
+                Json(empty_map()),
+            )
+        }
+        Err(_) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            empty_headers(),
+            Json(empty_map()),
+        ),
     }
 }
 

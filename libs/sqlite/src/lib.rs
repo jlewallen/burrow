@@ -7,7 +7,7 @@ use std::{
 
 use engine::{
     storage::EntityStorage,
-    storage::{EntityStorageFactory, FutureStorage},
+    storage::{EntityStorageFactory, FutureStorage, PendingFutures},
     storage::{PersistedEntity, PersistedFuture},
 };
 use kernel::{EntityGid, EntityKey, LookupBy};
@@ -160,14 +160,22 @@ impl FutureStorage for SqliteStorage {
         Ok(())
     }
 
-    fn query_futures_before(&self, now: DateTime<Utc>) -> Result<Vec<PersistedFuture>> {
+    fn query_futures_before(&self, now: DateTime<Utc>) -> Result<PendingFutures> {
         trace!("query-futures {:?}", now);
+
+        let mut stmt = self
+            .conn
+            .prepare("SELECT MIN(time) FROM futures WHERE time > ?1 ORDER BY time")?;
+
+        let upcoming: Option<DateTime<Utc>> = stmt.query_row([&now], |row| Ok(row.get(0)?))?;
+
+        trace!(?upcoming, "query-futures");
 
         let mut stmt = self
             .conn
             .prepare("SELECT key, time, serialized FROM futures WHERE time <= ?1 ORDER BY time")?;
 
-        let futures = stmt.query_map((&now,), |row| {
+        let futures = stmt.query_map([&now], |row| {
             Ok(PersistedFuture {
                 key: row.get(0)?,
                 time: row.get(1)?,
@@ -177,6 +185,10 @@ impl FutureStorage for SqliteStorage {
 
         let pending: Vec<PersistedFuture> =
             futures.into_iter().map(|v| Ok(v?)).collect::<Result<_>>()?;
+
+        if pending.is_empty() {
+            return Ok(PendingFutures::Waiting(upcoming));
+        }
 
         let mut stmt = self
             .conn
@@ -193,7 +205,7 @@ impl FutureStorage for SqliteStorage {
             );
         }
 
-        Ok(pending)
+        Ok(PendingFutures::Futures(pending))
     }
 }
 
@@ -492,11 +504,11 @@ mod tests {
 
         let pending = s.query_futures_before(time.checked_add_days(Days::new(1)).unwrap())?;
 
-        assert_eq!(pending.len(), 1);
+        assert_eq!(pending.number_futures(), Some(1));
 
         let pending = s.query_futures_before(time.checked_add_days(Days::new(1)).unwrap())?;
 
-        assert_eq!(pending.len(), 0);
+        assert_eq!(pending, PendingFutures::Waiting(None));
 
         Ok(())
     }
@@ -517,7 +529,7 @@ mod tests {
 
         let pending = s.query_futures_before(time.checked_add_days(Days::new(1)).unwrap())?;
 
-        assert_eq!(pending.len(), 0);
+        assert_eq!(pending, PendingFutures::Waiting(None));
 
         Ok(())
     }

@@ -4,11 +4,21 @@ use std::{rc::Rc, sync::Arc};
 use tracing::{info, trace};
 
 use super::{sequences::Sequence, Session};
-use crate::{storage::EntityStorageFactory, storage::PersistedEntity, Notifier};
+use crate::{
+    storage::PersistedEntity,
+    storage::{EntityStorageFactory, PendingFutures},
+    Notifier,
+};
 use kernel::{EntityKey, Finder, Identity, Incoming, RegisteredPlugins};
 
 pub trait SessionOpener: Send + Sync + Clone {
     fn open_session(&self) -> Result<Rc<Session>>;
+}
+
+pub enum AfterTick {
+    Deadline(DateTime<Utc>),
+    Processed(usize),
+    Empty,
 }
 
 #[derive(Clone)]
@@ -39,28 +49,30 @@ impl Domain {
         }
     }
 
-    pub fn tick<T: Notifier>(&self, now: DateTime<Utc>, notifier: &T) -> Result<()> {
+    pub fn tick<T: Notifier>(&self, now: DateTime<Utc>, notifier: &T) -> Result<AfterTick> {
         trace!("{:?} tick", now);
 
         let storage = self.storage_factory.create_storage()?;
-        let futures = storage.query_futures_before(now)?;
-        if futures.is_empty() {
-            return Ok(());
+        match storage.query_futures_before(now)? {
+            PendingFutures::Futures(futures) => {
+                let session = self.open_session()?;
+                let processing = futures.len();
+
+                for future in futures {
+                    info!(key = %future.key, time = %future.time, "delivering");
+
+                    // TODO We should build a list of known prefixes so we don't need to
+                    // iterate over all plugins.
+                    session.deliver(Incoming::new(future.key, future.serialized.into_bytes()))?;
+                }
+
+                session.close(notifier)?;
+
+                Ok(AfterTick::Processed(processing))
+            }
+            PendingFutures::Waiting(Some(deadline)) => Ok(AfterTick::Deadline(deadline)),
+            PendingFutures::Waiting(None) => Ok(AfterTick::Empty),
         }
-
-        let session = self.open_session()?;
-
-        for future in futures {
-            info!(key = %future.key, time = %future.time, "delivering");
-
-            // TODO We should build a list of known prefixes so we don't need to
-            // iterate over all plugins.
-            session.deliver(Incoming::new(future.key, future.serialized.into_bytes()))?;
-        }
-
-        session.close(notifier)?;
-
-        Ok(())
     }
 
     pub fn query_all(&self) -> Result<Vec<PersistedEntity>> {

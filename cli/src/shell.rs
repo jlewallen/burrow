@@ -8,7 +8,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use tokio::task::JoinHandle;
 use tokio::time::sleep;
-use tracing::warn;
+use tracing::*;
 
 use crate::terminal::Renderer;
 use crate::PluginConfiguration;
