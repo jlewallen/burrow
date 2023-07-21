@@ -1,5 +1,7 @@
 ### Early Stages Project
 
+echo -1 | sudo tee /proc/sys/kernel/perf_event_paranoid
+
 For more information, this is a good place to start until I've got time for this README:
 
 https://github.com/jlewallen/dimsum/

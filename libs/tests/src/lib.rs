@@ -1,27 +1,97 @@
+use anyhow::Result;
+use replies::Reply;
+use std::rc::Rc;
+
+use engine::{DevNullNotifier, Session, SessionOpener};
+use plugins_core::{BuildSurroundings, QuickThing};
+
+pub trait WorldFixture {
+    fn prepare(&self, session: &Rc<Session>) -> Result<()>;
+}
+
+pub fn evaluate_fixture<W, S>(
+    domain: &S,
+    username: &str,
+    text: &'static [&'static str],
+) -> Result<Option<Box<dyn Reply>>>
+where
+    W: WorldFixture + Default,
+    S: SessionOpener,
+{
+    let session = domain.open_session()?;
+
+    let fixture = W::default();
+
+    fixture.prepare(&session)?;
+
+    for text in text {
+        if let Some(reply) = session.evaluate_and_perform(username, text)? {
+            println!("{:?}", reply);
+        }
+    }
+
+    session.close(&DevNullNotifier::default())?;
+
+    Ok(None)
+}
+
+#[derive(Default)]
+pub struct Noop {}
+
+impl WorldFixture for Noop {
+    fn prepare(&self, _session: &Rc<Session>) -> Result<()> {
+        Ok(())
+    }
+}
+
+#[derive(Default)]
+pub struct HoldingKeyInVessel {}
+
+impl WorldFixture for HoldingKeyInVessel {
+    fn prepare(&self, session: &Rc<Session>) -> Result<()> {
+        let mut build = BuildSurroundings::new_in_session(session.clone())?;
+
+        let place = build.make(QuickThing::Place("Place"))?;
+        let key = build.entity()?.named("Key")?.into_entry()?;
+        let vessel = build
+            .entity()?
+            .named("Vessel")?
+            .holding(&vec![key.clone()])?
+            .into_entry()?;
+        let (_, _surroundings) = build
+            .route("East", QuickThing::Actual(place.clone()))
+            .hands(vec![QuickThing::Actual(vessel.clone())])
+            .build()?;
+
+        session.flush()?;
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use std::{env::temp_dir, rc::Rc, sync::Arc};
+    use std::{env::temp_dir, sync::Arc};
     use tokio::task::JoinHandle;
 
     use engine::{
         sequences::{DeterministicKeys, Sequence},
         storage::EntityStorageFactory,
         storage::PersistedEntity,
-        DevNullNotifier, Domain, Session, SessionOpener,
+        Domain, Session, SessionOpener,
     };
     use kernel::{EntityKey, Finder, Identity, RegisteredPlugins};
     use plugins_core::{
         building::BuildingPluginFactory, carrying::CarryingPluginFactory,
-        looking::LookingPluginFactory, moving::MovingPluginFactory, BuildSurroundings,
-        DefaultFinder, QuickThing,
+        looking::LookingPluginFactory, moving::MovingPluginFactory, DefaultFinder,
     };
     use plugins_dynlib::DynamicPluginFactory;
     use plugins_rpc::RpcPluginFactory;
     use plugins_rune::RunePluginFactory;
     use plugins_wasm::WasmPluginFactory;
 
-    const USERNAME: &str = "burrow";
+    use crate::{evaluate_fixture, HoldingKeyInVessel, Noop, WorldFixture};
 
     #[derive(Clone)]
     struct AsyncFriendlyDomain {
@@ -67,19 +137,7 @@ mod tests {
             let handle: JoinHandle<Result<()>> = tokio::task::spawn_blocking({
                 let sessions = self.clone();
                 move || {
-                    let session = sessions.open_session()?;
-
-                    let fixture = W::default();
-
-                    fixture.prepare(&session)?;
-
-                    for text in text {
-                        if let Some(reply) = session.evaluate_and_perform(USERNAME, text)? {
-                            println!("{:?}", &reply);
-                        }
-                    }
-
-                    session.close(&DevNullNotifier::default())?;
+                    evaluate_fixture::<W, _>(&sessions, "burrow", text)?;
 
                     Ok(())
                 }
@@ -121,44 +179,6 @@ mod tests {
             keys,
             identities,
         ))
-    }
-
-    trait WorldFixture {
-        fn prepare(&self, session: &Rc<Session>) -> Result<()>;
-    }
-
-    #[derive(Default)]
-    struct Noop {}
-
-    impl WorldFixture for Noop {
-        fn prepare(&self, _session: &Rc<Session>) -> Result<()> {
-            Ok(())
-        }
-    }
-
-    #[derive(Default)]
-    struct HoldingKeyInVessel {}
-
-    impl WorldFixture for HoldingKeyInVessel {
-        fn prepare(&self, session: &Rc<Session>) -> Result<()> {
-            let mut build = BuildSurroundings::new_in_session(session.clone())?;
-
-            let place = build.make(QuickThing::Place("Place"))?;
-            let key = build.entity()?.named("Key")?.into_entry()?;
-            let vessel = build
-                .entity()?
-                .named("Vessel")?
-                .holding(&vec![key.clone()])?
-                .into_entry()?;
-            let (_, _surroundings) = build
-                .route("East", QuickThing::Actual(place.clone()))
-                .hands(vec![QuickThing::Actual(vessel.clone())])
-                .build()?;
-
-            session.flush()?;
-
-            Ok(())
-        }
     }
 
     #[tokio::test]

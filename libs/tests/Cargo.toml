@@ -3,43 +3,51 @@ name = "tests"
 version = "0.1.0"
 edition = "2021"
 
+[[bench]]
+name = "look"
+harness = false
+
 [lib]
 doctest = false
 
 [dependencies]
 anyhow = "1.0.71"
+criterion-macro = "0.4.0"
+pprof = { version = "0.12.0", features = ["criterion", "flamegraph"] }
 serde_json = "1.0.96"
 tempfile = "3.6.0"
 
-[dev-dependencies.replies]
-path = "../replies"
-
-[dev-dependencies.kernel]
+[dependencies.kernel]
 path = "../kernel"
 
-[dev-dependencies.engine]
+[dependencies.engine]
 path = "../engine"
 
-[dev-dependencies.sqlite]
+[dependencies.replies]
+path = "../replies"
+
+[dependencies.sqlite]
 path = "../sqlite"
 
-[dev-dependencies.plugins-core]
+[dependencies.plugins-core]
 path = "../../plugins/core"
 
-[dev-dependencies.plugins-rune]
+[dependencies.plugins-rune]
 path = "../../plugins/rune"
 
-[dev-dependencies.plugins-wasm]
+[dependencies.plugins-wasm]
 path = "../../plugins/wasm"
 
-[dev-dependencies.plugins-rpc]
+[dependencies.plugins-rpc]
 path = "../../plugins/rpc"
 
-[dev-dependencies.plugins-dynlib]
+[dependencies.plugins-dynlib]
 path = "../../plugins/dynlib"
 
 [dev-dependencies]
 ctor = "0.2.2"
 insta = { version = "1.29.0", features = ["json"] }
+pprof = { version = "0.12.0", features = ["criterion", "flamegraph"] }
 tokio = { version = "1.28.2", features = ["full"] }
-
+criterion = { version = "0.5.1", features = ["html_reports", "tokio"] }
+criterion-macro = "0.4.0"
