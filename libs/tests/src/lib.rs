@@ -1,38 +1,24 @@
 use anyhow::Result;
 use replies::Reply;
 use std::rc::Rc;
+use std::sync::Arc;
 
+use engine::sequences::DeterministicKeys;
+use engine::Domain;
 use engine::{DevNullNotifier, Session, SessionOpener};
+use kernel::RegisteredPlugins;
+use plugins_core::building::BuildingPluginFactory;
+use plugins_core::carrying::CarryingPluginFactory;
+use plugins_core::looking::LookingPluginFactory;
+use plugins_core::moving::MovingPluginFactory;
+use plugins_core::DefaultFinder;
 use plugins_core::{BuildSurroundings, QuickThing};
+use sqlite::Factory;
+
+pub const USERNAME: &str = "burrow";
 
 pub trait WorldFixture {
     fn prepare(&self, session: &Rc<Session>) -> Result<()>;
-}
-
-pub fn evaluate_fixture<W, S>(
-    domain: &S,
-    username: &str,
-    text: &'static [&'static str],
-) -> Result<Option<Box<dyn Reply>>>
-where
-    W: WorldFixture + Default,
-    S: SessionOpener,
-{
-    let session = domain.open_session()?;
-
-    let fixture = W::default();
-
-    fixture.prepare(&session)?;
-
-    for text in text {
-        if let Some(reply) = session.evaluate_and_perform(username, text)? {
-            println!("{:?}", reply);
-        }
-    }
-
-    session.close(&DevNullNotifier::default())?;
-
-    Ok(None)
 }
 
 #[derive(Default)]
@@ -69,191 +55,71 @@ impl WorldFixture for HoldingKeyInVessel {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use anyhow::Result;
-    use std::{env::temp_dir, sync::Arc};
-    use tokio::task::JoinHandle;
+pub fn evaluate_fixture<W, S>(
+    domain: &S,
+    username: &str,
+    text: &'static [&'static str],
+) -> Result<Option<Box<dyn Reply>>>
+where
+    W: WorldFixture + Default,
+    S: SessionOpener,
+{
+    let session = domain.open_session()?;
 
-    use engine::{
-        sequences::{DeterministicKeys, Sequence},
-        storage::EntityStorageFactory,
-        storage::PersistedEntity,
-        Domain, Session, SessionOpener,
-    };
-    use kernel::{EntityKey, Finder, Identity, RegisteredPlugins};
-    use plugins_core::{
-        building::BuildingPluginFactory, carrying::CarryingPluginFactory,
-        looking::LookingPluginFactory, moving::MovingPluginFactory, DefaultFinder,
-    };
-    use plugins_dynlib::DynamicPluginFactory;
-    use plugins_rpc::RpcPluginFactory;
-    use plugins_rune::RunePluginFactory;
-    use plugins_wasm::WasmPluginFactory;
+    let fixture = W::default();
 
-    use crate::{evaluate_fixture, HoldingKeyInVessel, Noop, WorldFixture};
+    fixture.prepare(&session)?;
 
-    #[derive(Clone)]
-    struct AsyncFriendlyDomain {
-        domain: Domain,
-    }
-
-    impl AsyncFriendlyDomain {
-        pub fn new<SF>(
-            storage_factory: Arc<SF>,
-            plugins: Arc<RegisteredPlugins>,
-            finder: Arc<dyn Finder>,
-            keys: Arc<dyn Sequence<EntityKey>>,
-            identities: Arc<dyn Sequence<Identity>>,
-        ) -> Self
-        where
-            SF: EntityStorageFactory + 'static,
-        {
-            Self {
-                domain: Domain::new(storage_factory, plugins, finder, keys, identities),
-            }
-        }
-
-        pub async fn query_all(&self) -> Result<Vec<PersistedEntity>> {
-            self.domain.query_all()
-        }
-
-        #[cfg(test)]
-        pub async fn snapshot(&self) -> Result<serde_json::Value> {
-            let json: Vec<serde_json::Value> = self
-                .query_all()
-                .await?
-                .into_iter()
-                .map(|p| p.to_json_value())
-                .collect::<Result<_>>()?;
-
-            Ok(serde_json::Value::Array(json))
-        }
-
-        pub async fn evaluate<W>(&self, text: &'static [&'static str]) -> Result<()>
-        where
-            W: WorldFixture + Default,
-        {
-            let handle: JoinHandle<Result<()>> = tokio::task::spawn_blocking({
-                let sessions = self.clone();
-                move || {
-                    evaluate_fixture::<W, _>(&sessions, "burrow", text)?;
-
-                    Ok(())
-                }
-            });
-
-            Ok(handle.await??)
-        }
-
-        pub async fn stop(&self) -> Result<()> {
-            let domain = self.domain.clone();
-            tokio::task::spawn_blocking(move || domain.stop()).await?
+    for text in text {
+        if let Some(_reply) = session.evaluate_and_perform(username, text)? {
+            // Do nothing, for now.
         }
     }
 
-    impl SessionOpener for AsyncFriendlyDomain {
-        fn open_session(&self) -> Result<std::rc::Rc<Session>> {
-            self.domain.open_session()
-        }
-    }
+    session.close(&DevNullNotifier::default())?;
 
-    async fn test_domain() -> Result<AsyncFriendlyDomain> {
-        let storage_factory = sqlite::Factory::new(sqlite::MEMORY_SPECIAL)?;
-        let mut registered_plugins = RegisteredPlugins::default();
-        registered_plugins.register(MovingPluginFactory::default());
-        registered_plugins.register(LookingPluginFactory::default());
-        registered_plugins.register(CarryingPluginFactory::default());
-        registered_plugins.register(BuildingPluginFactory::default());
-        registered_plugins.register(DynamicPluginFactory::default());
-        registered_plugins.register(RunePluginFactory::default());
-        registered_plugins.register(WasmPluginFactory::new(&temp_dir())?);
-        registered_plugins.register(RpcPluginFactory::start().await?);
-        let finder = Arc::new(DefaultFinder::default());
-        let keys = Arc::new(DeterministicKeys::new());
-        let identities = Arc::new(DeterministicKeys::new());
-        Ok(AsyncFriendlyDomain::new(
-            storage_factory,
-            Arc::new(registered_plugins),
-            finder,
-            keys,
-            identities,
-        ))
-    }
-
-    #[tokio::test]
-    async fn it_evaluates_a_simple_look() -> Result<()> {
-        let domain = test_domain().await?;
-        domain.evaluate::<HoldingKeyInVessel>(&["look"]).await?;
-        insta::assert_json_snapshot!(domain.snapshot().await?);
-        domain.stop().await?;
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn it_evaluates_two_simple_looks_same_session() -> Result<()> {
-        let domain = test_domain().await?;
-        domain
-            .evaluate::<HoldingKeyInVessel>(&["look", "look"])
-            .await?;
-        insta::assert_json_snapshot!(domain.snapshot().await?);
-        domain.stop().await?;
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn it_evaluates_two_simple_looks_separate_session() -> Result<()> {
-        let domain = test_domain().await?;
-        domain.evaluate::<HoldingKeyInVessel>(&["look"]).await?;
-        domain.evaluate::<Noop>(&["look"]).await?;
-        insta::assert_json_snapshot!(domain.snapshot().await?);
-        domain.stop().await?;
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn it_can_drop_held_container() -> Result<()> {
-        let domain = test_domain().await?;
-        domain.evaluate::<HoldingKeyInVessel>(&["look"]).await?;
-        domain.evaluate::<Noop>(&["drop vessel"]).await?;
-        insta::assert_json_snapshot!(domain.snapshot().await?);
-        domain.stop().await?;
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn it_can_rehold_dropped_container() -> Result<()> {
-        let domain = test_domain().await?;
-        domain.evaluate::<HoldingKeyInVessel>(&["look"]).await?;
-        domain.evaluate::<Noop>(&["drop vessel"]).await?;
-        domain.evaluate::<Noop>(&["hold vessel"]).await?;
-        insta::assert_json_snapshot!(domain.snapshot().await?);
-        domain.stop().await?;
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn it_can_go_east() -> Result<()> {
-        let domain = test_domain().await?;
-        domain.evaluate::<HoldingKeyInVessel>(&["look"]).await?;
-        domain.evaluate::<Noop>(&["go east"]).await?;
-        domain.evaluate::<Noop>(&["look"]).await?;
-        insta::assert_json_snapshot!(domain.snapshot().await?);
-        domain.stop().await?;
-
-        Ok(())
-    }
+    Ok(None)
 }
 
-/*
-#[cfg(test)]
-#[ctor::ctor]
-fn initialize_tests() {
-    plugins_core::log_test();
+pub fn evaluate_text_in_new_domain<W>(
+    username: &str,
+    times: usize,
+    text: &'static [&'static str],
+) -> Result<()>
+where
+    W: WorldFixture + Default,
+{
+    let domain = make_domain()?;
+
+    assert!(times > 0);
+
+    evaluate_fixture::<W, _>(&domain, username, text)?;
+
+    for _ in [0..times - 1] {
+        evaluate_fixture::<Noop, _>(&domain, username, text)?;
+    }
+
+    Ok(())
 }
-*/
+
+pub fn make_domain() -> Result<Domain> {
+    let storage_factory = Factory::new(":memory:")?;
+    let mut registered_plugins = RegisteredPlugins::default();
+    registered_plugins.register(LookingPluginFactory::default());
+    registered_plugins.register(MovingPluginFactory::default());
+    registered_plugins.register(CarryingPluginFactory::default());
+    registered_plugins.register(BuildingPluginFactory::default());
+    let keys = Arc::new(DeterministicKeys::new());
+    let identities = Arc::new(DeterministicKeys::new());
+    let finder = Arc::new(DefaultFinder::default());
+    Ok(Domain::new(
+        storage_factory,
+        Arc::new(registered_plugins),
+        finder,
+        keys,
+        identities,
+    ))
+}
+
+#[cfg(test)]
+mod tests;

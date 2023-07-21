@@ -26,7 +26,7 @@ serve: plugins
 look *args='': plugins
     cargo run -- eval --text look --text look --text look --separate-sessions {{args}}
 
-perf: plugins
+bench: plugins
     cargo bench --all
     (cd libs/tests && cargo bench --bench look -- --profile-time=5)
 
