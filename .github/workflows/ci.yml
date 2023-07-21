@@ -1,4 +1,4 @@
-name: build
+name: Build
 
 on:
   push:
@@ -32,3 +32,10 @@ jobs:
       - run: cargo test --workspace --verbose
       - run: cargo bench --workspace --verbose
       - run: (cd libs/tests && cargo bench --bench look -- --profile-time=5)
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./target/criterion
+          destination_dir: build/criterion
