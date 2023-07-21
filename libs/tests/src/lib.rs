@@ -1,13 +1,9 @@
 use anyhow::Result;
-use engine::storage::{EntityStorageFactory, InMemoryEntityStorageFactory};
-use plugins_dynlib::DynamicPluginFactory;
-use plugins_rune::RunePluginFactory;
-use plugins_wasm::WasmPluginFactory;
-use replies::Reply;
 use std::env::temp_dir;
 use std::rc::Rc;
 use std::sync::Arc;
 
+use engine::storage::{EntityStorageFactory, InMemoryEntityStorageFactory};
 use engine::{sequences::DeterministicKeys, DevNullNotifier, Domain, Session, SessionOpener};
 use kernel::RegisteredPlugins;
 use plugins_core::building::BuildingPluginFactory;
@@ -16,7 +12,10 @@ use plugins_core::looking::LookingPluginFactory;
 use plugins_core::moving::MovingPluginFactory;
 use plugins_core::DefaultFinder;
 use plugins_core::{BuildSurroundings, QuickThing};
-// use sqlite::Factory;
+use plugins_dynlib::DynamicPluginFactory;
+use plugins_rune::RunePluginFactory;
+use plugins_wasm::WasmPluginFactory;
+use replies::Reply;
 
 pub const USERNAME: &str = "burrow";
 
@@ -120,8 +119,10 @@ where
     registered_plugins.register(CarryingPluginFactory::default());
     registered_plugins.register(BuildingPluginFactory::default());
     registered_plugins.register(DynamicPluginFactory::default());
-    registered_plugins.register(RunePluginFactory::default());
-    registered_plugins.register(WasmPluginFactory::new(&temp_dir())?);
+    if false {
+        registered_plugins.register(RunePluginFactory::default());
+        registered_plugins.register(WasmPluginFactory::new(&temp_dir())?);
+    }
     let finder = Arc::new(DefaultFinder::default());
     let keys = Arc::new(DeterministicKeys::new());
     let identities = Arc::new(DeterministicKeys::new());
