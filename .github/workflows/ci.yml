@@ -31,7 +31,7 @@ jobs:
       - run: cargo build --verbose
       - run: cargo test --workspace --verbose
       - run: cargo bench --workspace --verbose
-      - run: cargo bench --bench look -- --profile-time=5
+      - run: cargo bench --bench simple -- --profile-time=5
         working-directory: libs/test
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3

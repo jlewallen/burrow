@@ -1,9 +1,6 @@
 use anyhow::{anyhow, Context, Result};
 use chrono::{DateTime, Utc};
-use std::{
-    rc::Rc,
-    sync::{Arc, Mutex},
-};
+use std::{rc::Rc, sync::Mutex};
 
 use engine::{
     storage::EntityStorage,
@@ -327,7 +324,7 @@ pub struct Factory {
 }
 
 impl Factory {
-    pub fn new(path: &str) -> Result<Arc<Factory>> {
+    pub fn new(path: &str) -> Result<Factory> {
         let id = nanoid::nanoid!();
         let (keep_alive, uri) = if path == MEMORY_SPECIAL {
             let keep_alive = InMemoryKeepAlive::new(&id)?;
@@ -337,11 +334,11 @@ impl Factory {
             (None, format!("file:{}", path))
         };
 
-        Ok(Arc::new(Factory {
+        Ok(Factory {
             uri,
             _id: id,
             _keep_alive: keep_alive,
-        }))
+        })
     }
 }
 

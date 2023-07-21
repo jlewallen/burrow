@@ -28,7 +28,7 @@ look *args='': plugins
 
 bench: plugins
     cargo bench --workspace
-    (cd libs/tests && cargo bench --bench look -- --profile-time=5)
+    (cd libs/tests && cargo bench --bench simple -- --profile-time=5)
 
 clean:
     rm -rf target

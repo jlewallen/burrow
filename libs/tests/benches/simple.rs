@@ -4,7 +4,7 @@ use pprof::criterion::{Output, PProfProfiler};
 use tests::{evaluate_text_in_new_domain, HoldingKeyInVessel, USERNAME};
 
 pub fn criterion_benchmark(c: &mut Criterion) {
-    c.bench_function("look ", |b| {
+    c.bench_function("look once", |b| {
         b.iter(|| {
             black_box(evaluate_text_in_new_domain::<HoldingKeyInVessel>(
                 USERNAME,
@@ -20,6 +20,26 @@ pub fn criterion_benchmark(c: &mut Criterion) {
                 USERNAME,
                 10,
                 &["look"],
+            ))
+        })
+    });
+
+    c.bench_function("drop", |b| {
+        b.iter(|| {
+            black_box(evaluate_text_in_new_domain::<HoldingKeyInVessel>(
+                USERNAME,
+                1,
+                &["drop"],
+            ))
+        })
+    });
+
+    c.bench_function("drop hold", |b| {
+        b.iter(|| {
+            black_box(evaluate_text_in_new_domain::<HoldingKeyInVessel>(
+                USERNAME,
+                10,
+                &["drop vessel", "hold vessel"],
             ))
         })
     });

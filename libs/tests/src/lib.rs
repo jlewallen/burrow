@@ -1,11 +1,14 @@
 use anyhow::Result;
+use engine::storage::{EntityStorageFactory, InMemoryEntityStorageFactory};
+use plugins_dynlib::DynamicPluginFactory;
+use plugins_rune::RunePluginFactory;
+use plugins_wasm::WasmPluginFactory;
 use replies::Reply;
+use std::env::temp_dir;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use engine::sequences::DeterministicKeys;
-use engine::Domain;
-use engine::{DevNullNotifier, Session, SessionOpener};
+use engine::{sequences::DeterministicKeys, DevNullNotifier, Domain, Session, SessionOpener};
 use kernel::RegisteredPlugins;
 use plugins_core::building::BuildingPluginFactory;
 use plugins_core::carrying::CarryingPluginFactory;
@@ -13,7 +16,7 @@ use plugins_core::looking::LookingPluginFactory;
 use plugins_core::moving::MovingPluginFactory;
 use plugins_core::DefaultFinder;
 use plugins_core::{BuildSurroundings, QuickThing};
-use sqlite::Factory;
+// use sqlite::Factory;
 
 pub const USERNAME: &str = "burrow";
 
@@ -55,7 +58,7 @@ impl WorldFixture for HoldingKeyInVessel {
     }
 }
 
-pub fn evaluate_fixture<W, S>(
+fn evaluate_fixture<W, S>(
     domain: &S,
     username: &str,
     text: &'static [&'static str],
@@ -81,6 +84,10 @@ where
     Ok(None)
 }
 
+fn make_domain() -> Result<Domain> {
+    test_domain_with(InMemoryEntityStorageFactory::default())
+}
+
 pub fn evaluate_text_in_new_domain<W>(
     username: &str,
     times: usize,
@@ -102,16 +109,22 @@ where
     Ok(())
 }
 
-pub fn make_domain() -> Result<Domain> {
-    let storage_factory = Factory::new(":memory:")?;
+pub fn test_domain_with<S>(storage: S) -> Result<Domain>
+where
+    S: EntityStorageFactory + 'static,
+{
+    let storage_factory = Arc::new(storage);
     let mut registered_plugins = RegisteredPlugins::default();
-    registered_plugins.register(LookingPluginFactory::default());
     registered_plugins.register(MovingPluginFactory::default());
+    registered_plugins.register(LookingPluginFactory::default());
     registered_plugins.register(CarryingPluginFactory::default());
     registered_plugins.register(BuildingPluginFactory::default());
+    registered_plugins.register(DynamicPluginFactory::default());
+    registered_plugins.register(RunePluginFactory::default());
+    registered_plugins.register(WasmPluginFactory::new(&temp_dir())?);
+    let finder = Arc::new(DefaultFinder::default());
     let keys = Arc::new(DeterministicKeys::new());
     let identities = Arc::new(DeterministicKeys::new());
-    let finder = Arc::new(DefaultFinder::default());
     Ok(Domain::new(
         storage_factory,
         Arc::new(registered_plugins),

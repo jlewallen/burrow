@@ -132,7 +132,7 @@ fn get_assets_path() -> Result<PathBuf> {
 }
 
 async fn make_domain(plugins: PluginConfiguration) -> Result<Domain> {
-    let storage_factory = Factory::new("world.sqlite3")?;
+    let storage_factory = Arc::new(Factory::new("world.sqlite3")?);
     let mut registered_plugins = RegisteredPlugins::default();
     registered_plugins.register(LookingPluginFactory::default());
     registered_plugins.register(MovingPluginFactory::default());
