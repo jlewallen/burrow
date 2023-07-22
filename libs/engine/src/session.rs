@@ -39,7 +39,7 @@ pub struct Session {
     entities: Rc<Entities>,
     destroyed: RefCell<Vec<EntityKey>>,
     finder: Arc<dyn Finder>,
-    plugins: Arc<SessionPlugins>,
+    plugins: Arc<RefCell<SessionPlugins>>,
     hooks: ManagedHooks,
 }
 
@@ -59,12 +59,13 @@ impl Session {
 
         storage.begin()?;
 
-        let mut plugins = registered_plugins.create_plugins()?;
-        plugins.initialize()?;
+        let plugins = registered_plugins.create_plugins()?;
+        let plugins = Arc::new(RefCell::new(plugins));
 
-        let plugins = Arc::new(plugins);
-
-        let hooks = plugins.hooks()?;
+        let hooks = {
+            let plugins = plugins.borrow();
+            plugins.hooks()?
+        };
 
         let session = Rc::new_cyclic(|weak: &Weak<Session>| Self {
             opened,
@@ -80,7 +81,7 @@ impl Session {
             identities: Arc::clone(identities),
             destroyed: RefCell::new(Vec::new()),
             finder: Arc::clone(finder),
-            plugins,
+            plugins: Arc::clone(&plugins),
             hooks,
         });
 
@@ -92,6 +93,8 @@ impl Session {
             }
         }
 
+        session.initialize()?;
+
         Ok(session)
     }
 
@@ -102,8 +105,12 @@ impl Session {
         Ok(())
     }
 
-    pub fn plugins(&self) -> &SessionPlugins {
-        &self.plugins
+    fn initialize(&self) -> Result<()> {
+        let mut plugins = self.plugins.borrow_mut();
+
+        plugins.initialize()?;
+
+        Ok(())
     }
 
     pub fn world(&self) -> Result<Entry, DomainError> {
@@ -172,7 +179,9 @@ impl Session {
     }
 
     pub fn deliver(&self, incoming: Incoming) -> Result<()> {
-        self.plugins.deliver(incoming)?;
+        let plugins = self.plugins.borrow();
+
+        plugins.deliver(incoming)?;
 
         Ok(())
     }
@@ -186,7 +195,9 @@ impl Session {
         let elapsed = self.opened.elapsed();
         let elapsed = format!("{:?}", elapsed);
 
-        self.plugins.stop()?;
+        let plugins = self.plugins.borrow();
+
+        plugins.stop()?;
 
         info!(%elapsed, %nentities, "closed");
 

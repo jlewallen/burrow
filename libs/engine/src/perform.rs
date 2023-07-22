@@ -1,5 +1,6 @@
 use anyhow::Context;
 use anyhow::Result;
+use std::cell::RefCell;
 use std::rc::Rc;
 use std::rc::Weak;
 use std::sync::Arc;
@@ -13,14 +14,14 @@ use kernel::*;
 pub struct StandardPerformer {
     session: Weak<Session>,
     finder: Arc<dyn Finder>,
-    plugins: Arc<SessionPlugins>,
+    plugins: Arc<RefCell<SessionPlugins>>,
 }
 
 impl StandardPerformer {
     pub fn new(
         session: &Weak<Session>,
         finder: Arc<dyn Finder>,
-        plugins: Arc<SessionPlugins>,
+        plugins: Arc<RefCell<SessionPlugins>>,
     ) -> Rc<Self> {
         Rc::new(StandardPerformer {
             session: Weak::clone(session),
@@ -36,8 +37,8 @@ impl StandardPerformer {
         debug!("'{}'", text);
 
         let res = {
-            let session = self.session()?;
-            if let Some(action) = session.plugins().evaluate(text)? {
+            let plugins = self.plugins.borrow();
+            if let Some(action) = plugins.evaluate(text)? {
                 Ok(Some(self.perform_via_name(name, action)?))
             } else {
                 Ok(None)
@@ -61,8 +62,9 @@ impl StandardPerformer {
 
         let reply = {
             let _span = span!(Level::INFO, "action").entered();
+            let plugins = self.plugins.borrow();
             debug!("{:?}", &surroundings);
-            self.plugins
+            plugins
                 .have_surroundings(&surroundings)
                 .with_context(|| "Plugins:have_surroundings")?;
             action
@@ -133,7 +135,8 @@ impl StandardPerformer {
                 let reply = {
                     let _span = span!(Level::INFO, "A").entered();
                     info!("{:?}", &surroundings);
-                    self.plugins.have_surroundings(&surroundings)?;
+                    let plugins = self.plugins.borrow();
+                    plugins.have_surroundings(&surroundings)?;
                     action.perform(self.session()?, &surroundings)?
                 };
 

@@ -94,6 +94,10 @@ impl LoadedLibrary {
 
         self.tick()?;
 
+        let outbox = std::mem::take(&mut self.outbox.messages);
+
+        self.process_queries(outbox)?;
+
         Ok(())
     }
 
