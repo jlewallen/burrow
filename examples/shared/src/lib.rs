@@ -35,6 +35,12 @@ impl ToJson for ExampleFuture {
 struct ExampleAgent {}
 
 impl Agent for ExampleAgent {
+    fn initialize(&mut self) -> Result<()> {
+        info!("initialized");
+
+        Ok(())
+    }
+
     fn have_surroundings(&mut self, surroundings: Surroundings) -> Result<()> {
         let (world, living, area) = surroundings.unpack();
 
@@ -82,10 +88,10 @@ dynlib_sys::export_plugin!(agent_initialize, agent_tick);
 
 #[allow(improper_ctypes_definitions)]
 extern "C" fn agent_initialize(dh: &mut dyn DynamicHost) {
-    default_agent_initialize(dh);
+    default_agent_initialize::<ExampleAgent>(dh);
 }
 
 #[allow(improper_ctypes_definitions)]
-extern "C" fn agent_tick(dh: &mut dyn DynamicHost) {
-    default_agent_tick::<ExampleAgent>(dh);
+unsafe extern "C" fn agent_tick(dh: &mut dyn DynamicHost, state: *const std::ffi::c_void) {
+    default_agent_tick::<ExampleAgent>(dh, state);
 }

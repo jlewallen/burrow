@@ -6,6 +6,10 @@ use wasm_sys::prelude::*;
 struct WasmExample {}
 
 impl Agent for WasmExample {
+    fn initialize(&mut self) -> Result<()> {
+        Ok(())
+    }
+
     fn have_surroundings(&mut self, surroundings: Surroundings) -> Result<()> {
         let (world, living, area) = surroundings.unpack();
 

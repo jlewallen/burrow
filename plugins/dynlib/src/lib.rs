@@ -3,8 +3,7 @@ use libloading::Library;
 use std::{cell::RefCell, collections::VecDeque, rc::Rc, sync::Arc};
 use tracing::{dispatcher::get_default, info, span, trace, warn, Level, Subscriber};
 
-use dynlib_sys::{DynMessage, DynamicHost, PluginDeclaration};
-use dynlib_sys::{IncomingMessage, Payload, Query};
+use dynlib_sys::prelude::*;
 use kernel::{EvaluationResult, ManagedHooks, ParsesActions, Plugin, PluginFactory};
 use plugins_core::library::plugin::*;
 use plugins_rpc::{have_surroundings, Querying, SessionServices};
@@ -127,7 +126,9 @@ impl LoadedLibrary {
             let decl = sym.read();
 
             while !self.inbox.messages.is_empty() {
-                (decl.tick)(self);
+                let state = self.state.unwrap_or(std::ptr::null());
+
+                (decl.tick)(self, state);
 
                 let outbox = std::mem::take(&mut self.outbox.messages);
 

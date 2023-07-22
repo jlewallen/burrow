@@ -172,6 +172,7 @@ impl ActiveSession for AgentSession {
 }
 
 pub trait Agent {
+    fn initialize(&mut self) -> Result<()>;
     fn have_surroundings(&mut self, surroundings: kernel::Surroundings) -> Result<()>;
     fn deliver(&mut self, incoming: kernel::Incoming) -> Result<()>;
 }
@@ -189,6 +190,10 @@ where
 {
     pub fn new(agent: T) -> Self {
         Self { agent }
+    }
+
+    pub fn initialize(&mut self) -> Result<()> {
+        self.agent.initialize()
     }
 
     pub fn tick<TRecvFn>(&mut self, mut recv: TRecvFn) -> Result<Vec<Query>>

@@ -28,7 +28,7 @@ pub struct PluginDeclaration {
     // pub rustc_version: &'static str,
     pub core_version: &'static str,
     pub initialize: unsafe extern "C" fn(&mut dyn DynamicHost),
-    pub tick: unsafe extern "C" fn(&mut dyn DynamicHost),
+    pub tick: unsafe extern "C" fn(&mut dyn DynamicHost, state: *const std::ffi::c_void),
 }
 
 pub trait DynamicHost {
@@ -55,33 +55,42 @@ macro_rules! export_plugin {
     };
 }
 
-pub fn default_agent_initialize(dh: &dyn DynamicHost) {
+pub fn default_agent_initialize<A>(dh: &mut dyn DynamicHost)
+where
+    A: Agent + Default,
+{
     if !dispatcher::has_been_set() {
         let subscriber = dh.tracing_subscriber();
         let dispatch = Dispatch::new(subscriber);
         match dispatcher::set_global_default(dispatch) {
-            Err(_) => println!("Error configuring plugin tracing"),
+            Err(e) => println!("Error configuring plugin tracing: {:?}", e),
             Ok(_) => {}
         };
     }
+
+    let mut bridge = Box::new(AgentBridge::<A>::new(A::default()));
+
+    match bridge.initialize() {
+        Err(e) => println!("Error initializing agent bridge: {:?}", e),
+        Ok(_) => dh.state(Box::into_raw(bridge) as *const std::ffi::c_void),
+    }
 }
 
-pub fn default_agent_tick<A>(dh: &mut dyn DynamicHost)
+pub unsafe fn default_agent_tick<A>(dh: &mut dyn DynamicHost, state: *const std::ffi::c_void)
 where
     A: Agent + Default,
 {
-    let mut bridge = Box::new(AgentBridge::<A>::new(A::default()));
-    let sending = match bridge.tick(|| match recv::<DynMessage>(dh) {
+    assert!(!state.is_null());
+
+    let bridge = state as *mut AgentBridge<A>;
+    let sending = match (*bridge).tick(|| match recv::<DynMessage>(dh) {
         Some(m) => match m {
             DynMessage::Payload(m) => Some(m),
             DynMessage::Query(_) => unimplemented!(),
         },
         None => None,
     }) {
-        Ok(sending) => {
-            dh.state(Box::into_raw(bridge) as *const std::ffi::c_void);
-            sending
-        }
+        Ok(sending) => sending,
         Err(e) => {
             error!("{:?}", e);
             vec![]
@@ -93,7 +102,7 @@ where
     }
 }
 
-pub fn recv<T: Decode>(dh: &mut dyn DynamicHost) -> Option<T> {
+fn recv<T: Decode>(dh: &mut dyn DynamicHost) -> Option<T> {
     // For now this seems ok, but 'now' is basically the first test. So if
     // you end up here in the future I think you'll probably be better off
     // batching the protocol than you'll be worrying about memory
@@ -122,7 +131,7 @@ pub fn recv<T: Decode>(dh: &mut dyn DynamicHost) -> Option<T> {
     }
 }
 
-pub fn send<T: Encode>(dh: &mut dyn DynamicHost, message: T) {
+fn send<T: Encode>(dh: &mut dyn DynamicHost, message: T) {
     let encoded: Vec<u8> = match bincode::encode_to_vec(&message, bincode::config::legacy()) {
         Ok(encoded) => encoded,
         Err(err) => {
@@ -141,5 +150,8 @@ pub mod prelude {
 
     pub use agent_sys::*;
 
-    pub use super::{default_agent_initialize, default_agent_tick, Agent, DynamicHost};
+    pub use super::{
+        default_agent_initialize, default_agent_tick, export_plugin, Agent, DynMessage,
+        DynamicHost, PluginDeclaration,
+    };
 }
