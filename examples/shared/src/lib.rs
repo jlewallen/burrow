@@ -36,7 +36,11 @@ struct ExampleAgent {}
 
 impl Agent for ExampleAgent {
     fn initialize(&mut self) -> Result<()> {
-        info!("initialized");
+        get_my_session()?.schedule(
+            "example-test",
+            When::Interval(Duration::seconds(10)),
+            &ExampleFuture::Wakeup,
+        )?;
 
         Ok(())
     }
@@ -64,12 +68,6 @@ impl Agent for ExampleAgent {
                 get_my_session()?.raise(Audience::Area(area.key().clone()), Box::new(raise))?;
             }
         }
-
-        get_my_session()?.schedule(
-            "example-test",
-            When::Interval(Duration::seconds(10)),
-            &ExampleFuture::Wakeup,
-        )?;
 
         Ok(())
     }

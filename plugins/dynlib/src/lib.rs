@@ -244,6 +244,7 @@ impl Plugin for DynamicPlugin {
             Err(e) => warn!("Error: {:?}", e),
         }
 
+        // let services = SessionServices::new_for_my_session(None)?;
         let mut libraries = self.libraries.borrow_mut();
         for library in libraries.iter_mut() {
             library.initialize()?;

@@ -77,6 +77,7 @@ pub struct ScheduledFuture {
     pub serialized: serde_json::Value,
 }
 
+#[derive(Default)]
 pub struct AgentSession {
     entities: Rc<RefCell<WorkingEntities>>,
     raised: Rc<RefCell<Vec<RaisedEvent>>>,
@@ -192,17 +193,20 @@ where
         Self { agent }
     }
 
-    pub fn initialize(&mut self) -> Result<()> {
-        self.agent.initialize()
+    pub fn initialize(&mut self) -> Result<Vec<Query>> {
+        let session = Rc::new(AgentSession::default());
+        set_my_session(Some(&(session.clone() as Rc<dyn ActiveSession>)))?;
+
+        self.agent.initialize()?;
+
+        self.flush_session(&session)
     }
 
     pub fn tick<TRecvFn>(&mut self, mut recv: TRecvFn) -> Result<Vec<Query>>
     where
         TRecvFn: FnMut() -> Option<Payload>,
     {
-        let entities = WorkingEntities::new();
-        let session = AgentSession::new(entities.clone());
-
+        let session = Rc::new(AgentSession::default());
         set_my_session(Some(&(session.clone() as Rc<dyn ActiveSession>)))?;
 
         while let Some(message) = recv() {
@@ -234,7 +238,11 @@ where
 
         set_my_session(None)?;
 
-        let entities = entities.borrow();
+        self.flush_session(&session)
+    }
+
+    fn flush_session(&self, session: &AgentSession) -> Result<Vec<Query>> {
+        let entities = session.entities.borrow();
         let mut queries = entities.flush()?;
 
         // TODO Can we use Into here for converting to the Query?

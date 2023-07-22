@@ -70,9 +70,21 @@ where
 
     let mut bridge = Box::new(AgentBridge::<A>::new(A::default()));
 
-    match bridge.initialize() {
-        Err(e) => println!("Error initializing agent bridge: {:?}", e),
-        Ok(_) => dh.state(Box::into_raw(bridge) as *const std::ffi::c_void),
+    let sending = match bridge.initialize() {
+        Err(e) => {
+            error!("Error initializing agent bridge: {:?}", e);
+            // TODO Return an error message here.
+            vec![]
+        }
+        Ok(sending) => {
+            dh.state(Box::into_raw(bridge) as *const std::ffi::c_void);
+
+            sending
+        }
+    };
+
+    for m in sending {
+        send(dh, DynMessage::Query(m));
     }
 }
 
@@ -92,7 +104,7 @@ where
     }) {
         Ok(sending) => sending,
         Err(e) => {
-            error!("{:?}", e);
+            error!("Agent bridge error: {:?}", e);
             vec![]
         }
     };
