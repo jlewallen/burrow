@@ -1,5 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use chrono::{DateTime, Utc};
+use r2d2::PooledConnection;
+use r2d2_sqlite::SqliteConnectionManager;
 use std::{rc::Rc, sync::Mutex};
 
 use engine::{
@@ -13,8 +15,11 @@ use tracing::*;
 
 pub const MEMORY_SPECIAL: &str = ":memory:";
 
-pub struct SqliteStorage {
-    conn: Connection,
+pub struct SqliteStorage<C>
+where
+    C: AsConnection,
+{
+    conn: C,
 }
 
 enum SetupQuery {
@@ -22,8 +27,16 @@ enum SetupQuery {
     Query(&'static str),
 }
 
-impl SqliteStorage {
-    pub fn new(uri: &str) -> Result<Rc<Self>> {
+pub trait AsConnection {
+    fn connection(&self) -> &Connection;
+}
+
+struct Owned {
+    conn: Connection,
+}
+
+impl Owned {
+    fn new(uri: &str) -> Result<Self> {
         let conn = Connection::open_with_flags(
             uri,
             OpenFlags::SQLITE_OPEN_URI | OpenFlags::SQLITE_OPEN_READ_WRITE,
@@ -72,7 +85,36 @@ impl SqliteStorage {
             r#"CREATE UNIQUE INDEX IF NOT EXISTS futures_time ON futures (time)"#,
         ))?;
 
-        Ok(Rc::new(SqliteStorage { conn }))
+        Ok(Self { conn })
+    }
+}
+
+impl AsConnection for Owned {
+    fn connection(&self) -> &Connection {
+        &self.conn
+    }
+}
+
+struct Pooled {
+    conn: PooledConnection<SqliteConnectionManager>,
+}
+
+impl AsConnection for Pooled {
+    fn connection(&self) -> &Connection {
+        &self.conn
+    }
+}
+
+impl<C> SqliteStorage<C>
+where
+    C: AsConnection,
+{
+    pub fn wrap(conn: C) -> Result<Rc<Self>> {
+        Ok(Rc::new(Self { conn }))
+    }
+
+    fn connection(&self) -> &Connection {
+        self.conn.connection()
     }
 
     fn single_query<T: rusqlite::Params>(
@@ -95,7 +137,7 @@ impl SqliteStorage {
     ) -> Result<Vec<PersistedEntity>> {
         trace!("querying");
 
-        let mut stmt = self.conn.prepare(query)?;
+        let mut stmt = self.connection().prepare(query)?;
 
         let entities = stmt.query_map(params, |row| {
             Ok(PersistedEntity {
@@ -124,10 +166,13 @@ impl SqliteStorage {
     }
 }
 
-impl FutureStorage for SqliteStorage {
+impl<C> FutureStorage for SqliteStorage<C>
+where
+    C: AsConnection,
+{
     fn queue(&self, future: PersistedFuture) -> Result<()> {
         let mut stmt = self
-            .conn
+            .connection()
             .prepare("INSERT OR IGNORE INTO futures (key, time, serialized) VALUES (?1, ?2, ?3)")?;
 
         let affected = stmt
@@ -144,7 +189,9 @@ impl FutureStorage for SqliteStorage {
     }
 
     fn cancel(&self, key: &str) -> Result<()> {
-        let mut stmt = self.conn.prepare("DELETE FROM futures WHERE key = ?1")?;
+        let mut stmt = self
+            .connection()
+            .prepare("DELETE FROM futures WHERE key = ?1")?;
 
         let affected = stmt.execute((key,)).with_context(|| "cancelling future")?;
 
@@ -161,7 +208,7 @@ impl FutureStorage for SqliteStorage {
         trace!("query-futures {:?}", now);
 
         let mut stmt = self
-            .conn
+            .connection()
             .prepare("SELECT MIN(time) FROM futures WHERE time > ?1 ORDER BY time")?;
 
         let upcoming: Option<DateTime<Utc>> = stmt.query_row([&now], |row| Ok(row.get(0)?))?;
@@ -169,7 +216,7 @@ impl FutureStorage for SqliteStorage {
         trace!(?upcoming, "query-futures");
 
         let mut stmt = self
-            .conn
+            .connection()
             .prepare("SELECT key, time, serialized FROM futures WHERE time <= ?1 ORDER BY time")?;
 
         let futures = stmt.query_map([&now], |row| {
@@ -188,7 +235,7 @@ impl FutureStorage for SqliteStorage {
         }
 
         let mut stmt = self
-            .conn
+            .connection()
             .prepare("DELETE FROM futures WHERE time <= ?1")
             .with_context(|| "deleting pending futures")?;
 
@@ -206,7 +253,10 @@ impl FutureStorage for SqliteStorage {
     }
 }
 
-impl EntityStorage for SqliteStorage {
+impl<C> EntityStorage for SqliteStorage<C>
+where
+    C: AsConnection,
+{
     fn load(&self, lookup: &LookupBy) -> Result<Option<PersistedEntity>> {
         match lookup {
             LookupBy::Key(key) => self.load_by_key(key),
@@ -218,7 +268,7 @@ impl EntityStorage for SqliteStorage {
         let affected = if entity.version == 1 {
             debug!(%entity.key, %entity.gid, "inserting");
 
-            let mut stmt = self.conn.prepare(
+            let mut stmt = self.connection().prepare(
                 "INSERT INTO entities (key, gid, version, serialized) VALUES (?1, ?2, ?3, ?4)",
             )?;
 
@@ -231,7 +281,7 @@ impl EntityStorage for SqliteStorage {
         } else {
             debug!(%entity.key, %entity.gid, "updating");
 
-            let mut stmt = self.conn.prepare(
+            let mut stmt = self.connection().prepare(
                     "UPDATE entities SET gid = ?1, version = ?2, serialized = ?3 WHERE key = ?4 AND version = ?5",
                 )?;
 
@@ -255,7 +305,7 @@ impl EntityStorage for SqliteStorage {
         debug!(%entity.key,  %entity.gid, "deleting");
 
         let mut stmt = self
-            .conn
+            .connection()
             .prepare("DELETE FROM entities WHERE key = ?1 AND version = ?2")?;
 
         stmt.execute((&entity.key, &entity.version))?;
@@ -266,7 +316,7 @@ impl EntityStorage for SqliteStorage {
     fn begin(&self) -> Result<()> {
         trace!("tx:begin");
 
-        self.conn.execute("BEGIN TRANSACTION", [])?;
+        self.connection().execute("BEGIN TRANSACTION", [])?;
 
         Ok(())
     }
@@ -278,7 +328,7 @@ impl EntityStorage for SqliteStorage {
             warn!("tx:rollback");
         }
 
-        self.conn.execute("ROLLBACK TRANSACTION", [])?;
+        self.connection().execute("ROLLBACK TRANSACTION", [])?;
 
         Ok(())
     }
@@ -286,7 +336,7 @@ impl EntityStorage for SqliteStorage {
     fn commit(&self) -> Result<()> {
         trace!("tx:commit");
 
-        self.conn.execute("COMMIT TRANSACTION", [])?;
+        self.connection().execute("COMMIT TRANSACTION", [])?;
 
         Ok(())
     }
@@ -324,7 +374,7 @@ pub struct Factory {
 }
 
 impl Factory {
-    pub fn new(path: &str) -> Result<Factory> {
+    pub fn new(path: &str) -> Result<Self> {
         let id = nanoid::nanoid!();
         let (keep_alive, uri) = if path == MEMORY_SPECIAL {
             let keep_alive = InMemoryKeepAlive::new(&id)?;
@@ -344,7 +394,27 @@ impl Factory {
 
 impl EntityStorageFactory for Factory {
     fn create_storage(&self) -> Result<Rc<dyn EntityStorage>> {
-        Ok(SqliteStorage::new(&self.uri)?)
+        Ok(SqliteStorage::wrap(Owned::new(&self.uri)?)?)
+    }
+}
+
+pub struct ConnectionPool {
+    pool: r2d2::Pool<SqliteConnectionManager>,
+}
+
+impl ConnectionPool {
+    pub fn new(path: &str) -> Result<Self> {
+        let manager = SqliteConnectionManager::file(path);
+        let pool = r2d2::Pool::new(manager)?;
+        Ok(Self { pool })
+    }
+}
+
+impl EntityStorageFactory for ConnectionPool {
+    fn create_storage(&self) -> Result<Rc<dyn EntityStorage>> {
+        Ok(SqliteStorage::wrap(Pooled {
+            conn: self.pool.get()?,
+        })?)
     }
 }
 
