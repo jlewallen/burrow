@@ -1,7 +1,7 @@
 use anyhow::Result;
 use tracing::*;
 
-use plugins_rpc_proto::{Inbox, Payload, Query, Sender, Surroundings};
+use rpc_proto::{Inbox, Payload, Query, Sender, Surroundings};
 
 use crate::{
     querying::Querying,

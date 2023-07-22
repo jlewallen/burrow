@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use tracing::{debug, trace};
 
-use plugins_rpc_proto::{Payload, Query, Sender};
+use rpc_proto::{Payload, Query, Sender};
 
 use crate::sessions::Services;
 
@@ -70,7 +70,7 @@ pub fn have_surroundings(
     };
     let lookups: Vec<_> = keys
         .into_iter()
-        .map(|k| plugins_rpc_proto::LookupBy::Key(k.into()))
+        .map(|k| rpc_proto::LookupBy::Key(k.into()))
         .collect();
     const DEFAULT_DEPTH: u32 = 2;
     let resolved = services.lookup(DEFAULT_DEPTH, &lookups)?;

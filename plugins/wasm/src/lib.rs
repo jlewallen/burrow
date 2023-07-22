@@ -10,8 +10,7 @@ use wasmer::{
 
 use plugins_core::library::plugin::*;
 use plugins_rpc::{have_surroundings, Querying, SessionServices};
-use plugins_rpc_proto::Query;
-use wasm_sys::prelude::WasmMessage;
+use wasm_sys::prelude::{Payload, Query, WasmMessage};
 
 pub struct WasmRunner {
     store: Store,
@@ -107,7 +106,7 @@ impl WasmRunner {
     }
 
     fn initialize(&mut self) -> Result<()> {
-        self.send(WasmMessage::Payload(plugins_rpc_proto::Payload::Initialize).to_bytes()?)?;
+        self.send(WasmMessage::Payload(Payload::Initialize).to_bytes()?)?;
         self.call_agent(&AgentCall::Initialize)
     }
 

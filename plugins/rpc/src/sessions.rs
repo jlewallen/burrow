@@ -9,7 +9,7 @@ use kernel::{
 };
 use plugins_core::tools;
 
-use plugins_rpc_proto::{EntityKey, EntityUpdate, Json, LookupBy};
+use rpc_proto::{EntityKey, EntityUpdate, Json, LookupBy};
 
 pub trait Services {
     fn lookup(&self, depth: u32, lookup: &[LookupBy]) -> Result<Vec<(LookupBy, Option<Json>)>>;

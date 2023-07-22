@@ -6,15 +6,15 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib"]
 
-[dependencies]
-anyhow = "1.0.71"
-bincode = { version = "2.0.0-rc", features = ["serde"] }
-
-[dependencies.wasm-sys]
-path = "../../plugins/wasm-sys"
-
 [dependencies.kernel]
 path = "../../libs/kernel"
 
 [dependencies.plugins-core]
 path = "../../plugins/core"
+
+[dependencies.wasm-sys]
+path = "../../plugins/wasm-sys"
+
+[dependencies]
+anyhow = "1.0.71"
+bincode = { version = "2.0.0-rc", features = ["serde"] }

@@ -19,11 +19,8 @@ path = "../core"
 [dependencies.plugins-rpc]
 path = "../rpc"
 
-[dependencies.plugins-rpc-proto]
-path = "../rpc-proto"
-
-[dependencies.plugins-agent-sys]
-path = "../agent-sys"
+[dependencies.dynlib-sys]
+path = "../dynlib-sys"
 
 [dependencies]
 anyhow = "1.0.71"

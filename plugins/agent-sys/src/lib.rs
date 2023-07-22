@@ -8,7 +8,8 @@ use kernel::{
     get_my_session, set_my_session, ActiveSession, Audience, DomainError, DomainEvent, EntityPtr,
     Entry,
 };
-use plugins_rpc_proto::{EntityUpdate, LookupBy, Payload, Query};
+
+pub use rpc_proto::{EntityUpdate, IncomingMessage, LookupBy, Payload, Query};
 
 struct WorkingEntity {
     original: serde_json::Value,
@@ -280,7 +281,7 @@ where
     }
 }
 
-impl<S> TryInto<kernel::Surroundings> for WithEntities<plugins_rpc_proto::Surroundings, S>
+impl<S> TryInto<kernel::Surroundings> for WithEntities<rpc_proto::Surroundings, S>
 where
     S: ActiveSession,
 {
@@ -288,7 +289,7 @@ where
 
     fn try_into(self) -> std::result::Result<kernel::Surroundings, Self::Error> {
         match &self.value {
-            plugins_rpc_proto::Surroundings::Living {
+            rpc_proto::Surroundings::Living {
                 world,
                 living,
                 area,

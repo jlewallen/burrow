@@ -39,7 +39,7 @@ mod ipc {
     use anyhow::Result;
     use bincode::{Decode, Encode};
 
-    use plugins_rpc_proto::{Payload, Query};
+    use agent_sys::{Payload, Query};
 
     use crate::error;
 
@@ -117,11 +117,7 @@ pub mod prelude {
     pub use crate::ipc::{recv, send, WasmMessage};
     pub use crate::{debug, error, fail, info, trace, warn};
 
-    pub use plugins_rpc_proto::Payload;
-    pub use plugins_rpc_proto::Query;
-
-    pub use plugins_agent_sys::Agent;
-    pub use plugins_agent_sys::AgentBridge;
+    pub use agent_sys::*;
 
     pub unsafe fn agent_state<T>(state: Box<T>) {
         crate::ffi::agent_store(Box::into_raw(state) as *const c_void);

@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use tokio::sync::mpsc;
 use tracing::*;
 
-use plugins_rpc_proto::{Inbox, Payload, Query, Sender, Surroundings};
+use rpc_proto::{Inbox, Payload, Query, Sender, Surroundings};
 
 use crate::{
     querying::Querying,

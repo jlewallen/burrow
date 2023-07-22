@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use plugins_rpc_proto::{Inbox, Payload, Query, Sender};
+use rpc_proto::{Inbox, Payload, Query, Sender};
 
 #[derive(Debug)]
 pub struct ExampleAgent {}

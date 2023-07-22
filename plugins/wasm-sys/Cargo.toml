@@ -6,16 +6,10 @@ edition = "2021"
 [lib]
 doctest = false
 
-[dependencies.plugins-core]
-path = "../core"
-
-[dependencies.plugins-rpc-proto]
-path = "../rpc-proto"
-
 [dependencies.kernel]
 path = "../../libs/kernel"
 
-[dependencies.plugins-agent-sys]
+[dependencies.agent-sys]
 path = "../agent-sys"
 
 [dependencies]

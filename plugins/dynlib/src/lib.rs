@@ -1,13 +1,13 @@
 use anyhow::Result;
-use bincode::{Decode, Encode};
 use libloading::Library;
 use std::{cell::RefCell, collections::VecDeque, rc::Rc, sync::Arc};
 use tracing::{dispatcher::get_default, info, span, trace, warn, Level, Subscriber};
 
+use dynlib_sys::{DynMessage, DynamicHost, PluginDeclaration};
+use dynlib_sys::{IncomingMessage, Payload, Query};
 use kernel::{EvaluationResult, ManagedHooks, ParsesActions, Plugin, PluginFactory};
 use plugins_core::library::plugin::*;
 use plugins_rpc::{have_surroundings, Querying, SessionServices};
-use plugins_rpc_proto::{IncomingMessage, Payload, Query};
 
 #[derive(Default)]
 pub struct DynamicPluginFactory {}
@@ -78,22 +78,6 @@ struct LoadedLibrary {
     inbox: Inbox,
     outbox: Outbox,
     state: Option<*const std::ffi::c_void>,
-}
-
-#[derive(Debug, Encode, Decode, Clone)]
-pub enum DynMessage {
-    Query(Query),
-    Payload(Payload),
-}
-
-impl DynMessage {
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        Ok(bincode::decode_from_slice(bytes, bincode::config::legacy()).map(|(m, _)| m)?)
-    }
-
-    pub fn to_bytes(&self) -> Result<Vec<u8>> {
-        Ok(bincode::encode_to_vec(self, bincode::config::legacy())?)
-    }
 }
 
 impl LoadedLibrary {
@@ -241,41 +225,6 @@ impl DynamicPlugin {
     }
 }
 
-// pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
-pub static CORE_VERSION: &str = env!("CARGO_PKG_VERSION");
-
-#[derive(Copy, Clone)]
-pub struct PluginDeclaration {
-    // pub rustc_version: &'static str,
-    pub core_version: &'static str,
-    pub initialize: unsafe extern "C" fn(&mut dyn DynamicHost),
-    pub tick: unsafe extern "C" fn(&mut dyn DynamicHost),
-}
-
-pub trait DynamicHost {
-    fn tracing_subscriber(&self) -> Box<dyn Subscriber + Send + Sync>;
-
-    fn send(&mut self, bytes: &[u8]) -> usize;
-
-    fn recv(&mut self, bytes: &mut [u8]) -> usize;
-
-    fn state(&mut self, state: *const std::ffi::c_void);
-}
-
-#[macro_export]
-macro_rules! export_plugin {
-    ($initialize:expr, $tick:expr) => {
-        #[doc(hidden)]
-        #[no_mangle]
-        pub static plugin_declaration: $crate::PluginDeclaration = $crate::PluginDeclaration {
-            core_version: $crate::CORE_VERSION,
-            // rustc_version: $crate::RUSTC_VERSION,
-            initialize: $initialize,
-            tick: $tick,
-        };
-    };
-}
-
 impl Plugin for DynamicPlugin {
     fn plugin_key() -> &'static str
     where
@@ -395,49 +344,6 @@ pub mod model {
             serde_json::to_value(self)
         }
     }
-}
-
-pub fn recv<T: Decode>(dh: &mut dyn DynamicHost) -> Option<T> {
-    // For now this seems ok, but 'now' is basically the first test. So if
-    // you end up here in the future I think you'll probably be better off
-    // batching the protocol than you'll be worrying about memory
-    // management.
-    let mut buffer = [0; 65536];
-    let len = dh.recv(&mut buffer);
-
-    if len == 0 {
-        return None;
-    }
-
-    if len > buffer.len() {
-        error!(
-            "Serialized message is larger than buffer (by {} bytes)",
-            len - buffer.len()
-        );
-        return None;
-    }
-
-    match bincode::decode_from_slice(&buffer[..len], bincode::config::legacy()) {
-        Ok((message, _)) => Some(message),
-        Err(err) => {
-            error!("Failed to deserialize message from host: {}", err);
-            None
-        }
-    }
-}
-
-pub fn send<T: Encode>(dh: &mut dyn DynamicHost, message: T) {
-    let encoded: Vec<u8> = match bincode::encode_to_vec(&message, bincode::config::legacy()) {
-        Ok(encoded) => encoded,
-        Err(err) => {
-            error!("Failed to serialize event: {}", err);
-            return;
-        }
-    };
-
-    dh.send(&encoded);
-
-    std::mem::drop(encoded);
 }
 
 #[cfg(test)]

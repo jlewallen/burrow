@@ -86,7 +86,7 @@ impl RpcServer {
 
     pub async fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
         let mut example = self.example.write().await;
-        let surroundings: plugins_rpc_proto::Surroundings = surroundings.try_into()?;
+        let surroundings: rpc_proto::Surroundings = surroundings.try_into()?;
         example.have_surroundings(&surroundings).await?;
 
         Ok(())

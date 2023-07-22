@@ -1,5 +1,5 @@
 [package]
-name = "plugins-dynlib-sys"
+name = "dynlib-sys"
 version = "0.1.0"
 authors = ["Jacob Lewallen <jlewallen@gmail.com>"]
 edition = "2021"
@@ -7,5 +7,10 @@ edition = "2021"
 [lib]
 doctest = false
 
-[dependencies.plugins-agent-sys]
+[dependencies.agent-sys]
 path = "../agent-sys"
+
+[dependencies]
+anyhow = "1.0.71"
+tracing = "0.1.37"
+bincode = { version = "2.0.0-rc", features = ["derive"] }

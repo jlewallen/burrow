@@ -17,9 +17,6 @@ path = "../core"
 [dependencies.plugins-rpc]
 path = "../rpc"
 
-[dependencies.plugins-rpc-proto]
-path = "../rpc-proto"
-
 [dependencies.wasm-sys]
 path = "../wasm-sys"
 

@@ -9,17 +9,8 @@ crate-type = ["cdylib"]
 [dependencies.plugins-core]
 path = "../../plugins/core"
 
-[dependencies.plugins-dynlib]
-path = "../../plugins/dynlib"
-
-[dependencies.plugins-dynlib-sys]
+[dependencies.dynlib-sys]
 path = "../../plugins/dynlib-sys"
-
-[dependencies.plugins-agent-sys]
-path = "../../plugins/agent-sys"
-
-[dependencies.plugins-rpc-proto]
-path = "../../plugins/rpc-proto"
 
 [dependencies]
 anyhow = "1.0.71"

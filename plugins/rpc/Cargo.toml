@@ -13,7 +13,7 @@ path = "../../libs/kernel"
 [dependencies.plugins-core]
 path = "../core"
 
-[dependencies.plugins-rpc-proto]
+[dependencies.rpc-proto]
 path = "../rpc-proto"
 
 [dependencies]

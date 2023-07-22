@@ -1,5 +1,5 @@
 [package]
-name = "plugins-rpc-proto"
+name = "rpc-proto"
 version = "0.1.0"
 authors = ["Jacob Lewallen <jlewallen@gmail.com>"]
 edition = "2021"

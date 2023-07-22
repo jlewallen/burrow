@@ -1,5 +1,5 @@
 [package]
-name = "plugins-agent-sys"
+name = "agent-sys"
 version = "0.1.0"
 authors = ["Jacob Lewallen <jlewallen@gmail.com>"]
 edition = "2021"
@@ -7,14 +7,14 @@ edition = "2021"
 [lib]
 doctest = false
 
+[dependencies.kernel]
+path = "../../libs/kernel"
+
 [dependencies.plugins-core]
 path = "../core"
 
-[dependencies.plugins-rpc-proto]
+[dependencies.rpc-proto]
 path = "../rpc-proto"
-
-[dependencies.kernel]
-path = "../../libs/kernel"
 
 [dependencies]
 anyhow = "1.0.71"

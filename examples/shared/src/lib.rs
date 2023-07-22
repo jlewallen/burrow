@@ -1,10 +1,9 @@
 use anyhow::Result;
 use chrono::Duration;
-use dispatcher::Dispatch;
 use serde::Deserialize;
 use tracing::*;
 
-use plugins_agent_sys::{Agent, AgentBridge};
+use dynlib_sys::{default_agent_initialize, default_agent_tick, Agent, DynamicHost};
 use plugins_core::{
     carrying::model::CarryingEvent,
     library::{
@@ -13,7 +12,6 @@ use plugins_core::{
     },
     tools,
 };
-use plugins_dynlib::{recv, send, DynMessage, DynamicHost};
 
 #[derive(Debug, Serialize, Deserialize)]
 enum ExampleFuture {
@@ -81,45 +79,14 @@ impl Agent for ExampleAgent {
     }
 }
 
-plugins_dynlib::export_plugin!(agent_initialize, agent_tick);
-
-fn default_plugin_setup(dh: &dyn DynamicHost) {
-    if !dispatcher::has_been_set() {
-        let subscriber = dh.tracing_subscriber();
-        let dispatch = Dispatch::new(subscriber);
-        match dispatcher::set_global_default(dispatch) {
-            Err(_) => println!("Error configuring plugin tracing"),
-            Ok(_) => {}
-        };
-    }
-}
+dynlib_sys::export_plugin!(agent_initialize, agent_tick);
 
 #[allow(improper_ctypes_definitions)]
 extern "C" fn agent_initialize(dh: &mut dyn DynamicHost) {
-    default_plugin_setup(dh);
+    default_agent_initialize(dh);
 }
 
 #[allow(improper_ctypes_definitions)]
 extern "C" fn agent_tick(dh: &mut dyn DynamicHost) {
-    let mut bridge = Box::new(AgentBridge::<ExampleAgent>::new(ExampleAgent::default()));
-    let sending = match bridge.tick(|| match recv::<DynMessage>(dh) {
-        Some(m) => match m {
-            DynMessage::Payload(m) => Some(m),
-            DynMessage::Query(_) => unimplemented!(),
-        },
-        None => None,
-    }) {
-        Ok(sending) => {
-            dh.state(Box::into_raw(bridge) as *const std::ffi::c_void);
-            sending
-        }
-        Err(e) => {
-            error!("{:?}", e);
-            vec![]
-        }
-    };
-
-    for m in sending {
-        send(dh, DynMessage::Query(m));
-    }
+    default_agent_tick::<ExampleAgent>(dh);
 }
