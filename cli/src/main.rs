@@ -5,7 +5,7 @@ use std::{error::Error, path::PathBuf, sync::Arc};
 use tracing::*;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use engine::{sequences::Sequence, Domain};
+use engine::{sequences::Sequence, storage::EntityStorageFactory, Domain};
 use kernel::{EntityKey, Identity, RegisteredPlugins};
 use plugins_core::{
     building::BuildingPluginFactory, carrying::CarryingPluginFactory,
@@ -132,7 +132,6 @@ fn get_assets_path() -> Result<PathBuf> {
 }
 
 async fn make_domain(plugins: PluginConfiguration) -> Result<Domain> {
-    let storage_factory = Arc::new(Factory::new("world.sqlite3")?);
     let mut registered_plugins = RegisteredPlugins::default();
     registered_plugins.register(LookingPluginFactory::default());
     registered_plugins.register(MovingPluginFactory::default());
@@ -151,6 +150,8 @@ async fn make_domain(plugins: PluginConfiguration) -> Result<Domain> {
         registered_plugins.register(RpcPluginFactory::start().await?);
     }
     let finder = Arc::new(DefaultFinder::default());
+    let storage_factory = Arc::new(Factory::new("world.sqlite3")?);
+    storage_factory.migrate()?;
     Ok(Domain::new(
         storage_factory,
         Arc::new(registered_plugins),

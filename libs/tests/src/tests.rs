@@ -2,12 +2,16 @@ use anyhow::Result;
 use tokio::task::JoinHandle;
 
 use crate::{evaluate_fixture, test_domain_with, HoldingKeyInVessel, Noop, WorldFixture, USERNAME};
-use engine::storage::PersistedEntity;
+use engine::storage::{EntityStorageFactory, PersistedEntity};
 use engine::{Domain, Session, SessionOpener};
 
 async fn test_domain() -> Result<AsyncFriendlyDomain> {
+    let storage_factory = sqlite::Factory::new(sqlite::MEMORY_SPECIAL)?;
+
+    storage_factory.migrate()?;
+
     Ok(AsyncFriendlyDomain::wrap(test_domain_with(
-        sqlite::Factory::new(sqlite::MEMORY_SPECIAL)?,
+        storage_factory,
     )?))
 }
 

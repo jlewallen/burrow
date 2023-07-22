@@ -31,25 +31,20 @@ pub trait AsConnection {
     fn connection(&self) -> &Connection;
 }
 
-struct Owned {
-    conn: Connection,
+pub trait Migrate {
+    fn migrate(&self) -> Result<()>;
 }
 
-impl Owned {
-    fn new(uri: &str) -> Result<Self> {
-        let conn = Connection::open_with_flags(
-            uri,
-            OpenFlags::SQLITE_OPEN_URI | OpenFlags::SQLITE_OPEN_READ_WRITE,
-        )?;
-
+impl Migrate for Connection {
+    fn migrate(&self) -> Result<()> {
         let exec = |query: SetupQuery| -> Result<()> {
             match query {
                 SetupQuery::Execute(sql) => {
-                    let mut stmt = conn.prepare(sql)?;
+                    let mut stmt = self.prepare(sql)?;
                     stmt.execute([])?;
                 }
                 SetupQuery::Query(sql) => {
-                    let mut stmt = conn.prepare(sql)?;
+                    let mut stmt = self.prepare(sql)?;
                     let _ = stmt.query([])?;
                 }
             };
@@ -84,6 +79,21 @@ impl Owned {
         exec(SetupQuery::Execute(
             r#"CREATE UNIQUE INDEX IF NOT EXISTS futures_time ON futures (time)"#,
         ))?;
+
+        Ok(())
+    }
+}
+
+struct Owned {
+    conn: Connection,
+}
+
+impl Owned {
+    fn new(uri: &str) -> Result<Self> {
+        let conn = Connection::open_with_flags(
+            uri,
+            OpenFlags::SQLITE_OPEN_URI | OpenFlags::SQLITE_OPEN_READ_WRITE,
+        )?;
 
         Ok(Self { conn })
     }
@@ -394,7 +404,8 @@ impl Factory {
 
 impl EntityStorageFactory for Factory {
     fn migrate(&self) -> Result<()> {
-        Ok(())
+        let conn = Owned::new(&self.uri)?;
+        conn.connection().migrate()
     }
 
     fn create_storage(&self) -> Result<Rc<dyn EntityStorage>> {
@@ -416,7 +427,8 @@ impl ConnectionPool {
 
 impl EntityStorageFactory for ConnectionPool {
     fn migrate(&self) -> Result<()> {
-        Ok(())
+        let conn = self.pool.get()?;
+        conn.migrate()
     }
 
     fn create_storage(&self) -> Result<Rc<dyn EntityStorage>> {
@@ -434,6 +446,8 @@ mod tests {
 
     fn get_storage() -> Result<Rc<dyn EntityStorage>> {
         let s = Factory::new(MEMORY_SPECIAL)?;
+
+        s.migrate()?;
 
         s.create_storage()
     }
