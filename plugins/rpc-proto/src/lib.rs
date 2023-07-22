@@ -335,10 +335,7 @@ impl<S> Default for Sender<S> {
     }
 }
 
-impl<S> Sender<S>
-where
-    S: std::fmt::Debug,
-{
+impl<S> Sender<S> {
     pub fn send(&mut self, message: S) -> anyhow::Result<()> {
         self.queue.push(message);
 
