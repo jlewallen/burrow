@@ -1,13 +1,12 @@
 use anyhow::Result;
 use chrono::Duration;
-use serde::Deserialize;
 use tracing::*;
 
-use dynlib_sys::{default_agent_initialize, default_agent_tick, Agent, DynamicHost};
+use dynlib_sys::prelude::*;
 use plugins_core::{
     carrying::model::CarryingEvent,
     library::{
-        model::Serialize,
+        model::{Deserialize, Serialize},
         plugin::{get_my_session, Audience, Incoming, Surroundings, ToJson, When},
     },
     tools,

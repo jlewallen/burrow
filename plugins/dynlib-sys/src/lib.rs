@@ -140,4 +140,6 @@ pub mod prelude {
     pub use anyhow::Result;
 
     pub use agent_sys::*;
+
+    pub use super::{default_agent_initialize, default_agent_tick, Agent, DynamicHost};
 }
