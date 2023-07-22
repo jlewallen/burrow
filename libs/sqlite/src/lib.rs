@@ -393,6 +393,10 @@ impl Factory {
 }
 
 impl EntityStorageFactory for Factory {
+    fn migrate(&self) -> Result<()> {
+        Ok(())
+    }
+
     fn create_storage(&self) -> Result<Rc<dyn EntityStorage>> {
         Ok(SqliteStorage::wrap(Owned::new(&self.uri)?)?)
     }
@@ -411,6 +415,10 @@ impl ConnectionPool {
 }
 
 impl EntityStorageFactory for ConnectionPool {
+    fn migrate(&self) -> Result<()> {
+        Ok(())
+    }
+
     fn create_storage(&self) -> Result<Rc<dyn EntityStorage>> {
         Ok(SqliteStorage::wrap(Pooled {
             conn: self.pool.get()?,

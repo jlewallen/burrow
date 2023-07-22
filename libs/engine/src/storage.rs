@@ -19,6 +19,8 @@ pub trait EntityStorage: FutureStorage {
 }
 
 pub trait EntityStorageFactory: Send + Sync {
+    fn migrate(&self) -> Result<()>;
+
     fn create_storage(&self) -> Result<Rc<dyn EntityStorage>>;
 }
 
@@ -70,6 +72,10 @@ pub struct InMemoryEntityStorageFactory {
 }
 
 impl EntityStorageFactory for InMemoryEntityStorageFactory {
+    fn migrate(&self) -> Result<()> {
+        Ok(())
+    }
+
     fn create_storage(&self) -> Result<Rc<dyn EntityStorage>> {
         Ok(Rc::new(InMemoryEntityStorage {
             entities: self.entities.clone(),
