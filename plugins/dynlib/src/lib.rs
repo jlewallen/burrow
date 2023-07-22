@@ -221,7 +221,7 @@ impl DynamicPlugin {
         let mut libraries = self.libraries.borrow_mut();
         for library in libraries.iter_mut() {
             if prefix.starts_with(&library.prefix) {
-                info!(prefix = library.prefix, "deliver-library");
+                debug!(prefix = library.prefix, "deliver-library");
                 for message in f(library).iter() {
                     library.inbox.messages.push_back(message.to_bytes()?.into());
                 }
@@ -397,12 +397,47 @@ pub mod model {
     }
 }
 
-pub mod actions {
-    // use crate::{library::actions::*, looking::actions::LookAction};
+pub fn recv<T: Decode>(dh: &mut dyn DynamicHost) -> Option<T> {
+    // For now this seems ok, but 'now' is basically the first test. So if
+    // you end up here in the future I think you'll probably be better off
+    // batching the protocol than you'll be worrying about memory
+    // management.
+    let mut buffer = [0; 65536];
+    let len = dh.recv(&mut buffer);
+
+    if len == 0 {
+        return None;
+    }
+
+    if len > buffer.len() {
+        error!(
+            "Serialized message is larger than buffer (by {} bytes)",
+            len - buffer.len()
+        );
+        return None;
+    }
+
+    match bincode::decode_from_slice(&buffer[..len], bincode::config::legacy()) {
+        Ok((message, _)) => Some(message),
+        Err(err) => {
+            error!("Failed to deserialize message from host: {}", err);
+            None
+        }
+    }
 }
 
-pub mod parser {
-    // use crate::library::parser::*;
+pub fn send<T: Encode>(dh: &mut dyn DynamicHost, message: T) {
+    let encoded: Vec<u8> = match bincode::encode_to_vec(&message, bincode::config::legacy()) {
+        Ok(encoded) => encoded,
+        Err(err) => {
+            error!("Failed to serialize event: {}", err);
+            return;
+        }
+    };
+
+    dh.send(&encoded);
+
+    std::mem::drop(encoded);
 }
 
 #[cfg(test)]
