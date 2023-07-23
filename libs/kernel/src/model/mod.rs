@@ -757,6 +757,8 @@ impl From<anyhow::Error> for DomainError {
 pub enum EvaluationError {
     #[error("Parse failed")]
     ParseFailed,
+    #[error("Anyhow error")]
+    Anyhow(#[source] anyhow::Error),
 }
 
 impl From<nom::Err<nom::error::Error<&str>>> for EvaluationError {
@@ -766,5 +768,11 @@ impl From<nom::Err<nom::error::Error<&str>>> for EvaluationError {
             nom::Err::Error(_) => EvaluationError::ParseFailed,
             nom::Err::Failure(_) => EvaluationError::ParseFailed,
         }
+    }
+}
+
+impl From<anyhow::Error> for EvaluationError {
+    fn from(source: anyhow::Error) -> Self {
+        EvaluationError::Anyhow(source)
     }
 }

@@ -293,7 +293,14 @@ impl Plugin for DynamicPlugin {
 }
 
 impl ParsesActions for DynamicPlugin {
-    fn try_parse_action(&self, _i: &str) -> EvaluationResult {
+    fn try_parse_action(&self, i: &str) -> EvaluationResult {
+        let _services = SessionServices::new_for_my_session(None)?;
+        let messages = vec![DynMessage::Payload(Payload::TryParse(i.to_owned()))];
+
+        self.push_messages_to_all(&messages)?;
+
+        self.tick()?;
+
         Err(EvaluationError::ParseFailed)
     }
 }

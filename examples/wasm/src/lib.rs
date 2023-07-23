@@ -1,4 +1,4 @@
-use kernel::{Incoming, Surroundings};
+use kernel::{Effect, Incoming, Surroundings};
 use plugins_core::tools;
 use wasm_sys::prelude::*;
 
@@ -30,6 +30,10 @@ impl Agent for WasmExample {
 
     fn deliver(&mut self, _incoming: Incoming) -> Result<()> {
         Ok(())
+    }
+
+    fn try_parse(&mut self, _text: &str) -> Result<Option<Effect>> {
+        Ok(None)
     }
 }
 

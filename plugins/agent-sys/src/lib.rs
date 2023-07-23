@@ -176,6 +176,7 @@ pub trait Agent {
     fn initialize(&mut self) -> Result<()>;
     fn have_surroundings(&mut self, surroundings: kernel::Surroundings) -> Result<()>;
     fn deliver(&mut self, incoming: kernel::Incoming) -> Result<()>;
+    fn try_parse(&mut self, text: &str) -> Result<Option<Effect>>;
 }
 
 pub struct AgentBridge<T>
@@ -231,6 +232,9 @@ where
                 }
                 Payload::Deliver(incoming) => {
                     self.agent.deliver(incoming.into())?;
+                }
+                Payload::TryParse(text) => {
+                    self.agent.try_parse(&text)?;
                 }
                 _ => {}
             }

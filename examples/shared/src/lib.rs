@@ -7,7 +7,7 @@ use plugins_core::{
     carrying::model::CarryingEvent,
     library::{
         model::{Deserialize, Serialize},
-        plugin::{get_my_session, Audience, Incoming, Surroundings, ToJson, When},
+        plugin::{get_my_session, Audience, Effect, Incoming, Surroundings, ToJson, When},
     },
     tools,
 };
@@ -79,6 +79,11 @@ impl Agent for ExampleAgent {
         match incoming {
             ExampleFuture::Wakeup => Ok(()),
         }
+    }
+
+    fn try_parse(&mut self, text: &str) -> Result<Option<Effect>> {
+        info!("try-parse {:?}", text);
+        Ok(None)
     }
 }
 

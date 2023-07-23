@@ -213,11 +213,8 @@ pub enum Query {
     Raise(Audience, Json),
     Schedule(String, i64, Json),
     Complete,
-    // Chain(String),
-    // Reply(Reply),
-    // Permission(Try),
+    Action(Json),
     // Lookup(u32, Vec<LookupBy>),
-    // Try(Try),
 }
 
 impl Into<kernel::Audience> for Audience {
@@ -320,6 +317,7 @@ pub enum Payload {
     Resolved(Vec<(LookupBy, Option<Json>)>),
     Surroundings(Surroundings),
     Deliver(IncomingMessage),
+    TryParse(String),
 }
 
 #[derive(Debug)]

@@ -46,6 +46,7 @@ impl Querying {
             Query::Schedule(key, millis, serialized) => services
                 .schedule(key, *millis, serialized.clone())
                 .with_context(|| "scheduling (rpc)")?,
+            Query::Action(_action) => todo!(),
         }
 
         Ok(())

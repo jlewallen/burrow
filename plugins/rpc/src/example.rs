@@ -24,6 +24,7 @@ impl Inbox<Payload, Query> for ExampleAgent {
             Payload::Resolved(_) => {}
             Payload::Surroundings(_) => replies.send(Query::Complete)?,
             Payload::Deliver(_) => {}
+            Payload::TryParse(_) => {}
         }
 
         Ok(())
