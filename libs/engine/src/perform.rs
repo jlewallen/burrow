@@ -30,6 +30,32 @@ impl StandardPerformer {
         })
     }
 
+    pub fn perform(&self, perform: Perform) -> Result<Effect> {
+        info!("performing {:?}", perform);
+
+        match &perform {
+            Perform::Living { living, action } => {
+                let surroundings = self.evaluate_living_surroundings(living)?;
+
+                {
+                    let _span = span!(Level::INFO, "S").entered();
+                    info!("surroundings {:?}", &surroundings);
+                    let plugins = self.plugins.borrow();
+                    plugins
+                        .have_surroundings(&surroundings)
+                        .with_context(|| format!("Evaluating: {:?}", perform))?;
+                }
+
+                let reply = {
+                    let _span = span!(Level::INFO, "A").entered();
+                    action.perform(self.session()?, &surroundings)?
+                };
+
+                Ok(reply)
+            }
+        }
+    }
+
     pub fn evaluate_and_perform(&self, name: &str, text: &str) -> Result<Option<Effect>> {
         let started = Instant::now();
         let _doing_span = span!(Level::INFO, "session-do", user = name).entered();
@@ -53,14 +79,6 @@ impl StandardPerformer {
         res
     }
 
-    fn perform_via_name(&self, name: &str, action: Box<dyn Action>) -> Result<Effect> {
-        info!("action {:?}", action);
-
-        let living = self.evaluate_living(name)?;
-
-        self.perform(Perform::Living { living, action })
-    }
-
     pub fn find_name_key(&self, name: &str) -> Result<Option<EntityKey>, DomainError> {
         match self.evaluate_name(name) {
             Ok(Surroundings::Living {
@@ -73,13 +91,17 @@ impl StandardPerformer {
         }
     }
 
-    fn session(&self) -> Result<Rc<Session>, DomainError> {
-        self.session.upgrade().ok_or(DomainError::NoSession)
-    }
-
     fn evaluate_name(&self, name: &str) -> Result<Surroundings, DomainError> {
         let living = self.evaluate_living(name)?;
         self.evaluate_living_surroundings(&living)
+    }
+
+    fn perform_via_name(&self, name: &str, action: Box<dyn Action>) -> Result<Effect> {
+        info!("action {:?}", action);
+
+        let living = self.evaluate_living(name)?;
+
+        self.perform(Perform::Living { living, action })
     }
 
     fn evaluate_living(&self, name: &str) -> Result<Entry> {
@@ -114,29 +136,7 @@ impl StandardPerformer {
         })
     }
 
-    pub fn perform(&self, perform: Perform) -> Result<Effect> {
-        info!("performing {:?}", perform);
-
-        match &perform {
-            Perform::Living { living, action } => {
-                let surroundings = self.evaluate_living_surroundings(living)?;
-
-                {
-                    let _span = span!(Level::INFO, "S").entered();
-                    info!("surroundings {:?}", &surroundings);
-                    let plugins = self.plugins.borrow();
-                    plugins
-                        .have_surroundings(&surroundings)
-                        .with_context(|| format!("Evaluating: {:?}", perform))?;
-                }
-
-                let reply = {
-                    let _span = span!(Level::INFO, "A").entered();
-                    action.perform(self.session()?, &surroundings)?
-                };
-
-                Ok(reply)
-            }
-        }
+    fn session(&self) -> Result<Rc<Session>, DomainError> {
+        self.session.upgrade().ok_or(DomainError::NoSession)
     }
 }
