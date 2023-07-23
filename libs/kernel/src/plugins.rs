@@ -97,7 +97,7 @@ impl SessionPlugins {
             let started = Instant::now();
             plugin.initialize()?;
             let elapsed = Instant::now() - started;
-            if elapsed.as_millis() > 20 {
+            if elapsed.as_millis() > 200 {
                 warn!("plugin:{} ready {:?}", plugin.key(), elapsed);
             } else {
                 debug!("plugin:{} ready {:?}", plugin.key(), elapsed);
