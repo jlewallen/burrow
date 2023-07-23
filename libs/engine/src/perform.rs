@@ -5,7 +5,7 @@ use std::rc::Rc;
 use std::rc::Weak;
 use std::sync::Arc;
 use std::time::Instant;
-use tracing::{debug, event, info, span, Level};
+use tracing::{debug, info, span, Level};
 
 use super::Session;
 use crate::username_to_key;
@@ -134,8 +134,6 @@ impl StandardPerformer {
                     let _span = span!(Level::INFO, "A").entered();
                     action.perform(self.session()?, &surroundings)?
                 };
-
-                event!(Level::INFO, "done");
 
                 Ok(reply)
             }
