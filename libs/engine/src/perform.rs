@@ -54,25 +54,11 @@ impl StandardPerformer {
     }
 
     fn perform_via_name(&self, name: &str, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
-        info!("performing {:?}", action);
+        info!("action {:?}", action);
 
-        let surroundings = self
-            .evaluate_name(name)
-            .with_context(|| format!("Evaluating name: {}", name))?;
+        let living = self.evaluate_living(name)?;
 
-        let reply = {
-            let _span = span!(Level::INFO, "action").entered();
-            let plugins = self.plugins.borrow();
-            debug!("{:?}", &surroundings);
-            plugins
-                .have_surroundings(&surroundings)
-                .with_context(|| "Plugins:have_surroundings")?;
-            action
-                .perform(self.session()?, &surroundings)
-                .with_context(|| format!("Performing action: {:?}", &action))?
-        };
-
-        Ok(reply)
+        self.perform(Perform::Living { living, action })
     }
 
     pub fn find_name_key(&self, name: &str) -> Result<Option<EntityKey>, DomainError> {
@@ -92,6 +78,11 @@ impl StandardPerformer {
     }
 
     fn evaluate_name(&self, name: &str) -> Result<Surroundings, DomainError> {
+        let living = self.evaluate_living(name)?;
+        self.evaluate_living_surroundings(&living)
+    }
+
+    fn evaluate_living(&self, name: &str) -> Result<Entry> {
         let _span = span!(Level::DEBUG, "who").entered();
 
         let session = self.session()?;
@@ -101,16 +92,14 @@ impl StandardPerformer {
             .ok_or_else(|| DomainError::EntityNotFound)
             .with_context(|| format!("Name: {}", name))?;
 
-        let living = session
+        session
             .entry(&LookupBy::Key(&user_key))
             .with_context(|| format!("Entry for key: {:?}", user_key))?
             .ok_or(DomainError::EntityNotFound)
-            .with_context(|| format!("Key: {:?}", user_key))?;
-
-        self.evaluate_living(&living)
+            .with_context(|| format!("Key: {:?}", user_key))
     }
 
-    fn evaluate_living(&self, living: &Entry) -> Result<Surroundings, DomainError> {
+    fn evaluate_living_surroundings(&self, living: &Entry) -> Result<Surroundings, DomainError> {
         let session = self.session()?;
         let world = session.world()?;
         let area: Entry = self
@@ -130,13 +119,19 @@ impl StandardPerformer {
 
         match &perform {
             Perform::Living { living, action } => {
-                let surroundings = self.evaluate_living(living)?;
+                let surroundings = self.evaluate_living_surroundings(living)?;
+
+                {
+                    let _span = span!(Level::INFO, "S").entered();
+                    info!("surroundings {:?}", &surroundings);
+                    let plugins = self.plugins.borrow();
+                    plugins
+                        .have_surroundings(&surroundings)
+                        .with_context(|| format!("Evaluating: {:?}", perform))?;
+                }
 
                 let reply = {
                     let _span = span!(Level::INFO, "A").entered();
-                    info!("{:?}", &surroundings);
-                    let plugins = self.plugins.borrow();
-                    plugins.have_surroundings(&surroundings)?;
                     action.perform(self.session()?, &surroundings)?
                 };
 
