@@ -3,7 +3,7 @@ use std::time::Instant;
 use tracing::*;
 
 use super::{model::*, Action, ManagedHooks};
-use crate::{Effect, Surroundings};
+use crate::{Effect, Perform, Performer, Surroundings};
 
 pub type EvaluationResult = Result<Option<Box<dyn Action>>, EvaluationError>;
 
@@ -51,7 +51,7 @@ pub trait ParsesActions {
         if let Ok(Some(action)) = match consider {
             Evaluation::Text(i) => self.try_parse_action(i),
         } {
-            Ok(Some(perform.perform(action)?))
+            Ok(Some(perform.perform(Perform::Action(action))?))
         } else {
             Ok(None)
         }
@@ -61,10 +61,6 @@ pub trait ParsesActions {
 #[derive(Debug)]
 pub enum Evaluation<'a> {
     Text(&'a str),
-}
-
-pub trait Performer {
-    fn perform(&self, action: Box<dyn Action>) -> Result<Effect>;
 }
 
 pub trait Evaluator {

@@ -49,10 +49,15 @@ pub trait Needs<T> {
     fn supply(&mut self, resource: &T) -> Result<()>;
 }
 
+pub trait Performer {
+    fn perform(&self, perform: Perform) -> Result<Effect>;
+}
+
 #[derive(Debug)]
 pub enum Perform {
     Living {
         living: Entry,
-        action: Box<dyn Action>,
+        action: Box<dyn Action>, // Consider making this recursive?
     },
+    Action(Box<dyn Action>),
 }

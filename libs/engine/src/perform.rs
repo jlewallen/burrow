@@ -1,5 +1,4 @@
-use anyhow::Context;
-use anyhow::Result;
+use anyhow::{anyhow, Context, Result};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::rc::Weak;
@@ -15,6 +14,7 @@ pub struct StandardPerformer {
     session: Weak<Session>,
     finder: Arc<dyn Finder>,
     plugins: Arc<RefCell<SessionPlugins>>,
+    user: Option<String>,
 }
 
 impl StandardPerformer {
@@ -22,38 +22,14 @@ impl StandardPerformer {
         session: &Weak<Session>,
         finder: Arc<dyn Finder>,
         plugins: Arc<RefCell<SessionPlugins>>,
+        user: Option<String>,
     ) -> Rc<Self> {
         Rc::new(StandardPerformer {
             session: Weak::clone(session),
             finder,
             plugins,
+            user,
         })
-    }
-
-    pub fn perform(&self, perform: Perform) -> Result<Effect> {
-        info!("performing {:?}", perform);
-
-        match &perform {
-            Perform::Living { living, action } => {
-                let surroundings = self.evaluate_living_surroundings(living)?;
-
-                {
-                    let _span = span!(Level::INFO, "S").entered();
-                    info!("surroundings {:?}", &surroundings);
-                    let plugins = self.plugins.borrow();
-                    plugins
-                        .have_surroundings(&surroundings)
-                        .with_context(|| format!("Evaluating: {:?}", perform))?;
-                }
-
-                let reply = {
-                    let _span = span!(Level::INFO, "A").entered();
-                    action.perform(self.session()?, &surroundings)?
-                };
-
-                Ok(reply)
-            }
-        }
     }
 
     pub fn evaluate_and_perform(&self, name: &str, text: &str) -> Result<Option<Effect>> {
@@ -64,11 +40,10 @@ impl StandardPerformer {
 
         let res = {
             let plugins = self.plugins.borrow();
-            if let Some(action) = plugins.try_parse_action(text)? {
-                Ok(Some(self.perform_via_name(name, action)?))
-            } else {
-                Ok(None)
-            }
+
+            let as_user = self.as_user(name)?;
+
+            plugins.evaluate(&as_user, Evaluation::Text(text))
         };
 
         let elapsed = started.elapsed();
@@ -91,17 +66,18 @@ impl StandardPerformer {
         }
     }
 
+    fn as_user(&self, name: &str) -> Result<StandardPerformer> {
+        Ok(Self {
+            session: Rc::downgrade(&self.session()?),
+            finder: Arc::clone(&self.finder),
+            plugins: Arc::clone(&self.plugins),
+            user: Some(name.to_owned()),
+        })
+    }
+
     fn evaluate_name(&self, name: &str) -> Result<Surroundings, DomainError> {
         let living = self.evaluate_living(name)?;
         self.evaluate_living_surroundings(&living)
-    }
-
-    fn perform_via_name(&self, name: &str, action: Box<dyn Action>) -> Result<Effect> {
-        info!("action {:?}", action);
-
-        let living = self.evaluate_living(name)?;
-
-        self.perform(Perform::Living { living, action })
     }
 
     fn evaluate_living(&self, name: &str) -> Result<Entry> {
@@ -138,5 +114,42 @@ impl StandardPerformer {
 
     fn session(&self) -> Result<Rc<Session>, DomainError> {
         self.session.upgrade().ok_or(DomainError::NoSession)
+    }
+}
+
+impl Performer for StandardPerformer {
+    fn perform(&self, perform: Perform) -> Result<Effect> {
+        info!("performing {:?}", perform);
+
+        match perform {
+            Perform::Living { living, action } => {
+                let surroundings = self.evaluate_living_surroundings(&living)?;
+
+                {
+                    let _span = span!(Level::INFO, "S").entered();
+                    info!("surroundings {:?}", &surroundings);
+                    let plugins = self.plugins.borrow();
+                    plugins.have_surroundings(&surroundings)?;
+                }
+
+                let reply = {
+                    let _span = span!(Level::INFO, "A").entered();
+                    action.perform(self.session()?, &surroundings)?
+                };
+
+                Ok(reply)
+            }
+            Perform::Action(action) => {
+                let Some(user) = &self.user else {
+                    return Err(anyhow!("No active user in StandardPerformer"));
+                };
+
+                info!("action {:?}", action);
+
+                let living = self.evaluate_living(user)?;
+
+                self.perform(Perform::Living { living, action })
+            }
+        }
     }
 }

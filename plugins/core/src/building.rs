@@ -67,7 +67,7 @@ impl Evaluator for BuildingPlugin {
         if let Ok(Some(action)) = match consider {
             Evaluation::Text(i) => self.try_parse_action(i),
         } {
-            Ok(Some(perform.perform(action)?))
+            Ok(Some(perform.perform(Perform::Action(action))?))
         } else {
             Ok(None)
         }

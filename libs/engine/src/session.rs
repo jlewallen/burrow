@@ -72,7 +72,7 @@ impl Session {
             storage: Rc::clone(&storage),
             open: AtomicBool::new(true),
             save_required: AtomicBool::new(false),
-            performer: StandardPerformer::new(weak, Arc::clone(finder), Arc::clone(&plugins)),
+            performer: StandardPerformer::new(weak, Arc::clone(finder), Arc::clone(&plugins), None),
             ids: Rc::clone(&ids),
             raised: Rc::new(RefCell::new(Vec::new())),
             weak: Weak::clone(weak),
