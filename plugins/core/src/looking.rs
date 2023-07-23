@@ -287,7 +287,7 @@ pub mod parser {
 
             let (_, action) = alt((inside, at, area))(i)?;
 
-            Ok(action)
+            Ok(Some(action))
         }
     }
 }
@@ -305,6 +305,7 @@ mod tests {
         let (session, surroundings) = build.plain().build()?;
 
         let action = try_parsing(LookActionParser {}, "look")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, _person, _area) = surroundings.unpack();
 
@@ -324,6 +325,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(LookActionParser {}, "look")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, _person, _area) = surroundings.unpack();
 
@@ -345,6 +347,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(LookActionParser {}, "look")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, _person, _area) = surroundings.unpack();
 
@@ -366,6 +369,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(LookActionParser {}, "look")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, _person, _area) = surroundings.unpack();
 
@@ -382,6 +386,7 @@ mod tests {
         let (session, surroundings) = build.hands(vec![QuickThing::Object("Not A Box")]).build()?;
 
         let action = try_parsing(LookActionParser {}, "look inside box")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, _person, _area) = surroundings.unpack();
 
@@ -403,6 +408,7 @@ mod tests {
         let (session, surroundings) = build.hands(vec![QuickThing::Actual(vessel)]).build()?;
 
         let action = try_parsing(LookActionParser {}, "look inside vessel")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, _person, _area) = surroundings.unpack();
 
@@ -420,6 +426,7 @@ mod tests {
         let (session, surroundings) = build.hands(vec![QuickThing::Actual(vessel)]).build()?;
 
         let action = try_parsing(LookActionParser {}, "look at shovel")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, _person, _area) = surroundings.unpack();
 
@@ -437,6 +444,7 @@ mod tests {
         let (session, surroundings) = build.hands(vec![QuickThing::Actual(vessel)]).build()?;
 
         let action = try_parsing(LookActionParser {}, "look at hammer")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, _person, _area) = surroundings.unpack();
 

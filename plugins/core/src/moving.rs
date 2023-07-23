@@ -342,7 +342,7 @@ mod parser {
                 |(_, target)| GoAction { item: target },
             )(i)?;
 
-            Ok(Box::new(action))
+            Ok(Some(Box::new(action)))
         }
     }
 }
@@ -367,6 +367,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(GoActionParser {}, "go north")?;
+        let action = action.unwrap();
         let reply = action.perform(session, &surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
@@ -387,6 +388,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(GoActionParser {}, "go east")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, living, area) = surroundings.unpack();
 
@@ -412,6 +414,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(GoActionParser {}, "go east")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, living, area) = surroundings.unpack();
 
@@ -434,6 +437,7 @@ mod tests {
         let (session, surroundings) = build.plain().build()?;
 
         let action = try_parsing(GoActionParser {}, "go rake")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, _person, _area) = surroundings.unpack();
 
@@ -452,6 +456,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(GoActionParser {}, "go rake")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, _person, _area) = surroundings.unpack();
 

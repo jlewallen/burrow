@@ -62,6 +62,18 @@ impl ParsesActions for BuildingPlugin {
     }
 }
 
+impl Evaluator for BuildingPlugin {
+    fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Option<Effect>> {
+        if let Ok(Some(action)) = match consider {
+            Evaluation::Text(i) => self.try_parse_action(i),
+        } {
+            Ok(Some(perform.perform(action)?))
+        } else {
+            Ok(None)
+        }
+    }
+}
+
 pub mod model {
     use crate::library::model::*;
 
@@ -348,7 +360,7 @@ pub mod parser {
                 ),
             ))(i)?;
 
-            Ok(action)
+            Ok(Some(action))
         }
     }
 
@@ -366,7 +378,7 @@ pub mod parser {
                 },
             )(i)?;
 
-            Ok(Box::new(action))
+            Ok(Some(Box::new(action)))
         }
     }
 
@@ -379,7 +391,7 @@ pub mod parser {
                 |item| DuplicateAction { item },
             )(i)?;
 
-            Ok(Box::new(action))
+            Ok(Some(Box::new(action)))
         }
     }
 
@@ -392,7 +404,7 @@ pub mod parser {
                 |item| ObliterateAction { item },
             )(i)?;
 
-            Ok(Box::new(action))
+            Ok(Some(Box::new(action)))
         }
     }
 
@@ -413,7 +425,7 @@ pub mod parser {
                 },
             )(i)?;
 
-            Ok(Box::new(action))
+            Ok(Some(Box::new(action)))
         }
     }
 
@@ -426,7 +438,7 @@ pub mod parser {
                 |item| DescribeAction { item },
             )(i)?;
 
-            Ok(Box::new(action))
+            Ok(Some(Box::new(action)))
         }
     }
 }
@@ -451,6 +463,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(EditActionParser {}, "edit rake")?;
+        let action = action.unwrap();
         let reply = action.perform(session, &surroundings)?;
 
         assert_eq!(
@@ -469,6 +482,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(EditActionParser {}, "edit raw rake")?;
+        let action = action.unwrap();
         let reply = action.perform(session, &surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
@@ -484,6 +498,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(EditActionParser {}, "edit broom")?;
+        let action = action.unwrap();
         let reply = action.perform(session, &surroundings)?;
 
         insta::assert_json_snapshot!(reply.to_json()?);
@@ -499,6 +514,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(EditActionParser {}, "edit raw broom")?;
+        let action = action.unwrap();
         let reply = action.perform(session, &surroundings)?;
 
         insta::assert_json_snapshot!(reply.to_json()?);
@@ -514,6 +530,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(EditActionParser {}, "edit #1201")?;
+        let action = action.unwrap();
         let reply = action.perform(session, &surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
@@ -529,6 +546,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(EditActionParser {}, "edit #1")?;
+        let action = action.unwrap();
         let reply = action.perform(session, &surroundings)?;
 
         insta::assert_json_snapshot!(reply.to_json()?);
@@ -544,6 +562,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(DuplicateActionParser {}, "duplicate rake")?;
+        let action = action.unwrap();
         let reply = action.perform(session, &surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
@@ -559,6 +578,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(DuplicateActionParser {}, "duplicate broom")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_world, person, _area) = surroundings.unpack();
 
@@ -584,6 +604,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(ObliterateActionParser {}, "obliterate rake")?;
+        let action = action.unwrap();
         let reply = action.perform(session, &surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
@@ -599,6 +620,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(ObliterateActionParser {}, "obliterate broom")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_world, person, area) = surroundings.unpack();
 
@@ -622,6 +644,7 @@ mod tests {
             BidirectionalDigActionParser {},
             r#"dig "North Exit" to "South Exit" for "New Area""#,
         )?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, living, _area) = surroundings.unpack();
 
@@ -646,6 +669,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(DescribeActionParser {}, "describe area")?;
+        let action = action.unwrap();
         let reply = action.perform(session, &surroundings)?;
 
         insta::assert_json_snapshot!(reply.to_json()?);
@@ -659,6 +683,7 @@ mod tests {
         let (session, surroundings) = build.plain().build()?;
 
         let action = try_parsing(MakeItemParser {}, r#"make item "Blue Rake""#)?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, living, _area) = surroundings.unpack();
 

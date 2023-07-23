@@ -3,9 +3,9 @@ use std::time::Instant;
 use tracing::*;
 
 use super::{model::*, Action, ManagedHooks};
-use crate::Surroundings;
+use crate::{Effect, Surroundings};
 
-pub type EvaluationResult = Result<Box<dyn Action>, EvaluationError>;
+pub type EvaluationResult = Result<Option<Box<dyn Action>>, EvaluationError>;
 
 pub trait PluginFactory: Send + Sync {
     fn create_plugin(&self) -> Result<Box<dyn Plugin>>;
@@ -46,6 +46,29 @@ impl RegisteredPlugins {
 
 pub trait ParsesActions {
     fn try_parse_action(&self, i: &str) -> EvaluationResult;
+
+    fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Option<Effect>> {
+        if let Ok(Some(action)) = match consider {
+            Evaluation::Text(i) => self.try_parse_action(i),
+        } {
+            Ok(Some(perform.perform(action)?))
+        } else {
+            Ok(None)
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Evaluation<'a> {
+    Text(&'a str),
+}
+
+pub trait Performer {
+    fn perform(&self, action: Box<dyn Action>) -> Result<Effect>;
+}
+
+pub trait Evaluator {
+    fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Option<Effect>>;
 }
 
 #[derive(Debug)]
@@ -114,20 +137,6 @@ impl SessionPlugins {
         Ok(hooks)
     }
 
-    pub fn evaluate(&self, i: &str) -> Result<Option<Box<dyn Action>>, EvaluationError> {
-        match self
-            .plugins
-            .iter()
-            .map(|plugin| plugin.try_parse_action(i))
-            .filter_map(|r| r.ok())
-            .take(1)
-            .last()
-        {
-            Some(e) => Ok(Some(e)),
-            None => Ok(None),
-        }
-    }
-
     pub fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
         for plugin in self.plugins.iter() {
             plugin.have_surroundings(surroundings)?;
@@ -147,5 +156,21 @@ impl SessionPlugins {
             plugin.stop()?;
         }
         Ok(())
+    }
+}
+
+impl ParsesActions for SessionPlugins {
+    fn try_parse_action(&self, i: &str) -> EvaluationResult {
+        match self
+            .plugins
+            .iter()
+            .map(|plugin| plugin.try_parse_action(i))
+            .filter_map(|r| r.ok())
+            .take(1)
+            .last()
+        {
+            Some(Some(e)) => Ok(Some(e)),
+            _ => Ok(None),
+        }
     }
 }

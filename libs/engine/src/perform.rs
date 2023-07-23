@@ -64,7 +64,7 @@ impl StandardPerformer {
 
         let res = {
             let plugins = self.plugins.borrow();
-            if let Some(action) = plugins.evaluate(text)? {
+            if let Some(action) = plugins.try_parse_action(text)? {
                 Ok(Some(self.perform_via_name(name, action)?))
             } else {
                 Ok(None)

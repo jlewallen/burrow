@@ -444,7 +444,7 @@ pub mod parser {
                 HoldAction { item: target }
             })(i)?;
 
-            Ok(Box::new(action))
+            Ok(Some(Box::new(action)))
         }
     }
 
@@ -462,7 +462,7 @@ pub mod parser {
 
             let (_, action) = alt((specific, everything))(i)?;
 
-            Ok(Box::new(action))
+            Ok(Some(Box::new(action)))
         }
     }
 
@@ -482,7 +482,7 @@ pub mod parser {
                 },
             )(i)?;
 
-            Ok(Box::new(action))
+            Ok(Some(Box::new(action)))
         }
     }
 
@@ -510,7 +510,7 @@ pub mod parser {
                 },
             )(i)?;
 
-            Ok(Box::new(action))
+            Ok(Some(Box::new(action)))
         }
     }
 }
@@ -540,6 +540,7 @@ mod tests {
         assert_eq!(area.scope::<Containing>()?.holding.len(), 1);
 
         let action = try_parsing(HoldActionParser {}, "hold rake")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
@@ -564,6 +565,7 @@ mod tests {
         assert_eq!(area.scope::<Containing>()?.holding.len(), 1);
 
         let action = try_parsing(HoldActionParser {}, "hold rake")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
@@ -599,6 +601,7 @@ mod tests {
         assert_eq!(area.scope::<Containing>()?.holding.len(), 1);
 
         let action = try_parsing(HoldActionParser {}, "hold rake")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
 
         assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
@@ -619,6 +622,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(HoldActionParser {}, "hold rake")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, person, area) = surroundings.unpack();
 
@@ -638,6 +642,7 @@ mod tests {
         let (session, surroundings) = build.hands(vec![QuickThing::Object("Cool Rake")]).build()?;
 
         let action = try_parsing(DropActionParser {}, "drop rake")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, person, area) = surroundings.unpack();
 
@@ -659,6 +664,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(DropActionParser {}, "drop rake")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, person, area) = surroundings.unpack();
 
@@ -680,6 +686,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(DropActionParser {}, "drop rake")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, person, area) = surroundings.unpack();
 
@@ -705,6 +712,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(PutInsideActionParser {}, "put key inside vessel")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_world, person, _area) = surroundings.unpack();
 
@@ -734,6 +742,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(PutInsideActionParser {}, "put key inside vessel")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_world, person, _area) = surroundings.unpack();
 
@@ -761,6 +770,7 @@ mod tests {
             .build()?;
 
         let action = try_parsing(TakeOutActionParser {}, "take key out of vessel")?;
+        let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_world, person, _area) = surroundings.unpack();
 

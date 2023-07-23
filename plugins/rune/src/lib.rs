@@ -242,7 +242,7 @@ mod parser {
         fn try_parse_action(&self, i: &str) -> EvaluationResult {
             let (_, action) = map(
                 preceded(pair(tag("lead"), spaces), noun_or_specific),
-                |item| -> EvaluationResult { Ok(Box::new(LeadAction { item })) },
+                |item| -> EvaluationResult { Ok(Some(Box::new(LeadAction { item }))) },
             )(i)?;
 
             action
