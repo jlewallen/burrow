@@ -201,6 +201,12 @@ impl ParsesActions for RpcPlugin {
     }
 }
 
+impl Evaluator for RpcPlugin {
+    fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Option<Effect>> {
+        self.evaluate_parsed_action(perform, consider)
+    }
+}
+
 /*
 #[cfg(test)]
 #[ctor::ctor]

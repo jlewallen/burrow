@@ -64,13 +64,7 @@ impl ParsesActions for BuildingPlugin {
 
 impl Evaluator for BuildingPlugin {
     fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Option<Effect>> {
-        if let Ok(Some(action)) = match consider {
-            Evaluation::Text(i) => self.try_parse_action(i),
-        } {
-            Ok(Some(perform.perform(Perform::Action(action))?))
-        } else {
-            Ok(None)
-        }
+        self.evaluate_parsed_action(perform, consider)
     }
 }
 

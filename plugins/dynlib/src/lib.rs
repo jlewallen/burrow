@@ -305,6 +305,12 @@ impl ParsesActions for DynamicPlugin {
     }
 }
 
+impl Evaluator for DynamicPlugin {
+    fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Option<Effect>> {
+        self.evaluate_parsed_action(perform, consider)
+    }
+}
+
 struct PluginSubscriber {}
 
 impl PluginSubscriber {

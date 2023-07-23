@@ -58,6 +58,12 @@ impl ParsesActions for CarryingPlugin {
     }
 }
 
+impl Evaluator for CarryingPlugin {
+    fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Option<Effect>> {
+        self.evaluate_parsed_action(perform, consider)
+    }
+}
+
 pub mod model {
     use crate::{library::model::*, tools};
 

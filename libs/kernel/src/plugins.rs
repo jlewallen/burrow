@@ -47,18 +47,23 @@ impl RegisteredPlugins {
 pub trait ParsesActions {
     fn try_parse_action(&self, i: &str) -> EvaluationResult;
 
-    fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Option<Effect>> {
-        if let Ok(Some(action)) = match consider {
-            Evaluation::Text(i) => self.try_parse_action(i),
-        } {
-            Ok(Some(perform.perform(Perform::Action(action))?))
-        } else {
-            Ok(None)
+    fn evaluate_parsed_action(
+        &self,
+        perform: &dyn Performer,
+        consider: Evaluation,
+    ) -> Result<Option<Effect>> {
+        match consider {
+            Evaluation::Text(text) => self
+                .try_parse_action(text)
+                .ok()
+                .flatten()
+                .map(|a| perform.perform(Perform::Action(a)))
+                .map_or(Ok(None), |v| v.map(Some)),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Evaluation<'a> {
     Text(&'a str),
 }
@@ -83,7 +88,7 @@ impl Incoming {
     }
 }
 
-pub trait Plugin: ParsesActions {
+pub trait Plugin: Evaluator {
     fn plugin_key() -> &'static str
     where
         Self: Sized;
@@ -155,18 +160,20 @@ impl SessionPlugins {
     }
 }
 
-impl ParsesActions for SessionPlugins {
-    fn try_parse_action(&self, i: &str) -> EvaluationResult {
+impl Evaluator for SessionPlugins {
+    fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Option<Effect>> {
         match self
             .plugins
             .iter()
-            .map(|plugin| plugin.try_parse_action(i))
-            .filter_map(|r| r.ok())
+            .map(|plugin| plugin.evaluate(perform, consider.clone()))
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .filter_map(|r| r)
             .take(1)
             .last()
         {
-            Some(Some(e)) => Ok(Some(e)),
-            _ => Ok(None),
+            Some(e) => Ok(Some(e)),
+            None => Ok(None),
         }
     }
 }

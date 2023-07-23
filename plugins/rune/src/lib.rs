@@ -133,6 +133,12 @@ impl ParsesActions for RunePlugin {
     }
 }
 
+impl Evaluator for RunePlugin {
+    fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Option<Effect>> {
+        self.evaluate_parsed_action(perform, consider)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Behaviors {
     pub langs: Option<HashMap<String, String>>,
