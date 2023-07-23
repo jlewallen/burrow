@@ -6,6 +6,7 @@ use tracing::info;
 
 use crate::{make_domain, text::Renderer, PluginConfiguration};
 use engine::{AfterTick, DevNullNotifier, Domain, Session, SessionOpener};
+use kernel::Effect;
 
 #[derive(Debug, Args, Clone)]
 pub struct Command {
@@ -35,13 +36,17 @@ fn evaluate_commands(domain: Domain, cmd: Command) -> Result<()> {
             None => Some(domain.open_session()?),
         };
 
-        if let Some(reply) = open_session
+        if let Some(effect) = open_session
             .as_ref()
             .expect("No open session")
             .evaluate_and_perform(&cmd.username, text)?
         {
-            let text = renderer.render_reply(&reply)?;
-            println!("{}", text);
+            match effect {
+                Effect::Reply(reply) => {
+                    let text = renderer.render_reply(&reply)?;
+                    println!("{}", text);
+                }
+            }
         }
 
         if cmd.separate_sessions {

@@ -7,7 +7,26 @@ use super::{session::SessionRef, Entry, Surroundings};
 
 pub use replies::*;
 
-pub type ReplyResult = anyhow::Result<Box<dyn Reply>>;
+#[derive(Debug)]
+pub enum Effect {
+    Reply(Box<dyn Reply>),
+}
+
+impl ToJson for Effect {
+    fn to_json(&self) -> std::result::Result<Value, serde_json::Error> {
+        match self {
+            Effect::Reply(reply) => reply.to_json(),
+        }
+    }
+}
+
+impl<T: Reply + 'static> From<T> for Effect {
+    fn from(value: T) -> Self {
+        Self::Reply(Box::new(value))
+    }
+}
+
+pub type ReplyResult = anyhow::Result<Effect>;
 
 pub trait Action: Debug {
     fn is_read_only() -> bool

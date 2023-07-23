@@ -316,13 +316,13 @@ pub mod actions {
                                         action: Box::new(LookAction {}),
                                     })
                                 }
-                                DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
+                                DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
                             }
                         }
-                        CanMove::Prevent => Ok(Box::new(SimpleReply::Prevented)),
+                        CanMove::Prevent => Ok(SimpleReply::Prevented.into()),
                     }
                 }
-                None => Ok(Box::new(SimpleReply::NotFound)),
+                None => Ok(SimpleReply::NotFound.into()),
             }
         }
     }

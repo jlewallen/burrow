@@ -30,7 +30,7 @@ impl StandardPerformer {
         })
     }
 
-    pub fn evaluate_and_perform(&self, name: &str, text: &str) -> Result<Option<Box<dyn Reply>>> {
+    pub fn evaluate_and_perform(&self, name: &str, text: &str) -> Result<Option<Effect>> {
         let started = Instant::now();
         let _doing_span = span!(Level::INFO, "session-do", user = name).entered();
 
@@ -53,7 +53,7 @@ impl StandardPerformer {
         res
     }
 
-    fn perform_via_name(&self, name: &str, action: Box<dyn Action>) -> Result<Box<dyn Reply>> {
+    fn perform_via_name(&self, name: &str, action: Box<dyn Action>) -> Result<Effect> {
         info!("action {:?}", action);
 
         let living = self.evaluate_living(name)?;
@@ -114,7 +114,7 @@ impl StandardPerformer {
         })
     }
 
-    pub fn perform(&self, perform: Perform) -> Result<Box<dyn Reply>> {
+    pub fn perform(&self, perform: Perform) -> Result<Effect> {
         info!("performing {:?}", perform);
 
         match &perform {

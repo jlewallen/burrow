@@ -98,12 +98,13 @@ pub mod actions {
                 Some(editing) => {
                     info!("editing {:?}", editing);
                     let editing = editing.entity()?;
-                    Ok(Box::new(EditorReply::new(
+                    Ok(EditorReply::new(
                         editing.key().to_string(),
                         WorkingCopy::Json(editing.to_json_value()?),
-                    )))
+                    )
+                    .into())
                 }
-                None => Ok(Box::new(SimpleReply::NotFound)),
+                None => Ok(SimpleReply::NotFound.into()),
             }
         }
     }
@@ -125,12 +126,13 @@ pub mod actions {
                 Some(editing) => {
                     info!("editing {:?}", editing);
                     let editing = editing.entity()?;
-                    Ok(Box::new(EditorReply::new(
+                    Ok(EditorReply::new(
                         editing.key().to_string(),
                         WorkingCopy::Json(editing.to_json_value()?),
-                    )))
+                    )
+                    .into())
                 }
-                None => Ok(Box::new(SimpleReply::NotFound)),
+                None => Ok(SimpleReply::NotFound.into()),
             }
         }
     }
@@ -151,12 +153,13 @@ pub mod actions {
             match session.find_item(surroundings, &self.item)? {
                 Some(editing) => {
                     info!("describing {:?}", editing);
-                    Ok(Box::new(EditorReply::new(
+                    Ok(EditorReply::new(
                         editing.key().to_string(),
                         WorkingCopy::Description(editing.desc()?.unwrap_or("".to_owned())),
-                    )))
+                    )
+                    .into())
                 }
-                None => Ok(Box::new(SimpleReply::NotFound)),
+                None => Ok(SimpleReply::NotFound.into()),
             }
         }
     }
@@ -178,9 +181,9 @@ pub mod actions {
                 Some(duplicating) => {
                     info!("duplicating {:?}", duplicating);
                     _ = tools::duplicate(&duplicating)?;
-                    Ok(Box::new(SimpleReply::Done))
+                    Ok(SimpleReply::Done.into())
                 }
-                None => Ok(Box::new(SimpleReply::NotFound)),
+                None => Ok(SimpleReply::NotFound.into()),
             }
         }
     }
@@ -202,9 +205,9 @@ pub mod actions {
                 Some(obliterating) => {
                     info!("obliterate {:?}", obliterating);
                     tools::obliterate(&obliterating)?;
-                    Ok(Box::new(SimpleReply::Done))
+                    Ok(SimpleReply::Done.into())
                 }
-                None => Ok(Box::new(SimpleReply::NotFound)),
+                None => Ok(SimpleReply::NotFound.into()),
             }
         }
     }
@@ -248,7 +251,7 @@ pub mod actions {
                     living,
                     action: Box::new(LookAction {}),
                 }),
-                DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
+                DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
             }
         }
     }
@@ -274,7 +277,7 @@ pub mod actions {
 
             tools::set_container(&user, &vec![new_item.try_into()?])?;
 
-            Ok(Box::new(SimpleReply::Done))
+            Ok(SimpleReply::Done.into())
         }
     }
 
@@ -314,9 +317,9 @@ pub mod actions {
                         WorkingCopy::Script(_) => unimplemented!("TODO (See SaveLeadAction)"),
                     }
 
-                    Ok(Box::new(SimpleReply::Done))
+                    Ok(SimpleReply::Done.into())
                 }
-                None => Ok(Box::new(SimpleReply::NotFound)),
+                None => Ok(SimpleReply::NotFound.into()),
             }
         }
     }
@@ -450,7 +453,10 @@ mod tests {
         let action = try_parsing(EditActionParser {}, "edit rake")?;
         let reply = action.perform(session, &surroundings)?;
 
-        assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+        assert_eq!(
+            reply.to_json()?,
+            Effect::Reply(Box::new(SimpleReply::NotFound)).to_json()?
+        );
 
         Ok(())
     }

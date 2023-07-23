@@ -7,7 +7,7 @@ use super::model::{
     Audience, DomainError, DomainEvent, EntityKey, EntityPtr, EntityRef, Entry, Identity, Item,
     LookupBy, When,
 };
-use super::scopes::{Perform, Reply};
+use super::scopes::{Effect, Perform};
 use super::{ManagedHooks, Surroundings};
 
 pub type SessionRef = Rc<dyn ActiveSession>;
@@ -57,7 +57,7 @@ pub trait ActiveSession {
 
     fn raise(&self, audience: Audience, event: Box<dyn DomainEvent>) -> Result<()>;
 
-    fn chain(&self, perform: Perform) -> Result<Box<dyn Reply>>;
+    fn chain(&self, perform: Perform) -> Result<Effect>;
 
     fn hooks(&self) -> &ManagedHooks;
 

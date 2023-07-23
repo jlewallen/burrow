@@ -201,9 +201,9 @@ pub mod actions {
         fn perform(&self, _session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             let (_, user, area) = surroundings.unpack();
 
-            Ok(Box::new(
-                new_area_observation(&user, &area).with_context(|| "Observing area")?,
-            ))
+            Ok(new_area_observation(&user, &area)
+                .with_context(|| "Observing area")?
+                .into())
         }
     }
 
@@ -224,14 +224,14 @@ pub mod actions {
                 Some(target) => {
                     if tools::is_container(&target)? {
                         match new_inside_observation(&user, &target)? {
-                            Some(observation) => Ok(Box::new(observation)),
-                            None => Ok(Box::new(SimpleReply::NotFound)),
+                            Some(observation) => Ok(observation.into()),
+                            None => Ok(SimpleReply::NotFound.into()),
                         }
                     } else {
-                        Ok(Box::new(SimpleReply::Impossible))
+                        Ok(SimpleReply::Impossible.into())
                     }
                 }
-                None => Ok(Box::new(SimpleReply::NotFound)),
+                None => Ok(SimpleReply::NotFound.into()),
             }
         }
     }
@@ -251,10 +251,10 @@ pub mod actions {
 
             match session.find_item(surroundings, &self.item)? {
                 Some(target) => match new_entity_observation(&user, &target)? {
-                    Some(observation) => Ok(Box::new(observation)),
-                    None => Ok(Box::new(SimpleReply::NotFound)),
+                    Some(observation) => Ok(observation.into()),
+                    None => Ok(SimpleReply::NotFound.into()),
                 },
-                None => Ok(Box::new(SimpleReply::NotFound)),
+                None => Ok(SimpleReply::NotFound.into()),
             }
         }
     }

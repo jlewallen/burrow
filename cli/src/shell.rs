@@ -13,8 +13,9 @@ use tracing::*;
 use crate::terminal::Renderer;
 use crate::PluginConfiguration;
 use crate::{make_domain, terminal::default_external_editor};
+
 use engine::{self, DevNullNotifier, Domain, Notifier, Session, SessionOpener};
-use kernel::{ActiveSession, DomainEvent, EntityKey, Perform, Reply, SimpleReply};
+use kernel::{ActiveSession, DomainEvent, Effect, EntityKey, Perform, SimpleReply};
 use replies::EditorReply;
 
 use plugins_core::building::actions::SaveWorkingCopyAction;
@@ -103,56 +104,63 @@ async fn find_user_key(domain: &Domain, name: &str) -> Result<Option<EntityKey>>
 pub static TEXT_EXTENSION: &str = "txt";
 pub static JSON_EXTENSION: &str = "json";
 
-pub fn try_interactive(
-    session: Rc<Session>,
-    living: &EntityKey,
-    reply: Box<dyn Reply>,
-) -> Result<Box<dyn Reply>> {
-    let value = reply.to_json()?;
-    match &value {
-        serde_json::Value::Object(object) => {
-            for (key, value) in object {
-                // TODO This is annoying.
-                if key == "editor" {
-                    let reply: EditorReply = serde_json::from_value(value.clone())?;
-                    let action: Box<dyn kernel::Action> = match reply.editing {
-                        replies::WorkingCopy::Description(original) => {
-                            let edited = default_external_editor(&original, TEXT_EXTENSION)?;
+pub fn try_interactive(session: Rc<Session>, living: &EntityKey, effect: Effect) -> Result<Effect> {
+    match effect {
+        Effect::Reply(reply) => {
+            let value = reply.to_json()?;
+            match &value {
+                serde_json::Value::Object(object) => {
+                    for (key, value) in object {
+                        // TODO This is annoying.
+                        if key == "editor" {
+                            let reply: EditorReply = serde_json::from_value(value.clone())?;
+                            let action: Box<dyn kernel::Action> = match reply.editing {
+                                replies::WorkingCopy::Description(original) => {
+                                    let edited =
+                                        default_external_editor(&original, TEXT_EXTENSION)?;
 
-                            Box::new(SaveWorkingCopyAction {
-                                key: EntityKey::new(&reply.key),
-                                copy: replies::WorkingCopy::Description(edited),
-                            })
+                                    Box::new(SaveWorkingCopyAction {
+                                        key: EntityKey::new(&reply.key),
+                                        copy: replies::WorkingCopy::Description(edited),
+                                    })
+                                }
+                                replies::WorkingCopy::Json(original) => {
+                                    let serialized = serde_json::to_string_pretty(&original)?;
+                                    let edited =
+                                        default_external_editor(&serialized, JSON_EXTENSION)?;
+
+                                    Box::new(SaveWorkingCopyAction {
+                                        key: EntityKey::new(&reply.key),
+                                        copy: replies::WorkingCopy::Json(serde_json::from_str(
+                                            &edited,
+                                        )?),
+                                    })
+                                }
+                                replies::WorkingCopy::Script(original) => {
+                                    let edited =
+                                        default_external_editor(&original, RUNE_EXTENSION)?;
+
+                                    Box::new(SaveScriptAction {
+                                        key: EntityKey::new(&reply.key),
+                                        copy: replies::WorkingCopy::Script(edited),
+                                    })
+                                }
+                            };
+
+                            match session.entry(&kernel::LookupBy::Key(living))? {
+                                Some(living) => {
+                                    return session.chain(Perform::Living { living, action })
+                                }
+                                None => break,
+                            }
                         }
-                        replies::WorkingCopy::Json(original) => {
-                            let serialized = serde_json::to_string_pretty(&original)?;
-                            let edited = default_external_editor(&serialized, JSON_EXTENSION)?;
-
-                            Box::new(SaveWorkingCopyAction {
-                                key: EntityKey::new(&reply.key),
-                                copy: replies::WorkingCopy::Json(serde_json::from_str(&edited)?),
-                            })
-                        }
-                        replies::WorkingCopy::Script(original) => {
-                            let edited = default_external_editor(&original, RUNE_EXTENSION)?;
-
-                            Box::new(SaveScriptAction {
-                                key: EntityKey::new(&reply.key),
-                                copy: replies::WorkingCopy::Script(edited),
-                            })
-                        }
-                    };
-
-                    match session.entry(&kernel::LookupBy::Key(living))? {
-                        Some(living) => return session.chain(Perform::Living { living, action }),
-                        None => break,
                     }
-                }
-            }
 
-            Ok(reply)
+                    Ok(Effect::Reply(reply))
+                }
+                _ => Ok(Effect::Reply(reply)),
+            }
         }
-        _ => Ok(reply),
     }
 }
 
@@ -164,16 +172,18 @@ fn evaluate_commands(
 ) -> Result<()> {
     let session = domain.open_session().with_context(|| "Opening session")?;
 
-    let reply: Box<dyn Reply> =
-        if let Some(reply) = session.evaluate_and_perform(&username, &line)? {
-            reply
-        } else {
-            Box::new(SimpleReply::What)
-        };
+    let effect: Effect = if let Some(effect) = session.evaluate_and_perform(&username, &line)? {
+        effect
+    } else {
+        SimpleReply::What.into()
+    };
 
     let renderer = Renderer::new(session.clone())?;
-    let reply = try_interactive(session.clone(), &self_key, reply)?;
-    let rendered = renderer.render_reply(&reply)?;
+    let effect = try_interactive(session.clone(), &self_key, effect)?;
+
+    let rendered = match effect {
+        Effect::Reply(reply) => renderer.render_reply(&reply)?,
+    };
 
     let notifier = QueuedNotifier::default();
 

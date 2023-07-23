@@ -126,11 +126,7 @@ impl Session {
         self.performer.find_name_key(user_name)
     }
 
-    pub fn evaluate_and_perform(
-        &self,
-        user_name: &str,
-        text: &str,
-    ) -> Result<Option<Box<dyn Reply>>> {
+    pub fn evaluate_and_perform(&self, user_name: &str, text: &str) -> Result<Option<Effect>> {
         if !self.open.load(Ordering::Relaxed) {
             return Err(DomainError::SessionClosed.into());
         }
@@ -373,7 +369,7 @@ impl ActiveSession for Session {
         Ok(())
     }
 
-    fn chain(&self, perform: Perform) -> Result<Box<dyn Reply>> {
+    fn chain(&self, perform: Perform) -> Result<Effect> {
         self.performer.perform(perform)
     }
 

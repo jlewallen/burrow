@@ -10,7 +10,6 @@ use axum_typed_websockets::{Message, WebSocket, WebSocketUpgrade};
 use chrono::{DateTime, Utc};
 use clap::Args;
 use futures::{sink::SinkExt, stream::StreamExt};
-
 use serde::{Deserialize, Serialize};
 use std::{
     borrow::Borrow, collections::HashMap, net::SocketAddr, ops::Sub, path::PathBuf, rc::Rc,
@@ -25,7 +24,8 @@ use tower_http::{
 use tracing::{debug, info, warn};
 
 use engine::{AfterTick, DevNullNotifier, Domain, Notifier, Session, SessionOpener};
-use kernel::{DomainEvent, EntityKey, Reply, SimpleReply};
+use kernel::{DomainEvent, Effect, EntityKey, SimpleReply};
+use replies::ToJson;
 
 use crate::{make_domain, PluginConfiguration};
 
@@ -291,22 +291,22 @@ fn evaluate_commands<T>(
     notifier: &T,
     name: &str,
     text: &str,
-) -> Result<Box<dyn Reply>>
+) -> Result<Effect>
 where
     T: Notifier,
 {
-    let reply: Box<dyn Reply> = if let Some(reply) = session
+    let effect: Effect = if let Some(effect) = session
         .evaluate_and_perform(name, text)
         .expect("Evaluation error")
     {
-        reply
+        effect
     } else {
-        Box::new(SimpleReply::What)
+        SimpleReply::What.into()
     };
 
     session.close(notifier).expect("Error closing session");
 
-    Ok(reply)
+    Ok(effect)
 }
 
 async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: Arc<AppState>) {
@@ -412,8 +412,8 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
 
                             move || {
                                 let session = domain.open_session().expect("Error opening session");
-                                let reply = evaluate_commands(session, &notifier, &name, &text)?;
-                                Ok(reply.to_json()?)
+                                let effect = evaluate_commands(session, &notifier, &name, &text)?;
+                                Ok(effect.to_json()?)
                             }
                         });
 

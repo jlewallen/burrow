@@ -182,12 +182,12 @@ pub mod actions {
                         Some(script) => script,
                         None => "; Default script".to_owned(),
                     };
-                    Ok(Box::new(EditorReply::new(
-                        editing.key().to_string(),
-                        WorkingCopy::Script(script),
-                    )))
+                    Ok(
+                        EditorReply::new(editing.key().to_string(), WorkingCopy::Script(script))
+                            .into(),
+                    )
                 }
-                None => Ok(Box::new(SimpleReply::NotFound)),
+                None => Ok(SimpleReply::NotFound.into()),
             }
         }
     }
@@ -222,9 +222,9 @@ pub mod actions {
                         }
                     }
 
-                    Ok(Box::new(SimpleReply::Done))
+                    Ok(SimpleReply::Done.into())
                 }
-                None => Ok(Box::new(SimpleReply::NotFound)),
+                None => Ok(SimpleReply::NotFound.into()),
             }
         }
     }

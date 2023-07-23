@@ -308,17 +308,18 @@ pub mod actions {
 
             match session.find_item(surroundings, &self.item)? {
                 Some(holding) => match tools::move_between(&area, &user, &holding)? {
-                    DomainOutcome::Ok => Ok(Box::new(reply_done(
+                    DomainOutcome::Ok => Ok(reply_done(
                         Audience::Area(area.key().clone()),
                         CarryingEvent::ItemHeld {
                             living: user,
                             item: holding,
                             area,
                         },
-                    )?)),
-                    DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
+                    )?
+                    .into()),
+                    DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
                 },
-                None => Ok(Box::new(SimpleReply::NotFound)),
+                None => Ok(SimpleReply::NotFound.into()),
             }
         }
     }
@@ -341,19 +342,20 @@ pub mod actions {
             match &self.maybe_item {
                 Some(item) => match session.find_item(surroundings, item)? {
                     Some(dropping) => match tools::move_between(&user, &area, &dropping)? {
-                        DomainOutcome::Ok => Ok(Box::new(reply_done(
+                        DomainOutcome::Ok => Ok(reply_done(
                             Audience::Area(area.key().clone()),
                             CarryingEvent::ItemDropped {
                                 living: user,
                                 item: dropping,
                                 area,
                             },
-                        )?)),
-                        DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
+                        )?
+                        .into()),
+                        DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
                     },
-                    None => Ok(Box::new(SimpleReply::NotFound)),
+                    None => Ok(SimpleReply::NotFound.into()),
                 },
-                None => Ok(Box::new(SimpleReply::NotFound)),
+                None => Ok(SimpleReply::NotFound.into()),
             }
         }
     }
@@ -380,16 +382,16 @@ pub mod actions {
                         if tools::is_container(&vessel)? {
                             let from = tools::container_of(&item)?;
                             match tools::move_between(&from.try_into()?, &vessel, &item)? {
-                                DomainOutcome::Ok => Ok(Box::new(SimpleReply::Done)),
-                                DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
+                                DomainOutcome::Ok => Ok(SimpleReply::Done.into()),
+                                DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
                             }
                         } else {
-                            Ok(Box::new(SimpleReply::Impossible))
+                            Ok(SimpleReply::Impossible.into())
                         }
                     }
-                    None => Ok(Box::new(SimpleReply::NotFound)),
+                    None => Ok(SimpleReply::NotFound.into()),
                 },
-                None => Ok(Box::new(SimpleReply::NotFound)),
+                None => Ok(SimpleReply::NotFound.into()),
             }
         }
     }
@@ -415,16 +417,16 @@ pub mod actions {
                     if tools::is_container(&vessel)? {
                         match session.find_item(surroundings, &self.item)? {
                             Some(item) => match tools::move_between(&vessel, &user, &item)? {
-                                DomainOutcome::Ok => Ok(Box::new(SimpleReply::Done)),
-                                DomainOutcome::Nope => Ok(Box::new(SimpleReply::NotFound)),
+                                DomainOutcome::Ok => Ok(SimpleReply::Done.into()),
+                                DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
                             },
-                            None => Ok(Box::new(SimpleReply::NotFound)),
+                            None => Ok(SimpleReply::NotFound.into()),
                         }
                     } else {
-                        Ok(Box::new(SimpleReply::Impossible))
+                        Ok(SimpleReply::Impossible.into())
                     }
                 }
-                None => Ok(Box::new(SimpleReply::NotFound)),
+                None => Ok(SimpleReply::NotFound.into()),
             }
         }
     }

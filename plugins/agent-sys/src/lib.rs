@@ -5,8 +5,8 @@ use tracing::*;
 
 use kernel::{
     compare::{any_entity_changes, AnyChanges, Original},
-    get_my_session, set_my_session, ActiveSession, Audience, DomainError, DomainEvent, EntityPtr,
-    Entry,
+    get_my_session, set_my_session, ActiveSession, Audience, DomainError, DomainEvent, Effect,
+    EntityPtr, Entry,
 };
 
 pub use rpc_proto::{EntityUpdate, IncomingMessage, LookupBy, Payload, Query};
@@ -153,7 +153,7 @@ impl ActiveSession for AgentSession {
         Ok(())
     }
 
-    fn chain(&self, _perform: kernel::Perform) -> Result<Box<dyn kernel::Reply>> {
+    fn chain(&self, _perform: kernel::Perform) -> Result<Effect> {
         unimplemented!("AgentSession:chain")
     }
 
