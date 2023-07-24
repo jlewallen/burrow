@@ -150,3 +150,22 @@ impl ToJson for EditorReply {
         Ok(json!({ "editor": serde_json::to_value(self)? }))
     }
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct JsonReply {
+    value: serde_json::Value,
+}
+
+impl From<serde_json::Value> for JsonReply {
+    fn from(value: serde_json::Value) -> Self {
+        Self { value }
+    }
+}
+
+impl Reply for JsonReply {}
+
+impl ToJson for JsonReply {
+    fn to_json(&self) -> Result<Value, serde_json::Error> {
+        Ok(json!({ "json": self.value }))
+    }
+}
