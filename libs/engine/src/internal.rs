@@ -2,10 +2,9 @@ use anyhow::{anyhow, Result};
 use std::{cell::RefCell, collections::HashMap, fmt::Debug, rc::Rc};
 use tracing::*;
 
-use crate::storage::{EntityStorage, PersistedEntity};
-use kernel::*;
-
 use super::sequences::GlobalIds;
+use crate::storage::PersistedEntity;
+use kernel::*;
 
 pub struct LoadedEntity {
     pub key: EntityKey,
@@ -88,6 +87,7 @@ impl Maps {
         Ok(rvals)
     }
 
+    #[cfg(test)]
     fn foreach_entity<R, T: Fn(&LoadedEntity) -> Result<R>>(&self, each: T) -> Result<Vec<R>> {
         let mut rvals: Vec<R> = Vec::new();
 
@@ -143,6 +143,7 @@ impl EntityMap {
         self.maps.borrow_mut().foreach_entity_mut(each)
     }
 
+    #[cfg(test)]
     #[allow(dead_code)]
     fn foreach_entity<R, T: Fn(&LoadedEntity) -> Result<R>>(&self, each: T) -> Result<Vec<R>> {
         self.maps.borrow().foreach_entity(each)
@@ -151,12 +152,11 @@ impl EntityMap {
 
 pub struct Entities {
     entities: Rc<EntityMap>,
-    storage: Rc<dyn EntityStorage>,
 }
 
 impl Entities {
-    pub fn new(entities: Rc<EntityMap>, storage: Rc<dyn EntityStorage>) -> Rc<Self> {
-        Rc::new(Self { entities, storage })
+    pub fn new(entities: Rc<EntityMap>) -> Rc<Self> {
+        Rc::new(Self { entities })
     }
 
     pub fn add_entity(&self, entity: &EntityPtr) -> Result<()> {
@@ -174,7 +174,7 @@ impl Entities {
         })
     }
 
-    fn prepare_persisted(&self, persisted: PersistedEntity) -> Result<EntityPtr> {
+    pub fn add_persisted(&self, persisted: PersistedEntity) -> Result<EntityPtr> {
         let loaded = deserialize_entity(&persisted.serialized)?;
         let gid = loaded.gid();
         let cell: EntityPtr = loaded.into();
@@ -190,20 +190,8 @@ impl Entities {
         Ok(cell)
     }
 
-    pub fn prepare_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
-        if let Some(e) = self.entities.lookup_entity(lookup)? {
-            return Ok(Some(e));
-        }
-
-        let _loading_span =
-            span!(Level::INFO, "entity", lookup = format!("{:?}", lookup)).entered();
-
-        trace!("loading");
-        if let Some(persisted) = self.storage.load(lookup)? {
-            Ok(Some(self.prepare_persisted(persisted)?))
-        } else {
-            Ok(None)
-        }
+    pub fn lookup_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
+        self.entities.lookup_entity(lookup)
     }
 
     pub fn foreach_entity_mut<R, T: Fn(&mut LoadedEntity) -> Result<R>>(

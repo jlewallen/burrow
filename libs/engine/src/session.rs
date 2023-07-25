@@ -55,7 +55,7 @@ impl Session {
 
         let opened = Instant::now();
         let ids = GlobalIds::new();
-        let entity_map = EntityMap::new(Rc::clone(&ids));
+        let entities = Entities::new(EntityMap::new(Rc::clone(&ids)));
 
         storage.begin()?;
 
@@ -69,14 +69,14 @@ impl Session {
 
         let session = Rc::new_cyclic(|weak: &Weak<Session>| Self {
             opened,
-            storage: Rc::clone(&storage),
+            storage,
+            entities,
             open: AtomicBool::new(true),
             save_required: AtomicBool::new(false),
             performer: StandardPerformer::new(weak, Arc::clone(finder), Arc::clone(&plugins), None),
             ids: Rc::clone(&ids),
             raised: Rc::new(RefCell::new(Vec::new())),
             weak: Weak::clone(weak),
-            entities: Entities::new(entity_map, storage),
             keys: Arc::clone(keys),
             identities: Arc::clone(identities),
             destroyed: RefCell::new(Vec::new()),
@@ -314,7 +314,19 @@ impl Session {
     }
 
     fn load_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
-        self.entities.prepare_entity(lookup)
+        if let Some(e) = self.entities.lookup_entity(lookup)? {
+            return Ok(Some(e));
+        }
+
+        let _loading_span =
+            span!(Level::INFO, "entity", lookup = format!("{:?}", lookup)).entered();
+
+        trace!("loading");
+        if let Some(persisted) = self.storage.load(lookup)? {
+            Ok(Some(self.entities.add_persisted(persisted)?))
+        } else {
+            Ok(None)
+        }
     }
 }
 
