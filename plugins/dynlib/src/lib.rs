@@ -293,9 +293,9 @@ impl Plugin for DynamicPlugin {
 }
 
 impl Evaluator for DynamicPlugin {
-    fn evaluate(&self, _perform: &dyn Performer, consider: Evaluation) -> Result<Vec<Effect>> {
+    fn evaluate(&self, _perform: &dyn Performer, consider: Evaluable) -> Result<Vec<Effect>> {
         match consider {
-            Evaluation::Text(text) => {
+            Evaluable::Phrase(text) => {
                 let services = SessionServices::new_for_my_session(None)?;
 
                 let messages = vec![DynMessage::Payload(Payload::TryParse(text.to_owned()))];

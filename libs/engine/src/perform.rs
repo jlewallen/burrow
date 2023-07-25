@@ -44,7 +44,7 @@ impl StandardPerformer {
             let as_user = self.as_user(name)?;
 
             Ok(plugins
-                .evaluate(&as_user, Evaluation::Text(text))?
+                .evaluate(&as_user, Evaluable::Phrase(text))?
                 .into_iter()
                 .next())
         };

@@ -50,10 +50,10 @@ pub trait ParsesActions {
     fn evaluate_parsed_action(
         &self,
         perform: &dyn Performer,
-        consider: Evaluation,
+        consider: Evaluable,
     ) -> Result<Vec<Effect>> {
         match consider {
-            Evaluation::Text(text) => self
+            Evaluable::Phrase(text) => self
                 .try_parse_action(text)
                 .ok()
                 .flatten()
@@ -65,12 +65,12 @@ pub trait ParsesActions {
 }
 
 #[derive(Debug, Clone)]
-pub enum Evaluation<'a> {
-    Text(&'a str),
+pub enum Evaluable<'a> {
+    Phrase(&'a str),
 }
 
 pub trait Evaluator {
-    fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Vec<Effect>>;
+    fn evaluate(&self, perform: &dyn Performer, consider: Evaluable) -> Result<Vec<Effect>>;
 }
 
 #[derive(Debug)]
@@ -162,7 +162,7 @@ impl SessionPlugins {
 }
 
 impl Evaluator for SessionPlugins {
-    fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Vec<Effect>> {
+    fn evaluate(&self, perform: &dyn Performer, consider: Evaluable) -> Result<Vec<Effect>> {
         Ok(self
             .plugins
             .iter()

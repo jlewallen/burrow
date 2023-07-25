@@ -358,7 +358,7 @@ impl ParsesActions for WasmPlugin {
 }
 
 impl Evaluator for WasmPlugin {
-    fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Vec<Effect>> {
+    fn evaluate(&self, perform: &dyn Performer, consider: Evaluable) -> Result<Vec<Effect>> {
         self.evaluate_parsed_action(perform, consider)
     }
 }

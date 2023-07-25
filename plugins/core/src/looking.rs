@@ -56,7 +56,7 @@ impl ParsesActions for LookingPlugin {
 }
 
 impl Evaluator for LookingPlugin {
-    fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Vec<Effect>> {
+    fn evaluate(&self, perform: &dyn Performer, consider: Evaluable) -> Result<Vec<Effect>> {
         self.evaluate_parsed_action(perform, consider)
     }
 }
