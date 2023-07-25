@@ -226,12 +226,15 @@ pub fn HistoryEntryItem(props: &Props) -> Html {
     log::debug!("myself: {:?}", myself);
 
     let value = &props.entry.value;
-    if let Ok(reply) = serde_json::from_value::<KnownReply>(value.clone()) {
+    if let Ok(reply) = serde_json::from_value::<BasicReply>(value.clone()) {
         match reply {
-            KnownReply::AreaObservation(reply) => area_observation(&reply),
-            KnownReply::InsideObservation(reply) => inside_observation(&reply),
-            KnownReply::SimpleObservation(reply) => simple_observation(&reply, &myself),
-            KnownReply::SimpleReply(reply) => simple_reply(&reply),
+            BasicReply::AreaObservation(reply) => area_observation(&reply),
+            BasicReply::InsideObservation(reply) => inside_observation(&reply),
+            BasicReply::SimpleObservation(reply) => simple_observation(&reply, &myself),
+            BasicReply::Simple(reply) => simple_reply(&reply),
+            BasicReply::EntityObservation(_) => todo!(),
+            BasicReply::Editor(_) => todo!(),
+            BasicReply::Json(_) => todo!(),
         }
     } else {
         html! {

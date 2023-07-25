@@ -82,15 +82,6 @@ impl ToJson for EntityObservation {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum KnownReply {
-    AreaObservation(AreaObservation),
-    InsideObservation(InsideObservation),
-    SimpleReply(SimpleReply),
-    SimpleObservation(SimpleObservation),
-}
-
 pub trait Observed: ToJson {}
 
 impl Observed for InsideObservation {}
@@ -167,5 +158,41 @@ impl Reply for JsonReply {}
 impl ToJson for JsonReply {
     fn to_json(&self) -> Result<Value, serde_json::Error> {
         Ok(json!({ "json": self.value }))
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum BasicReply {
+    Simple(SimpleReply),
+    EntityObservation(EntityObservation),
+    InsideObservation(InsideObservation),
+    AreaObservation(AreaObservation),
+    SimpleObservation(SimpleObservation),
+    Editor(EditorReply),
+    Json(JsonReply),
+}
+
+impl ToJson for BasicReply {
+    fn to_json(&self) -> Result<Value, serde_json::Error> {
+        serde_json::to_value(self)
+    }
+}
+
+impl From<SimpleReply> for BasicReply {
+    fn from(value: SimpleReply) -> Self {
+        Self::Simple(value)
+    }
+}
+
+impl From<JsonReply> for BasicReply {
+    fn from(value: JsonReply) -> Self {
+        Self::Json(value)
+    }
+}
+
+impl From<EditorReply> for BasicReply {
+    fn from(value: EditorReply) -> Self {
+        Self::Editor(value)
     }
 }
