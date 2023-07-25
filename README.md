@@ -5,6 +5,10 @@ place to start until I've got time for this README:
 
 https://github.com/jlewallen/dimsum/
 
+## An Idea
+
+A reply can be intercepted, as JSON and augmented via middleware.
+
 ## TODO
 
 1. Add entity templates, allow for custom ones.

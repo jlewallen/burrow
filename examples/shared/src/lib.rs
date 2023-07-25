@@ -7,7 +7,10 @@ use plugins_core::{
     carrying::model::CarryingEvent,
     library::{
         model::{Deserialize, Serialize},
-        plugin::{get_my_session, Audience, Effect, Incoming, Reply, Surroundings, ToJson, When},
+        plugin::{
+            get_my_session, Audience, Effect, Evaluator, Incoming, Reply, Surroundings, ToJson,
+            When,
+        },
     },
     tools,
 };
@@ -80,11 +83,17 @@ impl Agent for ExampleAgent {
             ExampleFuture::Wakeup => Ok(()),
         }
     }
+}
 
-    fn try_parse(&mut self, text: &str) -> Result<Option<Effect>> {
-        info!("try-parse {:?}", text);
+impl Evaluator for ExampleAgent {
+    fn evaluate(
+        &self,
+        _perform: &dyn plugins_core::library::plugin::Performer,
+        consider: plugins_core::library::plugin::Evaluable,
+    ) -> Result<Vec<Effect>> {
+        info!("try-parse {:?}", consider);
 
-        Ok(Some(Effect::Reply(Box::new(ExampleReply {}))))
+        Ok(vec![Effect::Reply(Box::new(ExampleReply {}))])
     }
 }
 

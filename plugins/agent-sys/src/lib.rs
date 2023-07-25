@@ -6,7 +6,7 @@ use tracing::*;
 use kernel::{
     compare::{any_entity_changes, AnyChanges, Original},
     get_my_session, set_my_session, ActiveSession, Audience, DomainError, DomainEvent, Effect,
-    EntityPtr, Entry,
+    EntityPtr, Entry, Evaluator, Performer,
 };
 
 pub use rpc_proto::{EntityUpdate, IncomingMessage, LookupBy, Payload, Query};
@@ -172,11 +172,10 @@ impl ActiveSession for AgentSession {
     }
 }
 
-pub trait Agent {
+pub trait Agent: Evaluator {
     fn initialize(&mut self) -> Result<()>;
     fn have_surroundings(&mut self, surroundings: kernel::Surroundings) -> Result<()>;
     fn deliver(&mut self, incoming: kernel::Incoming) -> Result<()>;
-    fn try_parse(&mut self, text: &str) -> Result<Option<kernel::Effect>>;
 }
 
 pub struct AgentBridge<T>
@@ -235,8 +234,12 @@ where
                 Payload::Deliver(incoming) => {
                     self.agent.deliver(incoming.into())?;
                 }
-                Payload::TryParse(text) => {
-                    if let Some(effect) = self.agent.try_parse(&text)? {
+                Payload::Evaluate(text) => {
+                    let performer = AgentPerformer {};
+                    for effect in self
+                        .agent
+                        .evaluate(&performer, kernel::Evaluable::Phrase(&text))?
+                    {
                         queries.push(Query::Effect(effect.try_into()?))
                     }
                 }
@@ -321,6 +324,20 @@ where
                 living: self.get(living)?,
                 area: self.get(area)?,
             }),
+        }
+    }
+}
+
+struct AgentPerformer {}
+
+impl Performer for AgentPerformer {
+    fn perform(&self, perform: kernel::Perform) -> Result<Effect> {
+        match perform {
+            kernel::Perform::Living {
+                living: _,
+                action: _,
+            } => todo!(),
+            kernel::Perform::Action(_) => todo!(),
         }
     }
 }

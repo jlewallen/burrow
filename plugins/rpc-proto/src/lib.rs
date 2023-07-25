@@ -344,7 +344,7 @@ pub enum Payload {
     Resolved(Vec<(LookupBy, Option<Json>)>),
     Surroundings(Surroundings),
     Deliver(IncomingMessage),
-    TryParse(String),
+    Evaluate(String),
 }
 
 #[derive(Debug)]

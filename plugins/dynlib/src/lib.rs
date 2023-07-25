@@ -298,7 +298,7 @@ impl Evaluator for DynamicPlugin {
             Evaluable::Phrase(text) => {
                 let services = SessionServices::new_for_my_session(None)?;
 
-                let messages = vec![DynMessage::Payload(Payload::TryParse(text.to_owned()))];
+                let messages = vec![DynMessage::Payload(Payload::Evaluate(text.to_owned()))];
 
                 self.push_messages_to_all(&messages)?;
 
