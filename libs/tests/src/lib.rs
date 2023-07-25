@@ -114,15 +114,15 @@ where
 {
     let storage_factory = Arc::new(storage);
     let mut registered_plugins = RegisteredPlugins::default();
-    registered_plugins.register(MovingPluginFactory::default());
-    registered_plugins.register(LookingPluginFactory::default());
-    registered_plugins.register(CarryingPluginFactory::default());
-    registered_plugins.register(BuildingPluginFactory::default());
-    registered_plugins.register(DynamicPluginFactory::default());
     if false {
         registered_plugins.register(RunePluginFactory::default());
         registered_plugins.register(WasmPluginFactory::new(&temp_dir())?);
     }
+    registered_plugins.register(DynamicPluginFactory::default());
+    registered_plugins.register(LookingPluginFactory::default());
+    registered_plugins.register(MovingPluginFactory::default());
+    registered_plugins.register(CarryingPluginFactory::default());
+    registered_plugins.register(BuildingPluginFactory::default());
     let finder = Arc::new(DefaultFinder::default());
     let keys = Arc::new(DeterministicKeys::new());
     let identities = Arc::new(DeterministicKeys::new());

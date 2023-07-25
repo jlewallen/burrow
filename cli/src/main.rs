@@ -133,10 +133,6 @@ fn get_assets_path() -> Result<PathBuf> {
 
 async fn make_domain(plugins: PluginConfiguration) -> Result<Domain> {
     let mut registered_plugins = RegisteredPlugins::default();
-    registered_plugins.register(LookingPluginFactory::default());
-    registered_plugins.register(MovingPluginFactory::default());
-    registered_plugins.register(CarryingPluginFactory::default());
-    registered_plugins.register(BuildingPluginFactory::default());
     if plugins.dynlib {
         registered_plugins.register(DynamicPluginFactory::default());
     }
@@ -149,6 +145,10 @@ async fn make_domain(plugins: PluginConfiguration) -> Result<Domain> {
     if plugins.rpc {
         registered_plugins.register(RpcPluginFactory::start().await?);
     }
+    registered_plugins.register(LookingPluginFactory::default());
+    registered_plugins.register(MovingPluginFactory::default());
+    registered_plugins.register(CarryingPluginFactory::default());
+    registered_plugins.register(BuildingPluginFactory::default());
     let finder = Arc::new(DefaultFinder::default());
     let storage_factory = Arc::new(Factory::new("world.sqlite3")?);
     storage_factory.migrate()?;
