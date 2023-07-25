@@ -1,15 +1,15 @@
 use anyhow::Result;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
-use std::fmt::Debug;
+use std::{fmt::Debug, rc::Rc};
 
 use super::{session::SessionRef, Entry, Surroundings};
 
 pub use replies::*;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Effect {
-    Reply(Box<dyn Reply>),
+    Reply(Rc<dyn Reply>),
 }
 
 impl ToJson for Effect {
@@ -23,7 +23,7 @@ impl ToJson for Effect {
 
 impl<T: Reply + 'static> From<T> for Effect {
     fn from(value: T) -> Self {
-        Self::Reply(Box::new(value))
+        Self::Reply(Rc::new(value))
     }
 }
 

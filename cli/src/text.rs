@@ -1,5 +1,5 @@
 use anyhow::Result;
-use std::time::Instant;
+use std::{rc::Rc, time::Instant};
 use tera::{Context, Tera};
 use tracing::info;
 
@@ -79,7 +79,7 @@ impl Renderer {
         Ok(all)
     }
 
-    pub fn render_reply(&self, reply: &Box<dyn Reply>) -> Result<String> {
+    pub fn render_reply(&self, reply: &Rc<dyn Reply>) -> Result<String> {
         self.render_value(&reply.to_json()?)
     }
 }

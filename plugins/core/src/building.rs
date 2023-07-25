@@ -439,6 +439,8 @@ pub mod parser {
 
 #[cfg(test)]
 mod tests {
+    use std::rc::Rc;
+
     use kernel::{DomainError, EntityGid, LookupBy, SimpleReply};
 
     use super::parser::*;
@@ -462,7 +464,7 @@ mod tests {
 
         assert_eq!(
             reply.to_json()?,
-            Effect::Reply(Box::new(SimpleReply::NotFound)).to_json()?
+            Effect::Reply(Rc::new(SimpleReply::NotFound)).to_json()?
         );
 
         Ok(())

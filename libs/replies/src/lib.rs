@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::Value;
 use std::fmt::Debug;
 
 pub trait ToJson: Debug {
@@ -82,6 +82,7 @@ impl ToJson for EntityObservation {
     }
 }
 
+/*
 pub trait Observed: ToJson {}
 
 impl Observed for InsideObservation {}
@@ -89,6 +90,9 @@ impl Observed for InsideObservation {}
 impl Observed for AreaObservation {}
 
 impl Observed for SimpleReply {}
+
+impl Observed for SimpleObservation {}
+*/
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SimpleObservation(serde_json::Value);
@@ -110,8 +114,6 @@ impl ToJson for SimpleObservation {
         serde_json::to_value(BasicReply::SimpleObservation(self.clone()))
     }
 }
-
-impl Observed for SimpleObservation {}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -142,7 +144,7 @@ impl ToJson for EditorReply {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct JsonReply {
     value: serde_json::Value,
 }
@@ -157,7 +159,7 @@ impl Reply for JsonReply {}
 
 impl ToJson for JsonReply {
     fn to_json(&self) -> Result<Value, serde_json::Error> {
-        Ok(json!({ "json": self.value }))
+        serde_json::to_value(BasicReply::Json(self.clone()))
     }
 }
 
@@ -179,6 +181,7 @@ impl ToJson for BasicReply {
     }
 }
 
+/*
 impl From<SimpleReply> for BasicReply {
     fn from(value: SimpleReply) -> Self {
         Self::Simple(value)
@@ -196,3 +199,4 @@ impl From<EditorReply> for BasicReply {
         Self::Editor(value)
     }
 }
+*/

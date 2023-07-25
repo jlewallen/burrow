@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use anyhow::Result;
 use chrono::Duration;
 use tracing::*;
@@ -93,7 +95,7 @@ impl Evaluator for ExampleAgent {
     ) -> Result<Vec<Effect>> {
         info!("try-parse {:?}", consider);
 
-        Ok(vec![Effect::Reply(Box::new(ExampleReply {}))])
+        Ok(vec![Effect::Reply(Rc::new(ExampleReply {}))])
     }
 }
 

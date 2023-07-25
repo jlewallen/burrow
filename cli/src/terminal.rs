@@ -20,7 +20,7 @@ impl Renderer {
         })
     }
 
-    pub fn render_reply(&self, reply: &Box<dyn Reply>) -> Result<String> {
+    pub fn render_reply(&self, reply: &Rc<dyn Reply>) -> Result<String> {
         let value = reply.to_json()?;
         self.text.render_value(&value)
     }

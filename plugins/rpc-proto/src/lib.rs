@@ -2,7 +2,7 @@ use anyhow::Result;
 use bincode::{Decode, Encode};
 use kernel::{Incoming, JsonReply, ToJson};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 use tracing::*;
 
 pub trait Inbox<T, R> {
@@ -270,7 +270,7 @@ impl Into<kernel::Effect> for Effect {
     fn into(self) -> kernel::Effect {
         match self {
             Effect::Reply(value) => {
-                kernel::Effect::Reply(Box::new(JsonReply::from(<Json as Into<
+                kernel::Effect::Reply(Rc::new(JsonReply::from(<Json as Into<
                     serde_json::Value,
                 >>::into(value))))
             }
