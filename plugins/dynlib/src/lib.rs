@@ -310,6 +310,7 @@ impl Evaluator for DynamicPlugin {
                     Ok(Vec::new())
                 }
             }
+            _ => todo!(),
         }
     }
 }

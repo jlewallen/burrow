@@ -10,6 +10,7 @@ pub use replies::*;
 #[derive(Clone, Debug)]
 pub enum Effect {
     Reply(Rc<dyn Reply>),
+    Action(Rc<dyn Action>),
 }
 
 impl ToJson for Effect {
@@ -17,6 +18,7 @@ impl ToJson for Effect {
         // TODO I'll need to work on this, if not to make tests scale.
         match self {
             Effect::Reply(reply) => reply.to_json(),
+            _ => todo!(),
         }
     }
 }

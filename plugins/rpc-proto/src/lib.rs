@@ -262,6 +262,7 @@ impl TryFrom<kernel::Effect> for Effect {
     fn try_from(value: kernel::Effect) -> std::result::Result<Self, Self::Error> {
         match value {
             kernel::Effect::Reply(reply) => Ok(Self::Reply(reply.to_json()?.try_into()?)),
+            _ => todo!(),
         }
     }
 }

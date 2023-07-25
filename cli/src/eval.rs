@@ -46,6 +46,7 @@ fn evaluate_commands(domain: Domain, cmd: Command) -> Result<()> {
                     let text = renderer.render_reply(&reply)?;
                     println!("{}", text);
                 }
+                _ => todo!(),
             }
         }
 

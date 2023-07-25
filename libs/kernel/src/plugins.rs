@@ -60,13 +60,16 @@ pub trait ParsesActions {
                 .map(|a| perform.perform(Perform::Action(a)))
                 .map_or(Ok(None), |v| v.map(Some))?
                 .map_or(Ok(Vec::new()), |v| Ok(vec![v])),
+            _ => todo!(),
         }
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub enum Evaluable<'a> {
     Phrase(&'a str),
+    Surroundings(Surroundings),
+    Effect(Effect),
 }
 
 pub trait Evaluator {

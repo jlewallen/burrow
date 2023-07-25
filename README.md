@@ -9,6 +9,36 @@ https://github.com/jlewallen/dimsum/
 
 A reply can be intercepted, as JSON and augmented via middleware.
 
+General algorithm is to begin with an Evaluable and iterate until things
+terminate, giving every plugin a chance to intervene at each step. This means
+that the Evaluable enum and the Effect enum need to serialize to and from JSON,
+which also means Action's and Reply's. Not sure how I feel about that.
+
+A simple example:
+
+1. Evaluable::Phrase(user, "look") -> Effect::Action(Action)
+2. Evaluable::Action(Action) -> Effect::Reply(Reply)
+
+Resolving Surroundings happens when an Action is evaluated. One tricky part is
+how to handle this in dynlib. The fewer times we need to cross that boundary,
+the better and yet I'd love for the shared library to be able to go from Phrase
+to Reply.
+
+A more complicated example:
+
+1. Evaluable::Phrase(user, "go north") -> Effect::Action(Action)
+2. Evaluable::Action(Action) -> Effect::Attempted(Move)
+3. Evaluable::Attempted(Move) -> Effect::Reply(Reply)
+
+One of the tricky parts is being able to prevent/stop an Action from another
+plugin the way we can with Hooks.
+
+This would be hard with a "middleware" approach because Actions actually modify
+and make changes to Entities. One solution is to "isolate" each Action and
+return the state with the Effect. Then downstream Evaluators could throw them away.
+
+Hmmm.
+
 ## TODO
 
 1. Add entity templates, allow for custom ones.

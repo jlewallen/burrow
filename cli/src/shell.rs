@@ -161,6 +161,7 @@ pub fn try_interactive(session: Rc<Session>, living: &EntityKey, effect: Effect)
                 _ => Ok(Effect::Reply(reply)),
             }
         }
+        _ => todo!(),
     }
 }
 
@@ -183,6 +184,7 @@ fn evaluate_commands(
 
     let rendered = match effect {
         Effect::Reply(reply) => renderer.render_reply(&reply)?,
+        _ => todo!(),
     };
 
     let notifier = QueuedNotifier::default();
