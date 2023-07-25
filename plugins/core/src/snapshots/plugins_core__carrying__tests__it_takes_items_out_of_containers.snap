@@ -1,7 +1,7 @@
 ---
-source: src/plugins/carrying.rs
+source: plugins/core/src/carrying.rs
 expression: reply.to_json()?
 ---
 {
-  "simpleReply": "done"
+  "simple": "done"
 }

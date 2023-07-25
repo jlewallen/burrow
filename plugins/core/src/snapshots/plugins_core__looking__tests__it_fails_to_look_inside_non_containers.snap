@@ -1,7 +1,7 @@
 ---
-source: src/plugins/looking.rs
+source: plugins/core/src/looking.rs
 expression: reply.to_json()?
 ---
 {
-  "simpleReply": "impossible"
+  "simple": "impossible"
 }
