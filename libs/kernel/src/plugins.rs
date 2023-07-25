@@ -166,7 +166,11 @@ impl Evaluator for SessionPlugins {
         Ok(self
             .plugins
             .iter()
-            .map(|plugin| plugin.evaluate(perform, consider.clone()))
+            .map(|plugin| {
+                let _span = span!(Level::INFO, "E", plugin = plugin.key()).entered();
+                info!("evaluating");
+                plugin.evaluate(perform, consider.clone())
+            })
             .collect::<Result<Vec<_>>>()?
             .into_iter()
             .flatten()
