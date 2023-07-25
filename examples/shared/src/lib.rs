@@ -7,7 +7,7 @@ use plugins_core::{
     carrying::model::CarryingEvent,
     library::{
         model::{Deserialize, Serialize},
-        plugin::{get_my_session, Audience, Effect, Incoming, Surroundings, ToJson, When},
+        plugin::{get_my_session, Audience, Effect, Incoming, Reply, Surroundings, ToJson, When},
     },
     tools,
 };
@@ -83,9 +83,21 @@ impl Agent for ExampleAgent {
 
     fn try_parse(&mut self, text: &str) -> Result<Option<Effect>> {
         info!("try-parse {:?}", text);
-        Ok(None)
+
+        Ok(Some(Effect::Reply(Box::new(ExampleReply {}))))
     }
 }
+
+#[derive(Debug, Serialize)]
+struct ExampleReply {}
+
+impl ToJson for ExampleReply {
+    fn to_json(&self) -> std::result::Result<serde_json::Value, serde_json::Error> {
+        serde_json::to_value(self)
+    }
+}
+
+impl Reply for ExampleReply {}
 
 dynlib_sys::export_plugin!(agent_initialize, agent_tick);
 

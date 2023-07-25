@@ -43,7 +43,10 @@ impl StandardPerformer {
 
             let as_user = self.as_user(name)?;
 
-            plugins.evaluate(&as_user, Evaluation::Text(text))
+            Ok(plugins
+                .evaluate(&as_user, Evaluation::Text(text))?
+                .into_iter()
+                .next())
         };
 
         let elapsed = started.elapsed();

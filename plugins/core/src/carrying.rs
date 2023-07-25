@@ -59,7 +59,7 @@ impl ParsesActions for CarryingPlugin {
 }
 
 impl Evaluator for CarryingPlugin {
-    fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Option<Effect>> {
+    fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Vec<Effect>> {
         self.evaluate_parsed_action(perform, consider)
     }
 }

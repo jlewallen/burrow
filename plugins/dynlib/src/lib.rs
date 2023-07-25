@@ -4,7 +4,7 @@ use std::{cell::RefCell, collections::VecDeque, rc::Rc, sync::Arc};
 use tracing::{dispatcher::get_default, info, span, trace, warn, Level, Subscriber};
 
 use dynlib_sys::prelude::*;
-use kernel::{EvaluationResult, ManagedHooks, ParsesActions, Plugin, PluginFactory};
+use kernel::{ManagedHooks, Plugin, PluginFactory};
 use plugins_core::library::plugin::*;
 use plugins_rpc::{have_surroundings, Querying, SessionServices};
 
@@ -292,22 +292,25 @@ impl Plugin for DynamicPlugin {
     }
 }
 
-impl ParsesActions for DynamicPlugin {
-    fn try_parse_action(&self, i: &str) -> EvaluationResult {
-        let _services = SessionServices::new_for_my_session(None)?;
-        let messages = vec![DynMessage::Payload(Payload::TryParse(i.to_owned()))];
-
-        self.push_messages_to_all(&messages)?;
-
-        self.tick()?;
-
-        Err(EvaluationError::ParseFailed)
-    }
-}
-
 impl Evaluator for DynamicPlugin {
-    fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Option<Effect>> {
-        self.evaluate_parsed_action(perform, consider)
+    fn evaluate(&self, _perform: &dyn Performer, consider: Evaluation) -> Result<Vec<Effect>> {
+        match consider {
+            Evaluation::Text(text) => {
+                let services = SessionServices::new_for_my_session(None)?;
+
+                let messages = vec![DynMessage::Payload(Payload::TryParse(text.to_owned()))];
+
+                self.push_messages_to_all(&messages)?;
+
+                self.tick()?;
+
+                if let Some(produced) = services.take_produced()? {
+                    Ok(produced)
+                } else {
+                    Ok(Vec::new())
+                }
+            }
+        }
     }
 }
 

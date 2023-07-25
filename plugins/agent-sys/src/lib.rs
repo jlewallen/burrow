@@ -176,7 +176,7 @@ pub trait Agent {
     fn initialize(&mut self) -> Result<()>;
     fn have_surroundings(&mut self, surroundings: kernel::Surroundings) -> Result<()>;
     fn deliver(&mut self, incoming: kernel::Incoming) -> Result<()>;
-    fn try_parse(&mut self, text: &str) -> Result<Option<Effect>>;
+    fn try_parse(&mut self, text: &str) -> Result<Option<kernel::Effect>>;
 }
 
 pub struct AgentBridge<T>
@@ -210,6 +210,8 @@ where
         let session = Rc::new(AgentSession::default());
         set_my_session(Some(&(session.clone() as Rc<dyn ActiveSession>)))?;
 
+        let mut queries = Vec::new();
+
         while let Some(message) = recv() {
             debug!("(tick) {:?}", &message);
 
@@ -234,7 +236,9 @@ where
                     self.agent.deliver(incoming.into())?;
                 }
                 Payload::TryParse(text) => {
-                    self.agent.try_parse(&text)?;
+                    if let Some(effect) = self.agent.try_parse(&text)? {
+                        queries.push(Query::Effect(effect.try_into()?))
+                    }
                 }
                 _ => {}
             }
@@ -242,7 +246,9 @@ where
 
         set_my_session(None)?;
 
-        self.flush_session(&session)
+        queries.extend(self.flush_session(&session)?);
+
+        Ok(queries)
     }
 
     fn flush_session(&self, session: &AgentSession) -> Result<Vec<Query>> {

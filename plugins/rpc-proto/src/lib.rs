@@ -1,6 +1,6 @@
 use anyhow::Result;
 use bincode::{Decode, Encode};
-use kernel::{Incoming, ToJson};
+use kernel::{Incoming, JsonReply, ToJson};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::*;
@@ -213,7 +213,7 @@ pub enum Query {
     Raise(Audience, Json),
     Schedule(String, i64, Json),
     Complete,
-    Action(Json),
+    Effect(Effect),
     // Lookup(u32, Vec<LookupBy>),
 }
 
@@ -249,6 +249,33 @@ pub enum Audience {
     Everybody,
     Individuals(Vec<EntityKey>),
     Area(EntityKey),
+}
+
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
+pub enum Effect {
+    Reply(Json),
+}
+
+impl TryFrom<kernel::Effect> for Effect {
+    type Error = anyhow::Error;
+
+    fn try_from(value: kernel::Effect) -> std::result::Result<Self, Self::Error> {
+        match value {
+            kernel::Effect::Reply(reply) => Ok(Self::Reply(reply.to_json()?.try_into()?)),
+        }
+    }
+}
+
+impl Into<kernel::Effect> for Effect {
+    fn into(self) -> kernel::Effect {
+        match self {
+            Effect::Reply(value) => {
+                kernel::Effect::Reply(Box::new(JsonReply::from(<Json as Into<
+                    serde_json::Value,
+                >>::into(value))))
+            }
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]

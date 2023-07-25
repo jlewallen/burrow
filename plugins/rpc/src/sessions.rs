@@ -1,11 +1,14 @@
 use anyhow::{anyhow, Context, Result};
 use chrono::NaiveDateTime;
-use std::collections::HashSet;
+use std::{
+    collections::HashSet,
+    sync::{Arc, Mutex},
+};
 use tracing::*;
 
 use kernel::{
-    deserialize_entity_from_value, get_my_session, Audience, DomainError, DomainEvent, EntityGid,
-    Entry, ToJson, When,
+    deserialize_entity_from_value, get_my_session, Audience, DomainError, DomainEvent, Effect,
+    EntityGid, Entry, ToJson, When,
 };
 use plugins_core::tools;
 
@@ -19,6 +22,8 @@ pub trait Services {
     fn raise(&self, audience: Audience, raised: serde_json::Value) -> Result<()>;
 
     fn schedule(&self, key: &str, millis: i64, serialized: Json) -> Result<()>;
+
+    fn produced(&self, effect: Effect) -> Result<()>;
 }
 
 pub struct AlwaysErrorsServices {}
@@ -43,17 +48,30 @@ impl Services for AlwaysErrorsServices {
         warn!("AlwaysErrorsServices::schedule");
         Err(anyhow!("This server always errors (schedule)"))
     }
+
+    fn produced(&self, _effect: Effect) -> Result<()> {
+        warn!("AlwaysErrorsServices::produced");
+        Err(anyhow!("This server always errors (produced)"))
+    }
 }
 
 pub struct SessionServices {
     prefix: Option<String>,
+    produced: Arc<Mutex<Option<Vec<Effect>>>>,
 }
 
 impl SessionServices {
     pub fn new_for_my_session(prefix: Option<&str>) -> Result<Self> {
         Ok(Self {
             prefix: prefix.map(|s| s.to_owned()),
+            produced: Default::default(),
         })
+    }
+
+    pub fn take_produced(&self) -> Result<Option<Vec<Effect>>> {
+        let mut produced = self.produced.lock().expect("Lock error");
+
+        Ok(produced.take())
     }
 
     fn lookup_one(&self, lookup: &LookupBy) -> Result<(LookupBy, Option<(Entry, Json)>)> {
@@ -184,6 +202,18 @@ impl Services for SessionServices {
             When::Time(time.and_utc()),
             &serialized,
         )
+    }
+
+    fn produced(&self, effect: Effect) -> Result<()> {
+        let mut produced = self.produced.lock().expect("Lock error");
+
+        if produced.is_none() {
+            *produced = Some(vec![effect]);
+        } else {
+            produced.as_mut().unwrap().push(effect);
+        }
+
+        Ok(())
     }
 }
 

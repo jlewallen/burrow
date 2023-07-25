@@ -134,7 +134,7 @@ impl ParsesActions for RunePlugin {
 }
 
 impl Evaluator for RunePlugin {
-    fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Option<Effect>> {
+    fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Vec<Effect>> {
         self.evaluate_parsed_action(perform, consider)
     }
 }

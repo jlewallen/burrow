@@ -51,14 +51,15 @@ pub trait ParsesActions {
         &self,
         perform: &dyn Performer,
         consider: Evaluation,
-    ) -> Result<Option<Effect>> {
+    ) -> Result<Vec<Effect>> {
         match consider {
             Evaluation::Text(text) => self
                 .try_parse_action(text)
                 .ok()
                 .flatten()
                 .map(|a| perform.perform(Perform::Action(a)))
-                .map_or(Ok(None), |v| v.map(Some)),
+                .map_or(Ok(None), |v| v.map(Some))?
+                .map_or(Ok(Vec::new()), |v| Ok(vec![v])),
         }
     }
 }
@@ -69,7 +70,7 @@ pub enum Evaluation<'a> {
 }
 
 pub trait Evaluator {
-    fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Option<Effect>>;
+    fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Vec<Effect>>;
 }
 
 #[derive(Debug)]
@@ -161,19 +162,14 @@ impl SessionPlugins {
 }
 
 impl Evaluator for SessionPlugins {
-    fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Option<Effect>> {
-        match self
+    fn evaluate(&self, perform: &dyn Performer, consider: Evaluation) -> Result<Vec<Effect>> {
+        Ok(self
             .plugins
             .iter()
             .map(|plugin| plugin.evaluate(perform, consider.clone()))
             .collect::<Result<Vec<_>>>()?
             .into_iter()
-            .filter_map(|r| r)
-            .take(1)
-            .last()
-        {
-            Some(e) => Ok(Some(e)),
-            None => Ok(None),
-        }
+            .flatten()
+            .collect())
     }
 }
