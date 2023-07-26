@@ -314,7 +314,10 @@ pub mod actions {
                     info!("mutate:entity {:?}", entity);
 
                     match &self.copy {
-                        WorkingCopy::Description(desc) => entity.set_desc(desc)?,
+                        WorkingCopy::Description(desc) => {
+                            let mut entity = entity.borrow_mut();
+                            entity.set_desc(desc)?
+                        }
                         WorkingCopy::Json(value) => {
                             info!("mutate:json");
                             let replacing = deserialize_entity_from_value(value.clone())?;

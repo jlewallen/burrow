@@ -6,7 +6,8 @@ use engine::{
     HasUsernames, Session, SessionOpener,
 };
 use kernel::{
-    Entity, EntityKey, EntityPtr, Entry, RegisteredPlugins, SessionRef, Surroundings, WORLD_KEY,
+    CoreProps, Entity, EntityKey, EntityPtr, Entry, RegisteredPlugins, SessionRef, Surroundings,
+    WORLD_KEY,
 };
 
 use crate::{tools, DefaultFinder};
@@ -39,8 +40,11 @@ impl Build {
     }
 
     pub fn named(&mut self, name: &str) -> Result<&mut Self> {
-        assert!(self.entry.is_none());
-        self.entity.set_name(name)?;
+        {
+            assert!(self.entry.is_none());
+            let mut entity = self.entity.borrow_mut();
+            entity.set_name(name)?;
+        }
 
         Ok(self)
     }

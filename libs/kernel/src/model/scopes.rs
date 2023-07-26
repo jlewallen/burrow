@@ -1,9 +1,23 @@
 use super::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Properties {
     props: Option<Props>,
+}
+
+impl Default for Properties {
+    fn default() -> Self {
+        Self {
+            props: Some(Default::default()),
+        }
+    }
+}
+
+impl Into<Properties> for Props {
+    fn into(self) -> Properties {
+        Properties { props: Some(self) }
+    }
 }
 
 pub trait CoreProps {
@@ -90,7 +104,7 @@ impl CoreProps for Entity {
 
 impl CoreProps for Properties {
     fn props(&self) -> Props {
-        unimplemented!()
+        self.props.clone().unwrap()
     }
 
     fn set_props(&mut self, _props: Props) -> Result<(), DomainError> {

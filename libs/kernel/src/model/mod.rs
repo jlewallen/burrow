@@ -195,6 +195,10 @@ impl EntityPtr {
         Ok(Self::new(Entity::new_blank()?))
     }
 
+    pub fn new_with_props(properties: Properties) -> Result<Self, DomainError> {
+        Ok(Self::new(Entity::new_with_props(properties)?))
+    }
+
     pub fn new(e: Entity) -> Self {
         let brand_new = Rc::new(RefCell::new(e));
         let lazy = EntityRef::new_from_raw(&brand_new);
@@ -205,53 +209,22 @@ impl EntityPtr {
         }
     }
 
+    pub fn new_named(name: &str, desc: &str) -> Result<Self, DomainError> {
+        let mut props = Properties::default();
+        props.set_name(name)?;
+        props.set_desc(desc)?;
+
+        Self::new_with_props(props)
+    }
+
     pub fn new_from_json(value: serde_json::Value) -> Result<Self, DomainError> {
         Ok(Self::new(deserialize_entity_from_value_with_session(
             value, None,
         )?))
     }
 
-    pub fn new_named(name: &str, desc: &str) -> Result<Self, DomainError> {
-        let brand_new = Self::new_blank()?;
-
-        brand_new.mutate(|e| {
-            e.set_name(name)?;
-            e.set_desc(desc)
-        })?;
-
-        brand_new.modified()?;
-
-        Ok(brand_new)
-    }
-
     pub fn key(&self) -> EntityKey {
         self.lazy.borrow().key.clone()
-    }
-
-    pub fn set_name(&self, name: &str) -> Result<(), DomainError> {
-        self.mutate(|e| e.set_name(name))?;
-        self.modified()
-    }
-
-    pub fn set_desc(&self, desc: &str) -> Result<(), DomainError> {
-        self.mutate(|e| e.set_desc(desc))?;
-        self.modified()
-    }
-
-    fn modified(&self) -> Result<(), DomainError> {
-        let entity = self.borrow();
-        let mut lazy = self.lazy.borrow_mut();
-        if let Some(name) = entity.name() {
-            lazy.name = name;
-        }
-        lazy.gid = entity.gid();
-        lazy.key = entity.key.clone();
-
-        Ok(())
-    }
-
-    fn mutate<R, E, T: FnOnce(&mut Entity) -> Result<R, E>>(&self, mutator: T) -> Result<R, E> {
-        mutator(&mut self.borrow_mut())
     }
 
     pub fn to_json_value(&self) -> Result<serde_json::Value, DomainError> {
@@ -471,6 +444,10 @@ impl Needs<SessionRef> for Entity {
 }
 
 impl Entity {
+    pub fn new_blank() -> Result<Self> {
+        Ok(Self::new_with_key(get_my_session()?.new_key()))
+    }
+
     pub fn new_with_key(key: EntityKey) -> Self {
         Self {
             key,
@@ -484,23 +461,23 @@ impl Entity {
         }
     }
 
-    pub fn new_blank() -> Result<Self> {
-        Ok(Self::new_with_key(get_my_session()?.new_key()))
+    // TODO Allow scopes to hook into this process. For example
+    // elsewhere in this commit I've wondered about how to copy 'kind'
+    // into the new item in the situation for separate, so I'd start
+    // there. Ultimately I think it'd be nice if we could just pass a
+    // map of scopes in with their intended values.
+    pub fn new_with_props(properties: Properties) -> Result<Self> {
+        let mut entity = Self::new_blank()?;
+        entity.set_props(properties.props())?;
+        Ok(entity)
     }
 
     pub fn new_from(template: &Self) -> Result<Self> {
-        let mut entity = Self::new_blank()?;
-
-        // TODO Allow scopes to hook into this process. For example
-        // elsewhere in this commit I've wondered about how to copy 'kind'
-        // into the new item in the situation for separate, so I'd start
-        // there. Ultimately I think it'd be nice if we could just pass a
-        // map of scopes in with their intended values.
-
         // TODO Customize clone to always remove GID_PROPERTY
         let mut props = template.props();
         props.remove_property(GID_PROPERTY)?;
-        entity.set_props(props)?;
+        let mut entity = Self::new_with_props(props.into())?;
+
         entity.class = template.class.clone();
         entity.acls = template.acls.clone();
         entity.parent = template.parent.clone();
