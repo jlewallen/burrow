@@ -57,7 +57,7 @@ pub trait ParsesActions {
                 .try_parse_action(text)
                 .ok()
                 .flatten()
-                .map(|a| perform.perform(Perform::Action(a)))
+                .map(|a| perform.perform(Perform::Chain(a)))
                 .map_or(Ok(None), |v| v.map(Some))?
                 .map_or(Ok(Vec::new()), |v| Ok(vec![v])),
             _ => todo!(),

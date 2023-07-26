@@ -61,5 +61,5 @@ pub enum Perform {
         living: Entry,
         action: Box<dyn Action>, // Consider making this recursive?
     },
-    Action(Box<dyn Action>),
+    Chain(Box<dyn Action>),
 }

@@ -105,6 +105,17 @@ impl Performer for StandardPerformer {
         info!("performing {:?}", perform);
 
         match perform {
+            Perform::Chain(action) => {
+                let Some(user) = &self.user else {
+                    return Err(anyhow!("No active user in StandardPerformer"));
+                };
+
+                info!("action {:?}", action);
+
+                let living = self.evaluate_living(user)?;
+
+                self.perform(Perform::Living { living, action })
+            }
             Perform::Living { living, action } => {
                 let surroundings = self.evaluate_living_surroundings(&living)?;
 
@@ -121,17 +132,6 @@ impl Performer for StandardPerformer {
                 };
 
                 Ok(reply)
-            }
-            Perform::Action(action) => {
-                let Some(user) = &self.user else {
-                    return Err(anyhow!("No active user in StandardPerformer"));
-                };
-
-                info!("action {:?}", action);
-
-                let living = self.evaluate_living(user)?;
-
-                self.perform(Perform::Living { living, action })
             }
         }
     }

@@ -337,7 +337,7 @@ impl Performer for AgentPerformer {
                 living: _,
                 action: _,
             } => todo!(),
-            kernel::Perform::Action(_) => todo!(),
+            kernel::Perform::Chain(_) => todo!(),
         }
     }
 }
