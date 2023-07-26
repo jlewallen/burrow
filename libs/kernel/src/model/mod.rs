@@ -14,8 +14,10 @@ use tracing::*;
 use replies::ToJson;
 
 pub mod entry;
-
 pub use entry::*;
+
+pub mod scopes;
+pub use scopes::*;
 
 use super::{session::*, Needs, Scope};
 
@@ -253,7 +255,7 @@ impl EntityPtr {
         Ok(())
     }
 
-    fn mutate<R, T: FnOnce(&mut Entity) -> Result<R>>(&self, mutator: T) -> Result<R> {
+    fn mutate<R, E, T: FnOnce(&mut Entity) -> Result<R, E>>(&self, mutator: T) -> Result<R, E> {
         mutator(&mut self.borrow_mut())
     }
 
@@ -422,7 +424,7 @@ impl Props {
         self.map.insert(name.to_string(), Property::new(value));
     }
 
-    fn set_u64_property(&mut self, name: &str, value: u64) -> Result<()> {
+    fn set_u64_property(&mut self, name: &str, value: u64) -> Result<(), DomainError> {
         self.map
             .insert(name.to_owned(), Property::new(serde_json::to_value(value)?));
 
@@ -452,7 +454,8 @@ pub struct Entity {
     #[serde(rename = "klass")]
     class: EntityClass,
     acls: Acls,
-    props: Props,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    props: Option<Props>,
     scopes: HashMap<String, ScopeValue>,
 }
 
@@ -503,14 +506,25 @@ impl Entity {
         // map of scopes in with their intended values.
 
         // TODO Customize clone to always remove GID_PROPERTY
-        entity.props = template.props.clone();
-        entity.props.remove_property(GID_PROPERTY)?;
+        let mut props = template.props();
+        props.remove_property(GID_PROPERTY)?;
+        entity.set_props(props)?;
         entity.class = template.class.clone();
         entity.acls = template.acls.clone();
         entity.parent = template.parent.clone();
         entity.creator = template.creator.clone();
 
         Ok(entity)
+    }
+
+    pub fn old_props(&self) -> Option<Props> {
+        self.props.clone()
+    }
+
+    pub fn clear_old_props(&mut self) -> Result<()> {
+        self.props = None;
+
+        Ok(())
     }
 
     pub fn key(&self) -> &EntityKey {
@@ -522,46 +536,8 @@ impl Entity {
 
         Ok(())
     }
-
-    pub fn name(&self) -> Option<String> {
-        self.props.string_property(NAME_PROPERTY)
-    }
-
-    pub fn set_name(&mut self, value: &str) -> Result<()> {
-        let value: serde_json::Value = value.into();
-        self.props.set_property(NAME_PROPERTY, value);
-
-        Ok(())
-    }
-
-    pub fn gid(&self) -> Option<EntityGid> {
-        self.props.u64_property(GID_PROPERTY).map(EntityGid)
-    }
-
-    pub fn set_gid(&mut self, gid: EntityGid) -> Result<()> {
-        self.props.set_u64_property(GID_PROPERTY, gid.into())
-    }
-
-    pub fn desc(&self) -> Option<String> {
-        self.props.string_property(DESC_PROPERTY)
-    }
-
-    pub fn set_desc(&mut self, value: &str) -> Result<()> {
-        let value: serde_json::Value = value.into();
-        self.props.set_property(DESC_PROPERTY, value);
-
-        Ok(())
-    }
-
     pub fn set_version(&mut self, version: u64) -> Result<()> {
         self.version.i = version;
-
-        Ok(())
-    }
-
-    pub fn destroy(&mut self) -> Result<()> {
-        let value: serde_json::Value = true.into();
-        self.props.set_property(DESTROYED_PROPERTY, value);
 
         Ok(())
     }

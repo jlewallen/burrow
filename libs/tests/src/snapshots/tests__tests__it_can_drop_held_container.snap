@@ -1,5 +1,5 @@
 ---
-source: libs/tests/src/lib.rs
+source: libs/tests/src/tests.rs
 expression: domain.snapshot().await?
 ---
 [
@@ -18,23 +18,26 @@ expression: domain.snapshot().await?
       "py/type": ""
     },
     "parent": null,
-    "props": {
-      "map": {
-        "gid": {
-          "acls": {
-            "rules": []
-          },
-          "value": 1
-        },
-        "name": {
-          "acls": {
-            "rules": []
-          },
-          "value": "Place"
+    "scopes": {
+      "props": {
+        "props": {
+          "map": {
+            "gid": {
+              "acls": {
+                "rules": []
+              },
+              "value": 1
+            },
+            "name": {
+              "acls": {
+                "rules": []
+              },
+              "value": "Place"
+            }
+          }
         }
       }
     },
-    "scopes": {},
     "version": {
       "i": 3
     }
@@ -54,22 +57,6 @@ expression: domain.snapshot().await?
       "py/type": ""
     },
     "parent": null,
-    "props": {
-      "map": {
-        "gid": {
-          "acls": {
-            "rules": []
-          },
-          "value": 2
-        },
-        "name": {
-          "acls": {
-            "rules": []
-          },
-          "value": "Key"
-        }
-      }
-    },
     "scopes": {
       "location": {
         "container": {
@@ -77,6 +64,24 @@ expression: domain.snapshot().await?
           "key": "E-2",
           "klass": "",
           "name": "Vessel"
+        }
+      },
+      "props": {
+        "props": {
+          "map": {
+            "gid": {
+              "acls": {
+                "rules": []
+              },
+              "value": 2
+            },
+            "name": {
+              "acls": {
+                "rules": []
+              },
+              "value": "Key"
+            }
+          }
         }
       }
     },
@@ -99,22 +104,6 @@ expression: domain.snapshot().await?
       "py/type": ""
     },
     "parent": null,
-    "props": {
-      "map": {
-        "gid": {
-          "acls": {
-            "rules": []
-          },
-          "value": 3
-        },
-        "name": {
-          "acls": {
-            "rules": []
-          },
-          "value": "Vessel"
-        }
-      }
-    },
     "scopes": {
       "containing": {
         "capacity": null,
@@ -134,6 +123,24 @@ expression: domain.snapshot().await?
           "key": "E-5",
           "klass": "",
           "name": "Welcome Area"
+        }
+      },
+      "props": {
+        "props": {
+          "map": {
+            "gid": {
+              "acls": {
+                "rules": []
+              },
+              "value": 3
+            },
+            "name": {
+              "acls": {
+                "rules": []
+              },
+              "value": "Vessel"
+            }
+          }
         }
       }
     },
@@ -156,22 +163,6 @@ expression: domain.snapshot().await?
       "py/type": ""
     },
     "parent": null,
-    "props": {
-      "map": {
-        "gid": {
-          "acls": {
-            "rules": []
-          },
-          "value": 4
-        },
-        "name": {
-          "acls": {
-            "rules": []
-          },
-          "value": "Living"
-        }
-      }
-    },
     "scopes": {
       "containing": {
         "capacity": null,
@@ -184,6 +175,24 @@ expression: domain.snapshot().await?
           "key": "E-5",
           "klass": "",
           "name": "Welcome Area"
+        }
+      },
+      "props": {
+        "props": {
+          "map": {
+            "gid": {
+              "acls": {
+                "rules": []
+              },
+              "value": 4
+            },
+            "name": {
+              "acls": {
+                "rules": []
+              },
+              "value": "Living"
+            }
+          }
         }
       }
     },
@@ -206,28 +215,30 @@ expression: domain.snapshot().await?
       "py/type": ""
     },
     "parent": null,
-    "props": {
-      "map": {
-        "gid": {
-          "acls": {
-            "rules": []
-          },
-          "value": 5
-        },
-        "name": {
-          "acls": {
-            "rules": []
-          },
-          "value": "World"
-        }
-      }
-    },
     "scopes": {
       "identifiers": {
         "acls": {
           "rules": []
         },
         "gid": 7
+      },
+      "props": {
+        "props": {
+          "map": {
+            "gid": {
+              "acls": {
+                "rules": []
+              },
+              "value": 5
+            },
+            "name": {
+              "acls": {
+                "rules": []
+              },
+              "value": "World"
+            }
+          }
+        }
       },
       "usernames": {
         "users": {
@@ -254,22 +265,6 @@ expression: domain.snapshot().await?
       "py/type": ""
     },
     "parent": null,
-    "props": {
-      "map": {
-        "gid": {
-          "acls": {
-            "rules": []
-          },
-          "value": 6
-        },
-        "name": {
-          "acls": {
-            "rules": []
-          },
-          "value": "Welcome Area"
-        }
-      }
-    },
     "scopes": {
       "containing": {
         "capacity": null,
@@ -302,6 +297,24 @@ expression: domain.snapshot().await?
             "name": "Living"
           }
         ]
+      },
+      "props": {
+        "props": {
+          "map": {
+            "gid": {
+              "acls": {
+                "rules": []
+              },
+              "value": 6
+            },
+            "name": {
+              "acls": {
+                "rules": []
+              },
+              "value": "Welcome Area"
+            }
+          }
+        }
       }
     },
     "version": {
@@ -323,22 +336,6 @@ expression: domain.snapshot().await?
       "py/type": ""
     },
     "parent": null,
-    "props": {
-      "map": {
-        "gid": {
-          "acls": {
-            "rules": []
-          },
-          "value": 7
-        },
-        "name": {
-          "acls": {
-            "rules": []
-          },
-          "value": "East"
-        }
-      }
-    },
     "scopes": {
       "exit": {
         "area": {
@@ -354,6 +351,24 @@ expression: domain.snapshot().await?
           "key": "E-5",
           "klass": "",
           "name": "Welcome Area"
+        }
+      },
+      "props": {
+        "props": {
+          "map": {
+            "gid": {
+              "acls": {
+                "rules": []
+              },
+              "value": 7
+            },
+            "name": {
+              "acls": {
+                "rules": []
+              },
+              "value": "East"
+            }
+          }
         }
       }
     },

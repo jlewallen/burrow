@@ -20,6 +20,7 @@ use sqlite::Factory;
 mod dump;
 mod eval;
 mod hacking;
+mod migrate;
 mod serve;
 mod shell;
 mod terminal;
@@ -42,6 +43,7 @@ enum Commands {
     Shell(shell::Command),
     Eval(eval::Command),
     Dump(dump::Command),
+    Migrate(migrate::Command),
     Hacking,
 }
 
@@ -203,6 +205,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Some(Commands::Shell(cmd)) => Ok(shell::execute_command(cmd)?),
         Some(Commands::Eval(cmd)) => Ok(eval::execute_command(cmd)?),
         Some(Commands::Dump(cmd)) => Ok(dump::execute_command(cmd)?),
+        Some(Commands::Migrate(cmd)) => Ok(migrate::execute_command(cmd)?),
         Some(Commands::Hacking) => Ok(hacking::execute_command()?),
         None => Ok(()),
     }

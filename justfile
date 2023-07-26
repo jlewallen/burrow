@@ -17,6 +17,12 @@ deliver: plugins
 eval: plugins
     cargo run -- eval
 
+migrate: plugins
+    cargo run -- migrate
+
+dump: plugins
+    cargo run -- dump
+
 shell: plugins
     cargo run -- shell
 

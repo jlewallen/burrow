@@ -4,7 +4,7 @@ use std::rc::{Rc, Weak};
 use tracing::trace;
 
 use crate::{
-    get_my_session, ActiveSession, DomainError, EntityGid, EntityKey, EntityPtr, EntityRef,
+    get_my_session, ActiveSession, CoreProps, DomainError, EntityKey, EntityPtr, EntityRef,
     LookupBy, Scope,
 };
 
@@ -96,10 +96,6 @@ impl Entry {
         }
 
         Ok(Some(self.scope::<T>()?))
-    }
-
-    pub fn gid(&self) -> Option<EntityGid> {
-        self.entity.borrow().gid()
     }
 
     pub fn debug(&self) -> Option<&String> {

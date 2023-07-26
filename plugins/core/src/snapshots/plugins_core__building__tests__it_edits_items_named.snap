@@ -20,22 +20,6 @@ expression: reply.to_json()?
           "py/type": ""
         },
         "parent": null,
-        "props": {
-          "map": {
-            "gid": {
-              "acls": {
-                "rules": []
-              },
-              "value": 4
-            },
-            "name": {
-              "acls": {
-                "rules": []
-              },
-              "value": "Cool Broom"
-            }
-          }
-        },
         "scopes": {
           "location": {
             "container": {
@@ -43,6 +27,24 @@ expression: reply.to_json()?
               "key": "E-2",
               "klass": "",
               "name": "Welcome Area"
+            }
+          },
+          "props": {
+            "props": {
+              "map": {
+                "gid": {
+                  "acls": {
+                    "rules": []
+                  },
+                  "value": 4
+                },
+                "name": {
+                  "acls": {
+                    "rules": []
+                  },
+                  "value": "Cool Broom"
+                }
+              }
             }
           }
         },
