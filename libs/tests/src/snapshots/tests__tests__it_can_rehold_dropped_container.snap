@@ -37,9 +37,6 @@ expression: domain.snapshot().await?
           }
         }
       }
-    },
-    "version": {
-      "i": 3
     }
   },
   {
@@ -84,9 +81,6 @@ expression: domain.snapshot().await?
           }
         }
       }
-    },
-    "version": {
-      "i": 3
     }
   },
   {
@@ -143,9 +137,6 @@ expression: domain.snapshot().await?
           }
         }
       }
-    },
-    "version": {
-      "i": 3
     }
   },
   {
@@ -202,9 +193,6 @@ expression: domain.snapshot().await?
           }
         }
       }
-    },
-    "version": {
-      "i": 3
     }
   },
   {
@@ -252,9 +240,6 @@ expression: domain.snapshot().await?
           "burrow": "E-3"
         }
       }
-    },
-    "version": {
-      "i": 3
     }
   },
   {
@@ -317,9 +302,6 @@ expression: domain.snapshot().await?
           }
         }
       }
-    },
-    "version": {
-      "i": 3
     }
   },
   {
@@ -372,9 +354,6 @@ expression: domain.snapshot().await?
           }
         }
       }
-    },
-    "version": {
-      "i": 3
     }
   }
 ]

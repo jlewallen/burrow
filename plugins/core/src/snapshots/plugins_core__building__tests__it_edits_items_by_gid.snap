@@ -52,9 +52,6 @@ expression: reply.to_json()?
               }
             }
           }
-        },
-        "version": {
-          "i": 2
         }
       }
     },

@@ -265,18 +265,13 @@ impl<'a> SavesEntities<'a> {
                 return Err(anyhow!("Expected EntityGid in check_for_changes"));
             };
 
-            let version = {
-                let previous = l.version;
-                l.version += 1;
-                let mut entity = l.entity.borrow_mut();
-                entity.set_version(l.version)?;
-                previous
-            };
+            let previous = l.version;
+            l.version += 1;
 
             Ok(Some(ModifiedEntity(PersistedEntity {
                 key: l.key.to_string(),
                 gid: gid.into(),
-                version,
+                version: previous,
                 serialized,
             })))
         } else {

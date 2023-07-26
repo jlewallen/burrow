@@ -318,18 +318,6 @@ pub struct Acls {
     rules: Vec<AclRule>,
 }
 
-/// Version number of the Entity, incremented whenever the Entity is saved.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Version {
-    i: u64,
-}
-
-impl Default for Version {
-    fn default() -> Self {
-        Self { i: 1 }
-    }
-}
-
 #[derive(Clone, Deserialize)]
 #[serde(untagged)]
 #[non_exhaustive]
@@ -362,7 +350,6 @@ impl Serialize for ScopeValue {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Entity {
     key: EntityKey,
-    version: Version,
     parent: Option<EntityRef>,
     creator: Option<EntityRef>,
     identity: Identity,
@@ -398,7 +385,6 @@ impl Entity {
     pub fn new_with_key(key: EntityKey) -> Self {
         Self {
             key,
-            version: Default::default(),
             parent: Default::default(),
             creator: Default::default(),
             identity: Default::default(),
@@ -435,12 +421,6 @@ impl Entity {
 
     pub fn key(&self) -> &EntityKey {
         &self.key
-    }
-
-    pub fn set_version(&mut self, version: u64) -> Result<()> {
-        self.version.i = version;
-
-        Ok(())
     }
 
     pub fn has_scope<T: Scope>(&self) -> bool {
