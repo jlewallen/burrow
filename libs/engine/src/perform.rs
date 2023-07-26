@@ -58,12 +58,8 @@ impl StandardPerformer {
     }
 
     pub fn find_name_key(&self, name: &str) -> Result<Option<EntityKey>, DomainError> {
-        match self.evaluate_name(name) {
-            Ok(Surroundings::Living {
-                world: _world,
-                living,
-                area: _area,
-            }) => Ok(Some(living.key().clone())),
+        match self.evaluate_living(name) {
+            Ok(entry) => Ok(Some(entry.key().clone())),
             Err(DomainError::EntityNotFound) => Ok(None),
             Err(err) => Err(err),
         }
@@ -78,26 +74,16 @@ impl StandardPerformer {
         })
     }
 
-    fn evaluate_name(&self, name: &str) -> Result<Surroundings, DomainError> {
-        let living = self.evaluate_living(name)?;
-        self.evaluate_living_surroundings(&living)
-    }
-
-    fn evaluate_living(&self, name: &str) -> Result<Entry> {
+    fn evaluate_living(&self, name: &str) -> Result<Entry, DomainError> {
         let _span = span!(Level::DEBUG, "who").entered();
 
         let session = self.session()?;
         let world = session.world()?;
-        let user_key = username_to_key(&world, name)
-            .with_context(|| "World username to key".to_string())?
-            .ok_or_else(|| DomainError::EntityNotFound)
-            .with_context(|| format!("Name: {}", name))?;
+        let user_key = username_to_key(&world, name)?.ok_or(DomainError::EntityNotFound)?;
 
         session
-            .entry(&LookupBy::Key(&user_key))
-            .with_context(|| format!("Entry for key: {:?}", user_key))?
+            .entry(&LookupBy::Key(&user_key))?
             .ok_or(DomainError::EntityNotFound)
-            .with_context(|| format!("Key: {:?}", user_key))
     }
 
     fn evaluate_living_surroundings(&self, living: &Entry) -> Result<Surroundings, DomainError> {
