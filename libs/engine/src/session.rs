@@ -54,8 +54,6 @@ impl Session {
         trace!("session-new");
 
         let opened = Instant::now();
-        let ids = GlobalIds::new();
-        let entities = Entities::new(EntityMap::new(Rc::clone(&ids)));
 
         storage.begin()?;
 
@@ -67,33 +65,27 @@ impl Session {
             plugins.hooks()?
         };
 
+        let ids = GlobalIds::new();
+        let entities = Entities::new(EntityMap::new());
         let session = Rc::new_cyclic(|weak: &Weak<Session>| Self {
             opened,
             storage,
             entities,
+            ids,
+            hooks,
+            weak: Weak::clone(weak),
             open: AtomicBool::new(true),
             save_required: AtomicBool::new(false),
             performer: StandardPerformer::new(weak, Arc::clone(finder), Arc::clone(&plugins), None),
-            ids: Rc::clone(&ids),
             raised: Rc::new(RefCell::new(Vec::new())),
-            weak: Weak::clone(weak),
             keys: Arc::clone(keys),
             identities: Arc::clone(identities),
             destroyed: RefCell::new(Vec::new()),
             finder: Arc::clone(finder),
-            plugins: Arc::clone(&plugins),
-            hooks,
+            plugins,
         });
 
         session.set_session()?;
-
-        if let Some(world) = session.entry(&LookupBy::Key(&WORLD_KEY.into()))? {
-            if let Some(gid) = identifiers::model::get_gid(&world)? {
-                ids.set(&gid);
-            }
-        }
-
-        session.initialize()?;
 
         Ok(session)
     }
@@ -102,15 +94,28 @@ impl Session {
         let session: Rc<dyn ActiveSession> = self.weak.upgrade().ok_or(DomainError::NoSession)?;
         set_my_session(Some(&session))?;
 
+        self.initialize()?;
+
         Ok(())
     }
 
     fn initialize(&self) -> Result<()> {
-        let mut plugins = self.plugins.borrow_mut();
+        if let Some(gid) = self.get_gid()? {
+            self.ids.set(&gid);
+        }
 
+        let mut plugins = self.plugins.borrow_mut();
         plugins.initialize()?;
 
         Ok(())
+    }
+
+    fn get_gid(&self) -> Result<Option<EntityGid>> {
+        if let Some(world) = self.entry(&LookupBy::Key(&WORLD_KEY.into()))? {
+            identifiers::model::get_gid(&world)
+        } else {
+            Ok(None)
+        }
     }
 
     pub fn world(&self) -> Result<Entry, DomainError> {
@@ -364,7 +369,7 @@ impl ActiveSession for Session {
     }
 
     fn add_entity(&self, entity: &EntityPtr) -> Result<Entry> {
-        self.entities.add_entity(entity)?;
+        self.entities.add_entity(&self.ids, entity)?;
 
         Ok(self
             .entry(&LookupBy::Key(&entity.key()))?

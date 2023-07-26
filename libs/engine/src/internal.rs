@@ -100,14 +100,12 @@ impl Maps {
 }
 
 pub struct EntityMap {
-    ids: Rc<GlobalIds>,
     maps: RefCell<Maps>,
 }
 
 impl EntityMap {
-    pub fn new(ids: Rc<GlobalIds>) -> Rc<Self> {
+    pub fn new() -> Rc<Self> {
         Rc::new(Self {
-            ids,
             maps: RefCell::new(Maps::new()),
         })
     }
@@ -120,19 +118,7 @@ impl EntityMap {
         self.maps.borrow().lookup_entity(lookup)
     }
 
-    fn assign_gid_if_necessary(&self, loaded: &mut LoadedEntity) -> Result<()> {
-        if loaded.gid.is_none() {
-            let gid = self.ids.get();
-            info!(%loaded.key, %gid, "entity-map assigning gid");
-            loaded.gid = Some(gid.clone());
-            loaded.entity.borrow_mut().set_gid(gid)?;
-        }
-
-        Ok(())
-    }
-
-    pub fn add_entity(&self, mut loaded: LoadedEntity) -> Result<()> {
-        self.assign_gid_if_necessary(&mut loaded)?;
+    pub fn add_entity(&self, loaded: LoadedEntity) -> Result<()> {
         self.maps.borrow_mut().add_entity(loaded)
     }
 
@@ -150,6 +136,33 @@ impl EntityMap {
     }
 }
 
+pub trait AssignEntityId {
+    fn assign(&self, entity: &EntityPtr) -> Result<(EntityKey, EntityGid)>;
+}
+
+impl AssignEntityId for GlobalIds {
+    fn assign(&self, entity: &EntityPtr) -> Result<(EntityKey, EntityGid)> {
+        let mut entity = entity.borrow_mut();
+        let key = entity.key().clone();
+        let gid = entity.gid();
+        // Entities should never be added with an existing gid, how would
+        // the creator know the value to assign? This is happening, though.
+        // assert!(existing.is_none());
+        match gid {
+            Some(gid) => {
+                warn!(%gid, %key, "already has gid");
+                Ok((key, gid))
+            }
+            None => {
+                let gid = self.get();
+                info!(%key, %gid, "assigning gid");
+                entity.set_gid(gid.clone())?;
+                Ok((key, gid))
+            }
+        }
+    }
+}
+
 pub struct Entities {
     entities: Rc<EntityMap>,
 }
@@ -159,24 +172,32 @@ impl Entities {
         Rc::new(Self { entities })
     }
 
-    pub fn add_entity(&self, entity: &EntityPtr) -> Result<()> {
+    pub fn add_entity(&self, ids: &GlobalIds, entity: &EntityPtr) -> Result<()> {
         let clone = entity.clone();
-        let (key, gid) = {
-            let entity = entity.borrow();
-            (entity.key().clone(), entity.gid())
-        };
+        let (key, gid) = ids.assign(entity)?;
         self.entities.add_entity(LoadedEntity {
             key,
             entity: clone,
             serialized: None,
             version: 1,
-            gid,
+            gid: Some(gid),
         })
     }
 
     pub fn add_persisted(&self, persisted: PersistedEntity) -> Result<EntityPtr> {
-        let loaded = deserialize_entity(&persisted.serialized)?;
-        let gid = loaded.gid();
+        let loaded: Entity = deserialize_entity(&persisted.serialized)?;
+
+        // Verify consistency between serialized Entity gid and the gid on the
+        // row. We can eventually relax this.
+        let gid: EntityGid = loaded
+            .gid()
+            .ok_or_else(|| anyhow!("Persisted entities should have gid."))?;
+        assert!(
+            EntityGid::new(persisted.gid) == gid,
+            "Entity gid should match row gid."
+        );
+
+        // Wrap entity in memory management gizmos.
         let cell: EntityPtr = loaded.into();
 
         self.entities.add_entity(LoadedEntity {
@@ -184,7 +205,7 @@ impl Entities {
             entity: cell.clone(),
             serialized: Some(persisted.serialized),
             version: persisted.version + 1,
-            gid,
+            gid: Some(gid),
         })?;
 
         Ok(cell)
