@@ -90,39 +90,12 @@ impl Session {
         Ok(session)
     }
 
-    fn set_session(&self) -> Result<()> {
-        let session: Rc<dyn ActiveSession> = self.weak.upgrade().ok_or(DomainError::NoSession)?;
-        set_my_session(Some(&session))?;
-
-        self.initialize()?;
-
-        Ok(())
-    }
-
-    fn initialize(&self) -> Result<()> {
-        if let Some(gid) = self.get_gid()? {
-            self.ids.set(&gid);
-        }
-
-        let mut plugins = self.plugins.borrow_mut();
-        plugins.initialize()?;
-
-        Ok(())
-    }
-
-    fn get_gid(&self) -> Result<Option<EntityGid>> {
-        if let Some(world) = self.entry(&LookupBy::Key(&WORLD_KEY.into()))? {
-            identifiers::model::get_gid(&world)
-        } else {
-            Ok(None)
-        }
-    }
-
     pub fn world(&self) -> Result<Entry, DomainError> {
         self.entry(&LookupBy::Key(&WORLD_KEY.into()))?
             .ok_or(DomainError::EntityNotFound)
     }
 
+    // TODO I really dislike this method.
     pub fn find_name_key(&self, user_name: &str) -> Result<Option<EntityKey>, DomainError> {
         if !self.open.load(Ordering::Relaxed) {
             return Err(DomainError::SessionClosed);
@@ -156,6 +129,87 @@ impl Session {
         self.storage.begin()
     }
 
+    pub fn deliver(&self, incoming: Incoming) -> Result<()> {
+        let plugins = self.plugins.borrow();
+
+        plugins.deliver(incoming)?;
+
+        Ok(())
+    }
+
+    fn set_session(&self) -> Result<()> {
+        let session: Rc<dyn ActiveSession> = self.weak.upgrade().ok_or(DomainError::NoSession)?;
+        set_my_session(Some(&session))?;
+
+        self.initialize()?;
+
+        Ok(())
+    }
+
+    fn initialize(&self) -> Result<()> {
+        if let Some(gid) = self.get_gid()? {
+            self.ids.set(&gid);
+        }
+
+        let mut plugins = self.plugins.borrow_mut();
+        plugins.initialize()?;
+
+        Ok(())
+    }
+
+    fn get_gid(&self) -> Result<Option<EntityGid>> {
+        if let Some(world) = self.entry(&LookupBy::Key(&WORLD_KEY.into()))? {
+            identifiers::model::get_gid(&world)
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn save_entity_changes(&self) -> Result<()> {
+        self.save_modified_ids()?;
+
+        let destroyed = self.destroyed.borrow();
+
+        let saves = SavesEntities {
+            storage: &self.storage,
+            destroyed: &destroyed,
+        };
+        let changes = saves.save_modified_entities(&self.entities)?;
+        let required = self.save_required.load(Ordering::SeqCst);
+
+        if changes || required {
+            // Check for a force rollback, usually debugging purposes.
+            if should_force_rollback() {
+                let _span = span!(Level::DEBUG, "FORCED").entered();
+                self.storage.rollback(true)
+            } else {
+                self.storage.commit()
+            }
+        } else {
+            self.storage.rollback(true)
+        }
+    }
+
+    pub fn close<T: Notifier>(&self, notifier: &T) -> Result<()> {
+        self.save_entity_changes()?;
+
+        self.flush_raised(notifier)?;
+
+        let nentities = self.entities.size();
+        let elapsed = self.opened.elapsed();
+        let elapsed = format!("{:?}", elapsed);
+
+        let plugins = self.plugins.borrow();
+
+        plugins.stop()?;
+
+        info!(%elapsed, %nentities, "closed");
+
+        self.open.store(false, Ordering::Relaxed);
+
+        Ok(())
+    }
+
     fn flush_raised<T: Notifier>(&self, notifier: &T) -> Result<()> {
         let mut pending = self.raised.borrow_mut();
         let npending = pending.len();
@@ -179,34 +233,30 @@ impl Session {
         Ok(())
     }
 
-    pub fn deliver(&self, incoming: Incoming) -> Result<()> {
-        let plugins = self.plugins.borrow();
-
-        plugins.deliver(incoming)?;
-
-        Ok(())
-    }
-
-    pub fn close<T: Notifier>(&self, notifier: &T) -> Result<()> {
-        self.save_entity_changes()?;
-
-        self.flush_raised(notifier)?;
-
-        let nentities = self.entities.size();
-        let elapsed = self.opened.elapsed();
-        let elapsed = format!("{:?}", elapsed);
-
-        let plugins = self.plugins.borrow();
-
-        plugins.stop()?;
-
-        info!(%elapsed, %nentities, "closed");
-
-        self.open.store(false, Ordering::Relaxed);
+    fn save_modified_ids(&self) -> Result<()> {
+        // Check to see if the global identifier has changed due to the creation
+        // of a new entity.
+        let world = self.world()?;
+        let previous_gid =
+            identifiers::model::get_gid(&world)?.unwrap_or_else(|| EntityGid::new(0));
+        let new_gid = self.ids.gid();
+        if previous_gid != new_gid {
+            info!(%previous_gid, %new_gid, "gid:changed");
+            identifiers::model::set_gid(&world, new_gid)?;
+        } else {
+            debug!(gid = %previous_gid, "gid:same");
+        }
 
         Ok(())
     }
+}
 
+struct SavesEntities<'a> {
+    storage: &'a Rc<dyn EntityStorage>,
+    destroyed: &'a Vec<EntityKey>,
+}
+
+impl<'a> SavesEntities<'a> {
     fn check_for_changes(&self, l: &mut LoadedEntity) -> Result<Option<ModifiedEntity>> {
         use kernel::compare::*;
 
@@ -255,24 +305,6 @@ impl Session {
         }
     }
 
-    fn save_entity_changes(&self) -> Result<()> {
-        // We have to do this before checking for modifications so that the
-        // state in the world Entity gets saved.
-        self.save_modified_ids()?;
-
-        if self.save_modified_entities()? || self.save_required.load(Ordering::SeqCst) {
-            // Check for a force rollback, usually debugging purposes.
-            if should_force_rollback() {
-                let _span = span!(Level::DEBUG, "FORCED").entered();
-                self.storage.rollback(true)
-            } else {
-                self.storage.commit()
-            }
-        } else {
-            self.storage.rollback(true)
-        }
-    }
-
     fn save_entity(&self, modified: &ModifiedEntity) -> Result<()> {
         if self.is_deleted(&EntityKey::new(&modified.0.key)) {
             self.storage.delete(&modified.0)
@@ -282,42 +314,25 @@ impl Session {
     }
 
     fn is_deleted(&self, key: &EntityKey) -> bool {
-        self.destroyed.borrow().contains(key)
+        self.destroyed.contains(key)
     }
 
-    fn save_modified_entities(&self) -> Result<bool> {
+    fn save_modified_entities(&self, entities: &Entities) -> Result<bool> {
         Ok(!self
-            .get_modified_entities()?
+            .get_modified_entities(entities)?
             .into_iter()
             .map(|modified| self.save_entity(&modified))
             .collect::<Result<Vec<_>>>()?
             .is_empty())
     }
 
-    fn get_modified_entities(&self) -> Result<Vec<ModifiedEntity>> {
-        let modified = self
-            .entities
-            .foreach_entity_mut(|l| self.check_for_changes(l))?;
+    fn get_modified_entities(&self, entities: &Entities) -> Result<Vec<ModifiedEntity>> {
+        let modified = entities.foreach_entity_mut(|l| self.check_for_changes(l))?;
         Ok(modified.into_iter().flatten().collect::<Vec<_>>())
     }
+}
 
-    fn save_modified_ids(&self) -> Result<()> {
-        // Check to see if the global identifier has changed due to the creation
-        // of a new entity.
-        let world = self.world()?;
-        let previous_gid =
-            identifiers::model::get_gid(&world)?.unwrap_or_else(|| EntityGid::new(0));
-        let new_gid = self.ids.gid();
-        if previous_gid != new_gid {
-            info!(%previous_gid, %new_gid, "gid:changed");
-            identifiers::model::set_gid(&world, new_gid)?;
-        } else {
-            debug!(gid = %previous_gid, "gid:same");
-        }
-
-        Ok(())
-    }
-
+impl LoadsEntities for Session {
     fn load_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
         if let Some(e) = self.entities.lookup_entity(lookup)? {
             return Ok(Some(e));

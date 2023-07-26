@@ -111,6 +111,10 @@ pub enum LookupBy<'a> {
     Gid(&'a EntityGid),
 }
 
+pub trait LoadsEntities {
+    fn load_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>>;
+}
+
 #[derive(Debug, Clone)]
 pub enum When {
     Interval(Duration),
