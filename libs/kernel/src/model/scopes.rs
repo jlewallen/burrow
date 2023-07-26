@@ -22,7 +22,7 @@ fn load_props(entity: &Entity) -> Result<Box<Properties>, DomainError> {
     let mut scope = entity.load_scope::<Properties>()?;
 
     if scope.props.is_none() {
-        scope.props = entity.old_props().or_else(|| Some(Props::default()));
+        scope.props = Some(Props::default());
     }
 
     Ok(scope)

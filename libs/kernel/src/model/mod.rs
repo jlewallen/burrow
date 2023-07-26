@@ -454,8 +454,6 @@ pub struct Entity {
     #[serde(rename = "klass")]
     class: EntityClass,
     acls: Acls,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    props: Option<Props>,
     scopes: HashMap<String, ScopeValue>,
 }
 
@@ -487,7 +485,6 @@ impl Entity {
             identity: Default::default(),
             class: Default::default(),
             acls: Default::default(),
-            props: Default::default(),
             scopes: Default::default(),
         }
     }
@@ -515,16 +512,6 @@ impl Entity {
         entity.creator = template.creator.clone();
 
         Ok(entity)
-    }
-
-    pub fn old_props(&self) -> Option<Props> {
-        self.props.clone()
-    }
-
-    pub fn clear_old_props(&mut self) -> Result<()> {
-        self.props = None;
-
-        Ok(())
     }
 
     pub fn key(&self) -> &EntityKey {

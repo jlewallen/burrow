@@ -4,7 +4,7 @@ use tracing::{debug, info};
 
 use crate::{make_domain, PluginConfiguration};
 use engine::{DevNullNotifier, SessionOpener};
-use kernel::{CoreProps, EntityKey, LoadsEntities, LookupBy};
+use kernel::{EntityKey, LoadsEntities, LookupBy};
 
 #[derive(Debug, Args, Clone)]
 pub struct Command {}
@@ -41,11 +41,13 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
             Some(entity) => {
                 debug!("{:?}", entity.key());
 
+                /*
                 let mut entity = entity.borrow_mut();
                 if let Some(props) = entity.old_props() {
                     entity.set_props(props)?;
                     entity.clear_old_props()?;
                 }
+                */
             }
             None => {}
         }
