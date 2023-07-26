@@ -2,8 +2,8 @@ use anyhow::Result;
 use std::{rc::Rc, sync::Arc};
 
 use engine::{
-    add_username_to_key, domain, sequences::DeterministicKeys,
-    storage::InMemoryEntityStorageFactory, DevNullNotifier, Session, SessionOpener,
+    domain, sequences::DeterministicKeys, storage::InMemoryEntityStorageFactory, DevNullNotifier,
+    HasUsernames, Session, SessionOpener,
 };
 use kernel::{EntityKey, EntityPtr, Entry, RegisteredPlugins, SessionRef, Surroundings, WORLD_KEY};
 
@@ -65,7 +65,8 @@ impl Build {
     }
 
     pub fn with_username(&mut self, name: &str, key: &EntityKey) -> Result<&mut Self> {
-        add_username_to_key(&self.into_entry()?, name, key)?;
+        let entry = self.into_entry()?;
+        entry.add_username_to_key(name, key)?;
 
         Ok(self)
     }

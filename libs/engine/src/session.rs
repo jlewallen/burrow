@@ -95,15 +95,6 @@ impl Session {
             .ok_or(DomainError::EntityNotFound)
     }
 
-    // TODO I really dislike this method.
-    pub fn find_name_key(&self, user_name: &str) -> Result<Option<EntityKey>, DomainError> {
-        if !self.open.load(Ordering::Relaxed) {
-            return Err(DomainError::SessionClosed);
-        }
-
-        self.performer.find_name_key(user_name)
-    }
-
     pub fn evaluate_and_perform(&self, user_name: &str, text: &str) -> Result<Option<Effect>> {
         if !self.open.load(Ordering::Relaxed) {
             return Err(DomainError::SessionClosed.into());

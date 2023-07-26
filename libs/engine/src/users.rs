@@ -35,15 +35,12 @@ pub mod model {
         }
     }
 
-    pub fn username_to_key(
-        world: &Entry,
-        username: &str,
-    ) -> Result<Option<EntityKey>, DomainError> {
+    fn username_to_key(world: &Entry, username: &str) -> Result<Option<EntityKey>, DomainError> {
         let usernames = world.scope::<Usernames>()?;
         Ok(usernames.find(username).cloned())
     }
 
-    pub fn add_username_to_key(
+    fn add_username_to_key(
         world: &Entry,
         username: &str,
         key: &EntityKey,
@@ -51,5 +48,22 @@ pub mod model {
         let mut usernames = world.scope_mut::<Usernames>()?;
         usernames.set(username, key);
         usernames.save()
+    }
+
+    pub trait HasUsernames {
+        fn find_name_key(&self, name: &str) -> Result<Option<EntityKey>, DomainError>;
+        fn add_username_to_key(&self, username: &str, key: &EntityKey) -> Result<(), DomainError>;
+    }
+
+    impl HasUsernames for Entry {
+        fn find_name_key(&self, name: &str) -> Result<Option<EntityKey>, DomainError> {
+            let _span = tracing::span!(tracing::Level::DEBUG, "who").entered();
+
+            username_to_key(self, name)
+        }
+
+        fn add_username_to_key(&self, username: &str, key: &EntityKey) -> Result<(), DomainError> {
+            add_username_to_key(self, username, key)
+        }
     }
 }

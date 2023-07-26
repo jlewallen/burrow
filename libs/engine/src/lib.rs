@@ -13,4 +13,4 @@ pub use domain::*;
 pub use notifications::*;
 pub use session::*;
 
-pub use users::model::{add_username_to_key, username_to_key};
+pub use users::model::HasUsernames;

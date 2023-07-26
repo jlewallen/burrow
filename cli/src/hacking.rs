@@ -3,7 +3,7 @@ use tracing::info;
 
 use crate::{make_domain, PluginConfiguration};
 
-use engine::{username_to_key, DevNullNotifier, SessionOpener};
+use engine::{DevNullNotifier, HasUsernames, SessionOpener};
 use kernel::{ActiveSession, DomainError, Entry, LookupBy};
 use plugins_core::carrying::model::{Carryable, Containing};
 use plugins_core::moving::model::Occupying;
@@ -34,8 +34,9 @@ pub async fn execute_command() -> Result<()> {
     let session = domain.open_session()?;
 
     let world = session.world()?;
-    let user_key =
-        username_to_key(&world, "jlewallen")?.ok_or_else(|| DomainError::EntityNotFound)?;
+    let user_key = world
+        .find_name_key("jlewallen")?
+        .ok_or_else(|| DomainError::EntityNotFound)?;
     let user = session
         .entry(&LookupBy::Key(&user_key))?
         .expect("No 'USER' entity.");

@@ -14,7 +14,7 @@ use crate::terminal::Renderer;
 use crate::PluginConfiguration;
 use crate::{make_domain, terminal::default_external_editor};
 
-use engine::{self, DevNullNotifier, Domain, Notifier, Session, SessionOpener};
+use engine::{self, DevNullNotifier, Domain, HasUsernames, Notifier, Session, SessionOpener};
 use kernel::{ActiveSession, DomainEvent, Effect, EntityKey, Perform, SimpleReply};
 use replies::EditorReply;
 
@@ -91,7 +91,8 @@ async fn find_user_key(domain: &Domain, name: &str) -> Result<Option<EntityKey>>
         move || {
             let session = domain.open_session().with_context(|| "Opening session")?;
 
-            let maybe_key = session.find_name_key(&name)?;
+            let world = session.world()?;
+            let maybe_key = world.find_name_key(&name)?;
 
             session.close(&DevNullNotifier::default())?;
 

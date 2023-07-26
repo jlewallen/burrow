@@ -7,7 +7,7 @@ use std::time::Instant;
 use tracing::{debug, info, span, Level};
 
 use super::Session;
-use crate::username_to_key;
+use crate::users::model::HasUsernames;
 use kernel::*;
 
 pub struct StandardPerformer {
@@ -57,14 +57,6 @@ impl StandardPerformer {
         res
     }
 
-    pub fn find_name_key(&self, name: &str) -> Result<Option<EntityKey>, DomainError> {
-        match self.evaluate_living(name) {
-            Ok(entry) => Ok(Some(entry.key().clone())),
-            Err(DomainError::EntityNotFound) => Ok(None),
-            Err(err) => Err(err),
-        }
-    }
-
     fn as_user(&self, name: &str) -> Result<StandardPerformer> {
         Ok(Self {
             session: Rc::downgrade(&self.session()?),
@@ -79,7 +71,9 @@ impl StandardPerformer {
 
         let session = self.session()?;
         let world = session.world()?;
-        let user_key = username_to_key(&world, name)?.ok_or(DomainError::EntityNotFound)?;
+        let user_key = world
+            .find_name_key(name)?
+            .ok_or(DomainError::EntityNotFound)?;
 
         session
             .entry(&LookupBy::Key(&user_key))?

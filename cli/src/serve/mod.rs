@@ -23,7 +23,7 @@ use tower_http::{
 };
 use tracing::{debug, info, warn};
 
-use engine::{AfterTick, DevNullNotifier, Domain, Notifier, Session, SessionOpener};
+use engine::{AfterTick, DevNullNotifier, Domain, HasUsernames, Notifier, Session, SessionOpener};
 use kernel::{DomainEvent, Effect, EntityKey, SimpleReply};
 use replies::ToJson;
 
@@ -108,7 +108,8 @@ impl AppState {
     fn find_user_key(&self, name: &str) -> Result<Option<EntityKey>> {
         let session = self.domain.open_session().expect("Error opening session");
 
-        let maybe_key = session.find_name_key(name)?;
+        let world = session.world()?;
+        let maybe_key = world.find_name_key(name)?;
 
         session.close(&DevNullNotifier::default())?;
 
