@@ -318,6 +318,7 @@ pub struct Acls {
     rules: Vec<AclRule>,
 }
 
+/// Version number of the Entity, incremented whenever the Entity is saved.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Version {
     i: u64,
@@ -329,13 +330,36 @@ impl Default for Version {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(untagged)]
+#[non_exhaustive]
 pub enum ScopeValue {
-    Json(serde_json::Value),
+    Original(serde_json::Value),
+    Intermediate {
+        value: serde_json::Value,
+        original: Option<Box<ScopeValue>>,
+    },
 }
 
-#[derive(Clone, Serialize, Deserialize /*  Default*/)]
+impl Serialize for ScopeValue {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            ScopeValue::Original(value) => value.serialize(serializer),
+            ScopeValue::Intermediate { value, original: _ } => value.serialize(serializer),
+        }
+    }
+}
+
+/// Central Entity model. Right now, the only thing that is ever modified at
+/// this level is `version` and even that could easily be swept into a scope.
+/// It's even possible that 'version' is removed, as we need to track the value
+/// outside of the Entity itself.  The only other thing that could change is
+/// possibly `acls, only that's probably infrequent.  As a rule going forward,
+/// these should be considered immutable.
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Entity {
     key: EntityKey,
     version: Version,
@@ -446,7 +470,11 @@ impl Entity {
         let data = &self.scopes[scope_key];
         let owned_value = data.clone();
         let mut scope: Box<T> = match owned_value {
-            ScopeValue::Json(v) => serde_json::from_value(v)?,
+            ScopeValue::Original(v)
+            | ScopeValue::Intermediate {
+                value: v,
+                original: _,
+            } => serde_json::from_value(v)?,
         };
 
         let _prepare_span = span!(Level::TRACE, "prepare").entered();
@@ -471,8 +499,15 @@ impl Entity {
 
         debug!("scope-replace");
 
-        self.scopes
-            .insert(scope_key.to_string(), ScopeValue::Json(value));
+        // TODO Would love to just take the value.
+        let original = match self.scopes.get(scope_key) {
+            Some(value) => Some(value.clone().into()),
+            None => None.into(),
+        };
+
+        let value = ScopeValue::Intermediate { value, original };
+
+        self.scopes.insert(scope_key.to_owned(), value);
 
         Ok(())
     }

@@ -261,34 +261,22 @@ impl<'a> SavesEntities<'a> {
             let serialized = modified.entity.to_string();
 
             // By now we should have a global identifier.
-            if l.gid.is_none() {
+            let Some(gid) = l.gid.clone() else  {
                 return Err(anyhow!("Expected EntityGid in check_for_changes"));
-            }
-            let gid = l.gid.clone().unwrap();
+            };
 
-            // I'm on the look out for a better way to handle this. Part of me
-            // wishes that it was done after the save and that part is at odds
-            // with the part of me that says here is fine because if the save
-            // fails all bets are off anyway. Also the odds of us ever trying to
-            // recover from a failed save are very low. Easier to just repeat.
-            let version_being_saved = l.version;
-            l.version += 1;
-
-            {
-                // It would be nice if there was a way to do this in a way that
-                // didn't expose these methods. I believe they're a smell, just
-                // need a solution.  It would also be nice if we could do this
-                // and some of the above syncing later, after the save is known
-                // to be good, but I digress.
+            let version = {
+                let previous = l.version;
+                l.version += 1;
                 let mut entity = l.entity.borrow_mut();
-                entity.set_gid(gid.clone())?;
                 entity.set_version(l.version)?;
-            }
+                previous
+            };
 
             Ok(Some(ModifiedEntity(PersistedEntity {
                 key: l.key.to_string(),
                 gid: gid.into(),
-                version: version_being_saved,
+                version,
                 serialized,
             })))
         } else {
