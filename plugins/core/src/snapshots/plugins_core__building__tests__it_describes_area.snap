@@ -1,5 +1,5 @@
 ---
-source: libs/plugins/core/src/building.rs
+source: plugins/core/src/building.rs
 expression: reply.to_json()?
 ---
 {
@@ -7,6 +7,6 @@ expression: reply.to_json()?
     "editing": {
       "description": ""
     },
-    "key": "E-2"
+    "key": "E-1"
   }
 }

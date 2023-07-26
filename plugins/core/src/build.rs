@@ -5,7 +5,9 @@ use engine::{
     domain, sequences::DeterministicKeys, storage::InMemoryEntityStorageFactory, DevNullNotifier,
     HasUsernames, Session, SessionOpener,
 };
-use kernel::{EntityKey, EntityPtr, Entry, RegisteredPlugins, SessionRef, Surroundings, WORLD_KEY};
+use kernel::{
+    Entity, EntityKey, EntityPtr, Entry, RegisteredPlugins, SessionRef, Surroundings, WORLD_KEY,
+};
 
 use crate::{tools, DefaultFinder};
 
@@ -19,6 +21,10 @@ impl Build {
     pub fn new(session: &Rc<Session>) -> Result<Self> {
         let entity = EntityPtr::new_blank()?;
 
+        Self::from_entity_ptr(session, entity)
+    }
+
+    pub fn from_entity_ptr(session: &Rc<Session>, entity: EntityPtr) -> Result<Self> {
         Ok(Self {
             session: session.clone(),
             entity,
@@ -26,11 +32,10 @@ impl Build {
         })
     }
 
-    pub fn key(&mut self, key: &EntityKey) -> Result<&mut Self> {
-        assert!(self.entry.is_none());
-        self.entity.set_key(key)?;
+    pub fn new_world(session: &Rc<Session>) -> Result<Self> {
+        let entity = EntityPtr::new(Entity::new_with_key(WORLD_KEY.into()));
 
-        Ok(self)
+        Self::from_entity_ptr(session, entity)
     }
 
     pub fn named(&mut self, name: &str) -> Result<&mut Self> {
@@ -180,8 +185,7 @@ impl BuildSurroundings {
             )?
             .into_entry()?;
 
-        let world = Build::new(&self.session)?
-            .key(&WORLD_KEY.into())?
+        let world = Build::new_world(&self.session)?
             .named("World")?
             .with_username("burrow", person.key())?
             .into_entry()?;

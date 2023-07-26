@@ -29,7 +29,7 @@ expression: reply.to_json()?
           "occupying": {
             "area": {
               "gid": 3,
-              "key": "E-2",
+              "key": "E-1",
               "klass": "",
               "name": "Welcome Area"
             }

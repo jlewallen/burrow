@@ -1,12 +1,12 @@
 ---
-source: libs/plugins/core/src/looking.rs
+source: plugins/core/src/looking.rs
 expression: reply.to_json()?
 ---
 {
   "areaObservation": {
     "area": {
       "desc": null,
-      "key": "E-2",
+      "key": "E-1",
       "name": "Welcome Area",
       "qualified": "a Welcome Area"
     },

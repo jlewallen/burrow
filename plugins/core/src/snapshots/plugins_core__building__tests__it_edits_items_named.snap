@@ -15,7 +15,7 @@ expression: reply.to_json()?
           "public": "",
           "signature": null
         },
-        "key": "E-3",
+        "key": "E-2",
         "klass": {
           "py/type": ""
         },
@@ -24,7 +24,7 @@ expression: reply.to_json()?
           "location": {
             "container": {
               "gid": 3,
-              "key": "E-2",
+              "key": "E-1",
               "klass": "",
               "name": "Welcome Area"
             }
@@ -53,6 +53,6 @@ expression: reply.to_json()?
         }
       }
     },
-    "key": "E-3"
+    "key": "E-2"
   }
 }

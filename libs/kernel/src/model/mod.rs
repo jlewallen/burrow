@@ -228,11 +228,6 @@ impl EntityPtr {
         self.lazy.borrow().key.clone()
     }
 
-    pub fn set_key(&self, key: &EntityKey) -> Result<(), DomainError> {
-        self.mutate(|e| e.set_key(key))?;
-        self.modified()
-    }
-
     pub fn set_name(&self, name: &str) -> Result<(), DomainError> {
         self.mutate(|e| e.set_name(name))?;
         self.modified()
@@ -518,11 +513,6 @@ impl Entity {
         &self.key
     }
 
-    pub fn set_key(&mut self, key: &EntityKey) -> Result<()> {
-        self.key = key.clone();
-
-        Ok(())
-    }
     pub fn set_version(&mut self, version: u64) -> Result<()> {
         self.version.i = version;
 

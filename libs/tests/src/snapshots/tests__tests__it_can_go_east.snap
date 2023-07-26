@@ -281,7 +281,7 @@ expression: domain.snapshot().await?
       "public": "",
       "signature": null
     },
-    "key": "E-5",
+    "key": "E-4",
     "klass": {
       "py/type": ""
     },
@@ -292,7 +292,7 @@ expression: domain.snapshot().await?
         "holding": [
           {
             "gid": 7,
-            "key": "E-6",
+            "key": "E-5",
             "klass": "",
             "name": "East"
           }
@@ -339,7 +339,7 @@ expression: domain.snapshot().await?
       "public": "",
       "signature": null
     },
-    "key": "E-6",
+    "key": "E-5",
     "klass": {
       "py/type": ""
     },
@@ -356,7 +356,7 @@ expression: domain.snapshot().await?
       "location": {
         "container": {
           "gid": 6,
-          "key": "E-5",
+          "key": "E-4",
           "klass": "",
           "name": "Welcome Area"
         }
