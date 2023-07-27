@@ -53,15 +53,11 @@ impl Agent for ExampleAgent {
     fn have_surroundings(&mut self, surroundings: Surroundings) -> Result<()> {
         let (world, living, area) = surroundings.unpack();
 
-        // info!("surroundings {:?}", surroundings);
-        // let area = area.entity()?;
-        // area.set_name("My world now!")?;
-
-        info!("world {:?}", world);
-        info!("living {:?}", living);
-        info!("area {:?}", area);
+        trace!("world {:?}", world);
+        trace!("living {:?}", living);
+        trace!("area {:?}", area);
         let area_of = tools::area_of(&living)?;
-        info!("area-of: {:?}", area_of);
+        trace!("area-of: {:?}", area_of);
 
         if false {
             for dropping in tools::contained_by(&area)? {

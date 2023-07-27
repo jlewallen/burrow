@@ -68,6 +68,7 @@ pub trait ParsesActions {
 }
 
 #[derive(Clone, Debug)]
+#[non_exhaustive]
 pub enum Evaluable<'a> {
     Phrase(&'a str),
     Surroundings(Surroundings),
@@ -186,7 +187,7 @@ impl Evaluator for SessionPlugins {
             .iter()
             .map(|plugin| {
                 let _span = span!(Level::INFO, "E", plugin = plugin.key()).entered();
-                info!("evaluating");
+                info!("evaluating {:?}", &consider);
                 plugin.evaluate(perform, consider.clone())
             })
             .collect::<Result<Vec<_>>>()?

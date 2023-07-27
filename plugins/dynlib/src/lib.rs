@@ -86,7 +86,7 @@ impl LoadedLibrary {
 
             let sym = self
                 .library
-                .get::<*mut PluginDeclaration>(b"plugin_declaration\0")?;
+                .get::<*const PluginDeclaration>(b"plugin_declaration\0")?;
             let decl = sym.read();
 
             (decl.initialize)(self);
@@ -126,7 +126,7 @@ impl LoadedLibrary {
         unsafe {
             let sym = self
                 .library
-                .get::<*mut PluginDeclaration>(b"plugin_declaration\0")?;
+                .get::<*const PluginDeclaration>(b"plugin_declaration\0")?;
             let decl = sym.read();
 
             while !self.inbox.messages.is_empty() {
@@ -146,7 +146,7 @@ impl LoadedLibrary {
 
 #[derive(Default)]
 pub struct DynamicPlugin {
-    libraries: RefCell<Vec<LoadedLibrary>>,
+    libraries: Rc<RefCell<Vec<LoadedLibrary>>>,
 }
 
 impl DynamicPlugin {
@@ -230,6 +230,19 @@ impl DynamicPlugin {
     }
 }
 
+struct DynamicMiddleware {
+    prefix: String,
+}
+
+impl Middleware for DynamicMiddleware {
+    fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
+        info!("{:?} before", self.prefix);
+        let v = next.handle(value);
+        info!("{:?} after", self.prefix);
+        v
+    }
+}
+
 impl Plugin for DynamicPlugin {
     fn plugin_key() -> &'static str
     where
@@ -248,7 +261,6 @@ impl Plugin for DynamicPlugin {
             Err(e) => warn!("Error: {:?}", e),
         }
 
-        // let services = SessionServices::new_for_my_session(None)?;
         let mut libraries = self.libraries.borrow_mut();
         for library in libraries.iter_mut() {
             library.initialize()?;
@@ -258,7 +270,16 @@ impl Plugin for DynamicPlugin {
     }
 
     fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>> {
-        Ok(Vec::default())
+        let libraries = self.libraries.borrow();
+        info!("middleware for {:?} libraries", libraries.len());
+        Ok(libraries
+            .iter()
+            .map(|library| {
+                Rc::new(DynamicMiddleware {
+                    prefix: library.prefix.clone(),
+                }) as Rc<dyn Middleware>
+            })
+            .collect())
     }
 
     fn register_hooks(&self, _hooks: &ManagedHooks) -> Result<()> {

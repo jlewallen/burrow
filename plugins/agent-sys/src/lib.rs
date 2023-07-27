@@ -332,13 +332,7 @@ struct AgentPerformer {}
 impl Performer for AgentPerformer {
     fn perform(&self, perform: kernel::Perform) -> Result<Effect> {
         match perform {
-            kernel::Perform::Living {
-                living: _,
-                action: _,
-            } => todo!(),
-            kernel::Perform::Chain(_) => todo!(),
-            kernel::Perform::Effect(_) => todo!(),
-            kernel::Perform::Ping(_) => todo!(),
+            _ => todo!(),
         }
     }
 }

@@ -8,6 +8,7 @@ use super::{session::SessionRef, Entry, Surroundings};
 pub use replies::*;
 
 #[derive(Clone, Debug)]
+#[non_exhaustive]
 pub enum Effect {
     Reply(Rc<dyn Reply>),
     Action(Rc<dyn Action>),
@@ -57,6 +58,7 @@ pub trait Performer {
 }
 
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum Perform {
     Ping(String),
     Living {

@@ -4,7 +4,7 @@ use std::rc::Rc;
 use std::rc::Weak;
 use std::sync::Arc;
 use std::time::Instant;
-use tracing::{debug, info, span, Level};
+use tracing::*;
 
 use super::Session;
 use crate::users::model::HasUsernames;
@@ -106,7 +106,9 @@ impl StandardPerformer {
 
 impl Performer for StandardPerformer {
     fn perform(&self, perform: Perform) -> Result<Effect> {
-        info!("performing {:?}", perform);
+        let _span = span!(Level::INFO, "P").entered();
+
+        debug!("perform {:?}", perform);
 
         match perform {
             Perform::Chain(action) => {
@@ -114,26 +116,38 @@ impl Performer for StandardPerformer {
                     return Err(anyhow!("No active user in StandardPerformer"));
                 };
 
-                info!("action {:?}", action);
+                info!("perform:chain {:?}", action);
 
                 let living = self.evaluate_living(user)?;
 
                 self.perform(Perform::Living { living, action })
             }
             Perform::Living { living, action } => {
-                let surroundings = self.evaluate_living_surroundings(&living)?;
+                info!("perform:living");
 
-                {
+                let surroundings = {
                     let _span = span!(Level::INFO, "S").entered();
+                    let surroundings = self.evaluate_living_surroundings(&living)?;
                     info!("surroundings {:?}", &surroundings);
-                    let plugins = self.plugins.borrow();
-                    plugins.have_surroundings(&surroundings)?;
-                }
+                    if false {
+                        let plugins = self.plugins.borrow();
+                        plugins.have_surroundings(&surroundings)?;
+                    }
+                    surroundings
+                };
 
                 let request_fn = Box::new(|value: Perform| -> Result<Effect, anyhow::Error> {
                     let _span = span!(Level::INFO, "A").entered();
                     if let Perform::Chain(action) = value {
-                        action.perform(self.session()?, &surroundings)
+                        info!("action:perform {:?}", &action);
+                        let res = action.perform(self.session()?, &surroundings);
+                        if let Ok(effect) = &res {
+                            trace!("action:effect {:?}", effect);
+                            info!("action:effect");
+                        } else {
+                            warn!("action:error {:?}", res);
+                        }
+                        res
                     } else {
                         todo!()
                     }
@@ -143,8 +157,7 @@ impl Performer for StandardPerformer {
 
                 apply_middleware(&self.middleware, perform, request_fn)
             }
-            Perform::Effect(_) => todo!(),
-            Perform::Ping(_) => todo!(),
+            _ => todo!(),
         }
     }
 }
