@@ -230,15 +230,59 @@ impl DynamicPlugin {
     }
 }
 
-struct DynamicMiddleware {
+struct LibraryMiddleware {
     prefix: String,
+    library: Rc<Library>,
+}
+
+struct DynamicMiddleware {
+    libraries: Rc<RefCell<Vec<LoadedLibrary>>>,
+}
+
+impl DynamicMiddleware {
+    fn library_middleware(&self) -> Result<Vec<LibraryMiddleware>> {
+        let libraries = self.libraries.borrow();
+        Ok(libraries
+            .iter()
+            .map(|l| LibraryMiddleware {
+                prefix: l.prefix.clone(),
+                library: l.library.clone(),
+            })
+            .collect())
+    }
+}
+
+impl Middleware for LibraryMiddleware {
+    fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
+        let _span = span!(Level::INFO, "M", lib = self.prefix).entered();
+        info!("before");
+        let v = next.handle(value);
+        info!("after");
+        v
+    }
 }
 
 impl Middleware for DynamicMiddleware {
     fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
-        info!("{:?} before", self.prefix);
-        let v = next.handle(value);
-        info!("{:?} after", self.prefix);
+        let _span = span!(Level::INFO, "M", plugin = "dynlib").entered();
+
+        info!("before");
+
+        let children = self.library_middleware()?;
+
+        let request_fn =
+            Box::new(|value: Perform| -> Result<Effect, anyhow::Error> { next.handle(value) });
+
+        let chain = &mut children.iter().map(|mw| mw as &dyn Middleware);
+        let inner = MiddlewareNext {
+            chain,
+            request_fn: Box::new(request_fn),
+        };
+
+        let v = inner.handle(value);
+
+        info!("after");
+
         v
     }
 }
@@ -270,16 +314,9 @@ impl Plugin for DynamicPlugin {
     }
 
     fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>> {
-        let libraries = self.libraries.borrow();
-        info!("middleware for {:?} libraries", libraries.len());
-        Ok(libraries
-            .iter()
-            .map(|library| {
-                Rc::new(DynamicMiddleware {
-                    prefix: library.prefix.clone(),
-                }) as Rc<dyn Middleware>
-            })
-            .collect())
+        Ok(vec![Rc::new(DynamicMiddleware {
+            libraries: Rc::clone(&self.libraries),
+        })])
     }
 
     fn register_hooks(&self, _hooks: &ManagedHooks) -> Result<()> {

@@ -106,7 +106,7 @@ impl ToJson for ExampleReply {
 
 impl Reply for ExampleReply {}
 
-dynlib_sys::export_plugin!(agent_initialize, agent_tick);
+dynlib_sys::export_plugin!(agent_initialize, agent_middleware, agent_tick);
 
 #[allow(improper_ctypes_definitions)]
 extern "C" fn agent_initialize(dh: &mut dyn DynamicHost) {
@@ -116,4 +116,9 @@ extern "C" fn agent_initialize(dh: &mut dyn DynamicHost) {
 #[allow(improper_ctypes_definitions)]
 unsafe extern "C" fn agent_tick(dh: &mut dyn DynamicHost, state: *const std::ffi::c_void) {
     default_agent_tick::<ExampleAgent>(dh, state);
+}
+
+#[allow(improper_ctypes_definitions)]
+unsafe extern "C" fn agent_middleware(_dh: &mut dyn DynamicHost, _state: *const std::ffi::c_void) {
+    // default_agent_tick::<ExampleAgent>(dh, state);
 }

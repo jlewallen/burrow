@@ -204,7 +204,7 @@ pub trait Middleware: 'static {
 
 // This was copied from https://docs.rs/ureq/latest/src/ureq/middleware.rs.html#135-146
 pub struct MiddlewareNext<'a> {
-    pub(crate) chain: &'a mut (dyn Iterator<Item = &'a dyn Middleware>),
+    pub chain: &'a mut (dyn Iterator<Item = &'a dyn Middleware>),
     // Since request_fn consumes the Payload<'a>, we must have an FnOnce.
     //
     // It's possible to get rid of this Box if we make MiddlewareNext generic
@@ -213,7 +213,7 @@ pub struct MiddlewareNext<'a> {
     // type signature that is totally irrelevant for someone implementing a middleware.
     //
     // So in the name of having a sane external API, we accept this Box.
-    pub(crate) request_fn: Box<dyn FnOnce(Perform) -> Result<Effect, anyhow::Error> + 'a>,
+    pub request_fn: Box<dyn FnOnce(Perform) -> Result<Effect, anyhow::Error> + 'a>,
 }
 
 impl<'a> MiddlewareNext<'a> {

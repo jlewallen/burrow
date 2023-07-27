@@ -28,6 +28,7 @@ pub struct PluginDeclaration {
     // pub rustc_version: &'static str,
     pub core_version: &'static str,
     pub initialize: unsafe extern "C" fn(&mut dyn DynamicHost),
+    pub middleware: unsafe extern "C" fn(&mut dyn DynamicHost, state: *const std::ffi::c_void),
     pub tick: unsafe extern "C" fn(&mut dyn DynamicHost, state: *const std::ffi::c_void),
 }
 
@@ -43,13 +44,14 @@ pub trait DynamicHost {
 
 #[macro_export]
 macro_rules! export_plugin {
-    ($initialize:expr, $tick:expr) => {
+    ($initialize:expr, $middleware:expr, $tick:expr) => {
         #[doc(hidden)]
         #[no_mangle]
         pub static plugin_declaration: $crate::PluginDeclaration = $crate::PluginDeclaration {
             core_version: $crate::CORE_VERSION,
             // rustc_version: $crate::RUSTC_VERSION,
             initialize: $initialize,
+            middleware: $middleware,
             tick: $tick,
         };
     };
