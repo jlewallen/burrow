@@ -7,6 +7,48 @@ use super::{session::SessionRef, Entry, Surroundings};
 
 pub use replies::*;
 
+pub type ReplyResult = anyhow::Result<Effect>;
+
+/// TODO Make generic
+pub trait Action: Debug {
+    fn is_read_only() -> bool
+    where
+        Self: Sized;
+
+    fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult;
+}
+
+/// TODO Consider giving this Trait and the combination of another the ability to
+/// extract itself, potentially cleaning up Entity.
+pub trait Scope: Needs<SessionRef> + DeserializeOwned + Default + Debug {
+    fn scope_key() -> &'static str
+    where
+        Self: Sized;
+
+    fn serialize(&self) -> Result<Value>;
+}
+
+/// I would love to deprecate this but I don't know if I'll need it.
+pub trait Needs<T> {
+    fn supply(&mut self, resource: &T) -> Result<()>;
+}
+
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum Perform {
+    Ping(String),
+    Living {
+        living: Entry,
+        action: Box<dyn Action>, // Consider making this recursive?
+    },
+    Chain(Box<dyn Action>),
+    Effect(Effect),
+}
+
+pub trait Performer {
+    fn perform(&self, perform: Perform) -> Result<Effect>;
+}
+
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum Effect {
@@ -29,42 +71,4 @@ impl<T: Reply + 'static> From<T> for Effect {
     fn from(value: T) -> Self {
         Self::Reply(Rc::new(value))
     }
-}
-
-pub type ReplyResult = anyhow::Result<Effect>;
-
-pub trait Action: Debug {
-    fn is_read_only() -> bool
-    where
-        Self: Sized;
-
-    fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult;
-}
-
-pub trait Scope: Needs<SessionRef> + DeserializeOwned + Default + Debug {
-    fn scope_key() -> &'static str
-    where
-        Self: Sized;
-
-    fn serialize(&self) -> Result<Value>;
-}
-
-pub trait Needs<T> {
-    fn supply(&mut self, resource: &T) -> Result<()>;
-}
-
-pub trait Performer {
-    fn perform(&self, perform: Perform) -> Result<Effect>;
-}
-
-#[derive(Debug)]
-#[non_exhaustive]
-pub enum Perform {
-    Ping(String),
-    Living {
-        living: Entry,
-        action: Box<dyn Action>, // Consider making this recursive?
-    },
-    Chain(Box<dyn Action>),
-    Effect(Effect),
 }
