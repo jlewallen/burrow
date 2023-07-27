@@ -337,6 +337,8 @@ impl Performer for AgentPerformer {
                 action: _,
             } => todo!(),
             kernel::Perform::Chain(_) => todo!(),
+            kernel::Perform::Effect(_) => todo!(),
+            kernel::Perform::Ping(_) => todo!(),
         }
     }
 }

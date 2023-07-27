@@ -133,6 +133,8 @@ impl Performer for StandardPerformer {
 
                 Ok(reply)
             }
+            Perform::Effect(_) => todo!(),
+            Perform::Ping(_) => todo!(),
         }
     }
 }

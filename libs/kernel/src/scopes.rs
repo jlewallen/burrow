@@ -11,6 +11,7 @@ pub use replies::*;
 pub enum Effect {
     Reply(Rc<dyn Reply>),
     Action(Rc<dyn Action>),
+    Pong(String),
 }
 
 impl ToJson for Effect {
@@ -57,9 +58,11 @@ pub trait Performer {
 
 #[derive(Debug)]
 pub enum Perform {
+    Ping(String),
     Living {
         living: Entry,
         action: Box<dyn Action>, // Consider making this recursive?
     },
     Chain(Box<dyn Action>),
+    Effect(Effect),
 }
