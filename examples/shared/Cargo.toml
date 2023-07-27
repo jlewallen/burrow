@@ -12,6 +12,10 @@ path = "../../plugins/core"
 [dependencies.dynlib-sys]
 path = "../../plugins/dynlib-sys"
 
+# Temporary, for proof of concept.
+[dependencies.kernel]
+path = "../../libs/kernel"
+
 [dependencies]
 anyhow = "1.0.71"
 tracing = "0.1.37"

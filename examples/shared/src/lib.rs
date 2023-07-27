@@ -2,9 +2,10 @@ use std::rc::Rc;
 
 use anyhow::Result;
 use chrono::Duration;
+use kernel::Perform;
 use tracing::*;
 
-use dynlib_sys::prelude::*;
+use dynlib_sys::{prelude::*, DynamicNext};
 use plugins_core::{
     carrying::model::CarryingEvent,
     library::{
@@ -119,6 +120,9 @@ unsafe extern "C" fn agent_tick(dh: &mut dyn DynamicHost, state: *const std::ffi
 }
 
 #[allow(improper_ctypes_definitions)]
-unsafe extern "C" fn agent_middleware(_dh: &mut dyn DynamicHost, _state: *const std::ffi::c_void) {
-    // default_agent_tick::<ExampleAgent>(dh, state);
+unsafe extern "C" fn agent_middleware(perform: Perform, next: DynamicNext) -> Result<Effect> {
+    info!("before");
+    let v = (next.n)(perform);
+    info!("after = {:?}", v);
+    v
 }

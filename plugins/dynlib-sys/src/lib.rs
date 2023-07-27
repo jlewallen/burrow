@@ -1,5 +1,6 @@
 use anyhow::Result;
 use bincode::{Decode, Encode};
+use kernel::{Effect, Perform};
 use tracing::{dispatcher, error, Dispatch, Subscriber};
 
 pub use agent_sys::*;
@@ -23,12 +24,16 @@ impl DynMessage {
 // pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 pub static CORE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
+pub struct DynamicNext<'a> {
+    pub n: Box<dyn FnOnce(Perform) -> Result<Effect> + 'a>,
+}
+
 #[derive(Copy, Clone)]
 pub struct PluginDeclaration {
     // pub rustc_version: &'static str,
     pub core_version: &'static str,
     pub initialize: unsafe extern "C" fn(&mut dyn DynamicHost),
-    pub middleware: unsafe extern "C" fn(&mut dyn DynamicHost, state: *const std::ffi::c_void),
+    pub middleware: unsafe extern "C" fn(Perform, DynamicNext) -> Result<Effect>,
     pub tick: unsafe extern "C" fn(&mut dyn DynamicHost, state: *const std::ffi::c_void),
 }
 

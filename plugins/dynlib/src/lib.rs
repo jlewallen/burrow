@@ -3,7 +3,7 @@ use libloading::Library;
 use std::{cell::RefCell, collections::VecDeque, rc::Rc, sync::Arc};
 use tracing::{dispatcher::get_default, info, span, trace, warn, Level, Subscriber};
 
-use dynlib_sys::prelude::*;
+use dynlib_sys::{prelude::*, DynamicNext};
 use kernel::{ManagedHooks, Plugin, PluginFactory};
 use plugins_core::library::plugin::*;
 use plugins_rpc::{have_surroundings, Querying, SessionServices};
@@ -256,7 +256,20 @@ impl Middleware for LibraryMiddleware {
     fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
         let _span = span!(Level::INFO, "M", lib = self.prefix).entered();
         info!("before");
-        let v = next.handle(value);
+
+        let v = unsafe {
+            let sym = self
+                .library
+                .get::<*const PluginDeclaration>(b"plugin_declaration\0")?;
+            let decl = sym.read();
+
+            let temp = DynamicNext {
+                n: Box::new(|value| next.handle(value)),
+            };
+
+            (decl.middleware)(value, temp)
+        };
+
         info!("after");
         v
     }
