@@ -1,6 +1,5 @@
 use anyhow::Result;
 use bincode::{Decode, Encode};
-use kernel::{Effect, Perform};
 use tracing::{dispatcher, error, Dispatch, Subscriber};
 
 pub use agent_sys::*;

@@ -2,7 +2,6 @@ use std::rc::Rc;
 
 use anyhow::Result;
 use chrono::Duration;
-use kernel::Perform;
 use tracing::*;
 
 use dynlib_sys::{prelude::*, DynamicNext};
@@ -123,6 +122,6 @@ unsafe extern "C" fn agent_tick(dh: &mut dyn DynamicHost, state: *const std::ffi
 unsafe extern "C" fn agent_middleware(perform: Perform, next: DynamicNext) -> Result<Effect> {
     info!("before");
     let v = (next.n)(perform);
-    info!("after = {:?}", v);
+    info!("after");
     v
 }

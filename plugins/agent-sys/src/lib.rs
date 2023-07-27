@@ -5,10 +5,12 @@ use tracing::*;
 
 use kernel::{
     any_entity_changes, get_my_session, set_my_session, ActiveSession, AnyChanges, Audience,
-    DomainError, DomainEvent, Effect, EntityPtr, Entry, Evaluator, Original, Performer,
+    DomainError, DomainEvent, EntityPtr, Entry, Evaluator, Original, Performer,
 };
 
 pub use rpc_proto::{EntityUpdate, IncomingMessage, LookupBy, Payload, Query};
+
+pub use kernel::{Effect, Perform};
 
 struct WorkingEntity {
     original: serde_json::Value,

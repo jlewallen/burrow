@@ -318,6 +318,13 @@ impl Plugin for DynamicPlugin {
             Err(e) => warn!("Error: {:?}", e),
         }
 
+        if false {
+            match self.open_dynamic() {
+                Ok(v) => trace!("{:?}", v),
+                Err(e) => warn!("Error: {:?}", e),
+            }
+        }
+
         let mut libraries = self.libraries.borrow_mut();
         for library in libraries.iter_mut() {
             library.initialize()?;
