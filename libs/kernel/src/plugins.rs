@@ -1,5 +1,5 @@
 use anyhow::Result;
-use std::time::Instant;
+use std::{rc::Rc, time::Instant};
 use tracing::*;
 
 use super::{model::*, Action, ManagedHooks};
@@ -212,7 +212,7 @@ impl<'a> MiddlewareNext<'a> {
 }
 
 pub fn apply_middleware<F>(
-    all: &[Box<dyn Middleware>],
+    all: &[Rc<dyn Middleware>],
     value: Perform,
     request_fn: F,
 ) -> Result<Effect>
@@ -284,7 +284,7 @@ mod tests {
 
     #[test]
     fn should_call_handle_with_no_middleware() -> Result<()> {
-        let all: Vec<Box<dyn Middleware>> = Vec::new();
+        let all: Vec<Rc<dyn Middleware>> = Vec::new();
         let request_fn = Box::new(|value: Perform| -> Result<Effect, anyhow::Error> {
             match value {
                 Perform::Ping(value) => Ok(Effect::Pong(format!("{}$", value))),
@@ -306,8 +306,8 @@ mod tests {
 
     #[test]
     fn should_middleware_in_expected_order() -> Result<()> {
-        let all: Vec<Box<dyn Middleware>> =
-            vec![Box::new(Middle::from("A")), Box::new(Middle::from("B"))];
+        let all: Vec<Rc<dyn Middleware>> =
+            vec![Rc::new(Middle::from("A")), Rc::new(Middle::from("B"))];
         let request_fn = Box::new(|value: Perform| -> Result<Effect, anyhow::Error> {
             match value {
                 Perform::Ping(value) => Ok(Effect::Pong(format!("{}$", value))),
