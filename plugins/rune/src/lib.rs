@@ -71,6 +71,10 @@ impl Plugin for RunePlugin {
         Ok(())
     }
 
+    fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>> {
+        Ok(Vec::default())
+    }
+
     fn register_hooks(&self, hooks: &ManagedHooks) -> Result<()> {
         hooks::register(hooks, &self.runners)
     }

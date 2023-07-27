@@ -173,6 +173,11 @@ impl Plugin for RpcPlugin {
         self.server.initialize()
     }
 
+    #[tracing::instrument(name = "rpc-middleware", skip(self))]
+    fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>> {
+        Ok(Vec::default())
+    }
+
     #[tracing::instrument(name = "rpc-register", skip_all)]
     fn register_hooks(&self, _hooks: &ManagedHooks) -> Result<()> {
         Ok(())

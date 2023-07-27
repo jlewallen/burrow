@@ -1,6 +1,8 @@
 use anyhow::Result;
-use std::{rc::Rc, time::Instant};
+use std::time::Instant;
 use tracing::*;
+
+pub use std::rc::Rc;
 
 use super::{model::*, Action, ManagedHooks};
 use crate::{Effect, Perform, Performer, Surroundings};
@@ -101,6 +103,8 @@ pub trait Plugin: Evaluator {
 
     fn initialize(&mut self) -> Result<()>;
 
+    fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>>;
+
     fn register_hooks(&self, hooks: &ManagedHooks) -> Result<()>;
 
     fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()>;
@@ -132,6 +136,17 @@ impl SessionPlugins {
             }
         }
         Ok(())
+    }
+
+    pub fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>> {
+        Ok(self
+            .plugins
+            .iter_mut()
+            .map(|plugin| plugin.middleware())
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .flatten()
+            .collect())
     }
 
     pub fn hooks(&self) -> Result<ManagedHooks> {

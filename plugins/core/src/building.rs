@@ -34,6 +34,10 @@ impl Plugin for BuildingPlugin {
         Ok(())
     }
 
+    fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>> {
+        Ok(Vec::default())
+    }
+
     fn register_hooks(&self, _hooks: &ManagedHooks) -> Result<()> {
         Ok(())
     }

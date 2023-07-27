@@ -14,6 +14,7 @@ pub struct StandardPerformer {
     session: Weak<Session>,
     finder: Arc<dyn Finder>,
     plugins: Arc<RefCell<SessionPlugins>>,
+    middleware: Rc<Vec<Rc<dyn Middleware>>>,
     user: Option<String>,
 }
 
@@ -22,12 +23,14 @@ impl StandardPerformer {
         session: &Weak<Session>,
         finder: Arc<dyn Finder>,
         plugins: Arc<RefCell<SessionPlugins>>,
+        middleware: Rc<Vec<Rc<dyn Middleware>>>,
         user: Option<String>,
     ) -> Rc<Self> {
         Rc::new(StandardPerformer {
             session: Weak::clone(session),
             finder,
             plugins,
+            middleware,
             user,
         })
     }
@@ -62,6 +65,7 @@ impl StandardPerformer {
             session: Rc::downgrade(&self.session()?),
             finder: Arc::clone(&self.finder),
             plugins: Arc::clone(&self.plugins),
+            middleware: Rc::clone(&self.middleware),
             user: Some(name.to_owned()),
         })
     }
@@ -126,12 +130,18 @@ impl Performer for StandardPerformer {
                     plugins.have_surroundings(&surroundings)?;
                 }
 
-                let reply = {
+                let request_fn = Box::new(|value: Perform| -> Result<Effect, anyhow::Error> {
                     let _span = span!(Level::INFO, "A").entered();
-                    action.perform(self.session()?, &surroundings)?
-                };
+                    if let Perform::Chain(action) = value {
+                        action.perform(self.session()?, &surroundings)
+                    } else {
+                        todo!()
+                    }
+                });
 
-                Ok(reply)
+                let perform = Perform::Chain(action);
+
+                apply_middleware(&self.middleware, perform, request_fn)
             }
             Perform::Effect(_) => todo!(),
             Perform::Ping(_) => todo!(),

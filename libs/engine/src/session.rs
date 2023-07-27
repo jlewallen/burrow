@@ -65,6 +65,11 @@ impl Session {
             plugins.hooks()?
         };
 
+        let middleware: Rc<Vec<Rc<dyn Middleware>>> = {
+            let mut plugins = plugins.borrow_mut();
+            Rc::new(plugins.middleware()?)
+        };
+
         let ids = GlobalIds::new();
         let entities = Entities::new(EntityMap::new());
         let session = Rc::new_cyclic(|weak: &Weak<Session>| Self {
@@ -76,7 +81,13 @@ impl Session {
             weak: Weak::clone(weak),
             open: AtomicBool::new(true),
             save_required: AtomicBool::new(false),
-            performer: StandardPerformer::new(weak, Arc::clone(finder), Arc::clone(&plugins), None),
+            performer: StandardPerformer::new(
+                weak,
+                Arc::clone(finder),
+                Arc::clone(&plugins),
+                middleware,
+                None,
+            ),
             raised: Rc::new(RefCell::new(Vec::new())),
             keys: Arc::clone(keys),
             identities: Arc::clone(identities),
