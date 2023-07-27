@@ -181,13 +181,9 @@ impl Evaluator for SessionPlugins {
     }
 }
 
-pub type Request = Perform;
-
-pub type Response = Effect;
-
 // This was copied from https://docs.rs/ureq/latest/src/ureq/middleware.rs.html#135-146
 pub trait Middleware: 'static {
-    fn handle(&self, value: Request, next: MiddlewareNext) -> Result<Response, anyhow::Error>;
+    fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error>;
 }
 
 // This was copied from https://docs.rs/ureq/latest/src/ureq/middleware.rs.html#135-146
@@ -201,12 +197,12 @@ pub struct MiddlewareNext<'a> {
     // type signature that is totally irrelevant for someone implementing a middleware.
     //
     // So in the name of having a sane external API, we accept this Box.
-    pub(crate) request_fn: Box<dyn FnOnce(Request) -> Result<Response, anyhow::Error> + 'a>,
+    pub(crate) request_fn: Box<dyn FnOnce(Perform) -> Result<Effect, anyhow::Error> + 'a>,
 }
 
 impl<'a> MiddlewareNext<'a> {
-    /// Continue the middleware chain by providing (a possibly amended) [`Request`].
-    pub fn handle(self, request: Request) -> Result<Response, anyhow::Error> {
+    /// Continue the middleware chain by providing (a possibly amended) [`Perform`].
+    pub fn handle(self, request: Perform) -> Result<Effect, anyhow::Error> {
         if let Some(step) = self.chain.next() {
             step.handle(request, self)
         } else {
@@ -217,11 +213,11 @@ impl<'a> MiddlewareNext<'a> {
 
 pub fn apply_middleware<F>(
     all: &[Box<dyn Middleware>],
-    value: Request,
+    value: Perform,
     request_fn: F,
-) -> Result<Response>
+) -> Result<Effect>
 where
-    F: Fn(Request) -> Result<Response>,
+    F: Fn(Perform) -> Result<Effect>,
 {
     let chain = &mut all.iter().map(|mw| mw.as_ref());
     let next = MiddlewareNext {
@@ -234,9 +230,9 @@ where
 
 impl<F> Middleware for F
 where
-    F: Fn(Request, MiddlewareNext) -> Result<Response, anyhow::Error> + Send + Sync + 'static,
+    F: Fn(Perform, MiddlewareNext) -> Result<Effect, anyhow::Error> + Send + Sync + 'static,
 {
-    fn handle(&self, request: Request, next: MiddlewareNext) -> Result<Response, anyhow::Error> {
+    fn handle(&self, request: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
         (self)(request, next)
     }
 }
@@ -267,15 +263,13 @@ mod tests {
     }
 
     impl Middleware for Middle {
-        fn handle(&self, value: Request, next: MiddlewareNext) -> Result<Response, anyhow::Error> {
+        fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
             match value {
                 Perform::Ping(value) => {
                     match next.handle(Perform::Ping(format!("{}{}", value, self.token)))? {
                         Effect::Reply(_) => todo!(),
                         Effect::Action(_) => todo!(),
-                        Effect::Pong(value) => {
-                            Ok(Response::Pong(format!("{}{}", value, self.token)))
-                        }
+                        Effect::Pong(value) => Ok(Effect::Pong(format!("{}{}", value, self.token))),
                     }
                 }
                 Perform::Living {
@@ -291,9 +285,9 @@ mod tests {
     #[test]
     fn should_call_handle_with_no_middleware() -> Result<()> {
         let all: Vec<Box<dyn Middleware>> = Vec::new();
-        let request_fn = Box::new(|value: Request| -> Result<Response, anyhow::Error> {
+        let request_fn = Box::new(|value: Perform| -> Result<Effect, anyhow::Error> {
             match value {
-                Perform::Ping(value) => Ok(Response::Pong(format!("{}$", value))),
+                Perform::Ping(value) => Ok(Effect::Pong(format!("{}$", value))),
                 Perform::Living {
                     living: _,
                     action: _,
@@ -314,9 +308,9 @@ mod tests {
     fn should_middleware_in_expected_order() -> Result<()> {
         let all: Vec<Box<dyn Middleware>> =
             vec![Box::new(Middle::from("A")), Box::new(Middle::from("B"))];
-        let request_fn = Box::new(|value: Request| -> Result<Response, anyhow::Error> {
+        let request_fn = Box::new(|value: Perform| -> Result<Effect, anyhow::Error> {
             match value {
-                Perform::Ping(value) => Ok(Response::Pong(format!("{}$", value))),
+                Perform::Ping(value) => Ok(Effect::Pong(format!("{}$", value))),
                 Perform::Living {
                     living: _,
                     action: _,
