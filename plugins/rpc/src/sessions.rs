@@ -171,7 +171,7 @@ impl Services for SessionServices {
         if let Some(entry) = session.entry(&kernel::LookupBy::Key(&update.key.into()))? {
             let value: serde_json::Value = update.entity.into();
             let replacing = deserialize_entity_from_value(value)?;
-            let entity = entry.entity()?;
+            let entity = entry.entity();
             entity.replace(replacing);
             Ok(())
         } else {

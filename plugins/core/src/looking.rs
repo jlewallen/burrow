@@ -101,7 +101,7 @@ pub mod model {
                 carryable.quantity()
             };
             let key = self.key().to_string();
-            let myself = self.entity()?.borrow();
+            let myself = self.entity().borrow();
             let name = myself.name();
             let desc = myself.desc();
             let qualified = name.as_ref().map(|n| qualify_name(quantity, n));

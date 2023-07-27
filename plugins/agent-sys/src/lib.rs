@@ -46,7 +46,7 @@ impl WorkingEntities {
             .map(|(key, modified)| {
                 if let Some(modified) = any_entity_changes(AnyChanges {
                     before: Some(Original::Json(&modified.original)),
-                    after: modified.entry.entity()?.clone(),
+                    after: modified.entry.entity().clone(),
                 })? {
                     debug!("{:?} modified", key);
                     Ok(vec![Query::Update(EntityUpdate::new(
@@ -117,7 +117,7 @@ impl ActiveSession for AgentSession {
         if entity_ref.has_entity() {
             Ok(entity_ref.clone())
         } else if let Some(entity) = &self.entry(&kernel::LookupBy::Key(entity_ref.key()))? {
-            Ok(entity.entity()?.into())
+            Ok(entity.entity().into())
         } else {
             Err(DomainError::EntityNotFound)
         }

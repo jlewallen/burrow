@@ -41,33 +41,33 @@ impl Entry {
         &self.key
     }
 
-    pub fn entity(&self) -> Result<&EntityPtr, DomainError> {
-        Ok(&self.entity)
+    pub fn entity(&self) -> &EntityPtr {
+        &self.entity
     }
 
     pub fn name(&self) -> Result<Option<String>, DomainError> {
-        let entity = self.entity()?;
+        let entity = self.entity();
         let entity = entity.borrow();
 
         Ok(entity.name())
     }
 
     pub fn desc(&self) -> Result<Option<String>, DomainError> {
-        let entity = self.entity()?;
+        let entity = self.entity();
         let entity = entity.borrow();
 
         Ok(entity.desc())
     }
 
     pub fn has_scope<T: Scope>(&self) -> Result<bool, DomainError> {
-        let entity = self.entity()?;
+        let entity = self.entity();
         let entity = entity.borrow();
 
         Ok(entity.has_scope::<T>())
     }
 
     pub fn scope<T: Scope>(&self) -> Result<OpenedScope<T>, DomainError> {
-        let entity = self.entity()?;
+        let entity = self.entity();
         let entity = entity.borrow();
         let scope = entity.load_scope::<T>()?;
 
@@ -75,7 +75,7 @@ impl Entry {
     }
 
     pub fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeMut<T>, DomainError> {
-        let entity = self.entity()?;
+        let entity = self.entity();
         let entity = entity.borrow();
         let scope = entity.load_scope::<T>()?;
 
@@ -135,7 +135,7 @@ impl TryFrom<&Entry> for EntityRef {
     type Error = DomainError;
 
     fn try_from(entry: &Entry) -> Result<Self, Self::Error> {
-        Ok(EntityRef::new_from_raw(&entry.entity()?.entity))
+        Ok(EntityRef::new_from_raw(&entry.entity().entity))
     }
 }
 
@@ -202,7 +202,7 @@ impl<T: Scope> OpenedScopeMut<T> {
     }
 
     pub fn save(&mut self) -> Result<(), DomainError> {
-        let entity = self.owner.entity()?;
+        let entity = self.owner.entity();
         let mut entity = entity.borrow_mut();
 
         entity.replace_scope::<T>(&self.target)

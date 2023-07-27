@@ -103,7 +103,7 @@ pub mod actions {
             match session.find_item(surroundings, &self.item)? {
                 Some(editing) => {
                     info!("editing {:?}", editing);
-                    let editing = editing.entity()?;
+                    let editing = editing.entity();
                     Ok(EditorReply::new(
                         editing.key().to_string(),
                         WorkingCopy::Json(editing.to_json_value()?),
@@ -131,7 +131,7 @@ pub mod actions {
             match session.find_item(surroundings, &self.item)? {
                 Some(editing) => {
                     info!("editing {:?}", editing);
-                    let editing = editing.entity()?;
+                    let editing = editing.entity();
                     Ok(EditorReply::new(
                         editing.key().to_string(),
                         WorkingCopy::Json(editing.to_json_value()?),
@@ -310,7 +310,7 @@ pub mod actions {
 
             match session.entry(&LookupBy::Key(&self.key))? {
                 Some(entry) => {
-                    let entity = entry.entity()?;
+                    let entity = entry.entity();
                     info!("mutate:entity {:?}", entity);
 
                     match &self.copy {
@@ -721,7 +721,7 @@ mod tests {
         let (session, surroundings) = build.plain().build()?;
         let (_, living, area) = surroundings.unpack();
 
-        let original = living.entity()?;
+        let original = living.entity();
         let original = original.to_json_value()?;
 
         let action = Box::new(SaveWorkingCopyAction {

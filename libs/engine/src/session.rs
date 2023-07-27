@@ -366,7 +366,7 @@ impl ActiveSession for Session {
     }
 
     fn obliterate(&self, entry: &Entry) -> Result<()> {
-        let destroying = entry.entity()?;
+        let destroying = entry.entity();
         let mut destroying = destroying.borrow_mut();
         destroying.destroy()?;
 

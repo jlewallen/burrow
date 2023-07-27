@@ -136,7 +136,7 @@ pub fn get_occupant_keys(area: &Entry) -> Result<Vec<EntityKey>> {
 }
 
 pub fn new_entity_from_template_ptr(template_entry: &Entry) -> Result<Entry> {
-    let template = template_entry.entity()?;
+    let template = template_entry.entity();
     let entity = EntityPtr::new(Entity::new_from(&template.borrow())?);
     get_my_session()?.add_entity(&entity)
 }
