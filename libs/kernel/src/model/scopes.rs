@@ -207,7 +207,7 @@ impl CoreProps for Properties {
             .as_ref()
             .unwrap()
             .u64_property(GID_PROPERTY)
-            .map(EntityGid)
+            .map(EntityGid::new)
     }
 
     fn set_gid(&mut self, gid: EntityGid) -> Result<(), DomainError> {

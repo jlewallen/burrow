@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::{
     cell::RefCell,
@@ -8,10 +7,10 @@ use std::{
     ops::{Deref, Index},
     rc::{Rc, Weak},
 };
-use thiserror::Error;
 use tracing::*;
 
-use replies::ToJson;
+pub mod base;
+pub use base::*;
 
 pub mod entry;
 pub use entry::*;
@@ -21,143 +20,8 @@ pub use scopes::*;
 
 use super::{session::*, Needs, Scope};
 
-pub static WORLD_KEY: &str = "world";
-
-pub static NAME_PROPERTY: &str = "name";
-
-pub static DESC_PROPERTY: &str = "desc";
-
-pub static GID_PROPERTY: &str = "gid";
-
-pub static DESTROYED_PROPERTY: &str = "destroyed";
-
-#[derive(Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
-pub struct EntityKey(String);
-
-impl EntityKey {
-    pub fn blank() -> EntityKey {
-        EntityKey("".to_string())
-    }
-
-    pub fn new(s: &str) -> EntityKey {
-        EntityKey(s.to_string())
-    }
-
-    pub fn from_string(s: String) -> EntityKey {
-        EntityKey(s)
-    }
-
-    pub fn key_to_string(&self) -> &str {
-        &self.0
-    }
-}
-
-impl Debug for EntityKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "`{}`", self.0)
-    }
-}
-
-impl Display for EntityKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<EntityKey> for String {
-    fn from(key: EntityKey) -> Self {
-        key.to_string()
-    }
-}
-
-impl From<&str> for EntityKey {
-    fn from(value: &str) -> Self {
-        Self::new(value)
-    }
-}
-
-#[derive(Clone, Eq, PartialEq, Hash, Serialize, Deserialize, Debug)]
-pub struct EntityGid(u64);
-
-impl EntityGid {
-    pub fn new(i: u64) -> EntityGid {
-        EntityGid(i)
-    }
-
-    pub fn gid_to_string(&self) -> String {
-        format!("{}", self.0)
-    }
-}
-
-impl Display for EntityGid {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<EntityGid> for u64 {
-    fn from(gid: EntityGid) -> Self {
-        gid.0
-    }
-}
-
-impl From<&EntityGid> for u64 {
-    fn from(gid: &EntityGid) -> Self {
-        gid.0
-    }
-}
-
-#[derive(Debug)]
-pub enum LookupBy<'a> {
-    Key(&'a EntityKey),
-    Gid(&'a EntityGid),
-}
-
 pub trait LoadsEntities {
     fn load_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>>;
-}
-
-#[derive(Debug, Clone)]
-pub enum When {
-    Interval(Duration),
-    Time(DateTime<Utc>),
-}
-
-impl When {
-    pub fn to_utc_time(&self) -> std::result::Result<DateTime<Utc>, DomainError> {
-        match self {
-            When::Interval(duration) => Ok(Utc::now()
-                .checked_add_signed(*duration)
-                .ok_or_else(|| DomainError::Overflow)?),
-            When::Time(time) => Ok(time.clone()),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum Audience {
-    Nobody,
-    Everybody,
-    Individuals(Vec<EntityKey>),
-    Area(EntityKey),
-}
-
-pub trait DomainEvent: ToJson + Debug {}
-
-#[derive(Debug)]
-pub enum DomainOutcome {
-    Ok,
-    Nope,
-}
-
-#[derive(Debug, Clone, Serialize, Eq, PartialEq)]
-pub enum Item {
-    Area,
-    Named(String),
-    Route(String),
-    Gid(EntityGid),
-    Contained(Box<Item>),
-    Held(Box<Item>),
 }
 
 #[derive(Clone)]
@@ -268,54 +132,6 @@ impl Debug for EntityPtr {
             write!(f, "Entity(?, `{}`, {})", &lazy.name, &lazy.key)
         }
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-pub struct Identity {
-    private: String,
-    public: String,
-    signature: Option<String>, // TODO Why does this happen in the model?
-}
-
-impl Identity {
-    pub fn new(public: String, private: String) -> Self {
-        Self {
-            private,
-            public,
-            signature: None,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-pub struct Kind {
-    identity: Identity,
-}
-
-impl Kind {
-    pub fn new(identity: Identity) -> Self {
-        Self {
-            identity,
-            ..Self::default()
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct EntityClass {
-    #[serde(rename = "py/type")]
-    py_type: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AclRule {
-    keys: Vec<String>,
-    perm: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct Acls {
-    rules: Vec<AclRule>,
 }
 
 #[derive(Clone, Deserialize)]
@@ -571,12 +387,6 @@ impl Debug for EntityRef {
     }
 }
 
-impl From<&EntityPtr> for EntityRef {
-    fn from(entity: &EntityPtr) -> Self {
-        entity.lazy.borrow().clone()
-    }
-}
-
 impl TryFrom<EntityRef> for Entry {
     type Error = DomainError;
 
@@ -587,64 +397,8 @@ impl TryFrom<EntityRef> for Entry {
     }
 }
 
-#[derive(Error, Debug)]
-pub enum DomainError {
-    #[error("No such scope '{:?}' on entity '{:?}'", .0, .1)]
-    NoSuchScope(EntityKey, String),
-    #[error("Parse failed")]
-    ParseFailed(#[source] serde_json::Error),
-    #[error("Dangling entity")]
-    DanglingEntity,
-    #[error("Anyhow error")]
-    Anyhow(#[source] anyhow::Error),
-    #[error("No session")]
-    NoSession,
-    #[error("Expired session")]
-    ExpiredSession,
-    #[error("Session closed")]
-    SessionClosed,
-    #[error("Container required")]
-    ContainerRequired,
-    #[error("Entity not found")]
-    EntityNotFound,
-    #[error("Impossible")]
-    Impossible,
-    #[error("Overflow")]
-    Overflow,
-}
-
-impl From<serde_json::Error> for DomainError {
-    fn from(source: serde_json::Error) -> Self {
-        DomainError::ParseFailed(source)
-    }
-}
-
-impl From<anyhow::Error> for DomainError {
-    fn from(source: anyhow::Error) -> Self {
-        DomainError::Anyhow(source)
-    }
-}
-
-#[derive(Error, Debug)]
-pub enum EvaluationError {
-    #[error("Parse failed")]
-    ParseFailed,
-    #[error("Anyhow error")]
-    Anyhow(#[source] anyhow::Error),
-}
-
-impl From<nom::Err<nom::error::Error<&str>>> for EvaluationError {
-    fn from(source: nom::Err<nom::error::Error<&str>>) -> EvaluationError {
-        match source {
-            nom::Err::Incomplete(_) => EvaluationError::ParseFailed,
-            nom::Err::Error(_) => EvaluationError::ParseFailed,
-            nom::Err::Failure(_) => EvaluationError::ParseFailed,
-        }
-    }
-}
-
-impl From<anyhow::Error> for EvaluationError {
-    fn from(source: anyhow::Error) -> Self {
-        EvaluationError::Anyhow(source)
+impl From<&EntityPtr> for EntityRef {
+    fn from(entity: &EntityPtr) -> Self {
+        entity.lazy.borrow().clone()
     }
 }
