@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use tracing::{debug, info};
 
 use crate::{moving::model::Occupying, tools};
-use kernel::{get_my_session, Audience, DomainError, Entry, Finder, Item, Surroundings};
+use kernel::{get_my_session, Audience, DomainError, Entry, Finder, IntoEntry, Item, Surroundings};
 
 /// Determines if an entity matches a user's description of that entity, given
 /// no other context at all.

@@ -135,7 +135,7 @@ impl TryFrom<&Entry> for EntityRef {
     type Error = DomainError;
 
     fn try_from(entry: &Entry) -> Result<Self, Self::Error> {
-        Ok(EntityRef::new_with_entity(entry.entity()?))
+        Ok(EntityRef::new_from_raw(&entry.entity()?.entity))
     }
 }
 
@@ -143,7 +143,7 @@ impl TryFrom<EntityRef> for Option<Entry> {
     type Error = DomainError;
 
     fn try_from(value: EntityRef) -> Result<Self, Self::Error> {
-        let session = get_my_session().expect("No active better session");
+        let session = get_my_session().expect("No active session");
         Ok(session.entry(&LookupBy::Key(&value.key))?)
     }
 }

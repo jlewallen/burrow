@@ -1,11 +1,10 @@
 use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
 use std::{
     cell::RefCell,
     collections::HashMap,
     fmt::Debug,
     ops::{Deref, Index},
-    rc::{Rc, Weak},
+    rc::Rc,
 };
 use tracing::*;
 
@@ -116,6 +115,12 @@ impl From<Entity> for EntityPtr {
     }
 }
 
+impl Into<EntityRef> for &EntityPtr {
+    fn into(self) -> EntityRef {
+        self.lazy.borrow().clone()
+    }
+}
+
 // This seems cleaner than implementing borrow/borrow_mut ourselves and things
 // were gnarly when I tried implementing Borrow<T> myself.
 impl Deref for EntityPtr {
@@ -137,54 +142,16 @@ impl Debug for EntityPtr {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
-pub struct EntityRef {
-    key: EntityKey,
-    #[serde(rename = "klass")]
-    class: String,
-    name: String,
-    gid: Option<EntityGid>,
-    #[serde(skip)]
-    entity: Option<Weak<RefCell<Entity>>>,
+pub trait IntoEntry {
+    fn into_entry(&self) -> Result<Entry, DomainError>;
 }
 
-impl Default for EntityRef {
-    fn default() -> Self {
-        Self {
-            key: EntityKey::blank(),
-            class: Default::default(),
-            name: Default::default(),
-            gid: Default::default(),
-            entity: Default::default(),
-        }
-    }
+pub trait IntoEntity {
+    fn into_entity(&self) -> Result<EntityPtr, DomainError>;
 }
 
-impl EntityRef {
-    pub fn new_with_entity(entity: &EntityPtr) -> Self {
-        Self::new_from_raw(&entity.entity)
-    }
-
-    fn new_from_raw(entity: &Rc<RefCell<Entity>>) -> Self {
-        let shared_entity = entity.borrow();
-        Self {
-            key: shared_entity.key().clone(),
-            class: shared_entity.class().to_owned(),
-            name: shared_entity.name().unwrap_or_default(),
-            gid: shared_entity.gid(),
-            entity: Some(Rc::downgrade(entity)),
-        }
-    }
-
-    pub fn key(&self) -> &EntityKey {
-        &self.key
-    }
-
-    pub fn has_entity(&self) -> bool {
-        self.entity.is_some()
-    }
-
-    pub fn into_entity(&self) -> Result<EntityPtr, DomainError> {
+impl IntoEntity for EntityRef {
+    fn into_entity(&self) -> Result<EntityPtr, DomainError> {
         match &self.entity {
             Some(e) => match e.upgrade() {
                 Some(e) => Ok(e.into()),
@@ -193,21 +160,27 @@ impl EntityRef {
             None => Err(DomainError::DanglingEntity),
         }
     }
+}
 
-    pub fn into_entry(&self) -> Result<Entry, DomainError> {
+impl IntoEntry for EntityRef {
+    fn into_entry(&self) -> Result<Entry, DomainError> {
         get_my_session()?
             .entry(&LookupBy::Key(&self.key))?
             .ok_or(DomainError::DanglingEntity)
     }
 }
 
-impl Debug for EntityRef {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("EntityRef")
-            .field("key", &self.key)
-            .field("name", &self.name)
-            .field("gid", &self.gid)
-            .finish()
+impl TryInto<EntityPtr> for &EntityRef {
+    type Error = DomainError;
+
+    fn try_into(self) -> std::result::Result<EntityPtr, Self::Error> {
+        match &self.entity {
+            Some(e) => match e.upgrade() {
+                Some(e) => Ok(e.into()),
+                None => Err(DomainError::DanglingEntity),
+            },
+            None => Err(DomainError::DanglingEntity),
+        }
     }
 }
 
@@ -218,11 +191,5 @@ impl TryFrom<EntityRef> for Entry {
         get_my_session()?
             .entry(&LookupBy::Key(&value.key))?
             .ok_or(DomainError::DanglingEntity)
-    }
-}
-
-impl From<&EntityPtr> for EntityRef {
-    fn from(entity: &EntityPtr) -> Self {
-        entity.lazy.borrow().clone()
     }
 }

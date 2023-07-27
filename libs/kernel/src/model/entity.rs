@@ -1,12 +1,13 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use std::cell::RefCell;
+use std::rc::{Rc, Weak};
 use std::{collections::HashMap, fmt::Display};
 use tracing::*;
 
 use crate::{get_my_session, CoreProps, Needs, Properties, Scope, SessionRef};
 
 use super::base::*;
-use super::EntityRef;
 
 #[derive(Clone, Deserialize)]
 #[serde(untagged)]
@@ -188,5 +189,59 @@ impl Entity {
 
     pub fn to_json_value(&self) -> Result<serde_json::Value, DomainError> {
         Ok(serde_json::to_value(self)?)
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct EntityRef {
+    pub(super) key: EntityKey,
+    #[serde(rename = "klass")]
+    pub(super) class: String,
+    pub(super) name: String,
+    pub(super) gid: Option<EntityGid>,
+    #[serde(skip)]
+    pub(super) entity: Option<Weak<RefCell<Entity>>>,
+}
+
+impl Default for EntityRef {
+    fn default() -> Self {
+        Self {
+            key: EntityKey::blank(),
+            class: Default::default(),
+            name: Default::default(),
+            gid: Default::default(),
+            entity: Default::default(),
+        }
+    }
+}
+
+impl EntityRef {
+    pub(crate) fn new_from_raw(entity: &Rc<RefCell<Entity>>) -> Self {
+        let shared_entity = entity.borrow();
+        Self {
+            key: shared_entity.key().clone(),
+            class: shared_entity.class().to_owned(),
+            name: shared_entity.name().unwrap_or_default(),
+            gid: shared_entity.gid(),
+            entity: Some(Rc::downgrade(entity)),
+        }
+    }
+
+    pub fn key(&self) -> &EntityKey {
+        &self.key
+    }
+
+    pub fn has_entity(&self) -> bool {
+        self.entity.is_some()
+    }
+}
+
+impl std::fmt::Debug for EntityRef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("EntityRef")
+            .field("key", &self.key)
+            .field("name", &self.name)
+            .field("gid", &self.gid)
+            .finish()
     }
 }
