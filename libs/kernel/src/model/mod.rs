@@ -20,6 +20,9 @@ pub use entry::*;
 pub mod scopes;
 pub use scopes::*;
 
+pub mod compare;
+pub use compare::{AnyChanges, CompareChanges, CompareError, Modified, Original};
+
 use super::{session::*, Needs, Scope};
 
 pub trait LoadsEntities {
@@ -192,4 +195,32 @@ impl TryFrom<EntityRef> for Entry {
             .entry(&LookupBy::Key(&value.key))?
             .ok_or(DomainError::DanglingEntity)
     }
+}
+
+pub fn any_entity_changes(
+    l: AnyChanges<Option<Original>, EntityPtr>,
+) -> Result<Option<Modified>, CompareError> {
+    use compare::TreeDiff;
+
+    let value_after = {
+        let entity = l.after.borrow();
+
+        serde_json::to_value(&*entity)?
+    };
+
+    let value_before: serde_json::Value = if let Some(original) = &l.before {
+        match original {
+            Original::String(s) => s.parse()?,
+            Original::Json(v) => (*v).clone(),
+        }
+    } else {
+        serde_json::Value::Null
+    };
+
+    let diff = TreeDiff {};
+
+    diff.any_changes(AnyChanges {
+        before: value_before,
+        after: value_after,
+    })
 }

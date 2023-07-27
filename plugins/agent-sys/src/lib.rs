@@ -4,9 +4,8 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use tracing::*;
 
 use kernel::{
-    compare::{any_entity_changes, AnyChanges, Original},
-    get_my_session, set_my_session, ActiveSession, Audience, DomainError, DomainEvent, Effect,
-    EntityPtr, Entry, Evaluator, Performer,
+    any_entity_changes, get_my_session, set_my_session, ActiveSession, AnyChanges, Audience,
+    DomainError, DomainEvent, Effect, EntityPtr, Entry, Evaluator, Original, Performer,
 };
 
 pub use rpc_proto::{EntityUpdate, IncomingMessage, LookupBy, Payload, Query};
@@ -46,13 +45,13 @@ impl WorkingEntities {
             .iter()
             .map(|(key, modified)| {
                 if let Some(modified) = any_entity_changes(AnyChanges {
-                    entity: modified.entry.entity()?,
-                    original: Some(Original::Json(&modified.original)),
+                    before: Some(Original::Json(&modified.original)),
+                    after: modified.entry.entity()?.clone(),
                 })? {
                     debug!("{:?} modified", key);
                     Ok(vec![Query::Update(EntityUpdate::new(
                         key.into(),
-                        modified.entity.into(),
+                        modified.after.into(),
                     ))])
                 } else {
                     trace!("{:?} unmodified", key);

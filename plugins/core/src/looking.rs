@@ -96,15 +96,20 @@ pub mod model {
 
     impl Observe<ObservedEntity> for &Entry {
         fn observe(&self, _user: &Entry) -> Result<Option<ObservedEntity>> {
-            let name = self.name()?;
-            let carryable = self.scope::<Carryable>()?;
-            let qualified = name.as_ref().map(|n| qualify_name(carryable.quantity(), n));
-
+            let quantity = {
+                let carryable = self.scope::<Carryable>()?;
+                carryable.quantity()
+            };
+            let key = self.key().to_string();
+            let myself = self.entity()?.borrow();
+            let name = myself.name();
+            let desc = myself.desc();
+            let qualified = name.as_ref().map(|n| qualify_name(quantity, n));
             Ok(Some(ObservedEntity {
-                key: self.key().to_string(),
+                key,
                 name,
                 qualified,
-                desc: self.desc()?,
+                desc,
             }))
         }
     }

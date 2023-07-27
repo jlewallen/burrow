@@ -180,7 +180,7 @@ impl<T: Scope> std::ops::Deref for OpenedScope<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        self.target.as_ref()
+        &self.target
     }
 }
 
@@ -227,12 +227,12 @@ impl<T: Scope> std::ops::Deref for OpenedScopeMut<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        self.target.as_ref()
+        &self.target
     }
 }
 
 impl<T: Scope> std::ops::DerefMut for OpenedScopeMut<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.target.as_mut()
+        &mut self.target
     }
 }

@@ -254,11 +254,11 @@ impl<'a> SavesEntities<'a> {
         let _span = span!(Level::TRACE, "flushing", key = l.key.to_string()).entered();
 
         if let Some(modified) = any_entity_changes(AnyChanges {
-            entity: &l.entity,
-            original: l.serialized.as_ref().map(Original::String),
+            before: l.serialized.as_ref().map(Original::String),
+            after: l.entity.clone(),
         })? {
             // Serialize to string now that we know we'll use this.
-            let serialized = modified.entity.to_string();
+            let serialized = modified.after.to_string();
 
             // By now we should have a global identifier.
             let Some(gid) = l.gid.clone() else  {
