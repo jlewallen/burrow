@@ -9,7 +9,7 @@ pub use replies::*;
 pub type ReplyResult = anyhow::Result<Effect>;
 
 /// TODO Make generic over SessionRef, Surroundings, and Result.
-pub trait Action: Debug {
+pub trait Action: ToJson + Debug {
     fn is_read_only() -> bool
     where
         Self: Sized;
