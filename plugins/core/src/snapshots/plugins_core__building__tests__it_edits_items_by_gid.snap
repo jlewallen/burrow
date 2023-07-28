@@ -3,7 +3,7 @@ source: plugins/core/src/building.rs
 expression: reply.to_json()?
 ---
 {
-  "BasicReply": {
+  "basicReply": {
     "editor": {
       "editing": {
         "json": {

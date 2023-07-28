@@ -183,7 +183,7 @@ mod tests {
             HelloWorld::Message("Hey!".to_owned())
                 .to_json()
                 .expect("ToJson failed"),
-            json!({ "HelloWorld": { "message": "Hey!" } })
+            json!({ "helloWorld": { "message": "Hey!" } })
         );
     }
 }

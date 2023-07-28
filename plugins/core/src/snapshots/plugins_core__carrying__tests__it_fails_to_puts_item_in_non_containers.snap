@@ -3,7 +3,7 @@ source: plugins/core/src/carrying.rs
 expression: reply.to_json()?
 ---
 {
-  "BasicReply": {
+  "basicReply": {
     "simple": "impossible"
   }
 }
