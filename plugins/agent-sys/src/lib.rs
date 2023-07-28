@@ -221,7 +221,7 @@ where
                         match resolved {
                             (LookupBy::Key(_key), Some(entity)) => {
                                 let value = entity.try_into()?;
-                                session.add_entity(&EntityPtr::new_from_json(value)?)?;
+                                session.add_entity(&EntityPtr::from_value(value)?)?;
                             }
                             (LookupBy::Key(_key), None) => todo!(),
                             _ => {}

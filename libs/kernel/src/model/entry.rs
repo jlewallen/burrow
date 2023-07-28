@@ -31,7 +31,7 @@ impl Entry {
     pub fn new_from_json(key: EntityKey, value: serde_json::Value) -> Result<Self, DomainError> {
         Ok(Self {
             key,
-            entity: EntityPtr::new_from_json(value)?,
+            entity: EntityPtr::from_value(value)?,
             session: None,
             debug: None,
         })

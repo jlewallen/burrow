@@ -8,8 +8,8 @@ use std::{
 use tracing::*;
 
 use kernel::{
-    deserialize_entity_from_value, get_my_session, Audience, DomainError, DomainEvent, Effect,
-    EntityGid, Entry, ToJson, When,
+    get_my_session, Audience, DomainError, DomainEvent, Effect, Entity, EntityGid, Entry, ToJson,
+    When,
 };
 use macros::*;
 use plugins_core::tools;
@@ -171,7 +171,7 @@ impl Services for SessionServices {
 
         if let Some(entry) = session.entry(&kernel::LookupBy::Key(&update.key.into()))? {
             let value: serde_json::Value = update.entity.into();
-            let replacing = deserialize_entity_from_value(value)?;
+            let replacing = Entity::from_value(value)?;
             let entity = entry.entity();
             entity.replace(replacing);
             Ok(())

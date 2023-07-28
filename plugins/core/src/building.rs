@@ -325,7 +325,7 @@ pub mod actions {
                         }
                         WorkingCopy::Json(value) => {
                             info!("mutate:json");
-                            let replacing = deserialize_entity_from_value(value.clone())?;
+                            let replacing = Entity::from_value(value.clone())?;
                             entity.replace(replacing);
                         }
                         WorkingCopy::Script(_) => unimplemented!("TODO (See SaveLeadAction)"),

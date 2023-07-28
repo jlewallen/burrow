@@ -171,7 +171,7 @@ impl Entities {
     }
 
     pub fn add_persisted(&self, persisted: PersistedEntity) -> Result<EntityPtr> {
-        let loaded: Entity = deserialize_entity(&persisted.serialized)?;
+        let loaded = Entity::from_str(&persisted.serialized)?;
 
         // Verify consistency between serialized Entity gid and the gid on the
         // row. We can eventually relax this.

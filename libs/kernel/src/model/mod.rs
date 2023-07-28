@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::{
     cell::RefCell,
     collections::HashMap,
@@ -6,7 +6,6 @@ use std::{
     ops::{Deref, Index},
     rc::Rc,
 };
-use tracing::*;
 
 mod base;
 pub use base::*;
@@ -65,10 +64,8 @@ impl EntityPtr {
         Self::new_with_props(props)
     }
 
-    pub fn new_from_json(value: serde_json::Value) -> Result<Self, DomainError> {
-        Ok(Self::new(deserialize_entity_from_value_with_session(
-            value, None,
-        )?))
+    pub fn from_value(value: serde_json::Value) -> Result<Self, DomainError> {
+        Ok(Self::new(Entity::from_value(value)?))
     }
 
     pub fn key(&self) -> EntityKey {
@@ -126,30 +123,6 @@ impl Debug for EntityPtr {
             write!(f, "Entity(?, `{}`, {})", &name, &lazy.key)
         }
     }
-}
-
-pub fn deserialize_entity(serialized: &str) -> Result<Entity, DomainError> {
-    deserialize_entity_from_value(serde_json::from_str(serialized)?)
-}
-
-pub fn deserialize_entity_from_value(serialized: serde_json::Value) -> Result<Entity, DomainError> {
-    let session = get_my_session().with_context(|| "Session for deserialize")?;
-    deserialize_entity_from_value_with_session(serialized, Some(session))
-}
-
-pub fn deserialize_entity_from_value_with_session(
-    serialized: serde_json::Value,
-    session: Option<Rc<dyn ActiveSession>>,
-) -> Result<Entity, DomainError> {
-    trace!("parsing");
-    let mut loaded: Entity = serde_json::from_value(serialized)?;
-    if let Some(session) = session {
-        trace!("session");
-        loaded
-            .supply(&session)
-            .with_context(|| "Supplying session")?;
-    }
-    Ok(loaded)
 }
 
 pub trait IntoEntry {

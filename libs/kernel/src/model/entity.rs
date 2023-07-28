@@ -51,6 +51,14 @@ impl Entity {
         Ok(Self::new_with_key(get_my_session()?.new_key()))
     }
 
+    pub fn from_value(value: serde_json::Value) -> Result<Entity, DomainError> {
+        Ok(serde_json::from_value(value)?)
+    }
+
+    pub fn from_str(serialized: &str) -> Result<Entity, DomainError> {
+        Self::from_value(serde_json::from_str(serialized)?)
+    }
+
     pub fn new_with_key(key: EntityKey) -> Self {
         Self {
             key,
