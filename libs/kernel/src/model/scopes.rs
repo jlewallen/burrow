@@ -102,9 +102,10 @@ impl<'e> Scopes<'e> {
             } => serde_json::from_value(v.0)?,
         };
 
-        let _prepare_span = span!(Level::TRACE, "prepare").entered();
-        let session = get_my_session()?;
-        scope.supply(&session)?;
+        match get_my_session() {
+            Ok(session) => scope.supply(&session)?,
+            Err(e) => debug!("load-scope: {:?}", e),
+        };
 
         Ok(scope)
     }
