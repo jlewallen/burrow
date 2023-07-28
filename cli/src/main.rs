@@ -109,7 +109,7 @@ impl Default for PluginConfiguration {
         Self {
             wasm: false,
             dynlib: true,
-            rune: false,
+            rune: true,
             rpc: false,
         }
     }
