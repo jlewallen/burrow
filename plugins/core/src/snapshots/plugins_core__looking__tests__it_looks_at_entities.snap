@@ -3,14 +3,12 @@ source: plugins/core/src/looking.rs
 expression: reply.to_json()?
 ---
 {
-  "basicReply": {
-    "entityObservation": {
-      "entity": {
-        "desc": null,
-        "key": "E-0",
-        "name": "Hammer",
-        "qualified": "a Hammer"
-      }
+  "entityObservation": {
+    "entity": {
+      "desc": null,
+      "key": "E-0",
+      "name": "Hammer",
+      "qualified": "a Hammer"
     }
   }
 }

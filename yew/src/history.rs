@@ -160,7 +160,7 @@ fn simple_observation(reply: &SimpleObservation, myself: &Myself) -> Html {
     // for the "You" vs name work. We also need to introduce inflections of
     // various kinds. I think this will become critical when we've got
     // quantities working.
-    if let Ok(reply) = serde_json::from_value::<KnownSimpleObservations>(reply.into()) {
+    if let Ok(reply) = serde_json::from_value::<KnownSimpleObservations>(reply.clone().into()) {
         if let Some(reply) = reply.left {
             if Some(reply.living.key) != myself.key {
                 html! {
@@ -218,6 +218,18 @@ fn simple_reply(reply: &SimpleReply) -> Html {
 #[derive(Properties, Clone, PartialEq)]
 pub struct Props {
     pub entry: HistoryEntry,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum BasicReply {
+    Simple(SimpleReply),
+    EntityObservation(EntityObservation),
+    InsideObservation(InsideObservation),
+    AreaObservation(AreaObservation),
+    SimpleObservation(SimpleObservation),
+    Editor(EditorReply),
+    Json(JsonReply),
 }
 
 #[function_component]

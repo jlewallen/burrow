@@ -3,31 +3,29 @@ source: plugins/core/src/looking.rs
 expression: reply.to_json()?
 ---
 {
-  "basicReply": {
-    "areaObservation": {
-      "area": {
-        "desc": null,
-        "key": "E-1",
-        "name": "Welcome Area",
-        "qualified": "a Welcome Area"
-      },
-      "carrying": [],
-      "items": [],
-      "living": [
-        {
-          "desc": null,
-          "key": "E-0",
-          "name": "Living",
-          "qualified": "a Living"
-        }
-      ],
-      "person": {
+  "areaObservation": {
+    "area": {
+      "desc": null,
+      "key": "E-1",
+      "name": "Welcome Area",
+      "qualified": "a Welcome Area"
+    },
+    "carrying": [],
+    "items": [],
+    "living": [
+      {
         "desc": null,
         "key": "E-0",
         "name": "Living",
         "qualified": "a Living"
-      },
-      "routes": []
-    }
+      }
+    ],
+    "person": {
+      "desc": null,
+      "key": "E-0",
+      "name": "Living",
+      "qualified": "a Living"
+    },
+    "routes": []
   }
 }

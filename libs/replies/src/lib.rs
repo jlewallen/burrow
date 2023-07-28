@@ -10,7 +10,7 @@ pub trait ToJson: Debug {
 
 pub trait Reply: ToJson {}
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, ToJson)]
 #[serde(rename_all = "camelCase")]
 pub enum SimpleReply {
     Done,
@@ -20,15 +20,10 @@ pub enum SimpleReply {
     Prevented,
 }
 
-impl ToJson for SimpleReply {
-    fn to_json(&self) -> Result<Value, serde_json::Error> {
-        BasicReply::Simple(self.clone()).to_json()
-    }
-}
-
 impl Reply for SimpleReply {}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ObservedEntity {
     pub key: String,
     pub name: Option<String>,
@@ -36,7 +31,7 @@ pub struct ObservedEntity {
     pub desc: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, ToJson)]
 #[serde(rename_all = "camelCase")]
 pub struct AreaObservation {
     pub area: ObservedEntity,
@@ -49,13 +44,7 @@ pub struct AreaObservation {
 
 impl Reply for AreaObservation {}
 
-impl ToJson for AreaObservation {
-    fn to_json(&self) -> Result<Value, serde_json::Error> {
-        BasicReply::AreaObservation(self.clone()).to_json()
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, ToJson)]
 #[serde(rename_all = "camelCase")]
 pub struct InsideObservation {
     pub vessel: ObservedEntity,
@@ -64,25 +53,13 @@ pub struct InsideObservation {
 
 impl Reply for InsideObservation {}
 
-impl ToJson for InsideObservation {
-    fn to_json(&self) -> Result<Value, serde_json::Error> {
-        BasicReply::InsideObservation(self.clone()).to_json()
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, ToJson)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityObservation {
     pub entity: ObservedEntity,
 }
 
 impl Reply for EntityObservation {}
-
-impl ToJson for EntityObservation {
-    fn to_json(&self) -> Result<Value, serde_json::Error> {
-        BasicReply::EntityObservation(self.clone()).to_json()
-    }
-}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SimpleObservation(serde_json::Value);
@@ -93,15 +70,9 @@ impl SimpleObservation {
     }
 }
 
-impl From<&SimpleObservation> for serde_json::Value {
-    fn from(o: &SimpleObservation) -> Self {
-        o.0.clone()
-    }
-}
-
-impl ToJson for SimpleObservation {
-    fn to_json(&self) -> Result<Value, serde_json::Error> {
-        BasicReply::SimpleObservation(self.clone()).to_json()
+impl From<SimpleObservation> for serde_json::Value {
+    fn from(o: SimpleObservation) -> Self {
+        o.0
     }
 }
 
@@ -113,7 +84,7 @@ pub enum WorkingCopy {
     Script(String),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToJson)]
 #[serde(rename_all = "camelCase")]
 pub struct EditorReply {
     pub key: String,
@@ -128,13 +99,8 @@ impl EditorReply {
 
 impl Reply for EditorReply {}
 
-impl ToJson for EditorReply {
-    fn to_json(&self) -> Result<Value, serde_json::Error> {
-        BasicReply::Editor(self.clone()).to_json()
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, ToJson)]
+#[serde(rename_all = "camelCase")]
 pub struct JsonReply {
     value: serde_json::Value,
 }
@@ -146,24 +112,6 @@ impl From<serde_json::Value> for JsonReply {
 }
 
 impl Reply for JsonReply {}
-
-impl ToJson for JsonReply {
-    fn to_json(&self) -> Result<Value, serde_json::Error> {
-        BasicReply::Json(self.clone()).to_json()
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, ToJson)]
-#[serde(rename_all = "camelCase")]
-pub enum BasicReply {
-    Simple(SimpleReply),
-    EntityObservation(EntityObservation),
-    InsideObservation(InsideObservation),
-    AreaObservation(AreaObservation),
-    SimpleObservation(SimpleObservation),
-    Editor(EditorReply),
-    Json(JsonReply),
-}
 
 #[cfg(test)]
 mod tests {

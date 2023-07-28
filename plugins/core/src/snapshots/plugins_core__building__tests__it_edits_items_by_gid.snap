@@ -3,60 +3,58 @@ source: plugins/core/src/building.rs
 expression: reply.to_json()?
 ---
 {
-  "basicReply": {
-    "editor": {
-      "editing": {
-        "json": {
-          "acls": {
-            "rules": []
+  "editorReply": {
+    "editing": {
+      "json": {
+        "acls": {
+          "rules": []
+        },
+        "creator": null,
+        "identity": {
+          "private": "",
+          "public": "",
+          "signature": null
+        },
+        "key": "E-0",
+        "klass": {
+          "py/type": ""
+        },
+        "parent": null,
+        "scopes": {
+          "containing": {
+            "capacity": null,
+            "holding": [],
+            "produces": {}
           },
-          "creator": null,
-          "identity": {
-            "private": "",
-            "public": "",
-            "signature": null
+          "occupying": {
+            "area": {
+              "gid": 3,
+              "key": "E-1",
+              "klass": "",
+              "name": "Welcome Area"
+            }
           },
-          "key": "E-0",
-          "klass": {
-            "py/type": ""
-          },
-          "parent": null,
-          "scopes": {
-            "containing": {
-              "capacity": null,
-              "holding": [],
-              "produces": {}
-            },
-            "occupying": {
-              "area": {
-                "gid": 3,
-                "key": "E-1",
-                "klass": "",
-                "name": "Welcome Area"
-              }
-            },
+          "props": {
             "props": {
-              "props": {
-                "map": {
-                  "gid": {
-                    "acls": {
-                      "rules": []
-                    },
-                    "value": 1
+              "map": {
+                "gid": {
+                  "acls": {
+                    "rules": []
                   },
-                  "name": {
-                    "acls": {
-                      "rules": []
-                    },
-                    "value": "Living"
-                  }
+                  "value": 1
+                },
+                "name": {
+                  "acls": {
+                    "rules": []
+                  },
+                  "value": "Living"
                 }
               }
             }
           }
         }
-      },
-      "key": "E-0"
-    }
+      }
+    },
+    "key": "E-0"
   }
 }

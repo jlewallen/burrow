@@ -3,55 +3,53 @@ source: plugins/core/src/building.rs
 expression: reply.to_json()?
 ---
 {
-  "basicReply": {
-    "editor": {
-      "editing": {
-        "json": {
-          "acls": {
-            "rules": []
+  "editorReply": {
+    "editing": {
+      "json": {
+        "acls": {
+          "rules": []
+        },
+        "creator": null,
+        "identity": {
+          "private": "",
+          "public": "",
+          "signature": null
+        },
+        "key": "E-2",
+        "klass": {
+          "py/type": ""
+        },
+        "parent": null,
+        "scopes": {
+          "location": {
+            "container": {
+              "gid": 3,
+              "key": "E-1",
+              "klass": "",
+              "name": "Welcome Area"
+            }
           },
-          "creator": null,
-          "identity": {
-            "private": "",
-            "public": "",
-            "signature": null
-          },
-          "key": "E-2",
-          "klass": {
-            "py/type": ""
-          },
-          "parent": null,
-          "scopes": {
-            "location": {
-              "container": {
-                "gid": 3,
-                "key": "E-1",
-                "klass": "",
-                "name": "Welcome Area"
-              }
-            },
+          "props": {
             "props": {
-              "props": {
-                "map": {
-                  "gid": {
-                    "acls": {
-                      "rules": []
-                    },
-                    "value": 4
+              "map": {
+                "gid": {
+                  "acls": {
+                    "rules": []
                   },
-                  "name": {
-                    "acls": {
-                      "rules": []
-                    },
-                    "value": "Cool Broom"
-                  }
+                  "value": 4
+                },
+                "name": {
+                  "acls": {
+                    "rules": []
+                  },
+                  "value": "Cool Broom"
                 }
               }
             }
           }
         }
-      },
-      "key": "E-2"
-    }
+      }
+    },
+    "key": "E-2"
   }
 }

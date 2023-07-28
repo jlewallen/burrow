@@ -3,44 +3,42 @@ source: plugins/core/src/looking.rs
 expression: reply.to_json()?
 ---
 {
-  "basicReply": {
-    "areaObservation": {
-      "area": {
+  "areaObservation": {
+    "area": {
+      "desc": null,
+      "key": "E-1",
+      "name": "Welcome Area",
+      "qualified": "a Welcome Area"
+    },
+    "carrying": [],
+    "items": [
+      {
         "desc": null,
-        "key": "E-1",
-        "name": "Welcome Area",
-        "qualified": "a Welcome Area"
+        "key": "E-2",
+        "name": "Cool Rake",
+        "qualified": "a Cool Rake"
       },
-      "carrying": [],
-      "items": [
-        {
-          "desc": null,
-          "key": "E-2",
-          "name": "Cool Rake",
-          "qualified": "a Cool Rake"
-        },
-        {
-          "desc": null,
-          "key": "E-3",
-          "name": "Boring Shovel",
-          "qualified": "a Boring Shovel"
-        }
-      ],
-      "living": [
-        {
-          "desc": null,
-          "key": "E-0",
-          "name": "Living",
-          "qualified": "a Living"
-        }
-      ],
-      "person": {
+      {
+        "desc": null,
+        "key": "E-3",
+        "name": "Boring Shovel",
+        "qualified": "a Boring Shovel"
+      }
+    ],
+    "living": [
+      {
         "desc": null,
         "key": "E-0",
         "name": "Living",
         "qualified": "a Living"
-      },
-      "routes": []
-    }
+      }
+    ],
+    "person": {
+      "desc": null,
+      "key": "E-0",
+      "name": "Living",
+      "qualified": "a Living"
+    },
+    "routes": []
   }
 }
