@@ -9,14 +9,17 @@ use crate::{get_my_session, CoreProps, Needs, Properties, Scope, SessionRef};
 
 use super::base::*;
 
+#[derive(Clone, Serialize, Deserialize)]
+pub struct JsonValue(serde_json::Value);
+
 #[derive(Clone, Deserialize)]
 #[serde(untagged)]
 #[non_exhaustive]
 pub enum ScopeValue {
-    Original(serde_json::Value),
+    Original(JsonValue),
     Intermediate {
-        value: serde_json::Value,
-        previous: Option<serde_json::Value>,
+        value: JsonValue,
+        previous: Option<JsonValue>,
     },
 }
 
@@ -178,7 +181,7 @@ impl<'e> Scopes<'e> {
             | ScopeValue::Intermediate {
                 value: v,
                 previous: _,
-            } => serde_json::from_value(v)?,
+            } => serde_json::from_value(v.0)?,
         };
 
         let _prepare_span = span!(Level::TRACE, "prepare").entered();
@@ -222,7 +225,7 @@ impl<'e> ScopesMut<'e> {
         )
         .entered();
 
-        let value = scope.serialize()?;
+        let value = JsonValue(scope.serialize()?);
 
         debug!("scope-replace");
 
