@@ -42,7 +42,7 @@ impl Into<kernel::EntityKey> for EntityKey {
     }
 }
 
-#[derive(Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub enum JsonValue {
     Null,
     Bool(bool),
@@ -89,6 +89,16 @@ pub enum JsonNumber {
     PosInt(u64),
     NegInt(i64),
     Float(f64),
+}
+
+impl std::fmt::Debug for JsonNumber {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::PosInt(arg0) => f.debug_tuple("PosInt").field(arg0).finish(),
+            Self::NegInt(arg0) => f.debug_tuple("NegInt").field(arg0).finish(),
+            Self::Float(arg0) => f.debug_tuple("Float").field(arg0).finish(),
+        }
+    }
 }
 
 impl PartialEq for JsonNumber {
@@ -318,14 +328,14 @@ impl TryFrom<&kernel::Surroundings> for Surroundings {
 #[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
 pub struct IncomingMessage {
     pub key: String,
-    pub serialized: Vec<u8>,
+    pub value: JsonValue,
 }
 
 impl IncomingMessage {
     pub fn from(incoming: &Incoming) -> Self {
         Self {
             key: incoming.key.clone(),
-            serialized: incoming.serialized.clone(),
+            value: incoming.value.clone().into(),
         }
     }
 }
@@ -334,7 +344,7 @@ impl Into<Incoming> for IncomingMessage {
     fn into(self) -> Incoming {
         Incoming {
             key: self.key,
-            serialized: self.serialized,
+            value: self.value.into(),
         }
     }
 }

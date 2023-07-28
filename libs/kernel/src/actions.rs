@@ -43,12 +43,12 @@ impl Raised {
 #[derive(Debug, Clone)]
 pub struct Incoming {
     pub key: String,
-    pub serialized: Vec<u8>,
+    pub value: serde_json::Value,
 }
 
 impl Incoming {
-    pub fn new(key: String, serialized: Vec<u8>) -> Self {
-        Self { key, serialized }
+    pub fn new(key: String, value: serde_json::Value) -> Self {
+        Self { key, value }
     }
 
     pub fn has_prefix(&self, prefix: &str) -> bool {
