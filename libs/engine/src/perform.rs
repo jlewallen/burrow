@@ -156,6 +156,20 @@ impl Performer for StandardPerformer {
 
                 apply_middleware(&self.middleware, perform, request_fn)
             }
+            Perform::Raised(raised) => {
+                let request_fn = Box::new(|value: Perform| -> Result<Effect, anyhow::Error> {
+                    let _span = span!(Level::DEBUG, "R").entered();
+                    if let Perform::Raised(raised) = value {
+                        self.session()?.queue_raised(raised)?;
+
+                        Ok(Effect::Ok)
+                    } else {
+                        todo!()
+                    }
+                });
+
+                apply_middleware(&self.middleware, Perform::Raised(raised), request_fn)
+            }
             _ => todo!(),
         }
     }

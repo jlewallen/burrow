@@ -2,6 +2,8 @@ use anyhow::Result;
 use serde_json::Value;
 use std::{fmt::Debug, rc::Rc};
 
+use crate::{Audience, DomainEvent};
+
 use super::{session::SessionRef, Entry, Surroundings};
 
 pub use replies::*;
@@ -15,6 +17,27 @@ pub trait Action: ToJson + Debug {
         Self: Sized;
 
     fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult;
+}
+
+#[derive(Debug, Clone)]
+pub struct Raised {
+    pub key: String,
+    pub audience: Audience,
+    pub event: Rc<dyn DomainEvent>,
+}
+
+impl Raised {
+    pub fn new(audience: Audience, key: String, event: Rc<dyn DomainEvent>) -> Self {
+        Self {
+            key,
+            audience,
+            event,
+        }
+    }
+
+    pub fn has_prefix(&self, prefix: &str) -> bool {
+        self.key.starts_with(prefix)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -44,6 +67,7 @@ pub enum Perform {
     Effect(Effect),
     Incoming(Incoming),
     Ping(String),
+    Raised(Raised),
 }
 
 pub trait Performer {
@@ -56,6 +80,7 @@ pub enum Effect {
     Action(Rc<dyn Action>),
     Reply(Rc<dyn Reply>),
     Pong(String),
+    Ok,
 }
 
 impl ToJson for Effect {

@@ -144,6 +144,17 @@ impl Session {
         Ok(())
     }
 
+    pub(crate) fn queue_raised(&self, raised: Raised) -> Result<()> {
+        info!("queuing {:?}", raised);
+
+        self.state.raised.borrow_mut().push(RaisedEvent {
+            audience: raised.audience,
+            event: raised.event,
+        });
+
+        Ok(())
+    }
+
     fn set_session(&self) -> Result<()> {
         let session: Rc<dyn ActiveSession> = self.weak.upgrade().ok_or(DomainError::NoSession)?;
         set_my_session(Some(&session))?;
@@ -418,10 +429,9 @@ impl ActiveSession for Session {
     }
 
     fn raise(&self, audience: Audience, event: Box<dyn DomainEvent>) -> Result<()> {
-        self.state.raised.borrow_mut().push(RaisedEvent {
-            audience,
-            event: event.into(),
-        });
+        let perform = Perform::Raised(Raised::new(audience.clone(), "".to_owned(), event.into()));
+
+        self.performer.perform(perform)?;
 
         Ok(())
     }
