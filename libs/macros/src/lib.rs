@@ -8,7 +8,7 @@ pub fn json_derive_to_json(input: TokenStream) -> TokenStream {
     let name = input.ident;
 
     let done = match input.data {
-        syn::Data::Struct(_) => {
+        _ => {
             quote! {
                 impl ToJson for #name {
                     fn to_json(&self) -> std::result::Result<serde_json::Value, serde_json::Error> {
@@ -17,7 +17,6 @@ pub fn json_derive_to_json(input: TokenStream) -> TokenStream {
                 }
             }
         }
-        _ => unimplemented!(),
     };
 
     done.into()

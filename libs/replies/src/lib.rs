@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fmt::Debug;
 
+use macros::ToJson;
+
 pub trait ToJson: Debug {
     fn to_json(&self) -> Result<Value, serde_json::Error>;
 }
@@ -20,7 +22,7 @@ pub enum SimpleReply {
 
 impl ToJson for SimpleReply {
     fn to_json(&self) -> Result<Value, serde_json::Error> {
-        serde_json::to_value(BasicReply::Simple(self.clone()))
+        BasicReply::Simple(self.clone()).to_json()
     }
 }
 
@@ -49,7 +51,7 @@ impl Reply for AreaObservation {}
 
 impl ToJson for AreaObservation {
     fn to_json(&self) -> Result<Value, serde_json::Error> {
-        serde_json::to_value(BasicReply::AreaObservation(self.clone()))
+        BasicReply::AreaObservation(self.clone()).to_json()
     }
 }
 
@@ -64,7 +66,7 @@ impl Reply for InsideObservation {}
 
 impl ToJson for InsideObservation {
     fn to_json(&self) -> Result<Value, serde_json::Error> {
-        serde_json::to_value(BasicReply::InsideObservation(self.clone()))
+        BasicReply::InsideObservation(self.clone()).to_json()
     }
 }
 
@@ -78,21 +80,9 @@ impl Reply for EntityObservation {}
 
 impl ToJson for EntityObservation {
     fn to_json(&self) -> Result<Value, serde_json::Error> {
-        serde_json::to_value(BasicReply::EntityObservation(self.clone()))
+        BasicReply::EntityObservation(self.clone()).to_json()
     }
 }
-
-/*
-pub trait Observed: ToJson {}
-
-impl Observed for InsideObservation {}
-
-impl Observed for AreaObservation {}
-
-impl Observed for SimpleReply {}
-
-impl Observed for SimpleObservation {}
-*/
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SimpleObservation(serde_json::Value);
@@ -111,7 +101,7 @@ impl From<&SimpleObservation> for serde_json::Value {
 
 impl ToJson for SimpleObservation {
     fn to_json(&self) -> Result<Value, serde_json::Error> {
-        serde_json::to_value(BasicReply::SimpleObservation(self.clone()))
+        BasicReply::SimpleObservation(self.clone()).to_json()
     }
 }
 
@@ -140,7 +130,7 @@ impl Reply for EditorReply {}
 
 impl ToJson for EditorReply {
     fn to_json(&self) -> Result<Value, serde_json::Error> {
-        serde_json::to_value(BasicReply::Editor(self.clone()))
+        BasicReply::Editor(self.clone()).to_json()
     }
 }
 
@@ -159,11 +149,11 @@ impl Reply for JsonReply {}
 
 impl ToJson for JsonReply {
     fn to_json(&self) -> Result<Value, serde_json::Error> {
-        serde_json::to_value(BasicReply::Json(self.clone()))
+        BasicReply::Json(self.clone()).to_json()
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToJson)]
 #[serde(rename_all = "camelCase")]
 pub enum BasicReply {
     Simple(SimpleReply),
@@ -175,28 +165,26 @@ pub enum BasicReply {
     Json(JsonReply),
 }
 
-impl ToJson for BasicReply {
-    fn to_json(&self) -> Result<Value, serde_json::Error> {
-        serde_json::to_value(self)
-    }
-}
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
 
-/*
-impl From<SimpleReply> for BasicReply {
-    fn from(value: SimpleReply) -> Self {
-        Self::Simple(value)
-    }
-}
+    use super::*;
 
-impl From<JsonReply> for BasicReply {
-    fn from(value: JsonReply) -> Self {
-        Self::Json(value)
+    #[derive(Debug, Serialize, ToJson)]
+    #[serde(rename_all = "camelCase")]
+    pub enum HelloWorld {
+        Message(String),
     }
-}
 
-impl From<EditorReply> for BasicReply {
-    fn from(value: EditorReply) -> Self {
-        Self::Editor(value)
+    #[test]
+    pub fn test_to_json_tags_enum() {
+        assert_eq!(
+            HelloWorld::Message("Hey!".to_owned())
+                .to_json()
+                .expect("ToJson failed"),
+            // json!({ "helloWorld": { "message": "Hey!" } })
+            json!({ "message": "Hey!" })
+        );
     }
 }
-*/

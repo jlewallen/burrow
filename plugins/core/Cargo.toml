@@ -7,11 +7,11 @@ edition = "2021"
 [lib]
 doctest = false
 
-[dependencies.kernel]
-path = "../../libs/kernel"
-
 [dependencies.macros]
 path = "../../libs/macros"
+
+[dependencies.kernel]
+path = "../../libs/kernel"
 
 # I believe this is only necessary for `build.rs`
 [dependencies.engine]
