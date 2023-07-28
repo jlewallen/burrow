@@ -7,6 +7,18 @@ pub fn have_surroundings() {
     info(format!("surroundings"));
 }
 
+enum Example {
+    Wakeup,
+}
+
+impl Example {
+
+}
+
 pub fn deliver(incoming) {
-    info(format!("incoming {:?}", incoming));
+    info(format!("incoming {:?}", incoming.key()));
+    info(format!("incoming {:?}", incoming.value()?));
+
+    // from_json(incoming.serialized()?);
+    // from_json(Example::Wakeup);
 }

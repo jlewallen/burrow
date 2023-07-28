@@ -2,7 +2,7 @@ use anyhow::Result;
 use rune::{
     runtime::{Protocol, RuntimeContext},
     termcolor::{ColorChoice, StandardStream},
-    Context, Diagnostics, Source, Sources, Vm,
+    Context, Diagnostics, Source, Sources, Value, Vm,
 };
 use std::{collections::HashSet, sync::Arc, time::Instant};
 use tracing::*;
@@ -33,11 +33,25 @@ impl Thing {
 struct Incoming(kernel::Incoming);
 
 impl Incoming {
+    fn key(&self) -> &str {
+        &self.0.key
+    }
+
+    fn value(&self) -> Result<Value> {
+        Ok(serde_json::from_value(self.0.value.clone())?)
+    }
+
     #[inline]
     fn string_debug(&self, s: &mut String) -> std::fmt::Result {
         use std::fmt::Write;
         write!(s, "Incoming()")
     }
+}
+
+fn rune_from_json(value: rune::Value) -> Result<()> {
+    info!("HELLO {:?}", value);
+
+    Ok(())
 }
 
 fn create_integration_module() -> Result<rune::Module> {
@@ -48,11 +62,14 @@ fn create_integration_module() -> Result<rune::Module> {
     module.function(["debug"], |s: &str| {
         debug!("{}", s);
     })?;
+    module.function(["from_json"], rune_from_json)?;
     module.ty::<Thing>()?;
     module.function(["Thing", "new"], Thing::new)?;
     module.inst_fn(Protocol::STRING_DEBUG, Thing::string_debug)?;
     module.ty::<Incoming>()?;
     module.inst_fn(Protocol::STRING_DEBUG, Incoming::string_debug)?;
+    module.inst_fn("key", Incoming::key)?;
+    module.inst_fn("value", Incoming::value)?;
     Ok(module)
 }
 
