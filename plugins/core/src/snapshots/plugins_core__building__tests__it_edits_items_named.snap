@@ -3,53 +3,55 @@ source: plugins/core/src/building.rs
 expression: reply.to_json()?
 ---
 {
-  "editor": {
-    "editing": {
-      "json": {
-        "acls": {
-          "rules": []
-        },
-        "creator": null,
-        "identity": {
-          "private": "",
-          "public": "",
-          "signature": null
-        },
-        "key": "E-2",
-        "klass": {
-          "py/type": ""
-        },
-        "parent": null,
-        "scopes": {
-          "location": {
-            "container": {
-              "gid": 3,
-              "key": "E-1",
-              "klass": "",
-              "name": "Welcome Area"
-            }
+  "BasicReply": {
+    "editor": {
+      "editing": {
+        "json": {
+          "acls": {
+            "rules": []
           },
-          "props": {
+          "creator": null,
+          "identity": {
+            "private": "",
+            "public": "",
+            "signature": null
+          },
+          "key": "E-2",
+          "klass": {
+            "py/type": ""
+          },
+          "parent": null,
+          "scopes": {
+            "location": {
+              "container": {
+                "gid": 3,
+                "key": "E-1",
+                "klass": "",
+                "name": "Welcome Area"
+              }
+            },
             "props": {
-              "map": {
-                "gid": {
-                  "acls": {
-                    "rules": []
+              "props": {
+                "map": {
+                  "gid": {
+                    "acls": {
+                      "rules": []
+                    },
+                    "value": 4
                   },
-                  "value": 4
-                },
-                "name": {
-                  "acls": {
-                    "rules": []
-                  },
-                  "value": "Cool Broom"
+                  "name": {
+                    "acls": {
+                      "rules": []
+                    },
+                    "value": "Cool Broom"
+                  }
                 }
               }
             }
           }
         }
-      }
-    },
-    "key": "E-2"
+      },
+      "key": "E-2"
+    }
   }
 }

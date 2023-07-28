@@ -3,5 +3,7 @@ source: plugins/core/src/looking.rs
 expression: reply.to_json()?
 ---
 {
-  "simple": "impossible"
+  "BasicReply": {
+    "simple": "impossible"
+  }
 }

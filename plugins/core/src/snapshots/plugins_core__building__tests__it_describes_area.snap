@@ -3,10 +3,12 @@ source: plugins/core/src/building.rs
 expression: reply.to_json()?
 ---
 {
-  "editor": {
-    "editing": {
-      "description": ""
-    },
-    "key": "E-1"
+  "BasicReply": {
+    "editor": {
+      "editing": {
+        "description": ""
+      },
+      "key": "E-1"
+    }
   }
 }

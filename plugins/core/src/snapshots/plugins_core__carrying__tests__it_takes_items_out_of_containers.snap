@@ -3,5 +3,7 @@ source: plugins/core/src/carrying.rs
 expression: reply.to_json()?
 ---
 {
-  "simple": "done"
+  "BasicReply": {
+    "simple": "done"
+  }
 }

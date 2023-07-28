@@ -12,7 +12,9 @@ pub fn json_derive_to_json(input: TokenStream) -> TokenStream {
             quote! {
                 impl ToJson for #name {
                     fn to_json(&self) -> std::result::Result<serde_json::Value, serde_json::Error> {
-                        Ok(serde_json::to_value(self)?)
+                        let value = serde_json::to_value(self)?;
+                        let key = stringify!(#name);
+                        Ok(serde_json::json!({ key: value }))
                     }
                 }
             }
@@ -24,7 +26,7 @@ pub fn json_derive_to_json(input: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 pub fn action(_metadata: TokenStream, item: TokenStream) -> TokenStream {
-    let item: proc_macro2::TokenStream = item.into();
+    let item = parse_macro_input!(item as DeriveInput);
     let done = quote! {
         #[derive(Debug, Serialize, Deserialize, ToJson)]
         #item

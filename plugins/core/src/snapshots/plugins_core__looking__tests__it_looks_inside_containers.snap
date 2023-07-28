@@ -1,22 +1,24 @@
 ---
-source: src/plugins/looking.rs
+source: plugins/core/src/looking.rs
 expression: reply.to_json()?
 ---
 {
-  "insideObservation": {
-    "items": [
-      {
+  "BasicReply": {
+    "insideObservation": {
+      "items": [
+        {
+          "desc": null,
+          "key": "E-1",
+          "name": "Key",
+          "qualified": "a Key"
+        }
+      ],
+      "vessel": {
         "desc": null,
-        "key": "E-1",
-        "name": "Key",
-        "qualified": "a Key"
+        "key": "E-0",
+        "name": "Vessel",
+        "qualified": "a Vessel"
       }
-    ],
-    "vessel": {
-      "desc": null,
-      "key": "E-0",
-      "name": "Vessel",
-      "qualified": "a Vessel"
     }
   }
 }
