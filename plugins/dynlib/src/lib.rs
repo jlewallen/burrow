@@ -147,6 +147,7 @@ impl LoadedLibrary {
 #[derive(Default)]
 pub struct DynamicPlugin {
     libraries: Rc<RefCell<Vec<LoadedLibrary>>>,
+    middleware: Rc<RefCell<Vec<LibraryMiddleware>>>,
 }
 
 impl DynamicPlugin {
@@ -260,9 +261,10 @@ impl Middleware for LibraryMiddleware {
 }
 
 struct DynamicMiddleware {
-    libraries: Rc<RefCell<Vec<LoadedLibrary>>>,
+    children: Rc<RefCell<Vec<LibraryMiddleware>>>,
 }
 
+/*
 impl DynamicMiddleware {
     fn library_middleware(&self) -> Result<Vec<LibraryMiddleware>> {
         let libraries = self.libraries.borrow();
@@ -275,15 +277,14 @@ impl DynamicMiddleware {
             .collect())
     }
 }
-
+*/
 impl Middleware for DynamicMiddleware {
     fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
         let _span = span!(Level::INFO, "M", plugin = "dynlib").entered();
 
         info!("before");
 
-        let children = self.library_middleware()?;
-
+        let children = self.children.borrow();
         let request_fn =
             Box::new(|value: Perform| -> Result<Effect, anyhow::Error> { next.handle(value) });
 
@@ -319,14 +320,21 @@ impl Plugin for DynamicPlugin {
             Err(e) => warn!("Error: {:?}", e),
         }
 
-        if false {
-            match self.open_dynamic() {
-                Ok(v) => trace!("{:?}", v),
-                Err(e) => warn!("Error: {:?}", e),
-            }
+        let mut libraries = self.libraries.borrow_mut();
+
+        {
+            let mut filling = self.middleware.borrow_mut();
+            filling.extend(
+                libraries
+                    .iter()
+                    .map(|l| LibraryMiddleware {
+                        prefix: l.prefix.clone(),
+                        library: l.library.clone(),
+                    })
+                    .collect::<Vec<_>>(),
+            );
         }
 
-        let mut libraries = self.libraries.borrow_mut();
         for library in libraries.iter_mut() {
             library.initialize()?;
         }
@@ -336,7 +344,7 @@ impl Plugin for DynamicPlugin {
 
     fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>> {
         Ok(vec![Rc::new(DynamicMiddleware {
-            libraries: Rc::clone(&self.libraries),
+            children: Rc::clone(&self.middleware),
         })])
     }
 

@@ -41,16 +41,11 @@ struct ExampleAgent {}
 
 impl Agent for ExampleAgent {
     fn initialize(&mut self) -> Result<()> {
-        // Failing due to recursive borrow on shared libraries, one for the
-        // iteration to call initialize and the other happens when building
-        // middleware to perform the schedule.
-        if false {
-            get_my_session()?.schedule(
-                "example-test",
-                When::Interval(Duration::minutes(1)),
-                &ExampleFuture::Wakeup,
-            )?;
-        }
+        get_my_session()?.schedule(
+            "example-test",
+            When::Interval(Duration::minutes(1)),
+            &ExampleFuture::Wakeup,
+        )?;
 
         Ok(())
     }
