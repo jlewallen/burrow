@@ -75,8 +75,8 @@ impl StandardOutNotifier {
 impl Notifier for StandardOutNotifier {
     fn notify(&self, audience: &EntityKey, observed: &Rc<dyn DomainEvent>) -> Result<()> {
         if *audience == self.key {
-            let serialized = observed.to_json()?;
-            println!("{:?}", serialized);
+            let serialized = serde_json::to_string_pretty(&observed.to_json()?)?;
+            println!("{}", serialized);
         }
 
         Ok(())

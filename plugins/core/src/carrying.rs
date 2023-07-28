@@ -74,6 +74,7 @@ pub mod model {
     pub type CarryingResult = Result<DomainOutcome>;
 
     #[derive(Debug, Serialize, ToJson)]
+    #[serde(rename_all = "camelCase")]
     pub enum CarryingEvent {
         ItemHeld {
             living: EntityRef,

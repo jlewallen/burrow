@@ -138,6 +138,7 @@ pub mod model {
     }
 
     #[derive(Debug, Serialize, ToJson)]
+    #[serde(rename_all = "camelCase")]
     pub enum MovingEvent {
         Left { living: EntityRef, area: EntityRef },
         Arrived { living: EntityRef, area: EntityRef },
