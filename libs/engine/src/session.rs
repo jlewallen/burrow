@@ -47,7 +47,7 @@ pub struct Session {
 pub struct State {
     entities: Rc<Entities>,
     raised: Rc<RefCell<Vec<RaisedEvent>>>,
-    futures: Rc<RefCell<Vec<PersistedFuture>>>,
+    futures: Rc<RefCell<Vec<Scheduling>>>,
     destroyed: RefCell<Vec<EntityKey>>,
 }
 
@@ -145,12 +145,22 @@ impl Session {
     }
 
     pub(crate) fn queue_raised(&self, raised: Raised) -> Result<()> {
-        info!("queuing {:?}", raised);
+        info!("{:?}", raised);
 
         self.state.raised.borrow_mut().push(RaisedEvent {
             audience: raised.audience,
             event: raised.event,
         });
+
+        Ok(())
+    }
+
+    pub(crate) fn queue_scheduled(&self, scheduling: Scheduling) -> Result<()> {
+        info!("{:?}", scheduling);
+
+        let mut futures = self.state.futures.borrow_mut();
+
+        futures.push(scheduling);
 
         Ok(())
     }
@@ -257,7 +267,11 @@ impl Session {
         let futures = self.state.futures.borrow();
 
         for future in futures.iter() {
-            self.storage.queue(future.clone())?;
+            self.storage.queue(PersistedFuture {
+                key: future.key.clone(),
+                time: future.when.to_utc_time()?,
+                serialized: future.message.to_string(),
+            })?;
         }
 
         self.save_required.store(true, Ordering::SeqCst);
@@ -436,25 +450,19 @@ impl ActiveSession for Session {
         Ok(())
     }
 
-    fn hooks(&self) -> &ManagedHooks {
-        &self.hooks
-    }
-
     fn schedule(&self, key: &str, when: When, message: &dyn ToJson) -> Result<()> {
         let key = key.to_owned();
-        let time = when.to_utc_time()?;
-        let serialized = message.to_json()?.to_string();
-        let future = PersistedFuture {
-            key,
-            time,
-            serialized,
-        };
+        let message = message.to_json()?;
+        let scheduling = Scheduling { key, when, message };
+        let perform = Perform::Schedule(scheduling);
 
-        let mut futures = self.state.futures.borrow_mut();
-
-        futures.push(future);
+        self.performer.perform(perform)?;
 
         Ok(())
+    }
+
+    fn hooks(&self) -> &ManagedHooks {
+        &self.hooks
     }
 }
 

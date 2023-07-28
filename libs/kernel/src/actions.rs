@@ -2,7 +2,7 @@ use anyhow::Result;
 use serde_json::Value;
 use std::{fmt::Debug, rc::Rc};
 
-use crate::{Audience, DomainEvent};
+use crate::{Audience, DomainEvent, When};
 
 use super::{session::SessionRef, Entry, Surroundings};
 
@@ -56,6 +56,13 @@ impl Incoming {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct Scheduling {
+    pub key: String,
+    pub when: When,
+    pub message: serde_json::Value,
+}
+
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum Perform {
@@ -68,6 +75,7 @@ pub enum Perform {
     Incoming(Incoming),
     Ping(String),
     Raised(Raised),
+    Schedule(Scheduling),
 }
 
 pub trait Performer {

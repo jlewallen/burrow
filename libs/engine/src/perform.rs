@@ -170,6 +170,20 @@ impl Performer for StandardPerformer {
 
                 apply_middleware(&self.middleware, Perform::Raised(raised), request_fn)
             }
+            Perform::Schedule(scheduling) => {
+                let request_fn = Box::new(|value: Perform| -> Result<Effect, anyhow::Error> {
+                    let _span = span!(Level::DEBUG, "R").entered();
+                    if let Perform::Schedule(scheduling) = value {
+                        self.session()?.queue_scheduled(scheduling)?;
+
+                        Ok(Effect::Ok)
+                    } else {
+                        todo!()
+                    }
+                });
+
+                apply_middleware(&self.middleware, Perform::Schedule(scheduling), request_fn)
+            }
             _ => todo!(),
         }
     }
