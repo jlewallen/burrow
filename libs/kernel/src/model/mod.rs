@@ -17,8 +17,8 @@ pub use entity::*;
 mod entry;
 pub use entry::*;
 
-pub mod scopes;
-pub use scopes::*;
+pub mod props;
+pub use props::*;
 
 pub mod compare;
 pub use compare::{AnyChanges, CompareChanges, CompareError, Modified, Original};

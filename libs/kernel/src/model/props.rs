@@ -110,7 +110,7 @@ pub trait CoreProps {
 }
 
 fn load_props(entity: &Entity) -> Result<Box<Properties>, DomainError> {
-    let mut scope = entity.load_scope::<Properties>()?;
+    let mut scope = entity.into_scopes().load_scope::<Properties>()?;
 
     if scope.props.is_none() {
         scope.props = Some(Props::default());
@@ -120,7 +120,9 @@ fn load_props(entity: &Entity) -> Result<Box<Properties>, DomainError> {
 }
 
 fn save_props(entity: &mut Entity, properties: Box<Properties>) -> Result<(), DomainError> {
-    entity.replace_scope::<Properties>(&properties)
+    entity
+        .into_scopes_mut()
+        .replace_scope::<Properties>(&properties)
 }
 
 impl CoreProps for Entity {
