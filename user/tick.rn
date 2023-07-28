@@ -6,22 +6,3 @@ pub fn user() {
 pub fn have_surroundings() {
     info(format!("surroundings"));
 }
-
-// These should fail eventually unless there's an Entity context.
-
-pub fn dropping() {
-    true
-}
-
-pub fn dropped() {
-}
-
-pub fn holding() {
-    true
-}
-
-pub fn held() {
-}
-
-pub fn observed() {
-}

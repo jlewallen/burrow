@@ -5,7 +5,7 @@ use rune::{
     Context, Diagnostics, Source, Sources, Vm,
 };
 use std::{collections::HashSet, sync::Arc, time::Instant};
-use tracing::{debug, error, info, span, warn, Level};
+use tracing::*;
 
 use kernel::Surroundings;
 
@@ -29,15 +29,14 @@ impl Thing {
     }
 }
 
-fn rune_info(s: &str) {
-    // Probably a better way to do this.
-    let _span = span!(Level::INFO, "rune").entered();
-    info!("{}", s)
-}
-
 fn create_integration_module() -> Result<rune::Module> {
     let mut module = rune::Module::default();
-    module.function(["info"], rune_info)?;
+    module.function(["info"], |s: &str| {
+        info!("{}", s);
+    })?;
+    module.function(["debug"], |s: &str| {
+        debug!("{}", s);
+    })?;
     module.ty::<Thing>()?;
     module.function(["Thing", "new"], Thing::new)?;
     module.inst_fn(Protocol::STRING_DEBUG, Thing::string_debug)?;
@@ -76,8 +75,7 @@ impl RuneRunner {
         ctx.install(rune_modules::time::module(true)?)?;
         ctx.install(rune_modules::json::module(true)?)?;
         ctx.install(rune_modules::rand::module(true)?)?;
-        let module = create_integration_module()?;
-        ctx.install(&module)?;
+        ctx.install(create_integration_module()?)?;
 
         let mut diagnostics = Diagnostics::new();
         let runtime: Arc<RuntimeContext> = Arc::new(ctx.runtime());

@@ -37,7 +37,7 @@ impl StandardPerformer {
 
     pub fn evaluate_and_perform(&self, name: &str, text: &str) -> Result<Option<Effect>> {
         let started = Instant::now();
-        let _doing_span = span!(Level::INFO, "session-do", user = name).entered();
+        let _doing_span = span!(Level::DEBUG, "do", user = name).entered();
 
         debug!("'{}'", text);
 
@@ -106,7 +106,7 @@ impl StandardPerformer {
 
 impl Performer for StandardPerformer {
     fn perform(&self, perform: Perform) -> Result<Effect> {
-        let _span = span!(Level::INFO, "P").entered();
+        let _span = span!(Level::DEBUG, "P").entered();
 
         debug!("perform {:?}", perform);
 
@@ -126,18 +126,15 @@ impl Performer for StandardPerformer {
                 info!("perform:living");
 
                 let surroundings = {
-                    let _span = span!(Level::INFO, "S").entered();
                     let surroundings = self.evaluate_living_surroundings(&living)?;
                     info!("surroundings {:?}", &surroundings);
-                    if false {
-                        let plugins = self.plugins.borrow();
-                        plugins.have_surroundings(&surroundings)?;
-                    }
+                    let plugins = self.plugins.borrow();
+                    plugins.have_surroundings(&surroundings)?;
                     surroundings
                 };
 
                 let request_fn = Box::new(|value: Perform| -> Result<Effect, anyhow::Error> {
-                    let _span = span!(Level::INFO, "A").entered();
+                    let _span = span!(Level::DEBUG, "A").entered();
                     if let Perform::Chain(action) = value {
                         info!("action:perform {:?}", &action);
                         let res = action.perform(self.session()?, &surroundings);

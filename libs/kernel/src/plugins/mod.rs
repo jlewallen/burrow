@@ -118,6 +118,7 @@ impl SessionPlugins {
 
     pub fn initialize(&mut self) -> anyhow::Result<()> {
         for plugin in self.plugins.iter_mut() {
+            let _span = span!(Level::INFO, "I", plugin = plugin.key()).entered();
             let started = Instant::now();
             plugin.initialize()?;
             let elapsed = Instant::now() - started;
@@ -144,6 +145,7 @@ impl SessionPlugins {
     pub fn hooks(&self) -> Result<ManagedHooks> {
         let hooks = ManagedHooks::default();
         for plugin in self.plugins.iter() {
+            let _span = span!(Level::INFO, "H", plugin = plugin.key()).entered();
             plugin.register_hooks(&hooks)?;
         }
         Ok(hooks)
@@ -151,6 +153,7 @@ impl SessionPlugins {
 
     pub fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
         for plugin in self.plugins.iter() {
+            let _span = span!(Level::INFO, "S", plugin = plugin.key()).entered();
             plugin.have_surroundings(surroundings)?;
         }
         Ok(())
@@ -158,6 +161,7 @@ impl SessionPlugins {
 
     pub fn deliver(&self, incoming: Incoming) -> Result<()> {
         for plugin in self.plugins.iter() {
+            let _span = span!(Level::INFO, "D", plugin = plugin.key()).entered();
             plugin.deliver(&incoming)?;
         }
         Ok(())

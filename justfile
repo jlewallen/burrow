@@ -1,9 +1,9 @@
 export RUST_LOG := "info"
 
-default: test
+default: test build
 
 build:
-    cargo build
+    cargo build --workspace
 
 test:
     cargo test --workspace

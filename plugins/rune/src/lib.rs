@@ -157,24 +157,23 @@ pub mod actions {
     use crate::{sources::get_script, Behaviors, RUNE_EXTENSION};
 
     #[action]
-    pub struct LeadAction {
+    pub struct EditAction {
         pub item: Item,
     }
 
-    impl Action for LeadAction {
+    impl Action for EditAction {
         fn is_read_only() -> bool {
             true
         }
 
         fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
-            debug!("leading {:?}!", self.item);
+            info!("editing {:?}", self.item);
 
             match session.find_item(surroundings, &self.item)? {
                 Some(editing) => {
-                    info!("leading {:?}", editing);
                     let script = match get_script(&editing)? {
                         Some(script) => script,
-                        None => "; Default script".to_owned(),
+                        None => "// Default script".to_owned(),
                     };
                     Ok(
                         EditorReply::new(editing.key().to_string(), WorkingCopy::Script(script))
@@ -198,12 +197,10 @@ pub mod actions {
         }
 
         fn perform(&self, session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
-            info!("mutate:key {:?}", self.key);
+            info!("saving {:?}", self.key);
 
             match session.entry(&LookupBy::Key(&self.key))? {
                 Some(entry) => {
-                    info!("mutate:entry {:?}", entry);
-
                     match &self.copy {
                         WorkingCopy::Script(script) => {
                             let mut behaviors = entry.scope_mut::<Behaviors>()?;
@@ -211,9 +208,7 @@ pub mod actions {
                             langs.insert(RUNE_EXTENSION.to_owned(), script.clone());
                             behaviors.save()?;
                         }
-                        _ => {
-                            unimplemented!("TODO (See SaveWorkingCopyAction)")
-                        }
+                        _ => unimplemented!(),
                     }
 
                     Ok(SimpleReply::Done.into())
@@ -228,15 +223,15 @@ mod parser {
     use kernel::*;
     use plugins_core::library::parser::*;
 
-    use super::actions::LeadAction;
+    use super::actions::EditAction;
 
     pub struct LeadActionParser {}
 
     impl ParsesActions for LeadActionParser {
         fn try_parse_action(&self, i: &str) -> EvaluationResult {
             let (_, action) = map(
-                preceded(pair(tag("lead"), spaces), noun_or_specific),
-                |item| -> EvaluationResult { Ok(Some(Box::new(LeadAction { item }))) },
+                preceded(pair(tag("rune"), spaces), noun_or_specific),
+                |item| -> EvaluationResult { Ok(Some(Box::new(EditAction { item }))) },
             )(i)?;
 
             action
