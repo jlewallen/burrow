@@ -10,7 +10,7 @@ use std::{
 };
 use tracing::{debug, info, span, trace, warn, Level};
 
-use super::internal::{Entities, EntityMap, LoadedEntity};
+use super::internal::{Entities, LoadedEntity};
 use super::perform::StandardPerformer;
 use super::sequences::{GlobalIds, Sequence};
 use super::Notifier;
@@ -28,19 +28,26 @@ struct RaisedEvent {
 pub struct Session {
     opened: Instant,
     open: AtomicBool,
-    save_required: AtomicBool,
     storage: Rc<dyn EntityStorage>,
-    ids: Rc<GlobalIds>,
-    keys: Arc<dyn Sequence<EntityKey>>,
-    identities: Arc<dyn Sequence<Identity>>,
     performer: Rc<StandardPerformer>,
-    raised: Rc<RefCell<Vec<RaisedEvent>>>,
     weak: Weak<Session>,
-    entities: Rc<Entities>,
-    destroyed: RefCell<Vec<EntityKey>>,
     finder: Arc<dyn Finder>,
     plugins: Arc<RefCell<SessionPlugins>>,
     hooks: ManagedHooks,
+
+    save_required: AtomicBool,
+    keys: Arc<dyn Sequence<EntityKey>>,
+    identities: Arc<dyn Sequence<Identity>>,
+
+    ids: Rc<GlobalIds>,
+    state: State,
+}
+
+#[derive(Default)]
+pub struct State {
+    entities: Rc<Entities>,
+    raised: Rc<RefCell<Vec<RaisedEvent>>>,
+    destroyed: RefCell<Vec<EntityKey>>,
 }
 
 impl Session {
@@ -71,11 +78,9 @@ impl Session {
         };
 
         let ids = GlobalIds::new();
-        let entities = Entities::new(EntityMap::new());
         let session = Rc::new_cyclic(|weak: &Weak<Session>| Self {
             opened,
             storage,
-            entities,
             ids,
             hooks,
             weak: Weak::clone(weak),
@@ -88,12 +93,11 @@ impl Session {
                 middleware,
                 None,
             ),
-            raised: Rc::new(RefCell::new(Vec::new())),
             keys: Arc::clone(keys),
             identities: Arc::clone(identities),
-            destroyed: RefCell::new(Vec::new()),
             finder: Arc::clone(finder),
             plugins,
+            state: State::default(),
         });
 
         session.set_session()?;
@@ -170,13 +174,13 @@ impl Session {
     fn save_entity_changes(&self) -> Result<()> {
         self.save_modified_ids()?;
 
-        let destroyed = self.destroyed.borrow();
+        let destroyed = self.state.destroyed.borrow();
 
         let saves = SavesEntities {
             storage: &self.storage,
             destroyed: &destroyed,
         };
-        let changes = saves.save_modified_entities(&self.entities)?;
+        let changes = saves.save_modified_entities(&self.state.entities)?;
         let required = self.save_required.load(Ordering::SeqCst);
 
         if changes || required {
@@ -197,7 +201,7 @@ impl Session {
 
         self.flush_raised(notifier)?;
 
-        let nentities = self.entities.size();
+        let nentities = self.state.entities.size();
         let elapsed = self.opened.elapsed();
         let elapsed = format!("{:?}", elapsed);
 
@@ -213,7 +217,7 @@ impl Session {
     }
 
     fn flush_raised<T: Notifier>(&self, notifier: &T) -> Result<()> {
-        let mut pending = self.raised.borrow_mut();
+        let mut pending = self.state.raised.borrow_mut();
         let npending = pending.len();
         if npending == 0 {
             return Ok(());
@@ -319,7 +323,7 @@ impl<'a> SavesEntities<'a> {
 
 impl LoadsEntities for Session {
     fn load_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
-        if let Some(e) = self.entities.lookup_entity(lookup)? {
+        if let Some(e) = self.state.entities.lookup_entity(lookup)? {
             return Ok(Some(e));
         }
 
@@ -328,7 +332,7 @@ impl LoadsEntities for Session {
 
         trace!("loading");
         if let Some(persisted) = self.storage.load(lookup)? {
-            Ok(Some(self.entities.add_persisted(persisted)?))
+            Ok(Some(self.state.entities.add_persisted(persisted)?))
         } else {
             Ok(None)
         }
@@ -369,7 +373,7 @@ impl ActiveSession for Session {
     }
 
     fn add_entity(&self, entity: &EntityPtr) -> Result<Entry> {
-        self.entities.add_entity(&self.ids, entity)?;
+        self.state.entities.add_entity(&self.ids, entity)?;
 
         Ok(self
             .entry(&LookupBy::Key(&entity.key()))?
@@ -381,7 +385,7 @@ impl ActiveSession for Session {
         let mut destroying = destroying.borrow_mut();
         destroying.destroy()?;
 
-        self.destroyed.borrow_mut().push(entry.key().clone());
+        self.state.destroyed.borrow_mut().push(entry.key().clone());
 
         Ok(())
     }
@@ -399,7 +403,7 @@ impl ActiveSession for Session {
     }
 
     fn raise(&self, audience: Audience, event: Box<dyn DomainEvent>) -> Result<()> {
-        self.raised.borrow_mut().push(RaisedEvent {
+        self.state.raised.borrow_mut().push(RaisedEvent {
             audience,
             event: event.into(),
         });
@@ -445,4 +449,31 @@ impl Drop for Session {
 
 fn should_force_rollback() -> bool {
     env::var("FORCE_ROLLBACK").is_ok()
+}
+
+pub trait TakeSnapshot {
+    fn take_snapshot(&self) -> Result<Self>
+    where
+        Self: Sized;
+}
+
+impl Session {
+    pub fn take_snapshot(&self) -> Result<()> {
+        // TODO Save scopes
+        let scopes = self.state.entities.foreach_entity_mut(|l| {
+            let entity = l.entity.borrow();
+            entity.into_scopes().modified()
+        })?;
+
+        // TODO Save futures
+        // TODO Save raised
+        // TODO Save gid
+        Ok(())
+    }
+}
+
+impl TakeSnapshot for State {
+    fn take_snapshot(&self) -> Result<State> {
+        todo!()
+    }
 }

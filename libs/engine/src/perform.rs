@@ -155,6 +155,8 @@ impl Performer for StandardPerformer {
 
                 let perform = Perform::Chain(action);
 
+                self.session()?.take_snapshot()?;
+
                 apply_middleware(&self.middleware, perform, request_fn)
             }
             _ => todo!(),

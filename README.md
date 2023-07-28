@@ -39,11 +39,17 @@ return the state with the Effect. Then downstream Evaluators could throw them aw
 
 Hmmm.
 
+A few days later.
+
+I'm working towards something like the above.
+
 ## TODO
 
-1. Add entity templates, allow for custom ones.
-2. Our tests should render replies.
-3. Intermediate grammar.
+1. Need a way to to manage modifications/changes as part of the Perform/Action chain.
+2. Need serialize/deserialize or dynamically cast or whatever to "pick" things we're interested in.
+3. Add entity templates, allow for custom ones.
+4. Our tests should render replies.
+5. Intermediate grammar.
 
 ```
 "PUT #held IN #held"
@@ -53,14 +59,7 @@ Hmmm.
 "DROP #held?"
 ```
 
-4. Domain events.
-5. Improve test name language. Need a more consistent style.
-7. Eat/Drink
-8. Home/Limbo
-9. Freeze/Unfreeze
-10. Invite
-11. Wear/Remove (Clothing)
-12. Make
+6. Verbs: Eat/Drink, Home/Limbo, Freeze/Unfreeze, Invite, Wear/Remove (Clothing), Make
 
 ### Actions TODO
 

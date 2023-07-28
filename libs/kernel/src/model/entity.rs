@@ -16,7 +16,7 @@ pub enum ScopeValue {
     Original(serde_json::Value),
     Intermediate {
         value: serde_json::Value,
-        original: Option<Box<ScopeValue>>,
+        previous: Option<serde_json::Value>,
     },
 }
 
@@ -27,7 +27,7 @@ impl Serialize for ScopeValue {
     {
         match self {
             ScopeValue::Original(value) => value.serialize(serializer),
-            ScopeValue::Intermediate { value, original: _ } => value.serialize(serializer),
+            ScopeValue::Intermediate { value, previous: _ } => value.serialize(serializer),
         }
     }
 }
@@ -148,7 +148,7 @@ impl Entity {
             ScopeValue::Original(v)
             | ScopeValue::Intermediate {
                 value: v,
-                original: _,
+                previous: _,
             } => serde_json::from_value(v)?,
         };
 
@@ -175,12 +175,15 @@ impl Entity {
         debug!("scope-replace");
 
         // TODO Would love to just take the value.
-        let original = match self.scopes.get(scope_key) {
-            Some(value) => Some(value.clone().into()),
+        let previous = match self.scopes.get(scope_key) {
+            Some(value) => Some(match value {
+                ScopeValue::Original(original) => original.clone(),
+                ScopeValue::Intermediate { value, previous: _ } => value.clone(),
+            }),
             None => None.into(),
         };
 
-        let value = ScopeValue::Intermediate { value, original };
+        let value = ScopeValue::Intermediate { value, previous };
 
         self.scopes.insert(scope_key.to_owned(), value);
 
@@ -189,6 +192,56 @@ impl Entity {
 
     pub fn to_json_value(&self) -> Result<serde_json::Value, DomainError> {
         Ok(serde_json::to_value(self)?)
+    }
+}
+
+#[allow(dead_code)]
+pub struct Scopes<'e> {
+    key: &'e EntityKey,
+    map: &'e HashMap<String, ScopeValue>,
+}
+
+#[allow(dead_code)]
+pub struct ModifiedScope {
+    entity: EntityKey,
+    scope: String,
+    value: serde_json::Value,
+    previous: Option<serde_json::Value>,
+}
+
+impl<'e> Scopes<'e> {
+    pub fn modified(&self) -> Result<Vec<ModifiedScope>> {
+        let mut changes = Vec::new();
+
+        for (key, value) in self.map.iter() {
+            match value {
+                ScopeValue::Original(_) => {}
+                ScopeValue::Intermediate { value, previous } => {
+                    // TODO Not happy about cloning the JSON here.
+                    changes.push(ModifiedScope {
+                        entity: self.key.clone(),
+                        scope: key.clone(),
+                        value: value.clone(),
+                        previous: previous.clone(),
+                    });
+                }
+            }
+        }
+
+        Ok(changes)
+    }
+}
+
+pub trait HasScopes {
+    fn into_scopes(&self) -> Scopes;
+}
+
+impl HasScopes for Entity {
+    fn into_scopes(&self) -> Scopes {
+        Scopes {
+            key: &self.key,
+            map: &self.scopes,
+        }
     }
 }
 

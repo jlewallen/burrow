@@ -22,19 +22,13 @@ impl Debug for LoadedEntity {
     }
 }
 
+#[derive(Default)]
 struct Maps {
     by_key: HashMap<EntityKey, LoadedEntity>,
     by_gid: HashMap<EntityGid, EntityKey>,
 }
 
 impl Maps {
-    fn new() -> Self {
-        Maps {
-            by_key: HashMap::new(),
-            by_gid: HashMap::new(),
-        }
-    }
-
     fn size(&self) -> usize {
         self.by_key.len()
     }
@@ -99,17 +93,12 @@ impl Maps {
     }
 }
 
+#[derive(Default)]
 pub struct EntityMap {
     maps: RefCell<Maps>,
 }
 
 impl EntityMap {
-    pub fn new() -> Rc<Self> {
-        Rc::new(Self {
-            maps: RefCell::new(Maps::new()),
-        })
-    }
-
     pub fn size(&self) -> usize {
         self.maps.borrow().size()
     }
@@ -163,15 +152,12 @@ impl AssignEntityId for GlobalIds {
     }
 }
 
+#[derive(Default)]
 pub struct Entities {
     entities: Rc<EntityMap>,
 }
 
 impl Entities {
-    pub fn new(entities: Rc<EntityMap>) -> Rc<Self> {
-        Rc::new(Self { entities })
-    }
-
     pub fn add_entity(&self, ids: &GlobalIds, entity: &EntityPtr) -> Result<()> {
         let clone = entity.clone();
         let (key, gid) = ids.assign(entity)?;

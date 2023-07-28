@@ -9,7 +9,7 @@ pub use replies::*;
 
 pub type ReplyResult = anyhow::Result<Effect>;
 
-/// TODO Make generic
+/// TODO Make generic over SessionRef, Surroundings, and Result.
 pub trait Action: Debug {
     fn is_read_only() -> bool
     where
@@ -28,21 +28,38 @@ pub trait Scope: Needs<SessionRef> + DeserializeOwned + Default + Debug {
     fn serialize(&self) -> Result<Value>;
 }
 
-/// I would love to deprecate this but I don't know if I'll need it.
+/// TODO I would love to deprecate this but I don't know if I'll need it.
 pub trait Needs<T> {
     fn supply(&mut self, resource: &T) -> Result<()>;
 }
 
 #[derive(Debug)]
+pub struct Incoming {
+    pub key: String,
+    pub serialized: Vec<u8>,
+}
+
+impl Incoming {
+    pub fn new(key: String, serialized: Vec<u8>) -> Self {
+        Self { key, serialized }
+    }
+
+    pub fn has_prefix(&self, prefix: &str) -> bool {
+        self.key.starts_with(prefix)
+    }
+}
+
+#[derive(Debug)]
 #[non_exhaustive]
 pub enum Perform {
-    Ping(String),
     Living {
         living: Entry,
-        action: Box<dyn Action>, // Consider making this recursive?
+        action: Box<dyn Action>, // TODO Consider making this recursive?
     },
     Chain(Box<dyn Action>),
     Effect(Effect),
+    Incoming(Incoming),
+    Ping(String),
 }
 
 pub trait Performer {
@@ -52,8 +69,8 @@ pub trait Performer {
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum Effect {
-    Reply(Rc<dyn Reply>),
     Action(Rc<dyn Action>),
+    Reply(Rc<dyn Reply>),
     Pong(String),
 }
 

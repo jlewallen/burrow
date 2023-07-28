@@ -5,7 +5,7 @@ use tracing::*;
 pub use std::rc::Rc;
 
 use super::{model::*, Action, ManagedHooks};
-use crate::{Effect, Perform, Performer, Surroundings};
+use crate::{Effect, Incoming, Perform, Performer, Surroundings};
 
 pub mod mw;
 pub use mw::*;
@@ -57,6 +57,7 @@ pub trait ParsesActions {
         perform: &dyn Performer,
         consider: Evaluable,
     ) -> Result<Vec<Effect>> {
+        #[allow(unreachable_patterns)]
         match consider {
             Evaluable::Phrase(text) => self
                 .try_parse_action(text)
@@ -74,28 +75,12 @@ pub trait ParsesActions {
 #[non_exhaustive]
 pub enum Evaluable<'a> {
     Phrase(&'a str),
-    Surroundings(Surroundings),
-    Effect(Effect),
+    // Surroundings(Surroundings),
+    // Effect(Effect),
 }
 
 pub trait Evaluator {
-    fn evaluate(&self, perform: &dyn Performer, consider: Evaluable) -> Result<Vec<Effect>>;
-}
-
-#[derive(Debug)]
-pub struct Incoming {
-    pub key: String,
-    pub serialized: Vec<u8>,
-}
-
-impl Incoming {
-    pub fn new(key: String, serialized: Vec<u8>) -> Self {
-        Self { key, serialized }
-    }
-
-    pub fn has_prefix(&self, prefix: &str) -> bool {
-        self.key.starts_with(prefix)
-    }
+    fn evaluate(&self, performer: &dyn Performer, eval: Evaluable) -> Result<Vec<Effect>>;
 }
 
 pub trait Plugin: Evaluator {
@@ -115,6 +100,7 @@ pub trait Plugin: Evaluator {
     /// Working to remove.
     fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()>;
 
+    // If we can get this working alongside Perform and Evaluator we can remove this.
     fn deliver(&self, incoming: &Incoming) -> Result<()>;
 
     fn stop(&self) -> Result<()>;
@@ -186,14 +172,14 @@ impl SessionPlugins {
 }
 
 impl Evaluator for SessionPlugins {
-    fn evaluate(&self, perform: &dyn Performer, consider: Evaluable) -> Result<Vec<Effect>> {
+    fn evaluate(&self, performer: &dyn Performer, consider: Evaluable) -> Result<Vec<Effect>> {
         Ok(self
             .plugins
             .iter()
             .map(|plugin| {
                 let _span = span!(Level::INFO, "E", plugin = plugin.key()).entered();
                 info!("evaluating {:?}", &consider);
-                plugin.evaluate(perform, consider.clone())
+                plugin.evaluate(performer, consider.clone())
             })
             .collect::<Result<Vec<_>>>()?
             .into_iter()
