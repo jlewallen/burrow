@@ -45,6 +45,17 @@ impl Entry {
         &self.entity
     }
 
+    pub fn entity_ref(&self) -> EntityRef {
+        let entity = self.entity.borrow();
+        EntityRef {
+            key: self.key.clone(),
+            class: entity.class().to_owned(),
+            name: entity.name(),
+            gid: entity.gid(),
+            entity: None,
+        }
+    }
+
     pub fn name(&self) -> Result<Option<String>, DomainError> {
         let entity = self.entity();
         let entity = entity.borrow();

@@ -16,6 +16,8 @@ pub static GID_PROPERTY: &str = "gid";
 
 pub static DESTROYED_PROPERTY: &str = "destroyed";
 
+pub trait DomainEvent: ToJson + Debug {}
+
 #[derive(Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct EntityKey(String);
 
@@ -122,8 +124,6 @@ pub enum Audience {
     Individuals(Vec<EntityKey>),
     Area(EntityKey),
 }
-
-pub trait DomainEvent: ToJson + Debug {}
 
 #[derive(Debug)]
 pub enum DomainOutcome {

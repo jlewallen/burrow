@@ -7,6 +7,9 @@ edition = "2021"
 [lib]
 doctest = false
 
+[dependencies.macros]
+path = "../../libs/macros"
+
 [dependencies.kernel]
 path = "../../libs/kernel"
 

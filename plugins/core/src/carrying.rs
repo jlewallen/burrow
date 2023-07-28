@@ -73,24 +73,18 @@ pub mod model {
 
     pub type CarryingResult = Result<DomainOutcome>;
 
-    #[derive(Debug, Serialize)]
+    #[derive(Debug, Serialize, ToJson)]
     pub enum CarryingEvent {
         ItemHeld {
-            living: Entry,
-            item: Entry,
-            area: Entry,
+            living: EntityRef,
+            item: EntityRef,
+            area: EntityRef,
         },
         ItemDropped {
-            living: Entry,
-            item: Entry,
-            area: Entry,
+            living: EntityRef,
+            item: EntityRef,
+            area: EntityRef,
         },
-    }
-
-    impl ToJson for CarryingEvent {
-        fn to_json(&self) -> std::result::Result<Value, serde_json::Error> {
-            Ok(serde_json::to_value(self)?)
-        }
     }
 
     impl DomainEvent for CarryingEvent {}
@@ -321,9 +315,9 @@ pub mod actions {
                     DomainOutcome::Ok => Ok(reply_done(
                         Audience::Area(area.key().clone()),
                         CarryingEvent::ItemHeld {
-                            living: user,
-                            item: holding,
-                            area,
+                            living: user.entity_ref(),
+                            item: holding.entity_ref(),
+                            area: area.entity_ref(),
                         },
                     )?
                     .into()),
@@ -355,9 +349,9 @@ pub mod actions {
                         DomainOutcome::Ok => Ok(reply_done(
                             Audience::Area(area.key().clone()),
                             CarryingEvent::ItemDropped {
-                                living: user,
-                                item: dropping,
-                                area,
+                                living: user.entity_ref(),
+                                item: dropping.entity_ref(),
+                                area: area.entity_ref(),
                             },
                         )?
                         .into()),

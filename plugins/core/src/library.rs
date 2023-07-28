@@ -72,6 +72,7 @@ pub mod parser {
 pub mod model {
     pub use anyhow::Result;
     pub use kernel::*;
+    pub use macros::*;
     pub use serde::{Deserialize, Serialize};
     pub use serde_json::{json, Value};
     pub use std::rc::Rc;
@@ -99,6 +100,8 @@ pub mod actions {
 }
 
 pub mod tests {
+    pub use crate::tools;
     pub use crate::{BuildSurroundings, QuickThing};
-    pub use kernel::{DomainError, EntityGid, LookupBy, SimpleReply};
+    pub use kernel::*;
+    pub use tracing::*;
 }

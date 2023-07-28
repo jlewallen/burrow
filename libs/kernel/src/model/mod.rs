@@ -116,10 +116,14 @@ impl Deref for EntityPtr {
 impl Debug for EntityPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let lazy = self.lazy.borrow();
+        let name = match &lazy.name {
+            Some(name) => name.to_owned(),
+            None => "<none>".to_owned(),
+        };
         if let Some(gid) = &lazy.gid {
-            write!(f, "Entity(#{}, `{}`, {})", &gid, &lazy.name, &lazy.key)
+            write!(f, "Entity(#{}, `{}`, {})", &gid, &name, &lazy.key)
         } else {
-            write!(f, "Entity(?, `{}`, {})", &lazy.name, &lazy.key)
+            write!(f, "Entity(?, `{}`, {})", &name, &lazy.key)
         }
     }
 }

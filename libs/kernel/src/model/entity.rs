@@ -125,7 +125,7 @@ pub struct EntityRef {
     pub(super) key: EntityKey,
     #[serde(rename = "klass")]
     pub(super) class: String,
-    pub(super) name: String,
+    pub(super) name: Option<String>,
     pub(super) gid: Option<EntityGid>,
     #[serde(skip)]
     pub(super) entity: Option<Weak<RefCell<Entity>>>,
@@ -149,7 +149,7 @@ impl EntityRef {
         Self {
             key: shared_entity.key().clone(),
             class: shared_entity.class().to_owned(),
-            name: shared_entity.name().unwrap_or_default(),
+            name: shared_entity.name(),
             gid: shared_entity.gid(),
             entity: Some(Rc::downgrade(entity)),
         }

@@ -62,9 +62,9 @@ impl Agent for ExampleAgent {
         if false {
             for dropping in tools::contained_by(&area)? {
                 let raise = CarryingEvent::ItemDropped {
-                    living: living.clone(),
-                    item: dropping,
-                    area: area.clone(),
+                    living: living.entity_ref(),
+                    item: dropping.entity_ref(),
+                    area: area.entity_ref(),
                 };
                 get_my_session()?.raise(Audience::Area(area.key().clone()), Box::new(raise))?;
             }

@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Context, Result};
 use chrono::NaiveDateTime;
+use serde::Serialize;
 use std::{
     collections::HashSet,
     sync::{Arc, Mutex},
@@ -10,8 +11,8 @@ use kernel::{
     deserialize_entity_from_value, get_my_session, Audience, DomainError, DomainEvent, Effect,
     EntityGid, Entry, ToJson, When,
 };
+use macros::*;
 use plugins_core::tools;
-
 use rpc_proto::{EntityKey, EntityUpdate, Json, LookupBy};
 
 pub trait Services {
@@ -217,15 +218,9 @@ impl Services for SessionServices {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, ToJson)]
 pub struct RpcDomainEvent {
     value: serde_json::Value,
-}
-
-impl ToJson for RpcDomainEvent {
-    fn to_json(&self) -> std::result::Result<serde_json::Value, serde_json::Error> {
-        Ok(self.value.clone())
-    }
 }
 
 impl DomainEvent for RpcDomainEvent {}

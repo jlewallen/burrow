@@ -66,6 +66,8 @@ impl Evaluator for MovingPlugin {
 }
 
 pub mod model {
+    use macros::ToJson;
+
     use crate::library::model::*;
 
     pub trait BeforeMovingHook {
@@ -135,16 +137,10 @@ pub mod model {
         }
     }
 
-    #[derive(Debug, Serialize)]
+    #[derive(Debug, Serialize, ToJson)]
     pub enum MovingEvent {
-        Left { living: Entry, area: Entry },
-        Arrived { living: Entry, area: Entry },
-    }
-
-    impl ToJson for MovingEvent {
-        fn to_json(&self) -> std::result::Result<Value, serde_json::Error> {
-            Ok(serde_json::to_value(self)?)
-        }
+        Left { living: EntityRef, area: EntityRef },
+        Arrived { living: EntityRef, area: EntityRef },
     }
 
     impl DomainEvent for MovingEvent {}
@@ -309,15 +305,15 @@ pub mod actions {
                                     session.raise(
                                         Audience::Area(area.key().clone()),
                                         Box::new(MovingEvent::Left {
-                                            living: living.clone(),
-                                            area,
+                                            living: living.entity_ref(),
+                                            area: area.entity_ref(),
                                         }),
                                     )?;
                                     session.raise(
                                         Audience::Area(to_area.key().clone()),
                                         Box::new(MovingEvent::Arrived {
-                                            living: living.clone(),
-                                            area: to_area,
+                                            living: living.entity_ref(),
+                                            area: to_area.entity_ref(),
                                         }),
                                     )?;
 
@@ -361,10 +357,8 @@ mod parser {
 mod tests {
     use super::parser::*;
     use super::*;
-    use crate::{
-        {looking::model::new_area_observation, tools},
-        {BuildSurroundings, QuickThing},
-    };
+    use crate::library::tests::*;
+    use crate::looking::model::new_area_observation;
 
     #[test]
     fn it_goes_ignores_bad_matches() -> Result<()> {

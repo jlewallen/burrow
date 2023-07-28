@@ -231,6 +231,7 @@ impl DynamicPlugin {
 }
 
 struct LibraryMiddleware {
+    #[allow(dead_code)]
     prefix: String,
     library: Rc<Library>,
 }
@@ -254,7 +255,7 @@ impl DynamicMiddleware {
 
 impl Middleware for LibraryMiddleware {
     fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
-        let _span = span!(Level::INFO, "M", lib = self.prefix).entered();
+        let _span = span!(Level::INFO, "M" /*, lib = self.prefix*/).entered();
         info!("before");
 
         let v = unsafe {
