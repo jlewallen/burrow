@@ -75,17 +75,11 @@ impl Evaluator for BuildingPlugin {
 pub mod model {
     use crate::library::model::*;
 
-    #[derive(Debug, Serialize)]
+    #[derive(Debug, Serialize, ToJson)]
     #[serde(rename_all = "camelCase")]
     struct EditorReply {}
 
     impl Reply for EditorReply {}
-
-    impl ToJson for EditorReply {
-        fn to_json(&self) -> Result<Value, serde_json::Error> {
-            serde_json::to_value(self)
-        }
-    }
 }
 
 pub mod actions {
