@@ -1,5 +1,4 @@
 use anyhow::Result;
-use serde::de::DeserializeOwned;
 use serde_json::Value;
 use std::{fmt::Debug, rc::Rc};
 
@@ -16,21 +15,6 @@ pub trait Action: Debug {
         Self: Sized;
 
     fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult;
-}
-
-/// TODO Consider giving this Trait and the combination of another the ability to
-/// extract itself, potentially cleaning up Entity.
-pub trait Scope: Needs<SessionRef> + DeserializeOwned + Default + Debug {
-    fn scope_key() -> &'static str
-    where
-        Self: Sized;
-
-    fn serialize(&self) -> Result<Value>;
-}
-
-/// TODO I would love to deprecate this but I don't know if I'll need it.
-pub trait Needs<T> {
-    fn supply(&mut self, resource: &T) -> Result<()>;
 }
 
 #[derive(Debug)]

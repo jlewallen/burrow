@@ -4,8 +4,8 @@ use std::rc::{Rc, Weak};
 use tracing::trace;
 
 use crate::{
-    get_my_session, ActiveSession, CoreProps, DomainError, EntityKey, EntityPtr, EntityRef,
-    HasScopes, LookupBy, Scope,
+    get_my_session, model::Scope, ActiveSession, CoreProps, DomainError, EntityKey, EntityPtr,
+    EntityRef, HasScopes, LookupBy,
 };
 
 #[derive(Clone)]

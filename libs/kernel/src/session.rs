@@ -3,11 +3,11 @@ use std::{cell::RefCell, rc::Rc};
 
 use replies::ToJson;
 
+use super::actions::{Effect, Perform};
 use super::model::{
     Audience, DomainError, DomainEvent, EntityKey, EntityPtr, EntityRef, Entry, Identity, Item,
     LookupBy, When,
 };
-use super::scopes::{Effect, Perform};
 use super::{ManagedHooks, Surroundings};
 
 pub type SessionRef = Rc<dyn ActiveSession>;

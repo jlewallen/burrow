@@ -1,14 +1,15 @@
+pub mod actions;
 pub mod hooks;
 pub mod model;
 pub mod plugins;
-pub mod scopes;
 pub mod session;
 pub mod surround;
 
+pub use actions::*;
 pub use hooks::*;
+pub use model::Needs;
 pub use model::*;
 pub use plugins::*;
-pub use scopes::*;
 pub use session::*;
 pub use surround::*;
 

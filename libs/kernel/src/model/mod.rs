@@ -11,6 +11,9 @@ use tracing::*;
 mod base;
 pub use base::*;
 
+pub mod scopes;
+pub use scopes::*;
+
 mod entity;
 pub use entity::*;
 
@@ -23,7 +26,7 @@ pub use props::*;
 pub mod compare;
 pub use compare::{AnyChanges, CompareChanges, CompareError, Modified, Original};
 
-use super::{session::*, Needs, Scope};
+use super::session::*;
 
 pub trait LoadsEntities {
     fn load_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>>;
