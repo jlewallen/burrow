@@ -113,7 +113,7 @@ pub fn try_interactive(session: Rc<Session>, living: &EntityKey, effect: Effect)
                 serde_json::Value::Object(object) => {
                     for (key, value) in object {
                         // TODO This is annoying.
-                        if key == "editor" {
+                        if key == "editorReply" {
                             let reply: EditorReply = serde_json::from_value(value.clone())?;
                             let action: Box<dyn kernel::Action> = match reply.editing {
                                 replies::WorkingCopy::Description(original) => {

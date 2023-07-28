@@ -1,1 +1,0 @@
-{{ editor.editing | json_encode(pretty=true) }}
