@@ -236,23 +236,6 @@ struct LibraryMiddleware {
     library: Rc<Library>,
 }
 
-struct DynamicMiddleware {
-    libraries: Rc<RefCell<Vec<LoadedLibrary>>>,
-}
-
-impl DynamicMiddleware {
-    fn library_middleware(&self) -> Result<Vec<LibraryMiddleware>> {
-        let libraries = self.libraries.borrow();
-        Ok(libraries
-            .iter()
-            .map(|l| LibraryMiddleware {
-                prefix: l.prefix.clone(),
-                library: l.library.clone(),
-            })
-            .collect())
-    }
-}
-
 impl Middleware for LibraryMiddleware {
     fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
         let _span = span!(Level::INFO, "M" /*, lib = self.prefix*/).entered();
@@ -273,6 +256,23 @@ impl Middleware for LibraryMiddleware {
 
         info!("after");
         v
+    }
+}
+
+struct DynamicMiddleware {
+    libraries: Rc<RefCell<Vec<LoadedLibrary>>>,
+}
+
+impl DynamicMiddleware {
+    fn library_middleware(&self) -> Result<Vec<LibraryMiddleware>> {
+        let libraries = self.libraries.borrow();
+        Ok(libraries
+            .iter()
+            .map(|l| LibraryMiddleware {
+                prefix: l.prefix.clone(),
+                library: l.library.clone(),
+            })
+            .collect())
     }
 }
 
