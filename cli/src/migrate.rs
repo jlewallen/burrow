@@ -1,10 +1,11 @@
 use anyhow::Result;
 use clap::Args;
+use plugins_rune::Behaviors;
 use tracing::{debug, info};
 
 use crate::{make_domain, PluginConfiguration};
 use engine::{DevNullNotifier, SessionOpener};
-use kernel::{EntityKey, LoadsEntities, LookupBy};
+use kernel::{EntityKey, HasScopes, LoadsEntities, LookupBy};
 
 #[derive(Debug, Args, Clone)]
 pub struct Command {}
@@ -41,13 +42,12 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
             Some(entity) => {
                 debug!("{:?}", entity.key());
 
-                /*
-                let mut entity = entity.borrow_mut();
-                if let Some(props) = entity.old_props() {
-                    entity.set_props(props)?;
-                    entity.clear_old_props()?;
+                if false {
+                    // Reset Behaviors scope on all entities.
+                    let mut entity = entity.borrow_mut();
+                    let mut scopes = entity.into_scopes_mut();
+                    scopes.replace_scope(&Behaviors::default())?;
                 }
-                */
             }
             None => {}
         }

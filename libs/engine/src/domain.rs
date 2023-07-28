@@ -9,7 +9,7 @@ use crate::{
     storage::{EntityStorageFactory, PendingFutures},
     Notifier,
 };
-use kernel::{EntityKey, Finder, Identity, Incoming, RegisteredPlugins};
+use kernel::{EntityKey, Finder, Identity, Incoming, LookupBy, RegisteredPlugins};
 
 pub trait SessionOpener: Send + Sync + Clone {
     fn open_session(&self) -> Result<Rc<Session>>;
@@ -78,6 +78,11 @@ impl Domain {
     pub fn query_all(&self) -> Result<Vec<PersistedEntity>> {
         let storage = self.storage_factory.create_storage()?;
         storage.query_all()
+    }
+
+    pub fn query_entity(&self, lookup: &LookupBy) -> Result<Option<PersistedEntity>> {
+        let storage = self.storage_factory.create_storage()?;
+        storage.load(lookup)
     }
 
     pub fn stop(&self) -> Result<()> {
