@@ -72,11 +72,11 @@ impl Plugin for RunePlugin {
     }
 
     fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>> {
-        Ok(Vec::default())
+        Ok(vec![Rc::new(RuneMiddleware {})])
     }
 
-    fn register_hooks(&self, hooks: &ManagedHooks) -> Result<()> {
-        hooks::register(hooks, &self.runners)
+    fn register_hooks(&self, _hooks: &ManagedHooks) -> Result<()> {
+        Ok(())
     }
 
     fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
@@ -98,36 +98,22 @@ impl Plugin for RunePlugin {
     }
 }
 
-mod hooks {
-    use super::*;
-    use plugins_core::moving::model::{AfterMoveHook, BeforeMovingHook, CanMove, MovingHooks};
+#[derive(Default)]
+struct RuneMiddleware {}
 
-    pub fn register(hooks: &ManagedHooks, runners: &Runners) -> Result<()> {
-        hooks.with::<MovingHooks, _>(|h| {
-            let rune_moving_hooks = Box::new(RuneMovingHooks {
-                _runners: Runners::clone(runners),
-            });
-            h.before_moving.register(rune_moving_hooks.clone());
-            h.after_move.register(rune_moving_hooks);
-            Ok(())
-        })
-    }
+impl RuneMiddleware {}
 
-    #[derive(Clone)]
-    struct RuneMovingHooks {
-        _runners: Runners,
-    }
+impl Middleware for RuneMiddleware {
+    fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
+        let _span = span!(Level::INFO, "M", plugin = "rune").entered();
 
-    impl BeforeMovingHook for RuneMovingHooks {
-        fn before_moving(&self, _surroundings: &Surroundings, _to_area: &Entry) -> Result<CanMove> {
-            Ok(CanMove::Allow)
-        }
-    }
+        info!("before");
 
-    impl AfterMoveHook for RuneMovingHooks {
-        fn after_move(&self, _surroundings: &Surroundings, _from_area: &Entry) -> Result<()> {
-            Ok(())
-        }
+        let v = next.handle(value);
+
+        info!("after");
+
+        v
     }
 }
 
