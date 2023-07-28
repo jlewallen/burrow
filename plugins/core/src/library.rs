@@ -84,6 +84,8 @@ pub mod actions {
     pub use crate::tools;
     pub use anyhow::Result;
     pub use kernel::*;
+    pub use macros::*;
+    pub use serde::{Deserialize, Serialize};
     pub use tracing::*;
 
     pub fn reply_done<T: DomainEvent + 'static>(

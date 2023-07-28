@@ -10,6 +10,9 @@ doctest = false
 [dependencies.kernel]
 path = "../../libs/kernel"
 
+[dependencies.macros]
+path = "../../libs/macros"
+
 # I believe this is only necessary for `build.rs`
 [dependencies.engine]
 path = "../../libs/engine"

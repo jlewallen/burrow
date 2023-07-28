@@ -165,14 +165,12 @@ impl Scope for Behaviors {
 }
 
 pub mod actions {
+    use plugins_core::library::actions::*;
     use std::collections::HashMap;
-    use tracing::*;
-
-    use kernel::*;
 
     use crate::{sources::get_script, Behaviors, RUNE_EXTENSION};
 
-    #[derive(Debug)]
+    #[action]
     pub struct LeadAction {
         pub item: Item,
     }
@@ -202,7 +200,7 @@ pub mod actions {
         }
     }
 
-    #[derive(Debug)]
+    #[action]
     pub struct SaveScriptAction {
         pub key: EntityKey,
         pub copy: WorkingCopy,

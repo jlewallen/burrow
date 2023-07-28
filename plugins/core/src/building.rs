@@ -91,7 +91,7 @@ pub mod model {
 pub mod actions {
     use crate::{library::actions::*, looking::actions::LookAction};
 
-    #[derive(Debug)]
+    #[action]
     pub struct EditAction {
         pub item: Item,
     }
@@ -119,7 +119,7 @@ pub mod actions {
         }
     }
 
-    #[derive(Debug)]
+    #[action]
     pub struct EditRawAction {
         pub item: Item,
     }
@@ -147,7 +147,7 @@ pub mod actions {
         }
     }
 
-    #[derive(Debug)]
+    #[action]
     pub struct DescribeAction {
         pub item: Item,
     }
@@ -174,7 +174,7 @@ pub mod actions {
         }
     }
 
-    #[derive(Debug)]
+    #[action]
     pub struct DuplicateAction {
         pub item: Item,
     }
@@ -198,7 +198,7 @@ pub mod actions {
         }
     }
 
-    #[derive(Debug)]
+    #[action]
     pub struct ObliterateAction {
         pub item: Item,
     }
@@ -222,7 +222,7 @@ pub mod actions {
         }
     }
 
-    #[derive(Debug)]
+    #[action]
     pub struct BidirectionalDigAction {
         pub outgoing: String,
         pub returning: String,
@@ -266,7 +266,7 @@ pub mod actions {
         }
     }
 
-    #[derive(Debug)]
+    #[action]
     pub struct MakeItemAction {
         pub name: String,
     }
@@ -291,6 +291,7 @@ pub mod actions {
         }
     }
 
+    #[derive(Serialize, Deserialize, ToJson)]
     pub struct SaveWorkingCopyAction {
         pub key: EntityKey,
         pub copy: WorkingCopy,

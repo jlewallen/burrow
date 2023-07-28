@@ -205,7 +205,7 @@ pub mod actions {
     use super::model::*;
     use crate::library::actions::*;
 
-    #[derive(Debug)]
+    #[action]
     pub struct LookAction {}
 
     impl Action for LookAction {
@@ -222,7 +222,7 @@ pub mod actions {
         }
     }
 
-    #[derive(Debug)]
+    #[action]
     pub struct LookInsideAction {
         pub item: Item,
     }
@@ -251,7 +251,7 @@ pub mod actions {
         }
     }
 
-    #[derive(Debug)]
+    #[action]
     pub struct LookAtAction {
         pub item: Item,
     }

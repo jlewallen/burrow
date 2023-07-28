@@ -301,7 +301,7 @@ pub mod model {
 pub mod actions {
     use crate::{carrying::model::CarryingEvent, library::actions::*};
 
-    #[derive(Debug)]
+    #[action]
     pub struct HoldAction {
         pub item: Item,
     }
@@ -334,7 +334,7 @@ pub mod actions {
         }
     }
 
-    #[derive(Debug)]
+    #[action]
     pub struct DropAction {
         pub maybe_item: Option<Item>,
     }
@@ -370,7 +370,7 @@ pub mod actions {
         }
     }
 
-    #[derive(Debug)]
+    #[action]
     pub struct PutInsideAction {
         pub item: Item,
         pub vessel: Item,
@@ -406,7 +406,7 @@ pub mod actions {
         }
     }
 
-    #[derive(Debug)]
+    #[action]
     pub struct TakeOutAction {
         pub item: Item,
         pub vessel: Item,

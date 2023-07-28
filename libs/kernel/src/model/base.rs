@@ -131,7 +131,7 @@ pub enum DomainOutcome {
     Nope,
 }
 
-#[derive(Debug, Clone, Serialize, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Item {
     Area,
     Named(String),
@@ -141,7 +141,7 @@ pub enum Item {
     Held(Box<Item>),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
 pub struct Identity {
     private: String,
     public: String,
@@ -158,7 +158,7 @@ impl Identity {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
 pub struct Kind {
     identity: Identity,
 }

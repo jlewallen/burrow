@@ -38,30 +38,6 @@ pub struct EntityPtr {
     lazy: RefCell<EntityRef>,
 }
 
-pub fn deserialize_entity(serialized: &str) -> Result<Entity, DomainError> {
-    deserialize_entity_from_value(serde_json::from_str(serialized)?)
-}
-
-pub fn deserialize_entity_from_value(serialized: serde_json::Value) -> Result<Entity, DomainError> {
-    let session = get_my_session().with_context(|| "Session for deserialize")?;
-    deserialize_entity_from_value_with_session(serialized, Some(session))
-}
-
-pub fn deserialize_entity_from_value_with_session(
-    serialized: serde_json::Value,
-    session: Option<Rc<dyn ActiveSession>>,
-) -> Result<Entity, DomainError> {
-    trace!("parsing");
-    let mut loaded: Entity = serde_json::from_value(serialized)?;
-    if let Some(session) = session {
-        trace!("session");
-        loaded
-            .supply(&session)
-            .with_context(|| "Supplying session")?;
-    }
-    Ok(loaded)
-}
-
 impl EntityPtr {
     pub fn new_blank() -> Result<Self, DomainError> {
         Ok(Self::new(Entity::new_blank()?))
@@ -146,6 +122,30 @@ impl Debug for EntityPtr {
             write!(f, "Entity(?, `{}`, {})", &lazy.name, &lazy.key)
         }
     }
+}
+
+pub fn deserialize_entity(serialized: &str) -> Result<Entity, DomainError> {
+    deserialize_entity_from_value(serde_json::from_str(serialized)?)
+}
+
+pub fn deserialize_entity_from_value(serialized: serde_json::Value) -> Result<Entity, DomainError> {
+    let session = get_my_session().with_context(|| "Session for deserialize")?;
+    deserialize_entity_from_value_with_session(serialized, Some(session))
+}
+
+pub fn deserialize_entity_from_value_with_session(
+    serialized: serde_json::Value,
+    session: Option<Rc<dyn ActiveSession>>,
+) -> Result<Entity, DomainError> {
+    trace!("parsing");
+    let mut loaded: Entity = serde_json::from_value(serialized)?;
+    if let Some(session) = session {
+        trace!("session");
+        loaded
+            .supply(&session)
+            .with_context(|| "Supplying session")?;
+    }
+    Ok(loaded)
 }
 
 pub trait IntoEntry {

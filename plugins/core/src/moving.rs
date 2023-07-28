@@ -277,7 +277,7 @@ pub mod actions {
         AfterMoveHook, BeforeMovingHook, CanMove, MovingEvent, MovingHooks,
     };
 
-    #[derive(Debug)]
+    #[action]
     pub struct GoAction {
         pub item: Item,
     }

@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "libs/macros",
     "libs/replies",
     "libs/kernel",
     "libs/engine",
