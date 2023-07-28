@@ -1,1 +1,11 @@
-{{ simpleReply }}
+{% if simpleReply == "done" %}
+Done!
+{% elif simpleReply == "what" %}
+Sorry, what?
+{% elif simpleReply == "notFound" %}
+Where's that?
+{% elif simpleReply == "impossible" %}
+Oops, can't really do that.
+{% else %}
+Whoa, how'd you get here?
+{% endif %}
