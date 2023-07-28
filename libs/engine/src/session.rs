@@ -51,6 +51,25 @@ pub struct State {
     destroyed: RefCell<Vec<EntityKey>>,
 }
 
+// TODO Move request_fn calls in StandardPerform to call this.
+impl Performer for State {
+    fn perform(&self, perform: Perform) -> Result<Effect> {
+        match perform {
+            Perform::Living {
+                living: _,
+                action: _,
+            } => todo!(),
+            Perform::Chain(_) => todo!(),
+            Perform::Effect(_) => todo!(),
+            Perform::Incoming(_) => todo!(),
+            Perform::Ping(_) => todo!(),
+            Perform::Raised(_) => todo!(),
+            Perform::Schedule(_) => todo!(),
+            _ => todo!(),
+        }
+    }
+}
+
 impl Session {
     pub fn new(
         storage: Rc<dyn EntityStorage>,
