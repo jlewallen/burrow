@@ -47,6 +47,7 @@ pub struct Session {
 pub struct State {
     entities: Rc<Entities>,
     raised: Rc<RefCell<Vec<RaisedEvent>>>,
+    futures: Rc<RefCell<Vec<PersistedFuture>>>,
     destroyed: RefCell<Vec<EntityKey>>,
 }
 
@@ -197,6 +198,8 @@ impl Session {
     }
 
     pub fn close<T: Notifier>(&self, notifier: &T) -> Result<()> {
+        self.flush_futures()?;
+
         self.save_entity_changes()?;
 
         self.flush_raised(notifier)?;
@@ -235,6 +238,18 @@ impl Session {
         }
 
         pending.clear();
+
+        Ok(())
+    }
+
+    fn flush_futures(&self) -> Result<()> {
+        let futures = self.state.futures.borrow();
+
+        for future in futures.iter() {
+            self.storage.queue(future.clone())?;
+        }
+
+        self.save_required.store(true, Ordering::SeqCst);
 
         Ok(())
     }
@@ -425,9 +440,9 @@ impl ActiveSession for Session {
             serialized,
         };
 
-        self.storage.queue(future)?;
+        let mut futures = self.state.futures.borrow_mut();
 
-        self.save_required.store(true, Ordering::SeqCst);
+        futures.push(future);
 
         Ok(())
     }
@@ -460,7 +475,7 @@ pub trait TakeSnapshot {
 impl Session {
     pub fn take_snapshot(&self) -> Result<()> {
         // TODO Save scopes
-        let scopes = self.state.entities.foreach_entity_mut(|l| {
+        let _scopes = self.state.entities.foreach_entity_mut(|l| {
             let entity = l.entity.borrow();
             entity.into_scopes().modified()
         })?;
