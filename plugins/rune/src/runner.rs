@@ -73,6 +73,9 @@ impl RuneRunner {
 
         debug!("runner:compiling");
         let mut ctx = Context::with_default_modules()?;
+        ctx.install(rune_modules::time::module(true)?)?;
+        ctx.install(rune_modules::json::module(true)?)?;
+        ctx.install(rune_modules::rand::module(true)?)?;
         let module = create_integration_module()?;
         ctx.install(&module)?;
 
