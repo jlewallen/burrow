@@ -6,3 +6,7 @@ pub fn user() {
 pub fn have_surroundings() {
     info(format!("surroundings"));
 }
+
+pub fn deliver(incoming) {
+    info(format!("incoming {:?}", incoming));
+}

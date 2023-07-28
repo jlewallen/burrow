@@ -43,7 +43,7 @@ impl Agent for ExampleAgent {
     fn initialize(&mut self) -> Result<()> {
         get_my_session()?.schedule(
             "example-test",
-            When::Interval(Duration::minutes(10)),
+            When::Interval(Duration::minutes(1)),
             &ExampleFuture::Wakeup,
         )?;
 

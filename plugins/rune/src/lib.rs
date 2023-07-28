@@ -89,7 +89,11 @@ impl Plugin for RunePlugin {
         Ok(())
     }
 
-    fn deliver(&self, _incoming: &Incoming) -> Result<()> {
+    fn deliver(&self, incoming: &Incoming) -> Result<()> {
+        for (_, runner) in self.runners.borrow_mut().iter_mut() {
+            runner.deliver(incoming)?;
+        }
+
         Ok(())
     }
 

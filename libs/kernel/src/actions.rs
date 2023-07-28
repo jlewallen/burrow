@@ -17,7 +17,7 @@ pub trait Action: ToJson + Debug {
     fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Incoming {
     pub key: String,
     pub serialized: Vec<u8>,

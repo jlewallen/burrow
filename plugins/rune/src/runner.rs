@@ -11,7 +11,7 @@ use kernel::Surroundings;
 
 use crate::sources::*;
 
-#[derive(Debug, Default, rune::Any)]
+#[derive(rune::Any, Debug, Default)]
 struct Thing {
     #[rune(get)]
     value: u32,
@@ -29,6 +29,17 @@ impl Thing {
     }
 }
 
+#[derive(rune::Any, Debug)]
+struct Incoming(kernel::Incoming);
+
+impl Incoming {
+    #[inline]
+    fn string_debug(&self, s: &mut String) -> std::fmt::Result {
+        use std::fmt::Write;
+        write!(s, "Incoming()")
+    }
+}
+
 fn create_integration_module() -> Result<rune::Module> {
     let mut module = rune::Module::default();
     module.function(["info"], |s: &str| {
@@ -40,6 +51,8 @@ fn create_integration_module() -> Result<rune::Module> {
     module.ty::<Thing>()?;
     module.function(["Thing", "new"], Thing::new)?;
     module.inst_fn(Protocol::STRING_DEBUG, Thing::string_debug)?;
+    module.ty::<Incoming>()?;
+    module.inst_fn(Protocol::STRING_DEBUG, Incoming::string_debug)?;
     Ok(module)
 }
 
@@ -110,21 +123,30 @@ impl RuneRunner {
     }
 
     pub fn user(&mut self) -> Result<()> {
-        self.evaluate_optional_function("user")?;
+        self.evaluate_optional_function("user", ())?;
 
         Ok(())
     }
 
     pub fn have_surroundings(&mut self, _surroundings: &Surroundings) -> Result<()> {
-        self.evaluate_optional_function("have_surroundings")?;
+        self.evaluate_optional_function("have_surroundings", ())?;
 
         Ok(())
     }
 
-    fn evaluate_optional_function(&mut self, name: &str) -> Result<rune::Value> {
+    pub fn deliver(&mut self, incoming: &kernel::Incoming) -> Result<()> {
+        self.evaluate_optional_function("deliver", (Incoming(incoming.clone()),))?;
+
+        Ok(())
+    }
+
+    fn evaluate_optional_function<A>(&mut self, name: &str, args: A) -> Result<rune::Value>
+    where
+        A: rune::runtime::Args,
+    {
         match &mut self.vm {
             Some(vm) => match vm.lookup_function([name]) {
-                Ok(hook_fn) => match hook_fn.call::<(), rune::Value>(()) {
+                Ok(hook_fn) => match hook_fn.call::<A, rune::Value>(args) {
                     Ok(_v) => Ok(rune::Value::Unit),
                     Err(e) => {
                         error!("rune: {}", e);
