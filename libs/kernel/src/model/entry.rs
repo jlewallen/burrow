@@ -5,7 +5,7 @@ use tracing::trace;
 
 use crate::{
     get_my_session, ActiveSession, CoreProps, DomainError, EntityKey, EntityPtr, EntityRef,
-    LookupBy, Scope,
+    HasScopes, LookupBy, Scope,
 };
 
 #[derive(Clone)]
@@ -62,14 +62,15 @@ impl Entry {
     pub fn has_scope<T: Scope>(&self) -> Result<bool, DomainError> {
         let entity = self.entity();
         let entity = entity.borrow();
+        let scopes = entity.into_scopes();
 
-        Ok(entity.has_scope::<T>())
+        Ok(scopes.has_scope::<T>())
     }
 
     pub fn scope<T: Scope>(&self) -> Result<OpenedScope<T>, DomainError> {
         let entity = self.entity();
         let entity = entity.borrow();
-        let scope = entity.load_scope::<T>()?;
+        let scope = entity.into_scopes().load_scope::<T>()?;
 
         Ok(OpenedScope::new(scope))
     }
@@ -77,7 +78,7 @@ impl Entry {
     pub fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeMut<T>, DomainError> {
         let entity = self.entity();
         let entity = entity.borrow();
-        let scope = entity.load_scope::<T>()?;
+        let scope = entity.into_scopes().load_scope::<T>()?;
 
         Ok(OpenedScopeMut::new(
             Weak::clone(
@@ -85,7 +86,7 @@ impl Entry {
                     .as_ref()
                     .ok_or_else(|| anyhow!("No session in Entry::scope_mut"))?,
             ),
-            self,
+            self.entity(),
             scope,
         ))
     }
@@ -186,12 +187,12 @@ impl<T: Scope> std::ops::Deref for OpenedScope<T> {
 
 pub struct OpenedScopeMut<T: Scope> {
     _session: Weak<dyn ActiveSession>,
-    owner: Entry,
+    owner: EntityPtr,
     target: Box<T>,
 }
 
 impl<T: Scope> OpenedScopeMut<T> {
-    pub fn new(session: Weak<dyn ActiveSession>, owner: &Entry, target: Box<T>) -> Self {
+    pub fn new(session: Weak<dyn ActiveSession>, owner: &EntityPtr, target: Box<T>) -> Self {
         trace!("scope-open {:?}", target);
 
         Self {
@@ -202,10 +203,9 @@ impl<T: Scope> OpenedScopeMut<T> {
     }
 
     pub fn save(&mut self) -> Result<(), DomainError> {
-        let entity = self.owner.entity();
-        let mut entity = entity.borrow_mut();
+        let mut entity = self.owner.borrow_mut();
 
-        entity.replace_scope::<T>(&self.target)
+        entity.into_scopes_mut().replace_scope::<T>(&self.target)
     }
 
     pub fn as_ref(&mut self) -> &mut T {

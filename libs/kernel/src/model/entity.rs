@@ -44,7 +44,7 @@ pub struct Entity {
     parent: Option<EntityRef>,
     creator: Option<EntityRef>,
     identity: Identity,
-    #[serde(rename = "klass")]
+    #[serde(rename = "klass")] // TODO Rename, legacy from Python.
     class: EntityClass,
     acls: Acls,
     scopes: HashMap<String, ScopeValue>,
@@ -90,6 +90,9 @@ impl Entity {
     // into the new item in the situation for separate, so I'd start
     // there. Ultimately I think it'd be nice if we could just pass a
     // map of scopes in with their intended values.
+    // NOTE This should be easier with the Scopes stuff below, accept that as a
+    // ctor parameter and just clone the map or create an alternative we can
+    // take ownership of.
     pub fn new_with_props(properties: Properties) -> Result<Self> {
         let mut entity = Self::new_blank()?;
         entity.set_props(properties.props())?;
@@ -118,8 +121,34 @@ impl Entity {
         &self.class.py_type
     }
 
+    pub fn to_json_value(&self) -> Result<serde_json::Value, DomainError> {
+        Ok(serde_json::to_value(self)?)
+    }
+}
+
+#[allow(dead_code)]
+pub struct ScopesMut<'e> {
+    key: &'e EntityKey,
+    map: &'e mut HashMap<String, ScopeValue>,
+}
+
+#[allow(dead_code)]
+pub struct Scopes<'e> {
+    key: &'e EntityKey,
+    map: &'e HashMap<String, ScopeValue>,
+}
+
+#[allow(dead_code)]
+pub struct ModifiedScope {
+    entity: EntityKey,
+    scope: String,
+    value: JsonValue,
+    previous: Option<JsonValue>,
+}
+
+impl<'e> Scopes<'e> {
     pub fn has_scope<T: Scope>(&self) -> bool {
-        self.scopes.contains_key(<T as Scope>::scope_key())
+        self.map.contains_key(<T as Scope>::scope_key())
     }
 
     pub fn load_scope<T: Scope>(&self) -> Result<Box<T>, DomainError> {
@@ -133,7 +162,7 @@ impl Entity {
         )
         .entered();
 
-        if !self.scopes.contains_key(scope_key) {
+        if !self.map.contains_key(scope_key) {
             return Ok(Box::default());
         }
 
@@ -142,7 +171,7 @@ impl Entity {
         // lifetime of the returned object to the lifetime of the data being
         // referenced? What's the right solution here?
         // Should the 'un-parsed' Scope also owned the parsed data?
-        let data = &self.scopes[scope_key];
+        let data = &self.map[scope_key];
         let owned_value = data.clone();
         let mut scope: Box<T> = match owned_value {
             ScopeValue::Original(v)
@@ -159,57 +188,6 @@ impl Entity {
         Ok(scope)
     }
 
-    pub fn replace_scope<T: Scope>(&mut self, scope: &T) -> Result<(), DomainError> {
-        let scope_key = <T as Scope>::scope_key();
-
-        let _span = span!(
-            Level::TRACE,
-            "scope",
-            key = self.key.key_to_string(),
-            scope = scope_key
-        )
-        .entered();
-
-        let value = scope.serialize()?;
-
-        debug!("scope-replace");
-
-        // TODO Would love to just take the value.
-        let previous = match self.scopes.get(scope_key) {
-            Some(value) => Some(match value {
-                ScopeValue::Original(original) => original.clone(),
-                ScopeValue::Intermediate { value, previous: _ } => value.clone(),
-            }),
-            None => None.into(),
-        };
-
-        let value = ScopeValue::Intermediate { value, previous };
-
-        self.scopes.insert(scope_key.to_owned(), value);
-
-        Ok(())
-    }
-
-    pub fn to_json_value(&self) -> Result<serde_json::Value, DomainError> {
-        Ok(serde_json::to_value(self)?)
-    }
-}
-
-#[allow(dead_code)]
-pub struct Scopes<'e> {
-    key: &'e EntityKey,
-    map: &'e HashMap<String, ScopeValue>,
-}
-
-#[allow(dead_code)]
-pub struct ModifiedScope {
-    entity: EntityKey,
-    scope: String,
-    value: serde_json::Value,
-    previous: Option<serde_json::Value>,
-}
-
-impl<'e> Scopes<'e> {
     pub fn modified(&self) -> Result<Vec<ModifiedScope>> {
         let mut changes = Vec::new();
 
@@ -232,8 +210,43 @@ impl<'e> Scopes<'e> {
     }
 }
 
+impl<'e> ScopesMut<'e> {
+    pub fn replace_scope<T: Scope>(&mut self, scope: &T) -> Result<(), DomainError> {
+        let scope_key = <T as Scope>::scope_key();
+
+        let _span = span!(
+            Level::TRACE,
+            "scope",
+            key = self.key.key_to_string(),
+            scope = scope_key
+        )
+        .entered();
+
+        let value = scope.serialize()?;
+
+        debug!("scope-replace");
+
+        // TODO Would love to just take the value.
+        let previous = match self.map.get(scope_key) {
+            Some(value) => Some(match value {
+                ScopeValue::Original(original) => original.clone(),
+                ScopeValue::Intermediate { value, previous: _ } => value.clone(),
+            }),
+            None => None.into(),
+        };
+
+        let value = ScopeValue::Intermediate { value, previous };
+
+        self.map.insert(scope_key.to_owned(), value);
+
+        Ok(())
+    }
+}
+
 pub trait HasScopes {
     fn into_scopes(&self) -> Scopes;
+
+    fn into_scopes_mut(&mut self) -> ScopesMut;
 }
 
 impl HasScopes for Entity {
@@ -241,6 +254,13 @@ impl HasScopes for Entity {
         Scopes {
             key: &self.key,
             map: &self.scopes,
+        }
+    }
+
+    fn into_scopes_mut(&mut self) -> ScopesMut {
+        ScopesMut {
+            key: &self.key,
+            map: &mut self.scopes,
         }
     }
 }
