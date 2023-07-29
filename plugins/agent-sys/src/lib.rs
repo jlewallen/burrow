@@ -4,8 +4,8 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use tracing::*;
 
 use kernel::{
-    any_entity_changes, get_my_session, ActiveSession, AnyChanges, Audience, DomainError,
-    DomainEvent, EntityPtr, Entry, EntryResolver, Original, Performer, SetSession,
+    any_entity_changes, ActiveSession, AnyChanges, Audience, DomainError, DomainEvent, EntityPtr,
+    Entry, EntryResolver, Original, Performer, SetSession,
 };
 
 pub use rpc_proto::{EntityUpdate, IncomingMessage, LookupBy, Payload, Query};
@@ -136,7 +136,7 @@ impl ActiveSession for AgentSession {
     fn add_entity(&self, entity: &kernel::EntityPtr) -> Result<Entry> {
         let key = entity.key();
         let json_value = entity.to_json_value()?;
-        let entry = Entry::new(&key, entity.clone(), Rc::downgrade(&get_my_session()?));
+        let entry = Entry::new(&key, entity.clone());
         let mut entities = self.entities.borrow_mut();
         entities.insert(&key, (json_value, entry.clone()));
         Ok(entry)

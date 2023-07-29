@@ -1,11 +1,10 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use serde::{ser::SerializeStruct, Serialize};
-use std::rc::{Rc, Weak};
 use tracing::trace;
 
 use crate::{
-    get_my_session, model::Scope, ActiveSession, CoreProps, DomainError, EntityKey, EntityPtr,
-    EntityRef, HasScopes, LookupBy, WORLD_KEY,
+    get_my_session, model::Scope, CoreProps, DomainError, EntityKey, EntityPtr, EntityRef,
+    HasScopes, LookupBy, WORLD_KEY,
 };
 
 pub trait EntryResolver {
@@ -20,18 +19,16 @@ pub trait EntryResolver {
 pub struct Entry {
     key: EntityKey,
     entity: EntityPtr,
-    session: Option<Weak<dyn ActiveSession>>,
     debug: Option<String>,
 }
 
 impl Entry {
-    pub fn new(key: &EntityKey, entity: EntityPtr, session: Weak<dyn ActiveSession>) -> Self {
+    pub fn new(key: &EntityKey, entity: EntityPtr) -> Self {
         let debug = Some(format!("{:?}", entity));
 
         Self {
             key: key.clone(),
             entity,
-            session: Some(session),
             debug,
         }
     }
@@ -40,7 +37,6 @@ impl Entry {
         Ok(Self {
             key,
             entity: EntityPtr::from_value(value)?,
-            session: None,
             debug: None,
         })
     }
@@ -99,15 +95,7 @@ impl Entry {
         let entity = entity.borrow();
         let scope = entity.into_scopes().load_scope::<T>()?;
 
-        Ok(OpenedScopeMut::new(
-            Weak::clone(
-                self.session
-                    .as_ref()
-                    .ok_or_else(|| anyhow!("No session in Entry::scope_mut"))?,
-            ),
-            self.entity(),
-            scope,
-        ))
+        Ok(OpenedScopeMut::new(self.entity(), scope))
     }
 
     pub fn maybe_scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError> {
@@ -143,11 +131,7 @@ impl TryFrom<EntityPtr> for Entry {
     type Error = DomainError;
 
     fn try_from(value: EntityPtr) -> Result<Self, Self::Error> {
-        Ok(Self::new(
-            &value.key(),
-            value,
-            Rc::downgrade(&get_my_session()?),
-        ))
+        Ok(Self::new(&value.key(), value))
     }
 }
 
@@ -205,17 +189,15 @@ impl<T: Scope> std::ops::Deref for OpenedScope<T> {
 }
 
 pub struct OpenedScopeMut<T: Scope> {
-    _session: Weak<dyn ActiveSession>,
     owner: EntityPtr,
     target: Box<T>,
 }
 
 impl<T: Scope> OpenedScopeMut<T> {
-    pub fn new(session: Weak<dyn ActiveSession>, owner: &EntityPtr, target: Box<T>) -> Self {
+    pub fn new(owner: &EntityPtr, target: Box<T>) -> Self {
         trace!("scope-open {:?}", target);
 
         Self {
-            _session: session,
             owner: owner.clone(),
             target,
         }

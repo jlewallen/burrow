@@ -30,13 +30,12 @@ pub struct Session {
     weak: Weak<Session>,
     finder: Arc<dyn Finder>,
     plugins: Arc<RefCell<SessionPlugins>>,
-    hooks: ManagedHooks,
     middleware: Arc<RefCell<Vec<Rc<dyn Middleware>>>>,
+    hooks: ManagedHooks,
 
     save_required: AtomicBool,
     keys: Arc<dyn Sequence<EntityKey>>,
     identities: Arc<dyn Sequence<Identity>>,
-
     ids: Rc<GlobalIds>,
     state: Rc<State>,
 }
@@ -352,11 +351,7 @@ impl LoadsEntities for Session {
 impl EntryResolver for Session {
     fn entry(&self, lookup: &LookupBy) -> Result<Option<Entry>, DomainError> {
         match self.load_entity(lookup)? {
-            Some(entity) => Ok(Some(Entry::new(
-                &entity.key(),
-                entity,
-                Weak::clone(&self.weak) as Weak<dyn ActiveSession>,
-            ))),
+            Some(entity) => Ok(Some(Entry::new(&entity.key(), entity))),
             None => Ok(None),
         }
     }
