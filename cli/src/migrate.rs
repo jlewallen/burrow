@@ -53,8 +53,6 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
         }
     }
 
-    session.flush()?;
-
     session.close(&DevNullNotifier::default())?;
 
     Ok(())

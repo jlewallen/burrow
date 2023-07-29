@@ -213,7 +213,7 @@ impl BuildSurroundings {
             )?
             .into_entry()?;
 
-        self.session.flush()?;
+        self.session.flush(&DevNullNotifier {})?;
 
         let session: SessionRef = Rc::clone(&self.session) as SessionRef;
 
@@ -228,7 +228,7 @@ impl BuildSurroundings {
     }
 
     pub fn flush(&mut self) -> Result<&mut Self> {
-        self.session.flush()?;
+        self.session.flush(&DevNullNotifier {})?;
 
         Ok(self)
     }

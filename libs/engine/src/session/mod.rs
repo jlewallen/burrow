@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use std::rc::Weak;
 use std::sync::Arc;
 use std::time::Instant;
@@ -15,13 +15,10 @@ mod state;
 
 use super::sequences::{GlobalIds, Sequence};
 use super::Notifier;
-use crate::storage::{PersistedEntity, PersistedFuture, Storage};
+use crate::storage::Storage;
 use crate::{identifiers, HasUsernames};
-use internal::{Entities, LoadedEntity};
 use kernel::*;
 use state::State;
-
-struct ModifiedEntity(PersistedEntity);
 
 pub struct Session {
     opened: Instant,
@@ -128,13 +125,6 @@ impl Session {
         }
     }
 
-    pub fn flush(&self) -> Result<()> {
-        let _activated = self.set_session()?;
-
-        self.save_entity_changes()?;
-        self.storage.begin()
-    }
-
     pub fn deliver(&self, incoming: Incoming) -> Result<()> {
         let _activated = self.set_session()?;
 
@@ -145,14 +135,18 @@ impl Session {
         Ok(())
     }
 
+    pub fn flush<T: Notifier>(&self, notifier: &T) -> Result<()> {
+        let _activated = self.set_session()?;
+
+        self.save_changes(notifier)?;
+
+        self.storage.begin()
+    }
+
     pub fn close<T: Notifier>(&self, notifier: &T) -> Result<()> {
         let _activated = self.set_session()?;
 
-        self.flush_futures()?;
-
-        self.save_entity_changes()?;
-
-        self.flush_raised(notifier)?;
+        self.save_changes(notifier)?;
 
         let nentities = self.state.entities.size();
         let elapsed = self.opened.elapsed();
@@ -198,16 +192,10 @@ impl Session {
         }
     }
 
-    fn save_entity_changes(&self) -> Result<()> {
+    fn save_changes<T: Notifier>(&self, notifier: &T) -> Result<()> {
         self.save_modified_ids()?;
 
-        let destroyed = self.state.destroyed.borrow();
-
-        let saves = SavesEntities {
-            storage: &self.storage,
-            destroyed: &destroyed,
-        };
-        let changes = saves.save_modified_entities(&self.state.entities)?;
+        let changes = self.state.close(&self.storage, notifier, &self.finder)?;
         let required = self.save_required.load(Ordering::SeqCst);
 
         if changes || required {
@@ -221,45 +209,6 @@ impl Session {
         } else {
             self.storage.rollback(true)
         }
-    }
-
-    fn flush_raised<T: Notifier>(&self, notifier: &T) -> Result<()> {
-        let mut pending = self.state.raised.borrow_mut();
-        let npending = pending.len();
-        if npending == 0 {
-            return Ok(());
-        }
-
-        info!(%npending, "raising");
-
-        for raised in pending.iter() {
-            debug!("{:?}", raised.event);
-            debug!("{:?}", raised.event.to_json()?);
-            let audience_keys = self.finder.find_audience(&raised.audience)?;
-            for key in audience_keys {
-                notifier.notify(&key, &raised.event)?;
-            }
-        }
-
-        pending.clear();
-
-        Ok(())
-    }
-
-    fn flush_futures(&self) -> Result<()> {
-        let futures = self.state.futures.borrow();
-
-        for future in futures.iter() {
-            self.storage.queue(PersistedFuture {
-                key: future.key.clone(),
-                time: future.when.to_utc_time()?,
-                serialized: future.message.to_string(),
-            })?;
-        }
-
-        self.save_required.store(true, Ordering::SeqCst);
-
-        Ok(())
     }
 
     fn save_modified_ids(&self) -> Result<()> {
@@ -396,13 +345,7 @@ impl ActiveSession for Session {
     }
 
     fn obliterate(&self, entry: &Entry) -> Result<()> {
-        let destroying = entry.entity();
-        let mut destroying = destroying.borrow_mut();
-        destroying.destroy()?;
-
-        self.state.destroyed.borrow_mut().push(entry.key().clone());
-
-        Ok(())
+        self.state.obliterate(entry)
     }
 
     fn raise(&self, audience: Audience, event: Box<dyn DomainEvent>) -> Result<()> {
@@ -432,70 +375,6 @@ impl Drop for Session {
         } else {
             trace!("session-drop");
         }
-    }
-}
-
-struct SavesEntities<'a> {
-    storage: &'a Rc<dyn Storage>,
-    destroyed: &'a Vec<EntityKey>,
-}
-
-impl<'a> SavesEntities<'a> {
-    fn check_for_changes(&self, l: &mut LoadedEntity) -> Result<Option<ModifiedEntity>> {
-        use kernel::compare::*;
-
-        let _span = span!(Level::TRACE, "flushing", key = l.key.to_string()).entered();
-
-        if let Some(modified) = any_entity_changes(AnyChanges {
-            before: l.serialized.as_ref().map(Original::String),
-            after: l.entity.clone(),
-        })? {
-            // Serialize to string now that we know we'll use this.
-            let serialized = modified.after.to_string();
-
-            // By now we should have a global identifier.
-            let Some(gid) = l.gid.clone() else  {
-                return Err(anyhow!("Expected EntityGid in check_for_changes"));
-            };
-
-            let previous = l.version;
-            l.version += 1;
-
-            Ok(Some(ModifiedEntity(PersistedEntity {
-                key: l.key.to_string(),
-                gid: gid.into(),
-                version: previous,
-                serialized,
-            })))
-        } else {
-            Ok(None)
-        }
-    }
-
-    fn save_entity(&self, modified: &ModifiedEntity) -> Result<()> {
-        if self.is_deleted(&EntityKey::new(&modified.0.key)) {
-            self.storage.delete(&modified.0)
-        } else {
-            self.storage.save(&modified.0)
-        }
-    }
-
-    fn is_deleted(&self, key: &EntityKey) -> bool {
-        self.destroyed.contains(key)
-    }
-
-    fn save_modified_entities(&self, entities: &Entities) -> Result<bool> {
-        Ok(!self
-            .get_modified_entities(entities)?
-            .into_iter()
-            .map(|modified| self.save_entity(&modified))
-            .collect::<Result<Vec<_>>>()?
-            .is_empty())
-    }
-
-    fn get_modified_entities(&self, entities: &Entities) -> Result<Vec<ModifiedEntity>> {
-        let modified = entities.foreach_entity_mut(|l| self.check_for_changes(l))?;
-        Ok(modified.into_iter().flatten().collect::<Vec<_>>())
     }
 }
 

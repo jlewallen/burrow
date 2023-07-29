@@ -51,7 +51,7 @@ impl WorldFixture for HoldingKeyInVessel {
             .hands(vec![QuickThing::Actual(vessel.clone())])
             .build()?;
 
-        session.flush()?;
+        session.flush(&DevNullNotifier {})?;
 
         Ok(())
     }
