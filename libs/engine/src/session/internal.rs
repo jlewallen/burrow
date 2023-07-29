@@ -2,8 +2,7 @@ use anyhow::{anyhow, Result};
 use std::{cell::RefCell, collections::HashMap, fmt::Debug, rc::Rc};
 use tracing::*;
 
-use super::sequences::GlobalIds;
-use crate::storage::PersistedEntity;
+use crate::{sequences::GlobalIds, storage::PersistedEntity};
 use kernel::*;
 
 pub struct LoadedEntity {

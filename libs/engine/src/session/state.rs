@@ -2,8 +2,9 @@ use anyhow::Result;
 use std::{cell::RefCell, rc::Rc};
 use tracing::*;
 
-use super::internal::Entities;
 use kernel::*;
+
+use super::internal::Entities;
 
 pub struct RaisedEvent {
     pub(crate) audience: Audience,

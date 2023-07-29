@@ -10,13 +10,16 @@ use std::{
 };
 use tracing::{debug, info, span, trace, warn, Level};
 
-use super::internal::{Entities, LoadedEntity};
+mod internal;
+mod state;
+
 use super::sequences::{GlobalIds, Sequence};
 use super::Notifier;
-use crate::state::State;
 use crate::storage::{PersistedEntity, PersistedFuture, Storage};
 use crate::{identifiers, HasUsernames};
+use internal::{Entities, LoadedEntity};
 use kernel::*;
+use state::State;
 
 struct ModifiedEntity(PersistedEntity);
 
