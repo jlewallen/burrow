@@ -349,19 +349,6 @@ impl LoadsEntities for Session {
     }
 }
 
-pub fn user_name_to_entry<R: EntryResolver>(resolve: &R, name: &str) -> Result<Entry, DomainError> {
-    let _span = span!(Level::DEBUG, "who").entered();
-
-    let world = resolve.world()?.expect("No world");
-    let user_key = world
-        .find_name_key(name)?
-        .ok_or(DomainError::EntityNotFound)?;
-
-    resolve
-        .entry(&LookupBy::Key(&user_key))?
-        .ok_or(DomainError::EntityNotFound)
-}
-
 impl EntryResolver for Session {
     fn entry(&self, lookup: &LookupBy) -> Result<Option<Entry>, DomainError> {
         match self.load_entity(lookup)? {
@@ -521,9 +508,9 @@ fn should_force_rollback() -> bool {
     env::var("FORCE_ROLLBACK").is_ok()
 }
 
-pub struct MakeSurroundings {
-    pub finder: Arc<dyn Finder>,
-    pub living: Entry,
+struct MakeSurroundings {
+    finder: Arc<dyn Finder>,
+    living: Entry,
 }
 
 impl TryInto<Surroundings> for MakeSurroundings {
@@ -540,4 +527,15 @@ impl TryInto<Surroundings> for MakeSurroundings {
             area,
         })
     }
+}
+
+fn user_name_to_entry<R: EntryResolver>(resolve: &R, name: &str) -> Result<Entry, DomainError> {
+    let world = resolve.world()?.expect("No world");
+    let user_key = world
+        .find_name_key(name)?
+        .ok_or(DomainError::EntityNotFound)?;
+
+    resolve
+        .entry(&LookupBy::Key(&user_key))?
+        .ok_or(DomainError::EntityNotFound)
 }
