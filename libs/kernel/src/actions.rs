@@ -71,7 +71,6 @@ pub enum Perform {
         action: Rc<dyn Action>, // TODO Consider making this recursive?
     },
     Chain(Rc<dyn Action>),
-    Effect(Effect),
     Incoming(Incoming),
     Raised(Raised),
     Schedule(Scheduling),
