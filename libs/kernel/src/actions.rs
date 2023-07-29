@@ -56,7 +56,7 @@ impl Incoming {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct Scheduling {
     pub key: String,
     pub when: When,
@@ -73,9 +73,9 @@ pub enum Perform {
     Chain(Rc<dyn Action>),
     Effect(Effect),
     Incoming(Incoming),
-    Ping(String),
     Raised(Raised),
     Schedule(Scheduling),
+    Ping(TracePath),
 }
 
 pub trait Performer {
@@ -85,10 +85,34 @@ pub trait Performer {
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum Effect {
-    Action(Rc<dyn Action>),
-    Reply(Rc<dyn Reply>),
-    Pong(String),
     Ok,
+    Prevented,
+    // This is tempting. Right now we recursively call the performer.
+    // Chain(Rc<dyn Action>),
+    Reply(Rc<dyn Reply>),
+    Pong(TracePath),
+}
+
+#[derive(Clone, Default)]
+pub struct TracePath(Vec<String>);
+
+impl TracePath {
+    pub fn push(self, v: String) -> Self {
+        Self(self.0.into_iter().chain([v]).collect())
+    }
+}
+
+impl Debug for TracePath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let value: String = self.clone().into();
+        f.write_str(&value)
+    }
+}
+
+impl Into<String> for TracePath {
+    fn into(self) -> String {
+        self.0.join("")
+    }
 }
 
 impl ToJson for Effect {

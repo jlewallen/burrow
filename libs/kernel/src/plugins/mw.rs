@@ -61,6 +61,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::TracePath;
+
     use super::*;
     use anyhow::Result;
 
@@ -88,8 +90,8 @@ mod tests {
         fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
             match value {
                 Perform::Ping(value) => {
-                    match next.handle(Perform::Ping(format!("{}{}", value, self.token)))? {
-                        Effect::Pong(value) => Ok(Effect::Pong(format!("{}{}", value, self.token))),
+                    match next.handle(Perform::Ping(value.push(self.token.clone())))? {
+                        Effect::Pong(value) => Ok(Effect::Pong(value.push(self.token.clone()))),
                         _ => todo!(),
                     }
                 }
@@ -103,12 +105,12 @@ mod tests {
         let all: Vec<Rc<dyn Middleware>> = Vec::new();
         let request_fn = Box::new(|value: Perform| -> Result<Effect, anyhow::Error> {
             match value {
-                Perform::Ping(value) => Ok(Effect::Pong(format!("{}$", value))),
+                Perform::Ping(value) => Ok(Effect::Pong(value.push("$".to_owned()))),
                 _ => todo!(),
             }
         });
-        let pong = match apply_middleware(&all, Perform::Ping("".to_owned()), request_fn)? {
-            Effect::Pong(pong) => format!("{}", pong),
+        let pong = match apply_middleware(&all, Perform::Ping(TracePath::default()), request_fn)? {
+            Effect::Pong(pong) => format!("{:?}", pong),
             _ => panic!(),
         };
         assert_eq!(pong, "$");
@@ -121,12 +123,12 @@ mod tests {
             vec![Rc::new(Middle::from("A")), Rc::new(Middle::from("B"))];
         let request_fn = Box::new(|value: Perform| -> Result<Effect, anyhow::Error> {
             match value {
-                Perform::Ping(value) => Ok(Effect::Pong(format!("{}$", value))),
+                Perform::Ping(value) => Ok(Effect::Pong(value.push("$".to_owned()))),
                 _ => todo!(),
             }
         });
-        let pong = match apply_middleware(&all, Perform::Ping("".to_owned()), request_fn)? {
-            Effect::Pong(pong) => format!("{}", pong),
+        let pong = match apply_middleware(&all, Perform::Ping(Default::default()), request_fn)? {
+            Effect::Pong(pong) => format!("{:?}", pong),
             _ => panic!(),
         };
         assert_eq!(pong, "AB$BA");
