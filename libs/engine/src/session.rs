@@ -15,15 +15,11 @@ use super::perform::StandardPerformer;
 use super::sequences::{GlobalIds, Sequence};
 use super::Notifier;
 use crate::identifiers;
+use crate::state::{RaisedEvent, State};
 use crate::storage::{EntityStorage, PersistedEntity, PersistedFuture};
 use kernel::*;
 
 struct ModifiedEntity(PersistedEntity);
-
-struct RaisedEvent {
-    audience: Audience,
-    event: Rc<dyn DomainEvent>,
-}
 
 pub struct Session {
     opened: Instant,
@@ -41,30 +37,6 @@ pub struct Session {
 
     ids: Rc<GlobalIds>,
     state: State,
-}
-
-#[derive(Default)]
-pub struct State {
-    entities: Rc<Entities>,
-    raised: Rc<RefCell<Vec<RaisedEvent>>>,
-    futures: Rc<RefCell<Vec<Scheduling>>>,
-    destroyed: RefCell<Vec<EntityKey>>,
-}
-
-// TODO Move request_fn calls in StandardPerform to call this.
-impl Performer for State {
-    fn perform(&self, perform: Perform) -> Result<Effect> {
-        match perform {
-            Perform::Living {
-                living: _,
-                action: _,
-            } => todo!(),
-            Perform::Chain(_) => todo!(),
-            Perform::Raised(_) => todo!(),
-            Perform::Schedule(_) => todo!(),
-            _ => todo!(),
-        }
-    }
 }
 
 impl Performer for Session {
