@@ -320,7 +320,7 @@ pub mod actions {
 
                                     session.chain(Perform::Living {
                                         living,
-                                        action: Box::new(LookAction {}),
+                                        action: Rc::new(LookAction {}),
                                     })
                                 }
                                 DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),

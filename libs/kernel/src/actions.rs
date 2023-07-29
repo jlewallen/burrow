@@ -63,14 +63,14 @@ pub struct Scheduling {
     pub message: serde_json::Value,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum Perform {
     Living {
         living: Entry,
-        action: Box<dyn Action>, // TODO Consider making this recursive?
+        action: Rc<dyn Action>, // TODO Consider making this recursive?
     },
-    Chain(Box<dyn Action>),
+    Chain(Rc<dyn Action>),
     Effect(Effect),
     Incoming(Incoming),
     Ping(String),

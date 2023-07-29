@@ -115,12 +115,12 @@ pub fn try_interactive(session: Rc<Session>, living: &EntityKey, effect: Effect)
                         // TODO This is annoying.
                         if key == "editorReply" {
                             let reply: EditorReply = serde_json::from_value(value.clone())?;
-                            let action: Box<dyn kernel::Action> = match reply.editing {
+                            let action: Rc<dyn kernel::Action> = match reply.editing {
                                 replies::WorkingCopy::Description(original) => {
                                     let edited =
                                         default_external_editor(&original, TEXT_EXTENSION)?;
 
-                                    Box::new(SaveWorkingCopyAction {
+                                    Rc::new(SaveWorkingCopyAction {
                                         key: EntityKey::new(&reply.key),
                                         copy: replies::WorkingCopy::Description(edited),
                                     })
@@ -130,7 +130,7 @@ pub fn try_interactive(session: Rc<Session>, living: &EntityKey, effect: Effect)
                                     let edited =
                                         default_external_editor(&serialized, JSON_EXTENSION)?;
 
-                                    Box::new(SaveWorkingCopyAction {
+                                    Rc::new(SaveWorkingCopyAction {
                                         key: EntityKey::new(&reply.key),
                                         copy: replies::WorkingCopy::Json(serde_json::from_str(
                                             &edited,
@@ -141,7 +141,7 @@ pub fn try_interactive(session: Rc<Session>, living: &EntityKey, effect: Effect)
                                     let edited =
                                         default_external_editor(&original, RUNE_EXTENSION)?;
 
-                                    Box::new(SaveScriptAction {
+                                    Rc::new(SaveScriptAction {
                                         key: EntityKey::new(&reply.key),
                                         copy: replies::WorkingCopy::Script(edited),
                                     })
