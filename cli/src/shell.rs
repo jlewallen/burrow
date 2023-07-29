@@ -15,7 +15,7 @@ use crate::PluginConfiguration;
 use crate::{make_domain, terminal::default_external_editor};
 
 use engine::{self, DevNullNotifier, Domain, HasUsernames, Notifier, Session, SessionOpener};
-use kernel::{ActiveSession, DomainEvent, Effect, EntityKey, Perform, Performer, SimpleReply};
+use kernel::{DomainEvent, Effect, EntityKey, EntryResolver, Perform, Performer, SimpleReply};
 use replies::EditorReply;
 
 use plugins_core::building::actions::SaveWorkingCopyAction;

@@ -5,7 +5,7 @@ use tracing::*;
 
 use kernel::{
     any_entity_changes, get_my_session, set_my_session, ActiveSession, AnyChanges, Audience,
-    DomainError, DomainEvent, EntityPtr, Entry, Evaluator, Original, Performer,
+    DomainError, DomainEvent, EntityPtr, Entry, EntryResolver, Evaluator, Original, Performer,
 };
 
 pub use rpc_proto::{EntityUpdate, IncomingMessage, LookupBy, Payload, Query};
@@ -101,15 +101,17 @@ impl Performer for AgentSession {
     }
 }
 
-impl ActiveSession for AgentSession {
-    fn entry(&self, lookup: &kernel::LookupBy) -> Result<Option<Entry>> {
+impl EntryResolver for AgentSession {
+    fn entry(&self, lookup: &kernel::LookupBy) -> Result<Option<Entry>, DomainError> {
         let entities = self.entities.borrow();
         match lookup {
             kernel::LookupBy::Key(key) => Ok(entities.get(*key)?),
             kernel::LookupBy::Gid(_) => unimplemented!("Entry by Gid"),
         }
     }
+}
 
+impl ActiveSession for AgentSession {
     fn find_item(
         &self,
         _surroundings: &kernel::Surroundings,

@@ -4,7 +4,7 @@ use tracing::info;
 use crate::{make_domain, PluginConfiguration};
 
 use engine::{DevNullNotifier, HasUsernames, SessionOpener};
-use kernel::{ActiveSession, DomainError, Entry, LookupBy};
+use kernel::{DomainError, Entry, EntryResolver, LookupBy};
 use plugins_core::carrying::model::{Carryable, Containing};
 use plugins_core::moving::model::Occupying;
 

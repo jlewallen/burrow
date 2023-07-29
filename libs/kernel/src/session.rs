@@ -5,16 +5,14 @@ use replies::ToJson;
 
 use super::actions::Performer;
 use super::model::{
-    Audience, DomainError, DomainEvent, EntityKey, EntityPtr, EntityRef, Entry, Identity, Item,
-    LookupBy, When,
+    Audience, DomainError, DomainEvent, EntityKey, EntityPtr, EntityRef, Entry, EntryResolver,
+    Identity, Item, When,
 };
 use super::{ManagedHooks, Surroundings};
 
 pub type SessionRef = Rc<dyn ActiveSession>;
 
-pub trait ActiveSession: Performer {
-    fn entry(&self, lookup: &LookupBy) -> Result<Option<Entry>>;
-
+pub trait ActiveSession: Performer + EntryResolver {
     /// I think this will eventually need to return or take a construct that's
     /// builder-like so callers can take more control. Things to consider are:
     /// 1) Conditional needle visibility.

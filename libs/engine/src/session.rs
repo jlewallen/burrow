@@ -67,6 +67,20 @@ impl Performer for State {
     }
 }
 
+impl Performer for Session {
+    fn perform(&self, perform: Perform) -> Result<Effect> {
+        let performer = StandardPerformer::new(
+            &self.weak,
+            Arc::clone(&self.finder),
+            Arc::clone(&self.plugins),
+            Rc::clone(&self.middleware),
+            None,
+        );
+
+        performer.perform(perform)
+    }
+}
+
 impl Session {
     pub fn new(
         storage: Rc<dyn EntityStorage>,
@@ -395,22 +409,8 @@ impl LoadsEntities for Session {
     }
 }
 
-impl Performer for Session {
-    fn perform(&self, perform: Perform) -> Result<Effect> {
-        let performer = StandardPerformer::new(
-            &self.weak,
-            Arc::clone(&self.finder),
-            Arc::clone(&self.plugins),
-            Rc::clone(&self.middleware),
-            None,
-        );
-
-        performer.perform(perform)
-    }
-}
-
-impl ActiveSession for Session {
-    fn entry(&self, lookup: &LookupBy) -> Result<Option<Entry>> {
+impl EntryResolver for Session {
+    fn entry(&self, lookup: &LookupBy) -> Result<Option<Entry>, DomainError> {
         match self.load_entity(lookup)? {
             Some(entity) => Ok(Some(Entry::new(
                 &entity.key(),
@@ -420,7 +420,9 @@ impl ActiveSession for Session {
             None => Ok(None),
         }
     }
+}
 
+impl ActiveSession for Session {
     fn new_key(&self) -> EntityKey {
         self.keys.following()
     }
@@ -435,7 +437,7 @@ impl ActiveSession for Session {
         info!("finding");
 
         match item {
-            Item::Gid(gid) => self.entry(&LookupBy::Gid(gid)),
+            Item::Gid(gid) => Ok(self.entry(&LookupBy::Gid(gid))?),
             _ => self.finder.find_item(surroundings, item),
         }
     }

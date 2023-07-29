@@ -5,8 +5,16 @@ use tracing::trace;
 
 use crate::{
     get_my_session, model::Scope, ActiveSession, CoreProps, DomainError, EntityKey, EntityPtr,
-    EntityRef, HasScopes, LookupBy,
+    EntityRef, HasScopes, LookupBy, WORLD_KEY,
 };
+
+pub trait EntryResolver {
+    fn entry(&self, lookup: &LookupBy) -> Result<Option<Entry>, DomainError>;
+
+    fn world(&self) -> Result<Option<Entry>, DomainError> {
+        self.entry(&LookupBy::Key(&EntityKey::new(WORLD_KEY)))
+    }
+}
 
 #[derive(Clone)]
 pub struct Entry {
