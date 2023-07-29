@@ -15,7 +15,7 @@ use crate::PluginConfiguration;
 use crate::{make_domain, terminal::default_external_editor};
 
 use engine::{self, DevNullNotifier, Domain, HasUsernames, Notifier, Session, SessionOpener};
-use kernel::{ActiveSession, DomainEvent, Effect, EntityKey, Perform, SimpleReply};
+use kernel::{ActiveSession, DomainEvent, Effect, EntityKey, Perform, Performer, SimpleReply};
 use replies::EditorReply;
 
 use plugins_core::building::actions::SaveWorkingCopyAction;
@@ -150,7 +150,7 @@ pub fn try_interactive(session: Rc<Session>, living: &EntityKey, effect: Effect)
 
                             match session.entry(&kernel::LookupBy::Key(living))? {
                                 Some(living) => {
-                                    return session.chain(Perform::Living { living, action })
+                                    return session.perform(Perform::Living { living, action })
                                 }
                                 None => break,
                             }

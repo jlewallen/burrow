@@ -111,6 +111,12 @@ impl Performer for StandardPerformer {
         debug!("perform {:?}", perform);
 
         match perform {
+            Perform::Evaluation { user_name, text } => {
+                match self.evaluate_and_perform(&user_name, &text)? {
+                    Some(effect) => Ok(effect),
+                    None => Ok(Effect::Nothing),
+                }
+            }
             Perform::Chain(action) => {
                 let Some(user) = &self.user else {
                     return Err(anyhow!("No active user in StandardPerformer"));

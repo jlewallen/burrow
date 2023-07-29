@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use replies::ToJson;
 
-use super::actions::{Effect, Perform};
+use super::actions::Performer;
 use super::model::{
     Audience, DomainError, DomainEvent, EntityKey, EntityPtr, EntityRef, Entry, Identity, Item,
     LookupBy, When,
@@ -12,7 +12,7 @@ use super::{ManagedHooks, Surroundings};
 
 pub type SessionRef = Rc<dyn ActiveSession>;
 
-pub trait ActiveSession {
+pub trait ActiveSession: Performer {
     fn entry(&self, lookup: &LookupBy) -> Result<Option<Entry>>;
 
     /// I think this will eventually need to return or take a construct that's
@@ -56,8 +56,6 @@ pub trait ActiveSession {
     fn new_identity(&self) -> Identity;
 
     fn raise(&self, audience: Audience, event: Box<dyn DomainEvent>) -> Result<()>;
-
-    fn chain(&self, perform: Perform) -> Result<Effect>;
 
     fn hooks(&self) -> &ManagedHooks;
 

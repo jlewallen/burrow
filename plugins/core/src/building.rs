@@ -251,7 +251,7 @@ pub mod actions {
 
             // TODO Chain to GoAction?
             match tools::navigate_between(&area, &new_area, &living)? {
-                DomainOutcome::Ok => session.chain(Perform::Living {
+                DomainOutcome::Ok => session.perform(Perform::Living {
                     living,
                     action: Rc::new(LookAction {}),
                 }),

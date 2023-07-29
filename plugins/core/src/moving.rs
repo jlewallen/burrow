@@ -318,7 +318,7 @@ pub mod actions {
                                         }),
                                     )?;
 
-                                    session.chain(Perform::Living {
+                                    session.perform(Perform::Living {
                                         living,
                                         action: Rc::new(LookAction {}),
                                     })

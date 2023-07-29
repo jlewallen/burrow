@@ -29,11 +29,11 @@ pub struct Session {
     opened: Instant,
     open: AtomicBool,
     storage: Rc<dyn EntityStorage>,
-    performer: Rc<StandardPerformer>,
     weak: Weak<Session>,
     finder: Arc<dyn Finder>,
     plugins: Arc<RefCell<SessionPlugins>>,
     hooks: ManagedHooks,
+    middleware: Rc<Vec<Rc<dyn Middleware>>>,
 
     save_required: AtomicBool,
     keys: Arc<dyn Sequence<EntityKey>>,
@@ -103,18 +103,12 @@ impl Session {
             weak: Weak::clone(weak),
             open: AtomicBool::new(true),
             save_required: AtomicBool::new(false),
-            performer: StandardPerformer::new(
-                weak,
-                Arc::clone(finder),
-                Arc::clone(&plugins),
-                middleware,
-                None,
-            ),
             keys: Arc::clone(keys),
             identities: Arc::clone(identities),
             finder: Arc::clone(finder),
             plugins,
             state: State::default(),
+            middleware,
         });
 
         session.set_session()?;
@@ -132,8 +126,14 @@ impl Session {
             return Err(DomainError::SessionClosed.into());
         }
 
-        match self.performer.evaluate_and_perform(user_name, text) {
-            Ok(i) => Ok(i),
+        let perform = Perform::Evaluation {
+            user_name: user_name.to_owned(),
+            text: text.to_owned(),
+        };
+
+        match self.perform(perform) {
+            Ok(Effect::Nothing) => Ok(None),
+            Ok(i) => Ok(Some(i)),
             Err(original_err) => {
                 if let Err(_rollback_err) = self.storage.rollback(false) {
                     // TODO Include that this failed as part of the error.
@@ -395,6 +395,20 @@ impl LoadsEntities for Session {
     }
 }
 
+impl Performer for Session {
+    fn perform(&self, perform: Perform) -> Result<Effect> {
+        let performer = StandardPerformer::new(
+            &self.weak,
+            Arc::clone(&self.finder),
+            Arc::clone(&self.plugins),
+            Rc::clone(&self.middleware),
+            None,
+        );
+
+        performer.perform(perform)
+    }
+}
+
 impl ActiveSession for Session {
     fn entry(&self, lookup: &LookupBy) -> Result<Option<Entry>> {
         match self.load_entity(lookup)? {
@@ -405,6 +419,14 @@ impl ActiveSession for Session {
             ))),
             None => Ok(None),
         }
+    }
+
+    fn new_key(&self) -> EntityKey {
+        self.keys.following()
+    }
+
+    fn new_identity(&self) -> Identity {
+        self.identities.following()
     }
 
     fn find_item(&self, surroundings: &Surroundings, item: &Item) -> Result<Option<Entry>> {
@@ -446,24 +468,10 @@ impl ActiveSession for Session {
         Ok(())
     }
 
-    fn chain(&self, perform: Perform) -> Result<Effect> {
-        self.performer.perform(perform)
-    }
-
-    fn new_key(&self) -> EntityKey {
-        self.keys.following()
-    }
-
-    fn new_identity(&self) -> Identity {
-        self.identities.following()
-    }
-
     fn raise(&self, audience: Audience, event: Box<dyn DomainEvent>) -> Result<()> {
         let perform = Perform::Raised(Raised::new(audience.clone(), "".to_owned(), event.into()));
 
-        self.performer.perform(perform)?;
-
-        Ok(())
+        self.perform(perform).map(|_| ())
     }
 
     fn schedule(&self, key: &str, when: When, message: &dyn ToJson) -> Result<()> {
@@ -472,9 +480,7 @@ impl ActiveSession for Session {
         let scheduling = Scheduling { key, when, message };
         let perform = Perform::Schedule(scheduling);
 
-        self.performer.perform(perform)?;
-
-        Ok(())
+        self.perform(perform).map(|_| ())
     }
 
     fn hooks(&self) -> &ManagedHooks {

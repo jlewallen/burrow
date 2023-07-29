@@ -95,6 +95,12 @@ impl AgentSession {
     }
 }
 
+impl Performer for AgentSession {
+    fn perform(&self, _perform: Perform) -> Result<Effect> {
+        unimplemented!("AgentSession:perform")
+    }
+}
+
 impl ActiveSession for AgentSession {
     fn entry(&self, lookup: &kernel::LookupBy) -> Result<Option<Entry>> {
         let entities = self.entities.borrow();
@@ -152,10 +158,6 @@ impl ActiveSession for AgentSession {
             .push(RaisedEvent { audience, event });
 
         Ok(())
-    }
-
-    fn chain(&self, _perform: kernel::Perform) -> Result<Effect> {
-        unimplemented!("AgentSession:chain")
     }
 
     fn hooks(&self) -> &kernel::ManagedHooks {

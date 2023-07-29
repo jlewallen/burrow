@@ -66,6 +66,10 @@ pub struct Scheduling {
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum Perform {
+    Evaluation {
+        user_name: String,
+        text: String,
+    },
     Living {
         living: Entry,
         action: Rc<dyn Action>, // TODO Consider making this recursive?
@@ -93,6 +97,7 @@ pub enum RevertReason {
 pub enum Effect {
     Ok,
     Prevented,
+    Nothing,
     // Revert(RevertReason),
     Reply(Rc<dyn Reply>),
     Pong(TracePath),
