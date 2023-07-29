@@ -46,7 +46,6 @@ impl Performer for Session {
             Arc::clone(&self.finder),
             Arc::clone(&self.plugins),
             Rc::clone(&self.middleware),
-            None,
             Some(Rc::clone(&self.state) as Rc<dyn Performer>),
         );
 

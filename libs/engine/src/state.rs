@@ -44,12 +44,6 @@ impl State {
 impl Performer for State {
     fn perform(&self, perform: Perform) -> Result<Effect> {
         match perform {
-            Perform::Living {
-                living: _,
-                action: _,
-            } => {
-                todo!()
-            }
             Perform::Chain(_action) => {
                 /*
                 let _span = span!(Level::DEBUG, "A").entered();

@@ -70,6 +70,10 @@ pub enum Perform {
         living: Entry,
         action: Rc<dyn Action>, // TODO Consider making this recursive?
     },
+    Surroundings {
+        surroundings: Surroundings,
+        action: Rc<dyn Action>, // TODO Consider making this recursive?
+    },
     Chain(Rc<dyn Action>),
     Delivery(Incoming),
     Raised(Raised),
