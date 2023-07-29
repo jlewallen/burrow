@@ -11,7 +11,6 @@ use std::{
 use tracing::{debug, info, span, trace, warn, Level};
 
 use super::internal::{Entities, LoadedEntity};
-use super::perform::StandardPerformer;
 use super::sequences::{GlobalIds, Sequence};
 use super::Notifier;
 use crate::state::State;
@@ -29,7 +28,7 @@ pub struct Session {
     finder: Arc<dyn Finder>,
     plugins: Arc<RefCell<SessionPlugins>>,
     hooks: ManagedHooks,
-    middleware: Rc<Vec<Rc<dyn Middleware>>>,
+    middleware: Arc<RefCell<Vec<Rc<dyn Middleware>>>>,
 
     save_required: AtomicBool,
     keys: Arc<dyn Sequence<EntityKey>>,
@@ -37,20 +36,6 @@ pub struct Session {
 
     ids: Rc<GlobalIds>,
     state: Rc<State>,
-}
-
-impl Performer for Session {
-    fn perform(&self, perform: Perform) -> Result<Effect> {
-        let performer = StandardPerformer::new(
-            &self.weak,
-            Arc::clone(&self.finder),
-            Arc::clone(&self.plugins),
-            Rc::clone(&self.middleware),
-            Some(Rc::clone(&self.state) as Rc<dyn Performer>),
-        );
-
-        performer.perform(perform)
-    }
 }
 
 impl Session {
@@ -75,13 +60,8 @@ impl Session {
             plugins.hooks()?
         };
 
-        let middleware: Rc<Vec<Rc<dyn Middleware>>> = {
-            let mut plugins = plugins.borrow_mut();
-            Rc::new(plugins.middleware()?)
-        };
-
         let ids = GlobalIds::new();
-        let session = Rc::new_cyclic(|weak: &Weak<Session>| Self {
+        let session = Rc::new_cyclic(move |weak: &Weak<Session>| Self {
             opened,
             storage,
             ids,
@@ -94,7 +74,7 @@ impl Session {
             finder: Arc::clone(finder),
             plugins,
             state: Default::default(),
-            middleware,
+            middleware: Default::default(),
         });
 
         session.set_session()?;
@@ -185,6 +165,14 @@ impl Session {
     fn initialize(&self) -> Result<()> {
         if let Some(gid) = self.get_gid()? {
             self.ids.set(&gid);
+        }
+
+        {
+            let mut middleware = self.middleware.borrow_mut();
+            middleware.extend({
+                let mut plugins = self.plugins.borrow_mut();
+                plugins.middleware()?
+            });
         }
 
         let mut plugins = self.plugins.borrow_mut();
@@ -283,67 +271,53 @@ impl Session {
     }
 }
 
-struct SavesEntities<'a> {
-    storage: &'a Rc<dyn Storage>,
-    destroyed: &'a Vec<EntityKey>,
-}
+impl Performer for Session {
+    fn perform(&self, perform: Perform) -> Result<Effect> {
+        let _span = span!(Level::DEBUG, "P").entered();
 
-impl<'a> SavesEntities<'a> {
-    fn check_for_changes(&self, l: &mut LoadedEntity) -> Result<Option<ModifiedEntity>> {
-        use kernel::compare::*;
+        debug!("perform {:?}", perform);
 
-        let _span = span!(Level::TRACE, "flushing", key = l.key.to_string()).entered();
+        match perform {
+            Perform::Living { living, action } => {
+                info!("perform:living");
 
-        if let Some(modified) = any_entity_changes(AnyChanges {
-            before: l.serialized.as_ref().map(Original::String),
-            after: l.entity.clone(),
-        })? {
-            // Serialize to string now that we know we'll use this.
-            let serialized = modified.after.to_string();
+                let surroundings = {
+                    let make = MakeSurroundings {
+                        finder: self.finder.clone(),
+                        living: living.clone(),
+                    };
+                    let surroundings = make.try_into()?;
+                    info!("surroundings {:?}", &surroundings);
+                    let plugins = self.plugins.borrow();
+                    plugins.have_surroundings(&surroundings)?;
+                    surroundings
+                };
 
-            // By now we should have a global identifier.
-            let Some(gid) = l.gid.clone() else  {
-                return Err(anyhow!("Expected EntityGid in check_for_changes"));
-            };
+                let target = self.state.clone();
+                let request_fn = Box::new(|value: Perform| -> Result<Effect, anyhow::Error> {
+                    target.perform(value)
+                });
 
-            let previous = l.version;
-            l.version += 1;
+                let middleware = self.middleware.borrow();
+                apply_middleware(
+                    &middleware,
+                    Perform::Surroundings {
+                        surroundings,
+                        action,
+                    },
+                    request_fn,
+                )
+            }
+            _ => {
+                let target = self.state.clone();
+                let request_fn = Box::new(move |value: Perform| -> Result<Effect, anyhow::Error> {
+                    target.perform(value)
+                });
 
-            Ok(Some(ModifiedEntity(PersistedEntity {
-                key: l.key.to_string(),
-                gid: gid.into(),
-                version: previous,
-                serialized,
-            })))
-        } else {
-            Ok(None)
+                let middleware = self.middleware.borrow();
+                apply_middleware(&middleware, perform, request_fn)
+            }
         }
-    }
-
-    fn save_entity(&self, modified: &ModifiedEntity) -> Result<()> {
-        if self.is_deleted(&EntityKey::new(&modified.0.key)) {
-            self.storage.delete(&modified.0)
-        } else {
-            self.storage.save(&modified.0)
-        }
-    }
-
-    fn is_deleted(&self, key: &EntityKey) -> bool {
-        self.destroyed.contains(key)
-    }
-
-    fn save_modified_entities(&self, entities: &Entities) -> Result<bool> {
-        Ok(!self
-            .get_modified_entities(entities)?
-            .into_iter()
-            .map(|modified| self.save_entity(&modified))
-            .collect::<Result<Vec<_>>>()?
-            .is_empty())
-    }
-
-    fn get_modified_entities(&self, entities: &Entities) -> Result<Vec<ModifiedEntity>> {
-        let modified = entities.foreach_entity_mut(|l| self.check_for_changes(l))?;
-        Ok(modified.into_iter().flatten().collect::<Vec<_>>())
     }
 }
 
@@ -473,33 +447,91 @@ impl Drop for Session {
     }
 }
 
+struct SavesEntities<'a> {
+    storage: &'a Rc<dyn Storage>,
+    destroyed: &'a Vec<EntityKey>,
+}
+
+impl<'a> SavesEntities<'a> {
+    fn check_for_changes(&self, l: &mut LoadedEntity) -> Result<Option<ModifiedEntity>> {
+        use kernel::compare::*;
+
+        let _span = span!(Level::TRACE, "flushing", key = l.key.to_string()).entered();
+
+        if let Some(modified) = any_entity_changes(AnyChanges {
+            before: l.serialized.as_ref().map(Original::String),
+            after: l.entity.clone(),
+        })? {
+            // Serialize to string now that we know we'll use this.
+            let serialized = modified.after.to_string();
+
+            // By now we should have a global identifier.
+            let Some(gid) = l.gid.clone() else  {
+                return Err(anyhow!("Expected EntityGid in check_for_changes"));
+            };
+
+            let previous = l.version;
+            l.version += 1;
+
+            Ok(Some(ModifiedEntity(PersistedEntity {
+                key: l.key.to_string(),
+                gid: gid.into(),
+                version: previous,
+                serialized,
+            })))
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn save_entity(&self, modified: &ModifiedEntity) -> Result<()> {
+        if self.is_deleted(&EntityKey::new(&modified.0.key)) {
+            self.storage.delete(&modified.0)
+        } else {
+            self.storage.save(&modified.0)
+        }
+    }
+
+    fn is_deleted(&self, key: &EntityKey) -> bool {
+        self.destroyed.contains(key)
+    }
+
+    fn save_modified_entities(&self, entities: &Entities) -> Result<bool> {
+        Ok(!self
+            .get_modified_entities(entities)?
+            .into_iter()
+            .map(|modified| self.save_entity(&modified))
+            .collect::<Result<Vec<_>>>()?
+            .is_empty())
+    }
+
+    fn get_modified_entities(&self, entities: &Entities) -> Result<Vec<ModifiedEntity>> {
+        let modified = entities.foreach_entity_mut(|l| self.check_for_changes(l))?;
+        Ok(modified.into_iter().flatten().collect::<Vec<_>>())
+    }
+}
+
 fn should_force_rollback() -> bool {
     env::var("FORCE_ROLLBACK").is_ok()
 }
 
-pub trait TakeSnapshot {
-    fn take_snapshot(&self) -> Result<Self>
-    where
-        Self: Sized;
+pub struct MakeSurroundings {
+    pub finder: Arc<dyn Finder>,
+    pub living: Entry,
 }
 
-impl Session {
-    pub fn take_snapshot(&self) -> Result<()> {
-        // TODO Save scopes
-        let _scopes = self.state.entities.foreach_entity_mut(|l| {
-            let entity = l.entity.borrow();
-            entity.into_scopes().modified()
-        })?;
+impl TryInto<Surroundings> for MakeSurroundings {
+    type Error = DomainError;
 
-        // TODO Save futures
-        // TODO Save raised
-        // TODO Save gid
-        Ok(())
-    }
-}
+    fn try_into(self) -> std::result::Result<Surroundings, Self::Error> {
+        let world = self.finder.find_world()?;
+        let living = self.living.clone();
+        let area: Entry = self.finder.find_location(&living)?;
 
-impl TakeSnapshot for State {
-    fn take_snapshot(&self) -> Result<State> {
-        todo!()
+        Ok(Surroundings::Living {
+            world,
+            living,
+            area,
+        })
     }
 }

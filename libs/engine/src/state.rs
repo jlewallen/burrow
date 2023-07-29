@@ -44,8 +44,10 @@ impl State {
 impl Performer for State {
     fn perform(&self, perform: Perform) -> Result<Effect> {
         match perform {
-            Perform::Chain(_action) => {
-                /*
+            Perform::Surroundings {
+                surroundings,
+                action,
+            } => {
                 let _span = span!(Level::DEBUG, "A").entered();
                 info!("action:perform {:?}", &action);
                 let res = action.perform(get_my_session()?, &surroundings);
@@ -56,17 +58,43 @@ impl Performer for State {
                     warn!("action:error {:?}", res);
                 }
                 res
-                */
-                todo!()
             }
             Perform::Raised(raised) => {
                 self.queue_raised(raised)?;
+
                 Ok(Effect::Ok)
             }
             Perform::Schedule(scheduling) => {
                 self.queue_scheduled(scheduling)?;
+
                 Ok(Effect::Ok)
             }
+            _ => todo!(),
+        }
+    }
+}
+
+#[allow(dead_code)]
+pub struct ActionPerformer {
+    session: SessionRef,
+    surroundings: Surroundings,
+    // action: Rc<dyn Action>,
+}
+
+#[allow(unused_variables)]
+impl Performer for ActionPerformer {
+    fn perform(&self, perform: Perform) -> Result<Effect> {
+        match perform {
+            Perform::Living { living, action } => todo!(),
+            Perform::Surroundings {
+                surroundings,
+                action,
+            } => todo!(),
+            Perform::Chain(_) => todo!(),
+            Perform::Delivery(_) => todo!(),
+            Perform::Raised(_) => todo!(),
+            Perform::Schedule(_) => todo!(),
+            Perform::Ping(_) => todo!(),
             _ => todo!(),
         }
     }
