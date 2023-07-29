@@ -102,11 +102,6 @@ impl Session {
         Ok(session)
     }
 
-    pub fn world(&self) -> Result<Entry, DomainError> {
-        self.entry(&LookupBy::Key(&WORLD_KEY.into()))?
-            .ok_or(DomainError::EntityNotFound)
-    }
-
     pub fn evaluate_and_perform(&self, user_name: &str, text: &str) -> Result<Option<Effect>> {
         if !self.open.load(Ordering::Relaxed) {
             return Err(DomainError::SessionClosed.into());
@@ -284,7 +279,7 @@ impl Session {
     fn save_modified_ids(&self) -> Result<()> {
         // Check to see if the global identifier has changed due to the creation
         // of a new entity.
-        let world = self.world()?;
+        let world = self.world()?.expect("No world");
         let previous_gid =
             identifiers::model::get_gid(&world)?.unwrap_or_else(|| EntityGid::new(0));
         let new_gid = self.ids.gid();

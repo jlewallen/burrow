@@ -24,7 +24,7 @@ use tower_http::{
 use tracing::{debug, info, warn};
 
 use engine::{AfterTick, DevNullNotifier, Domain, HasUsernames, Notifier, Session, SessionOpener};
-use kernel::{DomainEvent, Effect, EntityKey, SimpleReply};
+use kernel::{DomainEvent, Effect, EntityKey, EntryResolver, SimpleReply};
 use replies::ToJson;
 
 use crate::{make_domain, PluginConfiguration};
@@ -108,7 +108,7 @@ impl AppState {
     fn find_user_key(&self, name: &str) -> Result<Option<EntityKey>> {
         let session = self.domain.open_session().expect("Error opening session");
 
-        let world = session.world()?;
+        let world = session.world()?.expect("No world");
         let maybe_key = world.find_name_key(name)?;
 
         session.close(&DevNullNotifier::default())?;

@@ -33,7 +33,7 @@ pub async fn execute_command() -> Result<()> {
     let domain = make_domain(PluginConfiguration::default()).await?;
     let session = domain.open_session()?;
 
-    let world = session.world()?;
+    let world = session.world()?.expect("No world");
     let user_key = world
         .find_name_key("jlewallen")?
         .ok_or_else(|| DomainError::EntityNotFound)?;

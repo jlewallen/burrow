@@ -89,9 +89,9 @@ async fn find_user_key(domain: &Domain, name: &str) -> Result<Option<EntityKey>>
         let name = name.to_owned();
 
         move || {
-            let session = domain.open_session().with_context(|| "Opening session")?;
+            let session = domain.open_session()?;
 
-            let world = session.world()?;
+            let world = session.world()?.expect("No world");
             let maybe_key = world.find_name_key(&name)?;
 
             session.close(&DevNullNotifier::default())?;
