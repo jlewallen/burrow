@@ -71,7 +71,7 @@ pub enum Perform {
         action: Rc<dyn Action>, // TODO Consider making this recursive?
     },
     Chain(Rc<dyn Action>),
-    Incoming(Incoming),
+    Delivery(Incoming),
     Raised(Raised),
     Schedule(Scheduling),
     Ping(TracePath),
@@ -83,13 +83,24 @@ pub trait Performer {
 
 #[derive(Clone, Debug)]
 #[non_exhaustive]
+pub enum RevertReason {
+    Mysterious,
+    Deliberate(String),
+}
+
+#[derive(Clone, Debug)]
+#[non_exhaustive]
 pub enum Effect {
     Ok,
     Prevented,
-    // This is tempting. Right now we recursively call the performer.
-    // Chain(Rc<dyn Action>),
+    // Revert(RevertReason),
     Reply(Rc<dyn Reply>),
     Pong(TracePath),
+    // This is tempting. Right now we recursively call the performer. I'm not
+    // sure this gives us in benefit, but it could come in really handy when we
+    // start to dynamically alter behavior in chained actions. Leaving this as
+    // it stands until I have a stronger opinion.
+    // Chain(Rc<dyn Action>),
 }
 
 #[derive(Clone, Default)]
