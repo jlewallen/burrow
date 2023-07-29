@@ -383,26 +383,9 @@ impl Plugin for DynamicPlugin {
     }
 }
 
-impl Evaluator for DynamicPlugin {
-    fn evaluate(&self, _perform: &dyn Performer, consider: Evaluable) -> Result<Vec<Effect>> {
-        match consider {
-            Evaluable::Phrase(text) => {
-                let services = SessionServices::new_for_my_session(None)?;
-
-                let messages = vec![DynMessage::Payload(Payload::Evaluate(text.to_owned()))];
-
-                self.push_messages_to_all(&messages)?;
-
-                self.tick()?;
-
-                if let Some(produced) = services.take_produced()? {
-                    Ok(produced)
-                } else {
-                    Ok(Vec::new())
-                }
-            }
-            _ => todo!(),
-        }
+impl ParsesActions for DynamicPlugin {
+    fn try_parse_action(&self, _i: &str) -> EvaluationResult {
+        Err(EvaluationError::ParseFailed)
     }
 }
 

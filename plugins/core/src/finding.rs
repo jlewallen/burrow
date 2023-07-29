@@ -221,6 +221,10 @@ fn default_priority(e: &EntityRelationship) -> u32 {
 pub struct DefaultFinder {}
 
 impl Finder for DefaultFinder {
+    fn find_world(&self) -> anyhow::Result<Entry> {
+        Ok(get_my_session()?.world()?.expect("No world"))
+    }
+
     fn find_location(&self, entry: &Entry) -> Result<Entry> {
         let occupying = entry.scope::<Occupying>()?;
         Ok(occupying.area.into_entry()?)

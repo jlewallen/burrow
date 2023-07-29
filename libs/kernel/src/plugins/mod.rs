@@ -5,7 +5,7 @@ use tracing::*;
 pub use std::rc::Rc;
 
 use super::{model::*, Action, ManagedHooks};
-use crate::{Effect, Incoming, Perform, Performer, Surroundings};
+use crate::{Incoming, Surroundings};
 
 pub mod mw;
 pub use mw::*;
@@ -51,39 +51,9 @@ impl RegisteredPlugins {
 
 pub trait ParsesActions {
     fn try_parse_action(&self, i: &str) -> EvaluationResult;
-
-    fn evaluate_parsed_action(
-        &self,
-        perform: &dyn Performer,
-        consider: Evaluable,
-    ) -> Result<Vec<Effect>> {
-        #[allow(unreachable_patterns)]
-        match consider {
-            Evaluable::Phrase(text) => self
-                .try_parse_action(text)
-                .ok()
-                .flatten()
-                .map(|a| perform.perform(Perform::Chain(a.into())))
-                .map_or(Ok(None), |v| v.map(Some))?
-                .map_or(Ok(Vec::new()), |v| Ok(vec![v])),
-            _ => todo!(),
-        }
-    }
 }
 
-#[derive(Clone, Debug)]
-#[non_exhaustive]
-pub enum Evaluable<'a> {
-    Phrase(&'a str),
-    // Surroundings(Surroundings),
-    // Effect(Effect),
-}
-
-pub trait Evaluator {
-    fn evaluate(&self, performer: &dyn Performer, eval: Evaluable) -> Result<Vec<Effect>>;
-}
-
-pub trait Plugin: Evaluator {
+pub trait Plugin: ParsesActions {
     fn plugin_key() -> &'static str
     where
         Self: Sized;
@@ -175,19 +145,18 @@ impl SessionPlugins {
     }
 }
 
-impl Evaluator for SessionPlugins {
-    fn evaluate(&self, performer: &dyn Performer, consider: Evaluable) -> Result<Vec<Effect>> {
-        Ok(self
+impl ParsesActions for SessionPlugins {
+    fn try_parse_action(&self, i: &str) -> EvaluationResult {
+        match self
             .plugins
             .iter()
-            .map(|plugin| {
-                let _span = span!(Level::INFO, "E", plugin = plugin.key()).entered();
-                info!("evaluating {:?}", &consider);
-                plugin.evaluate(performer, consider.clone())
-            })
-            .collect::<Result<Vec<_>>>()?
-            .into_iter()
-            .flatten()
-            .collect())
+            .map(|plugin| plugin.try_parse_action(i))
+            .filter_map(|r| r.ok())
+            .take(1)
+            .last()
+        {
+            Some(Some(e)) => Ok(Some(e)),
+            _ => Ok(None),
+        }
     }
 }

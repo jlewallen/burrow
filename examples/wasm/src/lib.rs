@@ -1,4 +1,4 @@
-use kernel::{Effect, Evaluator, Incoming, Surroundings};
+use kernel::{Incoming, Surroundings};
 use plugins_core::tools;
 use wasm_sys::prelude::*;
 
@@ -30,16 +30,6 @@ impl Agent for WasmExample {
 
     fn deliver(&mut self, _incoming: Incoming) -> Result<()> {
         Ok(())
-    }
-}
-
-impl Evaluator for WasmExample {
-    fn evaluate(
-        &self,
-        _perform: &dyn kernel::Performer,
-        _consider: kernel::Evaluable,
-    ) -> Result<Vec<Effect>> {
-        Ok(Vec::new())
     }
 }
 

@@ -14,9 +14,9 @@ use super::internal::{Entities, LoadedEntity};
 use super::perform::StandardPerformer;
 use super::sequences::{GlobalIds, Sequence};
 use super::Notifier;
-use crate::identifiers;
-use crate::state::{RaisedEvent, State};
+use crate::state::State;
 use crate::storage::{EntityStorage, PersistedEntity, PersistedFuture};
+use crate::{identifiers, HasUsernames};
 use kernel::*;
 
 struct ModifiedEntity(PersistedEntity);
@@ -36,7 +36,7 @@ pub struct Session {
     identities: Arc<dyn Sequence<Identity>>,
 
     ids: Rc<GlobalIds>,
-    state: State,
+    state: Rc<State>,
 }
 
 impl Performer for Session {
@@ -47,6 +47,7 @@ impl Performer for Session {
             Arc::clone(&self.plugins),
             Rc::clone(&self.middleware),
             None,
+            Some(Rc::clone(&self.state) as Rc<dyn Performer>),
         );
 
         performer.perform(perform)
@@ -93,7 +94,7 @@ impl Session {
             identities: Arc::clone(identities),
             finder: Arc::clone(finder),
             plugins,
-            state: State::default(),
+            state: Default::default(),
             middleware,
         });
 
@@ -107,24 +108,34 @@ impl Session {
             return Err(DomainError::SessionClosed.into());
         }
 
-        let perform = Perform::Evaluation {
-            user_name: user_name.to_owned(),
-            text: text.to_owned(),
+        let action = {
+            let plugins = self.plugins.borrow();
+            plugins.try_parse_action(text)?
         };
 
-        match self.perform(perform) {
-            Ok(Effect::Nothing) => Ok(None),
-            Ok(i) => Ok(Some(i)),
-            Err(original_err) => {
-                if let Err(_rollback_err) = self.storage.rollback(false) {
-                    // TODO Include that this failed as part of the error.
-                    panic!("TODO error rolling back");
+        match action {
+            Some(action) => {
+                let living = user_name_to_entry(self, &user_name)?;
+                let perform = Perform::Living {
+                    living,
+                    action: action.into(),
+                };
+                match self.perform(perform) {
+                    Ok(Effect::Nothing) => Ok(None),
+                    Ok(i) => Ok(Some(i)),
+                    Err(original_err) => {
+                        if let Err(_rollback_err) = self.storage.rollback(false) {
+                            // TODO Include that this failed as part of the error.
+                            panic!("TODO error rolling back");
+                        }
+
+                        self.open.store(false, Ordering::Relaxed);
+
+                        Err(original_err)
+                    }
                 }
-
-                self.open.store(false, Ordering::Relaxed);
-
-                Err(original_err)
             }
+            None => Ok(None),
         }
     }
 
@@ -141,23 +152,24 @@ impl Session {
         Ok(())
     }
 
-    pub(crate) fn queue_raised(&self, raised: Raised) -> Result<()> {
-        info!("{:?}", raised);
+    pub fn close<T: Notifier>(&self, notifier: &T) -> Result<()> {
+        self.flush_futures()?;
 
-        self.state.raised.borrow_mut().push(RaisedEvent {
-            audience: raised.audience,
-            event: raised.event,
-        });
+        self.save_entity_changes()?;
 
-        Ok(())
-    }
+        self.flush_raised(notifier)?;
 
-    pub(crate) fn queue_scheduled(&self, scheduling: Scheduling) -> Result<()> {
-        info!("{:?}", scheduling);
+        let nentities = self.state.entities.size();
+        let elapsed = self.opened.elapsed();
+        let elapsed = format!("{:?}", elapsed);
 
-        let mut futures = self.state.futures.borrow_mut();
+        let plugins = self.plugins.borrow();
 
-        futures.push(scheduling);
+        plugins.stop()?;
+
+        info!(%elapsed, %nentities, "closed");
+
+        self.open.store(false, Ordering::Relaxed);
 
         Ok(())
     }
@@ -213,28 +225,6 @@ impl Session {
         } else {
             self.storage.rollback(true)
         }
-    }
-
-    pub fn close<T: Notifier>(&self, notifier: &T) -> Result<()> {
-        self.flush_futures()?;
-
-        self.save_entity_changes()?;
-
-        self.flush_raised(notifier)?;
-
-        let nentities = self.state.entities.size();
-        let elapsed = self.opened.elapsed();
-        let elapsed = format!("{:?}", elapsed);
-
-        let plugins = self.plugins.borrow();
-
-        plugins.stop()?;
-
-        info!(%elapsed, %nentities, "closed");
-
-        self.open.store(false, Ordering::Relaxed);
-
-        Ok(())
     }
 
     fn flush_raised<T: Notifier>(&self, notifier: &T) -> Result<()> {
@@ -374,6 +364,19 @@ impl LoadsEntities for Session {
             Ok(None)
         }
     }
+}
+
+pub fn user_name_to_entry<R: EntryResolver>(resolve: &R, name: &str) -> Result<Entry, DomainError> {
+    let _span = span!(Level::DEBUG, "who").entered();
+
+    let world = resolve.world()?.expect("No world");
+    let user_key = world
+        .find_name_key(name)?
+        .ok_or(DomainError::EntityNotFound)?;
+
+    resolve
+        .entry(&LookupBy::Key(&user_key))?
+        .ok_or(DomainError::EntityNotFound)
 }
 
 impl EntryResolver for Session {

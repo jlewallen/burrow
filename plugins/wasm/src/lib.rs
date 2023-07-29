@@ -360,9 +360,3 @@ impl ParsesActions for WasmPlugin {
         Err(EvaluationError::ParseFailed)
     }
 }
-
-impl Evaluator for WasmPlugin {
-    fn evaluate(&self, perform: &dyn Performer, consider: Evaluable) -> Result<Vec<Effect>> {
-        self.evaluate_parsed_action(perform, consider)
-    }
-}

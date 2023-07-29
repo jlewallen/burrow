@@ -59,12 +59,6 @@ impl ParsesActions for LookingPlugin {
     }
 }
 
-impl Evaluator for LookingPlugin {
-    fn evaluate(&self, perform: &dyn Performer, consider: Evaluable) -> Result<Vec<Effect>> {
-        self.evaluate_parsed_action(perform, consider)
-    }
-}
-
 pub mod model {
     use thiserror::Error;
 

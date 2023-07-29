@@ -1,13 +1,12 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::rc::Weak;
 use std::sync::Arc;
-use std::time::Instant;
 use tracing::*;
 
 use super::Session;
-use crate::users::model::HasUsernames;
+use crate::user_name_to_entry;
 use kernel::*;
 
 pub struct StandardPerformer {
@@ -16,6 +15,28 @@ pub struct StandardPerformer {
     plugins: Arc<RefCell<SessionPlugins>>,
     middleware: Rc<Vec<Rc<dyn Middleware>>>,
     user: Option<String>,
+    target: Option<Rc<dyn Performer>>,
+}
+
+struct MakeSurroundings {
+    finder: Arc<dyn Finder>,
+    living: Entry,
+}
+
+impl TryInto<Surroundings> for MakeSurroundings {
+    type Error = DomainError;
+
+    fn try_into(self) -> std::result::Result<Surroundings, Self::Error> {
+        let world = self.finder.find_world()?;
+        let living = self.living.clone();
+        let area: Entry = self.finder.find_location(&living)?;
+
+        Ok(Surroundings::Living {
+            world,
+            living,
+            area,
+        })
+    }
 }
 
 impl StandardPerformer {
@@ -25,6 +46,7 @@ impl StandardPerformer {
         plugins: Arc<RefCell<SessionPlugins>>,
         middleware: Rc<Vec<Rc<dyn Middleware>>>,
         user: Option<String>,
+        target: Option<Rc<dyn Performer>>,
     ) -> Rc<Self> {
         Rc::new(StandardPerformer {
             session: Weak::clone(session),
@@ -32,71 +54,16 @@ impl StandardPerformer {
             plugins,
             middleware,
             user,
+            target,
         })
-    }
-
-    pub fn evaluate_and_perform(&self, name: &str, text: &str) -> Result<Option<Effect>> {
-        let started = Instant::now();
-        let _doing_span = span!(Level::DEBUG, "do", user = name).entered();
-
-        debug!("'{}'", text);
-
-        let res = {
-            let plugins = self.plugins.borrow();
-
-            let as_user = self.as_user(name)?;
-
-            Ok(plugins
-                .evaluate(&as_user, Evaluable::Phrase(text))?
-                .into_iter()
-                .next())
-        };
-
-        let elapsed = started.elapsed();
-        let elapsed = format!("{:?}", elapsed);
-
-        info!(%elapsed, "done");
-
-        res
-    }
-
-    fn as_user(&self, name: &str) -> Result<StandardPerformer> {
-        Ok(Self {
-            session: Rc::downgrade(&self.session()?),
-            finder: Arc::clone(&self.finder),
-            plugins: Arc::clone(&self.plugins),
-            middleware: Rc::clone(&self.middleware),
-            user: Some(name.to_owned()),
-        })
-    }
-
-    fn evaluate_living(&self, name: &str) -> Result<Entry, DomainError> {
-        let _span = span!(Level::DEBUG, "who").entered();
-
-        let session = self.session()?;
-        let world = session.world()?;
-        let user_key = world
-            .find_name_key(name)?
-            .ok_or(DomainError::EntityNotFound)?;
-
-        session
-            .entry(&LookupBy::Key(&user_key))?
-            .ok_or(DomainError::EntityNotFound)
     }
 
     fn evaluate_living_surroundings(&self, living: &Entry) -> Result<Surroundings, DomainError> {
-        let session = self.session()?;
-        let world = session.world()?;
-        let area: Entry = self
-            .finder
-            .find_location(living)
-            .with_context(|| format!("Location of {:?}", living))?;
-
-        Ok(Surroundings::Living {
-            world,
+        let make = MakeSurroundings {
+            finder: self.finder.clone(),
             living: living.clone(),
-            area,
-        })
+        };
+        make.try_into()
     }
 
     fn session(&self) -> Result<Rc<Session>, DomainError> {
@@ -111,12 +78,6 @@ impl Performer for StandardPerformer {
         debug!("perform {:?}", perform);
 
         match perform {
-            Perform::Evaluation { user_name, text } => {
-                match self.evaluate_and_perform(&user_name, &text)? {
-                    Some(effect) => Ok(effect),
-                    None => Ok(Effect::Nothing),
-                }
-            }
             Perform::Chain(action) => {
                 let Some(user) = &self.user else {
                     return Err(anyhow!("No active user in StandardPerformer"));
@@ -124,7 +85,7 @@ impl Performer for StandardPerformer {
 
                 info!("perform:chain {:?}", action);
 
-                let living = self.evaluate_living(user)?;
+                let living = user_name_to_entry(self.session()?.as_ref(), user)?;
 
                 self.perform(Perform::Living { living, action })
             }
@@ -158,34 +119,20 @@ impl Performer for StandardPerformer {
 
                 let perform = Perform::Chain(action);
 
-                self.session()?.take_snapshot()?;
-
                 apply_middleware(&self.middleware, perform, request_fn)
             }
             Perform::Raised(raised) => {
+                let target = self.target.clone().unwrap();
                 let request_fn = Box::new(|value: Perform| -> Result<Effect, anyhow::Error> {
-                    let _span = span!(Level::DEBUG, "R").entered();
-                    if let Perform::Raised(raised) = value {
-                        self.session()?.queue_raised(raised)?;
-
-                        Ok(Effect::Ok)
-                    } else {
-                        todo!()
-                    }
+                    target.perform(value)
                 });
 
                 apply_middleware(&self.middleware, Perform::Raised(raised), request_fn)
             }
             Perform::Schedule(scheduling) => {
-                let request_fn = Box::new(|value: Perform| -> Result<Effect, anyhow::Error> {
-                    let _span = span!(Level::DEBUG, "R").entered();
-                    if let Perform::Schedule(scheduling) = value {
-                        self.session()?.queue_scheduled(scheduling)?;
-
-                        Ok(Effect::Ok)
-                    } else {
-                        todo!()
-                    }
+                let target = self.target.clone().unwrap();
+                let request_fn = Box::new(move |value: Perform| -> Result<Effect, anyhow::Error> {
+                    target.perform(value)
                 });
 
                 apply_middleware(&self.middleware, Perform::Schedule(scheduling), request_fn)

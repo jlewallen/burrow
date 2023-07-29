@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use anyhow::Result;
 use chrono::Duration;
 use tracing::*;
@@ -9,10 +7,7 @@ use plugins_core::{
     carrying::model::CarryingEvent,
     library::{
         model::{Deserialize, Serialize},
-        plugin::{
-            get_my_session, Audience, Effect, Evaluator, Incoming, Reply, Surroundings, ToJson,
-            When,
-        },
+        plugin::{get_my_session, Audience, Effect, Incoming, Reply, Surroundings, ToJson, When},
     },
     tools,
 };
@@ -80,18 +75,6 @@ impl Agent for ExampleAgent {
         match incoming {
             ExampleFuture::Wakeup => Ok(()),
         }
-    }
-}
-
-impl Evaluator for ExampleAgent {
-    fn evaluate(
-        &self,
-        _perform: &dyn plugins_core::library::plugin::Performer,
-        consider: plugins_core::library::plugin::Evaluable,
-    ) -> Result<Vec<Effect>> {
-        info!("try-parse {:?}", consider);
-
-        Ok(vec![Effect::Reply(Rc::new(ExampleReply {}))])
     }
 }
 

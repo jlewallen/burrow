@@ -14,6 +14,8 @@ pub use session::*;
 pub use surround::*;
 
 pub trait Finder: Send + Sync {
+    fn find_world(&self) -> anyhow::Result<Entry>;
+
     fn find_location(&self, entry: &Entry) -> anyhow::Result<Entry>;
 
     fn find_item(&self, surroundings: &Surroundings, item: &Item) -> anyhow::Result<Option<Entry>>;

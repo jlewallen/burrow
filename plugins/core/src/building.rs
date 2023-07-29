@@ -66,12 +66,6 @@ impl ParsesActions for BuildingPlugin {
     }
 }
 
-impl Evaluator for BuildingPlugin {
-    fn evaluate(&self, perform: &dyn Performer, consider: Evaluable) -> Result<Vec<Effect>> {
-        self.evaluate_parsed_action(perform, consider)
-    }
-}
-
 pub mod model {
     use crate::library::model::*;
 

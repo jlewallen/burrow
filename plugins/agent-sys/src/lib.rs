@@ -5,7 +5,7 @@ use tracing::*;
 
 use kernel::{
     any_entity_changes, get_my_session, set_my_session, ActiveSession, AnyChanges, Audience,
-    DomainError, DomainEvent, EntityPtr, Entry, EntryResolver, Evaluator, Original, Performer,
+    DomainError, DomainEvent, EntityPtr, Entry, EntryResolver, Original, Performer,
 };
 
 pub use rpc_proto::{EntityUpdate, IncomingMessage, LookupBy, Payload, Query};
@@ -177,7 +177,7 @@ impl ActiveSession for AgentSession {
     }
 }
 
-pub trait Agent: Evaluator {
+pub trait Agent {
     fn initialize(&mut self) -> Result<()>;
     fn have_surroundings(&mut self, surroundings: kernel::Surroundings) -> Result<()>;
     fn deliver(&mut self, incoming: kernel::Incoming) -> Result<()>;
@@ -239,14 +239,8 @@ where
                 Payload::Deliver(incoming) => {
                     self.agent.deliver(incoming.into())?;
                 }
-                Payload::Evaluate(text) => {
-                    let performer = AgentPerformer {};
-                    for effect in self
-                        .agent
-                        .evaluate(&performer, kernel::Evaluable::Phrase(&text))?
-                    {
-                        queries.push(Query::Effect(effect.try_into()?))
-                    }
+                Payload::Evaluate(_text) => {
+                    todo!()
                 }
                 _ => {}
             }
