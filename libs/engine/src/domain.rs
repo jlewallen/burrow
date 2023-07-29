@@ -6,7 +6,7 @@ use tracing::{info, trace};
 use super::{sequences::Sequence, Session};
 use crate::{
     storage::PersistedEntity,
-    storage::{EntityStorageFactory, PendingFutures},
+    storage::{PendingFutures, StorageFactory},
     Notifier,
 };
 use kernel::{EntityKey, Finder, Identity, Incoming, LookupBy, RegisteredPlugins};
@@ -23,7 +23,7 @@ pub enum AfterTick {
 
 #[derive(Clone)]
 pub struct Domain {
-    storage_factory: Arc<dyn EntityStorageFactory>,
+    storage_factory: Arc<dyn StorageFactory>,
     keys: Arc<dyn Sequence<EntityKey>>,
     identities: Arc<dyn Sequence<Identity>>,
     finder: Arc<dyn Finder>,
@@ -32,7 +32,7 @@ pub struct Domain {
 
 impl Domain {
     pub fn new(
-        storage_factory: Arc<dyn EntityStorageFactory>,
+        storage_factory: Arc<dyn StorageFactory>,
         plugins: Arc<RegisteredPlugins>,
         finder: Arc<dyn Finder>,
         keys: Arc<dyn Sequence<EntityKey>>,

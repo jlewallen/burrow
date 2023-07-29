@@ -18,10 +18,12 @@ pub trait EntityStorage: FutureStorage {
     fn query_all(&self) -> Result<Vec<PersistedEntity>>;
 }
 
-pub trait EntityStorageFactory: Send + Sync {
+pub trait Storage: EntityStorage + FutureStorage {}
+
+pub trait StorageFactory: Send + Sync {
     fn migrate(&self) -> Result<()>;
 
-    fn create_storage(&self) -> Result<Rc<dyn EntityStorage>>;
+    fn create_storage(&self) -> Result<Rc<dyn Storage>>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -67,17 +69,17 @@ impl PersistedEntity {
 }
 
 #[derive(Default)]
-pub struct InMemoryEntityStorageFactory {
+pub struct InMemoryStorageFactory {
     entities: Arc<RwLock<HashMap<EntityKey, PersistedEntity>>>,
 }
 
-impl EntityStorageFactory for InMemoryEntityStorageFactory {
+impl StorageFactory for InMemoryStorageFactory {
     fn migrate(&self) -> Result<()> {
         Ok(())
     }
 
-    fn create_storage(&self) -> Result<Rc<dyn EntityStorage>> {
-        Ok(Rc::new(InMemoryEntityStorage {
+    fn create_storage(&self) -> Result<Rc<dyn Storage>> {
+        Ok(Rc::new(InMemoryStorage {
             entities: self.entities.clone(),
             pending: Default::default(),
             futures: Default::default(),
@@ -90,13 +92,15 @@ enum Pending {
     Delete(PersistedEntity),
 }
 
-pub struct InMemoryEntityStorage {
+pub struct InMemoryStorage {
     entities: Arc<RwLock<HashMap<EntityKey, PersistedEntity>>>,
     futures: Arc<RwLock<HashMap<String, PersistedFuture>>>,
     pending: RwLock<Vec<Pending>>,
 }
 
-impl FutureStorage for InMemoryEntityStorage {
+impl Storage for InMemoryStorage {}
+
+impl FutureStorage for InMemoryStorage {
     fn queue(&self, future: PersistedFuture) -> Result<()> {
         let mut futures = self.futures.write().expect("Lock error");
         futures.insert(future.key.clone(), future);
@@ -133,7 +137,7 @@ impl FutureStorage for InMemoryEntityStorage {
     }
 }
 
-impl EntityStorage for InMemoryEntityStorage {
+impl EntityStorage for InMemoryStorage {
     fn load(&self, lookup: &LookupBy) -> Result<Option<PersistedEntity>> {
         let entities = self.entities.read().expect("Lock error");
         let entity = entities

@@ -5,7 +5,7 @@ use std::{error::Error, path::PathBuf, sync::Arc};
 use tracing::*;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use engine::{sequences::Sequence, storage::EntityStorageFactory, Domain};
+use engine::{sequences::Sequence, storage::StorageFactory, Domain};
 use kernel::{EntityKey, Identity, RegisteredPlugins};
 use plugins_core::{
     building::BuildingPluginFactory, carrying::CarryingPluginFactory,

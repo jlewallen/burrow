@@ -6,7 +6,7 @@ use std::{rc::Rc, sync::Mutex};
 
 use engine::{
     storage::EntityStorage,
-    storage::{EntityStorageFactory, FutureStorage, PendingFutures},
+    storage::{FutureStorage, PendingFutures, Storage, StorageFactory},
     storage::{PersistedEntity, PersistedFuture},
 };
 use kernel::{EntityGid, EntityKey, LookupBy};
@@ -263,6 +263,8 @@ where
     }
 }
 
+impl<C> Storage for SqliteStorage<C> where C: AsConnection {}
+
 impl<C> EntityStorage for SqliteStorage<C>
 where
     C: AsConnection,
@@ -402,13 +404,13 @@ impl Factory {
     }
 }
 
-impl EntityStorageFactory for Factory {
+impl StorageFactory for Factory {
     fn migrate(&self) -> Result<()> {
         let conn = Owned::new(&self.uri)?;
         conn.connection().migrate()
     }
 
-    fn create_storage(&self) -> Result<Rc<dyn EntityStorage>> {
+    fn create_storage(&self) -> Result<Rc<dyn Storage>> {
         Ok(SqliteStorage::wrap(Owned::new(&self.uri)?)?)
     }
 }
@@ -425,13 +427,13 @@ impl ConnectionPool {
     }
 }
 
-impl EntityStorageFactory for ConnectionPool {
+impl StorageFactory for ConnectionPool {
     fn migrate(&self) -> Result<()> {
         let conn = self.pool.get()?;
         conn.migrate()
     }
 
-    fn create_storage(&self) -> Result<Rc<dyn EntityStorage>> {
+    fn create_storage(&self) -> Result<Rc<dyn Storage>> {
         Ok(SqliteStorage::wrap(Pooled {
             conn: self.pool.get()?,
         })?)
@@ -444,7 +446,7 @@ mod tests {
     use anyhow::Result;
     use chrono::Days;
 
-    fn get_storage() -> Result<Rc<dyn EntityStorage>> {
+    fn get_storage() -> Result<Rc<dyn Storage>> {
         let s = Factory::new(MEMORY_SPECIAL)?;
 
         s.migrate()?;

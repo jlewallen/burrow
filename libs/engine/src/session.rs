@@ -15,7 +15,7 @@ use super::perform::StandardPerformer;
 use super::sequences::{GlobalIds, Sequence};
 use super::Notifier;
 use crate::state::State;
-use crate::storage::{EntityStorage, PersistedEntity, PersistedFuture};
+use crate::storage::{PersistedEntity, PersistedFuture, Storage};
 use crate::{identifiers, HasUsernames};
 use kernel::*;
 
@@ -24,7 +24,7 @@ struct ModifiedEntity(PersistedEntity);
 pub struct Session {
     opened: Instant,
     open: AtomicBool,
-    storage: Rc<dyn EntityStorage>,
+    storage: Rc<dyn Storage>,
     weak: Weak<Session>,
     finder: Arc<dyn Finder>,
     plugins: Arc<RefCell<SessionPlugins>>,
@@ -55,7 +55,7 @@ impl Performer for Session {
 
 impl Session {
     pub fn new(
-        storage: Rc<dyn EntityStorage>,
+        storage: Rc<dyn Storage>,
         keys: &Arc<dyn Sequence<EntityKey>>,
         identities: &Arc<dyn Sequence<Identity>>,
         finder: &Arc<dyn Finder>,
@@ -284,7 +284,7 @@ impl Session {
 }
 
 struct SavesEntities<'a> {
-    storage: &'a Rc<dyn EntityStorage>,
+    storage: &'a Rc<dyn Storage>,
     destroyed: &'a Vec<EntityKey>,
 }
 

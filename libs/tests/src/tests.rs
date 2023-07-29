@@ -2,7 +2,7 @@ use anyhow::Result;
 use tokio::task::JoinHandle;
 
 use crate::{evaluate_fixture, test_domain_with, HoldingKeyInVessel, Noop, WorldFixture, USERNAME};
-use engine::storage::{EntityStorageFactory, PersistedEntity};
+use engine::storage::{PersistedEntity, StorageFactory};
 use engine::{Domain, Session, SessionOpener};
 
 async fn test_domain() -> Result<AsyncFriendlyDomain> {

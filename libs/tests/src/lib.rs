@@ -3,7 +3,7 @@ use std::env::temp_dir;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use engine::storage::{EntityStorageFactory, InMemoryEntityStorageFactory};
+use engine::storage::{InMemoryStorageFactory, StorageFactory};
 use engine::{sequences::DeterministicKeys, DevNullNotifier, Domain, Session, SessionOpener};
 use kernel::RegisteredPlugins;
 use plugins_core::building::BuildingPluginFactory;
@@ -84,7 +84,7 @@ where
 }
 
 fn make_domain() -> Result<Domain> {
-    test_domain_with(InMemoryEntityStorageFactory::default())
+    test_domain_with(InMemoryStorageFactory::default())
 }
 
 pub fn evaluate_text_in_new_domain<W>(
@@ -110,7 +110,7 @@ where
 
 pub fn test_domain_with<S>(storage: S) -> Result<Domain>
 where
-    S: EntityStorageFactory + 'static,
+    S: StorageFactory + 'static,
 {
     let storage_factory = Arc::new(storage);
     let mut registered_plugins = RegisteredPlugins::default();
