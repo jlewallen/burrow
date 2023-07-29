@@ -32,8 +32,24 @@ impl Thing {
 #[derive(rune::Any, Debug)]
 struct Perform(kernel::Perform);
 
+impl Perform {
+    #[inline]
+    fn string_debug(&self, s: &mut String) -> std::fmt::Result {
+        use std::fmt::Write;
+        write!(s, "{:?}", self.0)
+    }
+}
+
 #[derive(rune::Any, Debug)]
 struct Effect(kernel::Effect);
+
+impl Effect {
+    #[inline]
+    fn string_debug(&self, s: &mut String) -> std::fmt::Result {
+        use std::fmt::Write;
+        write!(s, "{:?}", self.0)
+    }
+}
 
 #[derive(rune::Any, Debug)]
 struct Incoming(kernel::Incoming);
@@ -69,6 +85,10 @@ fn create_integration_module() -> Result<rune::Module> {
     module.inst_fn(Protocol::STRING_DEBUG, Incoming::string_debug)?;
     module.inst_fn("key", Incoming::key)?;
     module.inst_fn("value", Incoming::value)?;
+    module.ty::<Perform>()?;
+    module.inst_fn(Protocol::STRING_DEBUG, Perform::string_debug)?;
+    module.ty::<Effect>()?;
+    module.inst_fn(Protocol::STRING_DEBUG, Effect::string_debug)?;
     Ok(module)
 }
 

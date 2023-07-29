@@ -24,7 +24,7 @@ pub fn deliver(incoming) {
 }
 
 pub fn before(perform) {
-    info("before! {:?}");
+    info(format!("before! {:?}", perform));
     return Some(perform)
 }
 
