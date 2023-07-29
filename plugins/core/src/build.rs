@@ -6,8 +6,8 @@ use engine::{
     HasUsernames, Session, SessionOpener,
 };
 use kernel::{
-    CoreProps, Entity, EntityKey, EntityPtr, Entry, RegisteredPlugins, SessionRef, Surroundings,
-    WORLD_KEY,
+    CoreProps, Entity, EntityKey, EntityPtr, Entry, RegisteredPlugins, SessionRef, SetSession,
+    Surroundings, WORLD_KEY,
 };
 
 use crate::{tools, DefaultFinder};
@@ -121,6 +121,8 @@ impl QuickThing {
 pub struct BuildSurroundings {
     hands: Vec<QuickThing>,
     ground: Vec<QuickThing>,
+    #[allow(dead_code)] // TODO Combine with Rc<Session>?
+    set: SetSession,
     session: Rc<Session>,
 }
 
@@ -133,19 +135,24 @@ impl BuildSurroundings {
         let finder = Arc::new(DefaultFinder::default());
         let domain = domain::Domain::new(storage_factory, plugins, finder, keys, identities);
         let session = domain.open_session()?;
+        let set = session.set_session()?;
 
         Ok(Self {
             hands: Vec::new(),
             ground: Vec::new(),
             session,
+            set,
         })
     }
 
     pub fn new_in_session(session: Rc<Session>) -> Result<Self> {
+        let set = session.set_session()?;
+
         Ok(Self {
             hands: Vec::new(),
             ground: Vec::new(),
             session,
+            set,
         })
     }
 

@@ -4,8 +4,8 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use tracing::*;
 
 use kernel::{
-    any_entity_changes, get_my_session, set_my_session, ActiveSession, AnyChanges, Audience,
-    DomainError, DomainEvent, EntityPtr, Entry, EntryResolver, Original, Performer,
+    any_entity_changes, get_my_session, ActiveSession, AnyChanges, Audience, DomainError,
+    DomainEvent, EntityPtr, Entry, EntryResolver, Original, Performer, SetSession,
 };
 
 pub use rpc_proto::{EntityUpdate, IncomingMessage, LookupBy, Payload, Query};
@@ -200,7 +200,7 @@ where
 
     pub fn initialize(&mut self) -> Result<Vec<Query>> {
         let session = Rc::new(AgentSession::default());
-        set_my_session(Some(&(session.clone() as Rc<dyn ActiveSession>)))?;
+        let _set = SetSession::new(&(session.clone() as Rc<dyn ActiveSession>));
 
         self.agent.initialize()?;
 
@@ -212,7 +212,7 @@ where
         TRecvFn: FnMut() -> Option<Payload>,
     {
         let session = Rc::new(AgentSession::default());
-        set_my_session(Some(&(session.clone() as Rc<dyn ActiveSession>)))?;
+        let _set = SetSession::new(&(session.clone() as Rc<dyn ActiveSession>));
 
         let mut queries = Vec::new();
 
@@ -245,8 +245,6 @@ where
                 _ => {}
             }
         }
-
-        set_my_session(None)?;
 
         queries.extend(self.flush_session(&session)?);
 

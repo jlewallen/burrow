@@ -65,17 +65,6 @@ thread_local! {
     static SESSION: RefCell<Option<std::rc::Weak<dyn ActiveSession>>> = RefCell::new(None)
 }
 
-pub fn set_my_session(session: Option<&SessionRef>) -> Result<()> {
-    SESSION.with(|s| {
-        *s.borrow_mut() = match session {
-            Some(session) => Some(Rc::downgrade(session)),
-            None => None,
-        };
-
-        Ok(())
-    })
-}
-
 pub fn get_my_session() -> Result<SessionRef> {
     SESSION.with(|s| match &*s.borrow() {
         Some(s) => match s.upgrade() {
@@ -84,4 +73,33 @@ pub fn get_my_session() -> Result<SessionRef> {
         },
         None => Err(DomainError::NoSession.into()),
     })
+}
+
+pub struct SetSession {
+    #[allow(dead_code)]
+    session: std::rc::Weak<dyn ActiveSession>,
+    previous: Option<std::rc::Weak<dyn ActiveSession>>,
+}
+
+impl SetSession {
+    pub fn new(session: &SessionRef) -> Self {
+        SESSION.with(|setting| {
+            let mut setting = setting.borrow_mut();
+            let previous = setting.take();
+
+            let session = Rc::downgrade(session);
+            *setting = Some(session.clone());
+
+            Self { session, previous }
+        })
+    }
+}
+
+impl Drop for SetSession {
+    fn drop(&mut self) {
+        SESSION.with(|setting| {
+            let mut setting = setting.borrow_mut();
+            *setting = self.previous.take();
+        });
+    }
 }

@@ -80,15 +80,23 @@ impl Session {
             middleware: Default::default(),
         });
 
-        session.set_session()?;
+        session.initialize()?;
 
         Ok(session)
+    }
+
+    pub fn set_session(&self) -> Result<SetSession> {
+        Ok(SetSession::new(
+            &self.weak.upgrade().ok_or(DomainError::NoSession)?,
+        ))
     }
 
     pub fn evaluate_and_perform(&self, user_name: &str, text: &str) -> Result<Option<Effect>> {
         if !self.open.load(Ordering::Relaxed) {
             return Err(DomainError::SessionClosed.into());
         }
+
+        let _activated = self.set_session()?;
 
         let action = {
             let plugins = self.plugins.borrow();
@@ -122,11 +130,15 @@ impl Session {
     }
 
     pub fn flush(&self) -> Result<()> {
+        let _activated = self.set_session()?;
+
         self.save_entity_changes()?;
         self.storage.begin()
     }
 
     pub fn deliver(&self, incoming: Incoming) -> Result<()> {
+        let _activated = self.set_session()?;
+
         let plugins = self.plugins.borrow();
 
         plugins.deliver(incoming)?;
@@ -135,6 +147,8 @@ impl Session {
     }
 
     pub fn close<T: Notifier>(&self, notifier: &T) -> Result<()> {
+        let _activated = self.set_session()?;
+
         self.flush_futures()?;
 
         self.save_entity_changes()?;
@@ -156,16 +170,9 @@ impl Session {
         Ok(())
     }
 
-    fn set_session(&self) -> Result<()> {
-        let session: Rc<dyn ActiveSession> = self.weak.upgrade().ok_or(DomainError::NoSession)?;
-        set_my_session(Some(&session))?;
+    pub fn initialize(&self) -> Result<()> {
+        let _activated = self.set_session()?;
 
-        self.initialize()?;
-
-        Ok(())
-    }
-
-    fn initialize(&self) -> Result<()> {
         if let Some(gid) = self.get_gid()? {
             self.ids.set(&gid);
         }
@@ -438,10 +445,6 @@ impl ActiveSession for Session {
 
 impl Drop for Session {
     fn drop(&mut self) {
-        // This feels like the most defensive solution. If there's ever a reason
-        // this can happen we can make this warn.
-        set_my_session(None).expect("Error clearing session");
-
         if self.open.load(Ordering::Relaxed) {
             warn!("session-drop: open session!");
         } else {
