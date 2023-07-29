@@ -72,7 +72,9 @@ impl Plugin for RunePlugin {
     }
 
     fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>> {
-        Ok(vec![Rc::new(RuneMiddleware {})])
+        Ok(vec![Rc::new(RuneMiddleware {
+            runners: Arc::clone(&self.runners),
+        })])
     }
 
     fn register_hooks(&self, _hooks: &ManagedHooks) -> Result<()> {
@@ -103,7 +105,9 @@ impl Plugin for RunePlugin {
 }
 
 #[derive(Default)]
-struct RuneMiddleware {}
+struct RuneMiddleware {
+    runners: Runners,
+}
 
 impl RuneMiddleware {}
 
@@ -113,11 +117,33 @@ impl Middleware for RuneMiddleware {
 
         info!("before");
 
-        let v = next.handle(value);
+        let before = {
+            let mut runners = self.runners.borrow_mut();
 
-        info!("after");
+            runners
+                .iter_mut()
+                .fold(Some(value), |perform, (_, runner)| {
+                    perform
+                        .map(|perform| runner.before(perform).expect("Error in before"))
+                        .flatten()
+                })
+        };
 
-        v
+        if let Some(value) = before {
+            let after = next.handle(value)?;
+
+            let mut runners = self.runners.borrow_mut();
+
+            let after = runners.iter_mut().fold(after, |effect, (_, runner)| {
+                runner.after(effect).expect("Error in after")
+            });
+
+            info!("after");
+
+            Ok(after)
+        } else {
+            Ok(Effect::Prevented)
+        }
     }
 }
 

@@ -30,6 +30,12 @@ impl Thing {
 }
 
 #[derive(rune::Any, Debug)]
+struct Perform(kernel::Perform);
+
+#[derive(rune::Any, Debug)]
+struct Effect(kernel::Effect);
+
+#[derive(rune::Any, Debug)]
 struct Incoming(kernel::Incoming);
 
 impl Incoming {
@@ -48,21 +54,14 @@ impl Incoming {
     }
 }
 
-fn rune_from_json(value: rune::Value) -> Result<()> {
-    info!("HELLO {:?}", value);
-
-    Ok(())
-}
-
 fn create_integration_module() -> Result<rune::Module> {
     let mut module = rune::Module::default();
     module.function(["info"], |s: &str| {
-        info!("{}", s);
+        info!(target: "RUNE", "{}", s);
     })?;
     module.function(["debug"], |s: &str| {
-        debug!("{}", s);
+        debug!(target: "RUNE", "{}", s);
     })?;
-    module.function(["from_json"], rune_from_json)?;
     module.ty::<Thing>()?;
     module.function(["Thing", "new"], Thing::new)?;
     module.inst_fn(Protocol::STRING_DEBUG, Thing::string_debug)?;
@@ -155,6 +154,18 @@ impl RuneRunner {
         self.evaluate_optional_function("deliver", (Incoming(incoming.clone()),))?;
 
         Ok(())
+    }
+
+    pub fn before(&mut self, perform: kernel::Perform) -> Result<Option<kernel::Perform>> {
+        self.evaluate_optional_function("before", (Perform(perform.clone()),))?;
+
+        Ok(Some(perform))
+    }
+
+    pub fn after(&mut self, effect: kernel::Effect) -> Result<kernel::Effect> {
+        self.evaluate_optional_function("after", (Effect(effect.clone()),))?;
+
+        Ok(effect)
     }
 
     fn evaluate_optional_function<A>(&mut self, name: &str, args: A) -> Result<rune::Value>

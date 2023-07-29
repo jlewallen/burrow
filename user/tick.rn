@@ -22,3 +22,13 @@ pub fn deliver(incoming) {
     // from_json(incoming.serialized()?);
     // from_json(Example::Wakeup);
 }
+
+pub fn before(perform) {
+    info("before! {:?}");
+    return Some(perform)
+}
+
+pub fn after(effect) {
+    info("after!");
+    return effect;
+}
