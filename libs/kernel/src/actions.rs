@@ -166,16 +166,18 @@ impl<T: Action> JsonAs<T> for Perform {
     }
 }
 
-fn drop_outer_object(value: serde_json::Value) -> serde_json::Value {
+fn drop_object_tag(value: serde_json::Value) -> serde_json::Value {
     match value {
         serde_json::Value::Object(o) => {
-            if let Some((_key, value)) = o.into_iter().next() {
+            let mut iter = o.into_iter();
+            if let Some((_key, value)) = iter.next() {
+                assert!(iter.next().is_none());
                 value
             } else {
-                panic!("Expected JSON with root object");
+                panic!("Expected tagged JSON");
             }
         }
-        _ => panic!("Expected JSON with root object"),
+        _ => panic!("Expected tagged JSON"),
     }
 }
 
@@ -183,7 +185,7 @@ impl<T: Reply + DeserializeOwned> JsonAs<T> for Effect {
     fn json_as(&self) -> Result<T, serde_json::Error> {
         match self {
             Effect::Reply(reply) => {
-                serde_json::from_value(drop_outer_object(reply.to_tagged_json()?))
+                serde_json::from_value(drop_object_tag(reply.to_tagged_json()?))
             }
             _ => todo!(),
         }
