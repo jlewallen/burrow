@@ -100,8 +100,22 @@ pub mod actions {
 }
 
 pub mod tests {
+    pub use serde::de::DeserializeOwned;
+    pub use std::collections::HashSet;
+    pub use std::rc::Rc;
+
     pub use crate::tools;
     pub use crate::{BuildSurroundings, QuickThing};
     pub use kernel::*;
     pub use tracing::*;
+
+    pub trait ToDebugJson {
+        fn to_debug_json(&self) -> Result<serde_json::Value, serde_json::Error>;
+    }
+
+    impl<S: ToJson> ToDebugJson for S {
+        fn to_debug_json(&self) -> Result<serde_json::Value, serde_json::Error> {
+            self.to_tagged_json()
+        }
+    }
 }

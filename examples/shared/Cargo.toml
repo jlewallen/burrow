@@ -6,6 +6,9 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib"]
 
+[dependencies.macros]
+path = "../../libs/macros"
+
 [dependencies.plugins-core]
 path = "../../plugins/core"
 

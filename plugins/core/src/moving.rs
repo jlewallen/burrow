@@ -361,10 +361,8 @@ mod tests {
         let action = action.unwrap();
         let reply = action.perform(session, &surroundings)?;
 
-        assert_eq!(
-            reply.to_tagged_json()?,
-            SimpleReply::NotFound.to_tagged_json()?
-        );
+        let reply: SimpleReply = reply.json_as()?;
+        assert_eq!(reply, SimpleReply::NotFound);
 
         build.close()?;
 
@@ -386,10 +384,8 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, living, area) = surroundings.unpack();
 
-        assert_eq!(
-            reply.to_tagged_json()?,
-            new_area_observation(&living, &east)?.to_tagged_json()?
-        );
+        let reply: AreaObservation = reply.json_as()?;
+        assert_eq!(reply, new_area_observation(&living, &east)?);
 
         assert_ne!(tools::area_of(&living)?.key(), *area.key());
         assert_eq!(tools::area_of(&living)?.key(), *east.key());
@@ -412,10 +408,8 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, living, area) = surroundings.unpack();
 
-        assert_eq!(
-            reply.to_tagged_json()?,
-            new_area_observation(&living, &destination)?.to_tagged_json()?
-        );
+        let reply: AreaObservation = reply.json_as()?;
+        assert_eq!(reply, new_area_observation(&living, &destination)?);
 
         assert_ne!(tools::area_of(&living)?.key(), *area.key());
         assert_eq!(tools::area_of(&living)?.key(), *destination.key());
@@ -435,10 +429,8 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, _person, _area) = surroundings.unpack();
 
-        assert_eq!(
-            reply.to_tagged_json()?,
-            SimpleReply::NotFound.to_tagged_json()?
-        );
+        let reply: SimpleReply = reply.json_as()?;
+        assert_eq!(reply, SimpleReply::NotFound);
 
         build.close()?;
 
@@ -457,10 +449,8 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, _person, _area) = surroundings.unpack();
 
-        assert_eq!(
-            reply.to_tagged_json()?,
-            SimpleReply::NotFound.to_tagged_json()?
-        );
+        let reply: SimpleReply = reply.json_as()?;
+        assert_eq!(reply, SimpleReply::NotFound);
 
         build.close()?;
 

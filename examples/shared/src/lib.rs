@@ -2,17 +2,11 @@ use anyhow::Result;
 use chrono::Duration;
 use tracing::*;
 
-use dynlib_sys::{prelude::*, DynamicNext};
-use plugins_core::{
-    carrying::model::CarryingEvent,
-    library::{
-        model::{Deserialize, Serialize},
-        plugin::{get_my_session, Audience, Effect, Incoming, Reply, Surroundings, ToJson, When},
-    },
-    tools,
-};
+use dynlib_sys::prelude::*;
+use macros::*;
+use plugins_core::{carrying::model::CarryingEvent, library::model::*, *};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToJson)]
 enum ExampleFuture {
     Wakeup,
 }
@@ -22,12 +16,6 @@ impl TryInto<ExampleFuture> for Incoming {
 
     fn try_into(self) -> std::result::Result<ExampleFuture, Self::Error> {
         Ok(serde_json::from_value(self.value)?)
-    }
-}
-
-impl ToJson for ExampleFuture {
-    fn to_tagged_json(&self) -> std::result::Result<serde_json::Value, serde_json::Error> {
-        Ok(serde_json::to_value(self)?)
     }
 }
 
@@ -80,14 +68,8 @@ impl Agent for ExampleAgent {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToJson)]
 struct ExampleReply {}
-
-impl ToJson for ExampleReply {
-    fn to_tagged_json(&self) -> std::result::Result<serde_json::Value, serde_json::Error> {
-        serde_json::to_value(self)
-    }
-}
 
 impl Reply for ExampleReply {}
 

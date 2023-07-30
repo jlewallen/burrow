@@ -1,4 +1,5 @@
 use anyhow::Result;
+use serde::de::DeserializeOwned;
 use serde_json::Value;
 use std::{fmt::Debug, rc::Rc};
 
@@ -67,11 +68,11 @@ pub struct Scheduling {
 pub enum Perform {
     Living {
         living: Entry,
-        action: Rc<dyn Action>, // TODO Consider making this recursive?
+        action: Rc<dyn Action>,
     },
     Surroundings {
         surroundings: Surroundings,
-        action: Rc<dyn Action>, // TODO Consider making this recursive?
+        action: Rc<dyn Action>,
     },
     Chain(Rc<dyn Action>),
     Delivery(Incoming),
@@ -142,5 +143,49 @@ impl ToJson for Effect {
 impl<T: Reply + 'static> From<T> for Effect {
     fn from(value: T) -> Self {
         Self::Reply(Rc::new(value))
+    }
+}
+
+pub trait JsonAs<D> {
+    fn json_as(&self) -> Result<D, serde_json::Error>;
+}
+
+impl<T: Action> JsonAs<T> for Perform {
+    fn json_as(&self) -> Result<T, serde_json::Error> {
+        match self {
+            Perform::Living {
+                living: _,
+                action: _,
+            } => todo!(),
+            Perform::Surroundings {
+                surroundings: _,
+                action: _,
+            } => todo!(),
+            _ => todo!(),
+        }
+    }
+}
+
+fn drop_outer_object(value: serde_json::Value) -> serde_json::Value {
+    match value {
+        serde_json::Value::Object(o) => {
+            if let Some((_key, value)) = o.into_iter().next() {
+                value
+            } else {
+                panic!("Expected JSON with root object");
+            }
+        }
+        _ => panic!("Expected JSON with root object"),
+    }
+}
+
+impl<T: Reply + DeserializeOwned> JsonAs<T> for Effect {
+    fn json_as(&self) -> Result<T, serde_json::Error> {
+        match self {
+            Effect::Reply(reply) => {
+                serde_json::from_value(drop_outer_object(reply.to_tagged_json()?))
+            }
+            _ => todo!(),
+        }
     }
 }

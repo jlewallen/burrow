@@ -427,12 +427,9 @@ pub mod parser {
 
 #[cfg(test)]
 mod tests {
-    use std::rc::Rc;
-
-    use kernel::{DomainError, EntityGid, LookupBy, SimpleReply};
-
     use super::parser::*;
     use super::*;
+    use crate::library::tests::*;
     use crate::{
         building::actions::SaveWorkingCopyAction,
         {carrying::model::Containing, looking::model::new_area_observation, tools},
@@ -450,10 +447,8 @@ mod tests {
         let action = action.unwrap();
         let reply = action.perform(session, &surroundings)?;
 
-        assert_eq!(
-            reply.to_tagged_json()?,
-            Effect::Reply(Rc::new(SimpleReply::NotFound)).to_tagged_json()?
-        );
+        let reply: SimpleReply = reply.json_as()?;
+        assert_eq!(reply, SimpleReply::NotFound);
 
         Ok(())
     }
@@ -469,10 +464,8 @@ mod tests {
         let action = action.unwrap();
         let reply = action.perform(session, &surroundings)?;
 
-        assert_eq!(
-            reply.to_tagged_json()?,
-            SimpleReply::NotFound.to_tagged_json()?
-        );
+        let reply: SimpleReply = reply.json_as()?;
+        assert_eq!(reply, SimpleReply::NotFound);
 
         Ok(())
     }
@@ -488,7 +481,7 @@ mod tests {
         let action = action.unwrap();
         let reply = action.perform(session, &surroundings)?;
 
-        insta::assert_json_snapshot!(reply.to_tagged_json()?);
+        insta::assert_json_snapshot!(reply.to_debug_json()?);
 
         Ok(())
     }
@@ -504,7 +497,7 @@ mod tests {
         let action = action.unwrap();
         let reply = action.perform(session, &surroundings)?;
 
-        insta::assert_json_snapshot!(reply.to_tagged_json()?);
+        insta::assert_json_snapshot!(reply.to_debug_json()?);
 
         Ok(())
     }
@@ -520,10 +513,8 @@ mod tests {
         let action = action.unwrap();
         let reply = action.perform(session, &surroundings)?;
 
-        assert_eq!(
-            reply.to_tagged_json()?,
-            SimpleReply::NotFound.to_tagged_json()?
-        );
+        let reply: SimpleReply = reply.json_as()?;
+        assert_eq!(reply, SimpleReply::NotFound);
 
         Ok(())
     }
@@ -539,7 +530,7 @@ mod tests {
         let action = action.unwrap();
         let reply = action.perform(session, &surroundings)?;
 
-        insta::assert_json_snapshot!(reply.to_tagged_json()?);
+        insta::assert_json_snapshot!(reply.to_debug_json()?);
 
         Ok(())
     }
@@ -555,10 +546,8 @@ mod tests {
         let action = action.unwrap();
         let reply = action.perform(session, &surroundings)?;
 
-        assert_eq!(
-            reply.to_tagged_json()?,
-            SimpleReply::NotFound.to_tagged_json()?
-        );
+        let reply: SimpleReply = reply.json_as()?;
+        assert_eq!(reply, SimpleReply::NotFound);
 
         Ok(())
     }
@@ -575,7 +564,8 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_world, person, _area) = surroundings.unpack();
 
-        assert_eq!(reply.to_tagged_json()?, SimpleReply::Done.to_tagged_json()?);
+        let reply: SimpleReply = reply.json_as()?;
+        assert_eq!(reply, SimpleReply::Done);
         assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
         assert_eq!(
             tools::quantity(
@@ -600,10 +590,8 @@ mod tests {
         let action = action.unwrap();
         let reply = action.perform(session, &surroundings)?;
 
-        assert_eq!(
-            reply.to_tagged_json()?,
-            SimpleReply::NotFound.to_tagged_json()?
-        );
+        let reply: SimpleReply = reply.json_as()?;
+        assert_eq!(reply, SimpleReply::NotFound);
 
         Ok(())
     }
@@ -620,7 +608,8 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_world, person, area) = surroundings.unpack();
 
-        assert_eq!(reply.to_tagged_json()?, SimpleReply::Done.to_tagged_json()?);
+        let reply: SimpleReply = reply.json_as()?;
+        assert_eq!(reply, SimpleReply::Done);
         // It's not enough just to check this, but why not given how easy.
         // Should actually verify it's deleted.
         assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
@@ -649,10 +638,8 @@ mod tests {
             .entry(&LookupBy::Gid(&EntityGid::new(3)))?
             .ok_or(DomainError::EntityNotFound)?;
 
-        assert_eq!(
-            reply.to_tagged_json()?,
-            new_area_observation(&living, &destination)?.to_tagged_json()?
-        );
+        let reply: AreaObservation = reply.json_as()?;
+        assert_eq!(reply, new_area_observation(&living, &destination)?);
 
         Ok(())
     }
@@ -668,7 +655,7 @@ mod tests {
         let action = action.unwrap();
         let reply = action.perform(session, &surroundings)?;
 
-        insta::assert_json_snapshot!(reply.to_tagged_json()?);
+        insta::assert_json_snapshot!(reply.to_debug_json()?);
 
         Ok(())
     }
@@ -683,7 +670,8 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, living, _area) = surroundings.unpack();
 
-        assert_eq!(reply.to_tagged_json()?, SimpleReply::Done.to_tagged_json()?);
+        let reply: SimpleReply = reply.json_as()?;
+        assert_eq!(reply, SimpleReply::Done);
 
         assert_eq!(living.scope::<Containing>()?.holding.len(), 1);
 
@@ -705,7 +693,8 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (world, _living, _area) = surroundings.unpack();
 
-        assert_eq!(reply.to_tagged_json()?, SimpleReply::Done.to_tagged_json()?);
+        let reply: SimpleReply = reply.json_as()?;
+        assert_eq!(reply, SimpleReply::Done);
 
         assert_eq!(world.desc()?.unwrap(), description.as_str());
 
@@ -728,7 +717,8 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, _living, _area) = surroundings.unpack();
 
-        assert_eq!(reply.to_tagged_json()?, SimpleReply::Done.to_tagged_json()?);
+        let reply: SimpleReply = reply.json_as()?;
+        assert_eq!(reply, SimpleReply::Done);
 
         // TODO Would be really nice to have some assurances here, even though
         // I'm wondering how often this will actually get used.

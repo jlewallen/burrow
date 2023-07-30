@@ -10,7 +10,7 @@ pub trait ToJson: Debug {
 
 pub trait Reply: ToJson {}
 
-#[derive(Clone, Debug, Serialize, Deserialize, ToJson)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToJson)]
 #[serde(rename_all = "camelCase")]
 pub enum SimpleReply {
     Done,
@@ -22,7 +22,7 @@ pub enum SimpleReply {
 
 impl Reply for SimpleReply {}
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ObservedEntity {
     pub key: String,
@@ -31,7 +31,7 @@ pub struct ObservedEntity {
     pub desc: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, ToJson)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToJson)]
 #[serde(rename_all = "camelCase")]
 pub struct AreaObservation {
     pub area: ObservedEntity,
@@ -44,7 +44,7 @@ pub struct AreaObservation {
 
 impl Reply for AreaObservation {}
 
-#[derive(Clone, Debug, Serialize, Deserialize, ToJson)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToJson)]
 #[serde(rename_all = "camelCase")]
 pub struct InsideObservation {
     pub vessel: ObservedEntity,
@@ -53,7 +53,7 @@ pub struct InsideObservation {
 
 impl Reply for InsideObservation {}
 
-#[derive(Clone, Debug, Serialize, Deserialize, ToJson)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToJson)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityObservation {
     pub entity: ObservedEntity,
@@ -61,7 +61,7 @@ pub struct EntityObservation {
 
 impl Reply for EntityObservation {}
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SimpleObservation(serde_json::Value);
 
 impl SimpleObservation {
@@ -76,7 +76,7 @@ impl From<SimpleObservation> for serde_json::Value {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum WorkingCopy {
     Description(String),
@@ -84,22 +84,30 @@ pub enum WorkingCopy {
     Script(String),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToJson)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToJson)]
 #[serde(rename_all = "camelCase")]
 pub struct EditorReply {
-    pub key: String,
-    pub editing: WorkingCopy,
+    key: String,
+    editing: WorkingCopy,
 }
 
 impl EditorReply {
     pub fn new(key: String, editing: WorkingCopy) -> Self {
         Self { key, editing }
     }
+
+    pub fn key(&self) -> &str {
+        &self.key
+    }
+
+    pub fn editing(&self) -> &WorkingCopy {
+        &self.editing
+    }
 }
 
 impl Reply for EditorReply {}
 
-#[derive(Clone, Debug, Serialize, Deserialize, ToJson)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToJson)]
 #[serde(rename_all = "camelCase")]
 pub struct JsonReply {
     value: serde_json::Value,

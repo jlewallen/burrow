@@ -413,24 +413,17 @@ impl Subscriber for PluginSubscriber {
 pub mod model {
     use plugins_core::library::model::*;
 
-    #[derive(Debug, Serialize)]
+    #[derive(Debug, Serialize, ToJson)]
     #[serde(rename_all = "camelCase")]
     struct DynamicReply {}
 
     impl Reply for DynamicReply {}
-
-    impl ToJson for DynamicReply {
-        fn to_tagged_json(&self) -> Result<Value, serde_json::Error> {
-            serde_json::to_value(self)
-        }
-    }
 }
 
 #[cfg(test)]
 mod tests {
-    use plugins_core::library::tests::*;
-    // use super::parser::*;
     use super::*;
+    use plugins_core::library::tests::*;
 
     #[test]
     fn it_dynamic() -> Result<()> {

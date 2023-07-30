@@ -170,6 +170,6 @@ pub mod prelude {
 
     pub use super::{
         default_agent_initialize, default_agent_tick, export_plugin, Agent, DynMessage,
-        DynamicHost, PluginDeclaration,
+        DynamicHost, DynamicNext, PluginDeclaration,
     };
 }
