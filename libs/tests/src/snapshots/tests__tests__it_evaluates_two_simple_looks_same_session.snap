@@ -15,7 +15,7 @@ expression: domain.snapshot().await?
     },
     "key": "world",
     "klass": {
-      "py/type": ""
+      "py/type": "scopes.ItemClass"
     },
     "parent": null,
     "scopes": {
@@ -62,7 +62,7 @@ expression: domain.snapshot().await?
     },
     "key": "E-0",
     "klass": {
-      "py/type": ""
+      "py/type": "scopes.ItemClass"
     },
     "parent": null,
     "scopes": {
@@ -98,7 +98,7 @@ expression: domain.snapshot().await?
     },
     "key": "E-1",
     "klass": {
-      "py/type": ""
+      "py/type": "scopes.ItemClass"
     },
     "parent": null,
     "scopes": {
@@ -106,7 +106,7 @@ expression: domain.snapshot().await?
         "container": {
           "gid": 3,
           "key": "E-2",
-          "klass": "",
+          "klass": "scopes.ItemClass",
           "name": "Vessel"
         }
       },
@@ -142,7 +142,7 @@ expression: domain.snapshot().await?
     },
     "key": "E-2",
     "klass": {
-      "py/type": ""
+      "py/type": "scopes.ItemClass"
     },
     "parent": null,
     "scopes": {
@@ -152,7 +152,7 @@ expression: domain.snapshot().await?
           {
             "gid": 2,
             "key": "E-1",
-            "klass": "",
+            "klass": "scopes.ItemClass",
             "name": "Key"
           }
         ],
@@ -162,7 +162,7 @@ expression: domain.snapshot().await?
         "container": {
           "gid": 4,
           "key": "E-3",
-          "klass": "",
+          "klass": "scopes.ItemClass",
           "name": "Living"
         }
       },
@@ -198,7 +198,7 @@ expression: domain.snapshot().await?
     },
     "key": "E-3",
     "klass": {
-      "py/type": ""
+      "py/type": "scopes.ItemClass"
     },
     "parent": null,
     "scopes": {
@@ -208,7 +208,7 @@ expression: domain.snapshot().await?
           {
             "gid": 3,
             "key": "E-2",
-            "klass": "",
+            "klass": "scopes.ItemClass",
             "name": "Vessel"
           }
         ],
@@ -218,7 +218,7 @@ expression: domain.snapshot().await?
         "area": {
           "gid": 5,
           "key": "E-4",
-          "klass": "",
+          "klass": "scopes.ItemClass",
           "name": "Welcome Area"
         }
       },
@@ -254,7 +254,7 @@ expression: domain.snapshot().await?
     },
     "key": "E-4",
     "klass": {
-      "py/type": ""
+      "py/type": "scopes.ItemClass"
     },
     "parent": null,
     "scopes": {
@@ -264,7 +264,7 @@ expression: domain.snapshot().await?
           {
             "gid": 6,
             "key": "E-5",
-            "klass": "",
+            "klass": "scopes.ItemClass",
             "name": "East"
           }
         ],
@@ -279,7 +279,7 @@ expression: domain.snapshot().await?
           {
             "gid": 4,
             "key": "E-3",
-            "klass": "",
+            "klass": "scopes.ItemClass",
             "name": "Living"
           }
         ]
@@ -316,7 +316,7 @@ expression: domain.snapshot().await?
     },
     "key": "E-5",
     "klass": {
-      "py/type": ""
+      "py/type": "scopes.ItemClass"
     },
     "parent": null,
     "scopes": {
@@ -324,7 +324,7 @@ expression: domain.snapshot().await?
         "area": {
           "gid": 1,
           "key": "E-0",
-          "klass": "",
+          "klass": "scopes.ItemClass",
           "name": "Place"
         }
       },
@@ -332,7 +332,7 @@ expression: domain.snapshot().await?
         "container": {
           "gid": 5,
           "key": "E-4",
-          "klass": "",
+          "klass": "scopes.ItemClass",
           "name": "Welcome Area"
         }
       },

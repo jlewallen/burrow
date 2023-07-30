@@ -63,14 +63,12 @@ impl Props {
         Ok(())
     }
 
-    pub(super) fn remove_property(&mut self, name: &str) -> Result<()> {
+    pub(super) fn remove_property(&mut self, name: &str) {
         self.map.remove(name);
-
-        Ok(())
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Properties {
     props: Option<Props>,
 }

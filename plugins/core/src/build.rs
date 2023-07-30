@@ -6,8 +6,8 @@ use engine::{
     HasUsernames, Session, SessionOpener,
 };
 use kernel::{
-    CoreProps, Entity, EntityKey, EntityPtr, Entry, RegisteredPlugins, SessionRef, SetSession,
-    Surroundings, WORLD_KEY,
+    build_entity, CoreProps, EntityKey, EntityPtr, Entry, RegisteredPlugins, SessionRef,
+    SetSession, Surroundings, WORLD_KEY,
 };
 
 use crate::{tools, DefaultFinder};
@@ -34,7 +34,8 @@ impl Build {
     }
 
     pub fn new_world(session: &Rc<Session>) -> Result<Self> {
-        let entity = EntityPtr::new(Entity::new_with_key(WORLD_KEY.into()));
+        let entity = build_entity().with_key(WORLD_KEY.into()).try_into()?;
+        let entity = EntityPtr::new(entity);
 
         Self::from_entity_ptr(session, entity)
     }

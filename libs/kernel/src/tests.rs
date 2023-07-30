@@ -7,8 +7,10 @@ use anyhow::Result;
 #[test]
 fn it_creates_expected_json_for_new_named() -> Result<()> {
     let _session = KeysOnlySession::open();
-    let e = EntityPtr::new_named("New Named", "Description of New Named")?;
-    let e = e.borrow();
+    let e: Entity = build_entity()
+        .name("New Named")
+        .desc("Description of New Named")
+        .try_into()?;
 
     insta::assert_json_snapshot!(e.to_json_value()?);
 

@@ -222,14 +222,26 @@ pub mod actions {
 
             let (_, living, area) = surroundings.unpack();
 
-            let new_area = EntityPtr::new_named(&self.new_area, &self.new_area)?;
-            let new_area = session.add_entity(&new_area)?;
+            let new_area: Entity = build_entity()
+                .area()
+                .name(&self.new_area)
+                .desc(&self.new_area)
+                .try_into()?;
+            let new_area = session.add_entity(&EntityPtr::new(new_area))?;
 
-            let returning = EntityPtr::new_named(&self.returning, &self.returning)?;
-            let returning = session.add_entity(&returning)?;
+            let returning: Entity = build_entity()
+                .exit()
+                .name(&self.returning)
+                .desc(&self.returning)
+                .try_into()?;
+            let returning = session.add_entity(&EntityPtr::new(returning))?;
 
-            let outgoing = EntityPtr::new_named(&self.outgoing, &self.outgoing)?;
-            let outgoing = session.add_entity(&outgoing)?;
+            let outgoing: Entity = build_entity()
+                .exit()
+                .name(&self.outgoing)
+                .desc(&self.outgoing)
+                .try_into()?;
+            let outgoing = session.add_entity(&EntityPtr::new(outgoing))?;
 
             tools::leads_to(&returning, &area)?;
             tools::set_container(&new_area, &vec![returning])?;
@@ -263,7 +275,7 @@ pub mod actions {
 
             let (_, user, _area) = surroundings.unpack();
 
-            let new_item = EntityPtr::new_named(&self.name, &self.name)?;
+            let new_item = EntityPtr::new_named(EntityClass::item(), &self.name, &self.name)?;
 
             session.add_entities(&[&new_item])?;
 

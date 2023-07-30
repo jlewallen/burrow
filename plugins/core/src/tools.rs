@@ -137,8 +137,12 @@ pub fn get_occupant_keys(area: &Entry) -> Result<Vec<EntityKey>> {
 
 pub fn new_entity_from_template_ptr(template_entry: &Entry) -> Result<Entry> {
     let template = template_entry.entity();
-    let entity = EntityPtr::new(Entity::new_from(&template.borrow())?);
-    get_my_session()?.add_entity(&entity)
+    let key = get_my_session()?.new_key();
+    let entity = build_entity()
+        .with_key(key)
+        .copying(&template.borrow())?
+        .try_into()?;
+    get_my_session()?.add_entity(&EntityPtr::new(entity))
 }
 
 pub fn quantity(entity: &Entry) -> Result<f32> {

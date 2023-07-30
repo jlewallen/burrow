@@ -14,7 +14,7 @@ expression: e.to_json_value()?
   },
   "key": "E-0",
   "klass": {
-    "py/type": ""
+    "py/type": "scopes.ItemClass"
   },
   "parent": null,
   "scopes": {

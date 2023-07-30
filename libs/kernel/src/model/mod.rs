@@ -38,12 +38,12 @@ pub struct EntityPtr {
 }
 
 impl EntityPtr {
-    pub fn new_blank() -> Result<Self, DomainError> {
-        Ok(Self::new(Entity::new_blank()?))
-    }
-
-    pub fn new_with_props(properties: Properties) -> Result<Self, DomainError> {
-        Ok(Self::new(Entity::new_with_props(properties)?))
+    pub fn new_blank() -> Result<Self> {
+        Ok(Self::new(
+            build_entity()
+                .with_key(get_my_session()?.new_key())
+                .try_into()?,
+        ))
     }
 
     pub fn new(e: Entity) -> Self {
@@ -56,24 +56,28 @@ impl EntityPtr {
         }
     }
 
-    pub fn new_named(name: &str, desc: &str) -> Result<Self, DomainError> {
-        let mut props = Properties::default();
-        props.set_name(name)?;
-        props.set_desc(desc)?;
-
-        Self::new_with_props(props)
+    pub fn new_named(class: EntityClass, name: &str, desc: &str) -> Result<Self, DomainError> {
+        Ok(Self::new(
+            build_entity()
+                .class(class)
+                .name(name)
+                .desc(desc)
+                .try_into()?,
+        ))
     }
 
+    // TODO Into/From
     pub fn from_value(value: serde_json::Value) -> Result<Self, DomainError> {
         Ok(Self::new(Entity::from_value(value)?))
     }
 
-    pub fn key(&self) -> EntityKey {
-        self.lazy.borrow().key.clone()
-    }
-
+    // TODO Into/From
     pub fn to_json_value(&self) -> Result<serde_json::Value, DomainError> {
         self.entity.borrow().to_json_value()
+    }
+
+    pub fn key(&self) -> EntityKey {
+        self.lazy.borrow().key.clone()
     }
 }
 

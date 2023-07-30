@@ -1,7 +1,3 @@
-use crate::{
-    get_my_session, model::Needs, CoreProps, HasScopes, Properties, ScopeValue, Scopes, ScopesMut,
-    SessionRef,
-};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
@@ -10,6 +6,37 @@ use std::str::FromStr;
 use std::{collections::HashMap, fmt::Display};
 
 use super::base::*;
+use crate::{
+    get_my_session, model::Needs, CoreProps, HasScopes, Properties, ScopeValue, Scopes, ScopesMut,
+    SessionRef,
+};
+
+#[derive(Clone, Serialize, Deserialize, Default)]
+pub struct ScopeMap(HashMap<String, ScopeValue>);
+
+impl ScopeMap {}
+
+impl From<HashMap<String, ScopeValue>> for ScopeMap {
+    fn from(value: HashMap<String, ScopeValue>) -> Self {
+        Self(value)
+    }
+}
+
+impl Into<HashMap<String, ScopeValue>> for ScopeMap {
+    fn into(self) -> HashMap<String, ScopeValue> {
+        self.0
+    }
+}
+
+impl HasScopes for ScopeMap {
+    fn scopes(&self) -> Scopes {
+        Scopes { map: &self.0 }
+    }
+
+    fn scopes_mut(&mut self) -> ScopesMut {
+        ScopesMut { map: &mut self.0 }
+    }
+}
 
 /// Central Entity model. Right now, the only thing that is ever modified at
 /// this level is `version` and even that could easily be swept into a scope.
@@ -56,52 +83,26 @@ impl FromStr for Entity {
 }
 
 impl Entity {
-    pub fn new_blank() -> Result<Self> {
-        Ok(Self::new_with_key(get_my_session()?.new_key()))
-    }
-
     pub fn from_value(value: serde_json::Value) -> Result<Entity, DomainError> {
         Ok(serde_json::from_value(value)?)
     }
 
-    pub fn new_with_key(key: EntityKey) -> Self {
+    fn new_heavily_customized(
+        key: EntityKey,
+        class: EntityClass,
+        creator: Option<EntityRef>,
+        parent: Option<EntityRef>,
+        scopes: ScopeMap,
+    ) -> Self {
         Self {
             key,
-            parent: Default::default(),
-            creator: Default::default(),
+            parent,
+            creator,
             identity: Default::default(),
-            class: Default::default(),
+            class,
             acls: Default::default(),
-            scopes: Default::default(),
+            scopes: scopes.into(),
         }
-    }
-
-    // TODO Allow scopes to hook into this process. For example
-    // elsewhere in this commit I've wondered about how to copy 'kind'
-    // into the new item in the situation for separate, so I'd start
-    // there. Ultimately I think it'd be nice if we could just pass a
-    // map of scopes in with their intended values.
-    // NOTE This should be easier with the Scopes stuff below, accept that as a
-    // ctor parameter and just clone the map or create an alternative we can
-    // take ownership of.
-    pub fn new_with_props(properties: Properties) -> Result<Self> {
-        let mut entity = Self::new_blank()?;
-        entity.set_props(properties.props())?;
-        Ok(entity)
-    }
-
-    pub fn new_from(template: &Self) -> Result<Self> {
-        // TODO Customize clone to always remove GID_PROPERTY
-        let mut props = template.props();
-        props.remove_property(GID_PROPERTY)?;
-        let mut entity = Self::new_with_props(props.into())?;
-
-        entity.class = template.class.clone();
-        entity.acls = template.acls.clone();
-        entity.parent = template.parent.clone();
-        entity.creator = template.creator.clone();
-
-        Ok(entity)
     }
 
     pub fn key(&self) -> &EntityKey {
@@ -119,15 +120,11 @@ impl Entity {
 
 impl HasScopes for Entity {
     fn scopes(&self) -> Scopes {
-        Scopes {
-            key: &self.key,
-            map: &self.scopes,
-        }
+        Scopes { map: &self.scopes }
     }
 
     fn scopes_mut(&mut self) -> ScopesMut {
         ScopesMut {
-            key: &self.key,
             map: &mut self.scopes,
         }
     }
@@ -185,4 +182,106 @@ impl std::fmt::Debug for EntityRef {
             .field("gid", &self.gid)
             .finish()
     }
+}
+
+pub struct EntityBuilder {
+    key: Option<EntityKey>,
+    class: EntityClass,
+    parent: Option<EntityRef>,
+    creator: Option<EntityRef>,
+    scopes: Option<ScopeMap>,
+    properties: Properties,
+}
+
+impl EntityBuilder {
+    pub fn new() -> Self {
+        Self {
+            key: None,
+            parent: None,
+            creator: None,
+            scopes: None,
+            class: EntityClass::item(),
+            properties: Properties::default(),
+        }
+    }
+
+    pub fn with_key(mut self, key: EntityKey) -> Self {
+        self.key = Some(key);
+        self
+    }
+
+    pub fn class(mut self, class: EntityClass) -> Self {
+        self.class = class;
+        self
+    }
+
+    pub fn name(mut self, s: &str) -> Self {
+        self.properties.set_name(s).expect("Set name failed");
+        self
+    }
+
+    pub fn desc(mut self, s: &str) -> Self {
+        self.properties.set_desc(s).expect("Set desc failed");
+        self
+    }
+
+    pub fn copying(mut self, template: &Entity) -> Result<Self> {
+        let mut scopes: ScopeMap = template.scopes.clone().into();
+        let properties = scopes.scopes().load_scope::<Properties>()?;
+        let mut props = properties.props();
+        props.remove_property(GID_PROPERTY);
+        // TODO How can we avoid passing tthis generic argument?
+        scopes
+            .scopes_mut()
+            .replace_scope::<Properties>(&properties)?;
+
+        self.class = template.class.clone();
+        self.creator = template.creator.clone();
+        self.parent = template.parent.clone();
+        self.scopes = Some(scopes);
+
+        Ok(self)
+    }
+
+    pub fn area(self) -> Self {
+        self.class(EntityClass::area())
+    }
+
+    pub fn exit(self) -> Self {
+        self.class(EntityClass::exit())
+    }
+
+    pub fn living(self) -> Self {
+        self.class(EntityClass::living())
+    }
+}
+
+impl TryInto<Entity> for EntityBuilder {
+    type Error = DomainError;
+
+    fn try_into(self) -> Result<Entity, Self::Error> {
+        let key = match self.key {
+            Some(key) => key,
+            None => get_my_session()?.new_key(),
+        };
+        let map = [(
+            "props".to_owned(),
+            ScopeValue::Original(serde_json::to_value(self.properties)?.into()),
+        )]
+        .into_iter()
+        .collect::<HashMap<_, _>>();
+
+        let scopes: ScopeMap = map.into();
+        Ok(Entity::new_heavily_customized(
+            key,
+            self.class,
+            self.creator,
+            self.parent,
+            scopes,
+        ))
+    }
+}
+
+pub fn build_entity() -> EntityBuilder {
+    EntityBuilder::new()
 }
