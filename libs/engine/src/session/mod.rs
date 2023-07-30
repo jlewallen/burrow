@@ -308,13 +308,7 @@ impl ActiveSession for Session {
 
         let world = self.world()?;
         let gid = match world {
-            Some(world) => {
-                let gid = identifiers::model::get_gid(&world)?;
-                let gid = gid.unwrap_or(EntityGid::new(0));
-                let gid = gid.next();
-                let gid = identifiers::model::set_gid(&world, gid)?;
-                gid
-            }
+            Some(world) => identifiers::model::fetch_add_one(&world)?,
             None => {
                 // Otherwise we keep assigning 0 until the world gets created!
                 assert_eq!(&entity.key(), &EntityKey::new(WORLD_KEY));
