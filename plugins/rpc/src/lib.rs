@@ -154,7 +154,12 @@ pub struct RpcPlugin {
     server: SynchronousWrapper,
 }
 
-impl RpcPlugin {}
+impl RpcPlugin {
+    #[allow(dead_code)]
+    fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
+        self.server.have_surroundings(surroundings)
+    }
+}
 
 impl Plugin for RpcPlugin {
     fn plugin_key() -> &'static str
@@ -181,11 +186,6 @@ impl Plugin for RpcPlugin {
     #[tracing::instrument(name = "rpc-register", skip_all)]
     fn register_hooks(&self, _hooks: &ManagedHooks) -> Result<()> {
         Ok(())
-    }
-
-    #[tracing::instrument(name = "rpc-surroundings", skip_all)]
-    fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
-        self.server.have_surroundings(surroundings)
     }
 
     #[tracing::instrument(name = "rpc-deliver", skip_all)]

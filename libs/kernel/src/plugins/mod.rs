@@ -5,7 +5,7 @@ use tracing::*;
 pub use std::rc::Rc;
 
 use super::{model::*, Action, ManagedHooks};
-use crate::{Incoming, Surroundings};
+use crate::Incoming;
 
 pub mod mw;
 pub use mw::*;
@@ -67,9 +67,6 @@ pub trait Plugin: ParsesActions {
     /// Working to remove.
     fn register_hooks(&self, hooks: &ManagedHooks) -> Result<()>;
 
-    /// Working to remove.
-    fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()>;
-
     // If we can get this working alongside Perform and Evaluator we can remove this.
     fn deliver(&self, incoming: &Incoming) -> Result<()>;
 
@@ -119,14 +116,6 @@ impl SessionPlugins {
             plugin.register_hooks(&hooks)?;
         }
         Ok(hooks)
-    }
-
-    pub fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
-        for plugin in self.plugins.iter() {
-            let _span = span!(Level::INFO, "S", plugin = plugin.key()).entered();
-            plugin.have_surroundings(surroundings)?;
-        }
-        Ok(())
     }
 
     pub fn deliver(&self, incoming: Incoming) -> Result<()> {

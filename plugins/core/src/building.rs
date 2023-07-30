@@ -42,10 +42,6 @@ impl Plugin for BuildingPlugin {
         Ok(())
     }
 
-    fn have_surroundings(&self, _surroundings: &Surroundings) -> Result<()> {
-        Ok(())
-    }
-
     fn deliver(&self, _incoming: &Incoming) -> Result<()> {
         Ok(())
     }

@@ -229,6 +229,21 @@ impl DynamicPlugin {
 
         Ok(())
     }
+
+    #[allow(dead_code)]
+    fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
+        let services = SessionServices::new_for_my_session(None)?;
+        let messages = have_surroundings(surroundings, &services)?
+            .into_iter()
+            .map(DynMessage::Payload)
+            .collect::<Vec<_>>();
+
+        self.push_messages_to_all(&messages)?;
+
+        self.tick()?;
+
+        Ok(())
+    }
 }
 
 struct LibraryMiddleware {
@@ -349,20 +364,6 @@ impl Plugin for DynamicPlugin {
     }
 
     fn register_hooks(&self, _hooks: &ManagedHooks) -> Result<()> {
-        Ok(())
-    }
-
-    fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
-        let services = SessionServices::new_for_my_session(None)?;
-        let messages = have_surroundings(surroundings, &services)?
-            .into_iter()
-            .map(DynMessage::Payload)
-            .collect::<Vec<_>>();
-
-        self.push_messages_to_all(&messages)?;
-
-        self.tick()?;
-
         Ok(())
     }
 

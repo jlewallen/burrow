@@ -210,17 +210,13 @@ impl Performer for Session {
             Perform::Living { living, action } => {
                 info!("perform:living");
 
-                let surroundings = {
-                    let make = MakeSurroundings {
-                        finder: self.finder.clone(),
-                        living: living.clone(),
-                    };
-                    let surroundings = make.try_into()?;
-                    info!("surroundings {:?}", &surroundings);
-                    let plugins = self.plugins.borrow();
-                    plugins.have_surroundings(&surroundings)?;
-                    surroundings
-                };
+                let surroundings = MakeSurroundings {
+                    finder: self.finder.clone(),
+                    living: living.clone(),
+                }
+                .try_into()?;
+
+                info!("surroundings {:?}", &surroundings);
 
                 self.perform(Perform::Surroundings {
                     surroundings,

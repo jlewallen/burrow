@@ -271,6 +271,17 @@ impl WasmPlugin {
     fn new(runners: Runners) -> Self {
         Self { runners }
     }
+
+    #[allow(dead_code)]
+    fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
+        let locked = self.runners.lock().map_err(|_| anyhow!("Lock error"))?;
+        let mut runners = locked.borrow_mut();
+        for runner in runners.iter_mut() {
+            runner.have_surroundings(surroundings)?;
+        }
+
+        Ok(())
+    }
 }
 
 impl Plugin for WasmPlugin {
@@ -301,16 +312,6 @@ impl Plugin for WasmPlugin {
 
     fn register_hooks(&self, hooks: &ManagedHooks) -> Result<()> {
         hooks::register(hooks, &self.runners)
-    }
-
-    fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
-        let locked = self.runners.lock().map_err(|_| anyhow!("Lock error"))?;
-        let mut runners = locked.borrow_mut();
-        for runner in runners.iter_mut() {
-            runner.have_surroundings(surroundings)?;
-        }
-
-        Ok(())
     }
 
     fn deliver(&self, _incoming: &Incoming) -> Result<()> {
