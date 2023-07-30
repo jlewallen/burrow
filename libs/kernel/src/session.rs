@@ -76,8 +76,7 @@ pub fn get_my_session() -> Result<SessionRef> {
 }
 
 pub struct SetSession {
-    #[allow(dead_code)]
-    session: std::rc::Weak<dyn ActiveSession>,
+    _session: std::rc::Rc<dyn ActiveSession>,
     previous: Option<std::rc::Weak<dyn ActiveSession>>,
 }
 
@@ -87,10 +86,13 @@ impl SetSession {
             let mut setting = setting.borrow_mut();
             let previous = setting.take();
 
-            let session = Rc::downgrade(session);
-            *setting = Some(session.clone());
+            let weak = Rc::downgrade(session);
+            *setting = Some(weak.clone());
 
-            Self { session, previous }
+            Self {
+                previous,
+                _session: session.clone(),
+            }
         })
     }
 }
