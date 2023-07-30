@@ -1,0 +1,40 @@
+---
+source: libs/kernel/src/tests.rs
+expression: e.to_json_value()?
+---
+{
+  "acls": {
+    "rules": []
+  },
+  "creator": null,
+  "identity": {
+    "private": "",
+    "public": "",
+    "signature": null
+  },
+  "key": "E-0",
+  "klass": {
+    "py/type": ""
+  },
+  "parent": null,
+  "scopes": {
+    "props": {
+      "props": {
+        "map": {
+          "desc": {
+            "acls": {
+              "rules": []
+            },
+            "value": "Description of New Named"
+          },
+          "name": {
+            "acls": {
+              "rules": []
+            },
+            "value": "New Named"
+          }
+        }
+      }
+    }
+  }
+}

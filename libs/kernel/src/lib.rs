@@ -22,3 +22,6 @@ pub trait Finder: Send + Sync {
 
     fn find_audience(&self, audience: &Audience) -> anyhow::Result<Vec<EntityKey>>;
 }
+
+#[cfg(test)]
+mod tests;

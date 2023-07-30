@@ -222,12 +222,14 @@ pub mod actions {
 
             let (_, living, area) = surroundings.unpack();
 
-            let new_area =
-                session.add_entity(&EntityPtr::new_named(&self.new_area, &self.new_area)?)?;
-            let returning =
-                session.add_entity(&EntityPtr::new_named(&self.returning, &self.returning)?)?;
-            let outgoing =
-                session.add_entity(&EntityPtr::new_named(&self.outgoing, &self.outgoing)?)?;
+            let new_area = EntityPtr::new_named(&self.new_area, &self.new_area)?;
+            let new_area = session.add_entity(&new_area)?;
+
+            let returning = EntityPtr::new_named(&self.returning, &self.returning)?;
+            let returning = session.add_entity(&returning)?;
+
+            let outgoing = EntityPtr::new_named(&self.outgoing, &self.outgoing)?;
+            let outgoing = session.add_entity(&outgoing)?;
 
             tools::leads_to(&returning, &area)?;
             tools::set_container(&new_area, &vec![returning])?;
