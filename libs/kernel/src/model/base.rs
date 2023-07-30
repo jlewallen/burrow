@@ -1,6 +1,9 @@
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
-use std::fmt::{Debug, Display};
+use std::{
+    fmt::{Debug, Display},
+    str::FromStr,
+};
 use thiserror::Error;
 use tracing::*;
 
@@ -177,6 +180,14 @@ impl Kind {
 pub struct EntityClass {
     #[serde(rename = "py/type")]
     pub py_type: String,
+}
+
+impl FromStr for EntityClass {
+    type Err = DomainError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self::new(s))
+    }
 }
 
 impl EntityClass {

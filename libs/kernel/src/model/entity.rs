@@ -134,11 +134,69 @@ impl HasScopes for Entity {
     }
 }
 
+#[derive(Default, Deserialize)]
+struct PotentialRef {
+    key: Option<String>,
+    #[serde(rename = "klass")] // TODO Python name collision.
+    class: Option<String>,
+    name: Option<String>,
+    gid: Option<EntityGid>,
+}
+
+impl PotentialRef {
+    fn good_enough(self) -> Option<EntityRef> {
+        let Some(key) = self.key else {
+            return None;
+        };
+        let Some(class) = self.class else {
+            return None;
+        };
+        let Some(name) = self.name else {
+            return None;
+        };
+        let Some(gid) = self.gid else {
+            return None;
+        };
+        Some(EntityRef {
+            key: EntityKey::new(&key),
+            class,
+            name: Some(name),
+            gid: Some(gid),
+            entity: None,
+        })
+    }
+}
+
+pub fn find_entity_refs(value: &serde_json::Value) -> Option<Vec<EntityRef>> {
+    match value {
+        serde_json::Value::Null => None,
+        serde_json::Value::Bool(_) => None,
+        serde_json::Value::Number(_) => None,
+        serde_json::Value::String(_) => None,
+        serde_json::Value::Array(array) => Some(
+            array
+                .iter()
+                .map(|e| find_entity_refs(e))
+                .flatten()
+                .flatten()
+                .collect(),
+        ),
+        serde_json::Value::Object(o) => {
+            let potential: Result<PotentialRef, serde_json::Error> =
+                serde_json::from_value(serde_json::Value::Object(o.clone()));
+            match potential {
+                Ok(potential) => potential.good_enough().map(|i| vec![i]),
+                Err(_) => None,
+            }
+        }
+    }
+}
+
 // TODO Make this generic across 'entity's type?
 #[derive(Clone, Serialize, Deserialize)]
 pub struct EntityRef {
     key: EntityKey,
-    #[serde(rename = "klass")]
+    #[serde(rename = "klass")] // TODO Python name collision.
     class: String,
     name: Option<String>,
     gid: Option<EntityGid>,
