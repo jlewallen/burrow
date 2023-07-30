@@ -279,20 +279,6 @@ struct DynamicMiddleware {
     children: Rc<RefCell<Vec<LibraryMiddleware>>>,
 }
 
-/*
-impl DynamicMiddleware {
-    fn library_middleware(&self) -> Result<Vec<LibraryMiddleware>> {
-        let libraries = self.libraries.borrow();
-        Ok(libraries
-            .iter()
-            .map(|l| LibraryMiddleware {
-                prefix: l.prefix.clone(),
-                library: l.library.clone(),
-            })
-            .collect())
-    }
-}
-*/
 impl Middleware for DynamicMiddleware {
     fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
         let _span = span!(Level::INFO, "M", plugin = "dynlib").entered();

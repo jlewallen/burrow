@@ -340,6 +340,17 @@ fn should_force_rollback() -> bool {
     env::var("FORCE_ROLLBACK").is_ok()
 }
 
+fn user_name_to_entry<R: EntryResolver>(resolve: &R, name: &str) -> Result<Entry, DomainError> {
+    let world = resolve.world()?.expect("No world");
+    let user_key = world
+        .find_name_key(name)?
+        .ok_or(DomainError::EntityNotFound)?;
+
+    resolve
+        .entry(&LookupBy::Key(&user_key))?
+        .ok_or(DomainError::EntityNotFound)
+}
+
 struct MakeSurroundings {
     finder: Arc<dyn Finder>,
     living: Entry,
@@ -361,17 +372,6 @@ impl TryInto<Surroundings> for MakeSurroundings {
     }
 }
 
-fn user_name_to_entry<R: EntryResolver>(resolve: &R, name: &str) -> Result<Entry, DomainError> {
-    let world = resolve.world()?.expect("No world");
-    let user_key = world
-        .find_name_key(name)?
-        .ok_or(DomainError::EntityNotFound)?;
-
-    resolve
-        .entry(&LookupBy::Key(&user_key))?
-        .ok_or(DomainError::EntityNotFound)
-}
-
 struct ExpandSurroundingsMiddleware {
     finder: Arc<dyn Finder>,
 }
@@ -380,6 +380,8 @@ impl Middleware for ExpandSurroundingsMiddleware {
     fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
         match value {
             Perform::Living { living, action } => {
+                let _span = span!(Level::DEBUG, "surround").entered();
+
                 let surroundings = MakeSurroundings {
                     finder: self.finder.clone(),
                     living: living.clone(),
