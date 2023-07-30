@@ -36,11 +36,12 @@ pub struct Session {
 
 impl Session {
     pub fn new(
-        storage: Rc<dyn Storage>,
         keys: &Arc<dyn Sequence<EntityKey>>,
         identities: &Arc<dyn Sequence<Identity>>,
         finder: &Arc<dyn Finder>,
         registered_plugins: &Arc<RegisteredPlugins>,
+        storage: Rc<dyn Storage>,
+        middleware: Vec<Rc<dyn Middleware>>,
     ) -> Result<Rc<Self>> {
         trace!("session-new");
 
@@ -50,10 +51,15 @@ impl Session {
 
         let plugins = registered_plugins.create_plugins()?;
         let plugins = Arc::new(RefCell::new(plugins));
-        let middleware: Arc<RefCell<Vec<Rc<dyn Middleware>>>> =
-            Arc::new(RefCell::new(vec![Rc::new(ExpandSurroundingsMiddleware {
-                finder: Arc::clone(&finder),
-            })]));
+
+        let expand_surroundings: Rc<dyn Middleware> = Rc::new(ExpandSurroundingsMiddleware {
+            finder: Arc::clone(&finder),
+        });
+        let middleware: Vec<Rc<dyn Middleware>> = middleware
+            .into_iter()
+            .chain([expand_surroundings].into_iter())
+            .collect();
+        let middleware = Arc::new(RefCell::new(middleware));
 
         let hooks = {
             let plugins = plugins.borrow();

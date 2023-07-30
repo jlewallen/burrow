@@ -14,8 +14,10 @@ use crate::terminal::Renderer;
 use crate::PluginConfiguration;
 use crate::{make_domain, terminal::default_external_editor};
 
-use engine::{self, DevNullNotifier, Domain, HasUsernames, Notifier, Session, SessionOpener};
-use kernel::{DomainEvent, Effect, EntityKey, EntryResolver, Perform, Performer, SimpleReply};
+use engine::{self, DevNullNotifier, Domain, HasUsernames, Notifier, SessionOpener};
+use kernel::{
+    get_my_session, DomainEvent, Effect, EntityKey, EntryResolver, Middleware, Perform, SimpleReply,
+};
 use replies::EditorReply;
 
 use plugins_core::building::actions::SaveWorkingCopyAction;
@@ -105,67 +107,79 @@ async fn find_user_key(domain: &Domain, name: &str) -> Result<Option<EntityKey>>
 pub static TEXT_EXTENSION: &str = "txt";
 pub static JSON_EXTENSION: &str = "json";
 
-pub fn try_interactive(session: Rc<Session>, living: &EntityKey, effect: Effect) -> Result<Effect> {
-    match effect {
-        Effect::Reply(reply) => {
-            let value = reply.to_json()?;
-            match &value {
-                serde_json::Value::Object(object) => {
-                    for (key, value) in object {
-                        // TODO This is annoying.
-                        if key == "editorReply" {
-                            let reply: EditorReply = serde_json::from_value(value.clone())?;
-                            let action: Rc<dyn kernel::Action> = match reply.editing {
-                                replies::WorkingCopy::Description(original) => {
-                                    let edited =
-                                        default_external_editor(&original, TEXT_EXTENSION)?;
+pub struct InteractiveEditor {
+    living: EntityKey,
+}
 
-                                    Rc::new(SaveWorkingCopyAction {
-                                        key: EntityKey::new(&reply.key),
-                                        copy: replies::WorkingCopy::Description(edited),
-                                    })
-                                }
-                                replies::WorkingCopy::Json(original) => {
-                                    let serialized = serde_json::to_string_pretty(&original)?;
-                                    let edited =
-                                        default_external_editor(&serialized, JSON_EXTENSION)?;
+impl Middleware for InteractiveEditor {
+    fn handle(
+        &self,
+        value: Perform,
+        next: kernel::MiddlewareNext,
+    ) -> Result<Effect, anyhow::Error> {
+        match next.handle(value)? {
+            Effect::Reply(reply) => {
+                let value = reply.to_json()?;
+                match &value {
+                    serde_json::Value::Object(object) => {
+                        for (key, value) in object {
+                            // TODO This is annoying.
+                            if key == "editorReply" {
+                                let reply: EditorReply = serde_json::from_value(value.clone())?;
+                                let action: Rc<dyn kernel::Action> = match reply.editing {
+                                    replies::WorkingCopy::Description(original) => {
+                                        let edited =
+                                            default_external_editor(&original, TEXT_EXTENSION)?;
 
-                                    Rc::new(SaveWorkingCopyAction {
-                                        key: EntityKey::new(&reply.key),
-                                        copy: replies::WorkingCopy::Json(serde_json::from_str(
-                                            &edited,
-                                        )?),
-                                    })
-                                }
-                                replies::WorkingCopy::Script(original) => {
-                                    let edited =
-                                        default_external_editor(&original, RUNE_EXTENSION)?;
+                                        Rc::new(SaveWorkingCopyAction {
+                                            key: EntityKey::new(&reply.key),
+                                            copy: replies::WorkingCopy::Description(edited),
+                                        })
+                                    }
+                                    replies::WorkingCopy::Json(original) => {
+                                        let serialized = serde_json::to_string_pretty(&original)?;
+                                        let edited =
+                                            default_external_editor(&serialized, JSON_EXTENSION)?;
 
-                                    Rc::new(SaveScriptAction {
-                                        key: EntityKey::new(&reply.key),
-                                        copy: replies::WorkingCopy::Script(edited),
-                                    })
-                                }
-                            };
+                                        Rc::new(SaveWorkingCopyAction {
+                                            key: EntityKey::new(&reply.key),
+                                            copy: replies::WorkingCopy::Json(serde_json::from_str(
+                                                &edited,
+                                            )?),
+                                        })
+                                    }
+                                    replies::WorkingCopy::Script(original) => {
+                                        let edited =
+                                            default_external_editor(&original, RUNE_EXTENSION)?;
 
-                            match session.entry(&kernel::LookupBy::Key(living))? {
-                                Some(living) => {
-                                    let _open = session.set_session()?;
-                                    return session.perform(Perform::Living { living, action });
+                                        Rc::new(SaveScriptAction {
+                                            key: EntityKey::new(&reply.key),
+                                            copy: replies::WorkingCopy::Script(edited),
+                                        })
+                                    }
+                                };
+
+                                let session = get_my_session()?;
+                                match session.entry(&kernel::LookupBy::Key(&self.living))? {
+                                    Some(living) => {
+                                        return session.perform(Perform::Living { living, action });
+                                    }
+                                    None => break,
                                 }
-                                None => break,
                             }
                         }
-                    }
 
-                    Ok(Effect::Reply(reply))
+                        Ok(Effect::Reply(reply))
+                    }
+                    _ => Ok(Effect::Reply(reply)),
                 }
-                _ => Ok(Effect::Reply(reply)),
             }
+            effect => Ok(effect),
         }
-        _ => todo!(),
     }
 }
+
+impl InteractiveEditor {}
 
 fn evaluate_commands(
     domain: engine::Domain,
@@ -173,7 +187,10 @@ fn evaluate_commands(
     username: String,
     line: String,
 ) -> Result<()> {
-    let session = domain.open_session()?;
+    let interactive = Rc::new(InteractiveEditor {
+        living: self_key.clone(),
+    });
+    let session = domain.open_session_with_middleware(vec![interactive])?;
 
     let effect: Effect = if let Some(effect) = session.evaluate_and_perform(&username, &line)? {
         effect
@@ -182,7 +199,6 @@ fn evaluate_commands(
     };
 
     let renderer = Renderer::new(session.clone())?;
-    let effect = try_interactive(session.clone(), &self_key, effect)?;
 
     let rendered = match effect {
         Effect::Reply(reply) => renderer.render_reply(&reply)?,

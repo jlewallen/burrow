@@ -9,7 +9,7 @@ use crate::{
     storage::{PendingFutures, StorageFactory},
     Notifier,
 };
-use kernel::{EntityKey, Finder, Identity, Incoming, LookupBy, RegisteredPlugins};
+use kernel::{EntityKey, Finder, Identity, Incoming, LookupBy, Middleware, RegisteredPlugins};
 
 pub trait SessionOpener: Send + Sync + Clone {
     fn open_session(&self) -> Result<Rc<Session>>;
@@ -93,20 +93,28 @@ impl Domain {
 
         Ok(())
     }
-}
 
-impl SessionOpener for Domain {
-    fn open_session(&self) -> Result<Rc<Session>> {
+    pub fn open_session_with_middleware(
+        &self,
+        middleware: Vec<Rc<dyn Middleware>>,
+    ) -> Result<Rc<Session>> {
         info!("session-open");
 
         let storage = self.storage_factory.create_storage()?;
 
         Session::new(
-            storage,
             &self.keys,
             &self.identities,
             &self.finder,
             &self.plugins,
+            storage,
+            middleware,
         )
+    }
+}
+
+impl SessionOpener for Domain {
+    fn open_session(&self) -> Result<Rc<Session>> {
+        self.open_session_with_middleware(vec![])
     }
 }
