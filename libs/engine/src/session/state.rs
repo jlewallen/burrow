@@ -11,7 +11,7 @@ use kernel::*;
 
 #[derive(Default)]
 pub struct State {
-    pub(crate) entities: Rc<Entities>,
+    entities: Rc<Entities>,
     raised: Rc<RefCell<Vec<Raised>>>,
     futures: Rc<RefCell<Vec<Scheduling>>>,
     destroyed: RefCell<Vec<EntityKey>>,
@@ -38,6 +38,22 @@ impl State {
         let raised_changed = self.flush_raised(notifier, finder)?;
         let futures_changed = self.flush_futures(storage)?;
         Ok(entities_changed || raised_changed || futures_changed)
+    }
+
+    pub fn size(&self) -> usize {
+        self.entities.size()
+    }
+
+    pub fn lookup_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
+        self.entities.lookup_entity(lookup)
+    }
+
+    pub fn add_persisted(&self, persisted: PersistedEntity) -> Result<EntityPtr> {
+        self.entities.add_persisted(persisted)
+    }
+
+    pub fn add_entity(&self, gid: EntityGid, entity: &EntityPtr) -> Result<()> {
+        self.entities.add_entity(gid, entity)
     }
 
     fn flush_entities(&self, storage: &Rc<dyn Storage>) -> Result<bool> {

@@ -143,7 +143,7 @@ impl Session {
 
         self.save_changes(notifier)?;
 
-        let nentities = self.state.entities.size();
+        let nentities = self.state.size();
         let elapsed = self.opened.elapsed();
         let elapsed = format!("{:?}", elapsed);
 
@@ -244,7 +244,7 @@ impl Performer for Session {
 
 impl LoadsEntities for Session {
     fn load_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
-        if let Some(e) = self.state.entities.lookup_entity(lookup)? {
+        if let Some(e) = self.state.lookup_entity(lookup)? {
             return Ok(Some(e));
         }
 
@@ -253,7 +253,7 @@ impl LoadsEntities for Session {
 
         trace!("loading");
         if let Some(persisted) = self.storage.load(lookup)? {
-            Ok(Some(self.state.entities.add_persisted(persisted)?))
+            Ok(Some(self.state.add_persisted(persisted)?))
         } else {
             Ok(None)
         }
@@ -324,7 +324,7 @@ impl ActiveSession for Session {
             }
         };
 
-        self.state.entities.add_entity(gid, entity)?;
+        self.state.add_entity(gid, entity)?;
 
         Ok(self
             .entry(&LookupBy::Key(&entity.key()))?
