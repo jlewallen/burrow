@@ -179,6 +179,30 @@ pub struct EntityClass {
     pub py_type: String,
 }
 
+impl EntityClass {
+    fn new(value: &str) -> Self {
+        Self {
+            py_type: value.to_owned(),
+        }
+    }
+
+    pub fn area() -> Self {
+        Self::new("scopes.AreaClass")
+    }
+
+    pub fn living() -> Self {
+        Self::new("scopes.LivingClass")
+    }
+
+    pub fn exit() -> Self {
+        Self::new("scopes.ExitClass")
+    }
+
+    pub fn item() -> Self {
+        Self::new("scopes.ItemClass")
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AclRule {
     keys: Vec<String>,
