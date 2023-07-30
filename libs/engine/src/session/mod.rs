@@ -30,7 +30,6 @@ pub struct Session {
     middleware: Arc<RefCell<Vec<Rc<dyn Middleware>>>>,
     hooks: ManagedHooks,
 
-    save_required: AtomicBool,
     keys: Arc<dyn Sequence<EntityKey>>,
     identities: Arc<dyn Sequence<Identity>>,
     state: Rc<State>,
@@ -61,16 +60,15 @@ impl Session {
         let session = Rc::new_cyclic(move |weak: &Weak<Session>| Self {
             opened,
             storage,
-            hooks,
             weak: Weak::clone(weak),
             open: AtomicBool::new(true),
-            save_required: AtomicBool::new(false),
-            keys: Arc::clone(keys),
-            identities: Arc::clone(identities),
             finder: Arc::clone(finder),
             plugins,
-            state: Default::default(),
             middleware: Default::default(),
+            hooks,
+            keys: Arc::clone(keys),
+            identities: Arc::clone(identities),
+            state: Default::default(),
         });
 
         session.initialize()?;
@@ -179,9 +177,8 @@ impl Session {
 
     fn save_changes<T: Notifier>(&self, notifier: &T) -> Result<()> {
         let changes = self.state.close(&self.storage, notifier, &self.finder)?;
-        let required = self.save_required.load(Ordering::SeqCst);
 
-        if changes || required {
+        if changes {
             // Check for a force rollback, usually debugging purposes.
             if should_force_rollback() {
                 let _span = span!(Level::DEBUG, "FORCED").entered();
