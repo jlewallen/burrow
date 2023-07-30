@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use chrono::Utc;
 use clap::Args;
 use plugins_rune::RUNE_EXTENSION;
@@ -150,7 +150,8 @@ pub fn try_interactive(session: Rc<Session>, living: &EntityKey, effect: Effect)
 
                             match session.entry(&kernel::LookupBy::Key(living))? {
                                 Some(living) => {
-                                    return session.perform(Perform::Living { living, action })
+                                    let _open = session.set_session()?;
+                                    return session.perform(Perform::Living { living, action });
                                 }
                                 None => break,
                             }
@@ -172,7 +173,7 @@ fn evaluate_commands(
     username: String,
     line: String,
 ) -> Result<()> {
-    let session = domain.open_session().with_context(|| "Opening session")?;
+    let session = domain.open_session()?;
 
     let effect: Effect = if let Some(effect) = session.evaluate_and_perform(&username, &line)? {
         effect
