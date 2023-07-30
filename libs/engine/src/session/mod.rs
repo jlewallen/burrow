@@ -13,7 +13,7 @@ use tracing::{debug, info, span, trace, warn, Level};
 mod internal;
 mod state;
 
-use super::sequences::{GlobalIds, Sequence};
+use super::sequences::Sequence;
 use super::Notifier;
 use crate::storage::Storage;
 use crate::{identifiers, HasUsernames};
@@ -33,7 +33,6 @@ pub struct Session {
     save_required: AtomicBool,
     keys: Arc<dyn Sequence<EntityKey>>,
     identities: Arc<dyn Sequence<Identity>>,
-    ids: Rc<GlobalIds>,
     state: Rc<State>,
 }
 
@@ -59,11 +58,9 @@ impl Session {
             plugins.hooks()?
         };
 
-        let ids = GlobalIds::new();
         let session = Rc::new_cyclic(move |weak: &Weak<Session>| Self {
             opened,
             storage,
-            ids,
             hooks,
             weak: Weak::clone(weak),
             open: AtomicBool::new(true),
@@ -166,10 +163,6 @@ impl Session {
     pub fn initialize(&self) -> Result<()> {
         let _activated = self.set_session()?;
 
-        if let Some(gid) = self.get_gid()? {
-            self.ids.set(&gid);
-        }
-
         {
             let mut middleware = self.middleware.borrow_mut();
             middleware.extend({
@@ -184,17 +177,7 @@ impl Session {
         Ok(())
     }
 
-    fn get_gid(&self) -> Result<Option<EntityGid>> {
-        if let Some(world) = self.entry(&LookupBy::Key(&WORLD_KEY.into()))? {
-            identifiers::model::get_gid(&world)
-        } else {
-            Ok(None)
-        }
-    }
-
     fn save_changes<T: Notifier>(&self, notifier: &T) -> Result<()> {
-        self.save_modified_ids()?;
-
         let changes = self.state.close(&self.storage, notifier, &self.finder)?;
         let required = self.save_required.load(Ordering::SeqCst);
 
@@ -209,23 +192,6 @@ impl Session {
         } else {
             self.storage.rollback(true)
         }
-    }
-
-    fn save_modified_ids(&self) -> Result<()> {
-        // Check to see if the global identifier has changed due to the creation
-        // of a new entity.
-        let world = self.world()?.expect("No world");
-        let previous_gid =
-            identifiers::model::get_gid(&world)?.unwrap_or_else(|| EntityGid::new(0));
-        let new_gid = self.ids.gid();
-        if previous_gid != new_gid {
-            info!(%previous_gid, %new_gid, "gid:changed");
-            identifiers::model::set_gid(&world, new_gid)?;
-        } else {
-            debug!(gid = %previous_gid, "gid:same");
-        }
-
-        Ok(())
     }
 }
 
@@ -337,7 +303,31 @@ impl ActiveSession for Session {
     }
 
     fn add_entity(&self, entity: &EntityPtr) -> Result<Entry> {
-        self.state.entities.add_entity(&self.ids, entity)?;
+        if let Some(gid) = entity.borrow().gid() {
+            let key = &entity.key();
+            warn!(key = ?key, gid = ?gid, "unnecessary add-entity");
+            return Ok(self
+                .entry(&LookupBy::Key(key))?
+                .ok_or(DomainError::EntityNotFound)?);
+        }
+
+        let world = self.world()?;
+        let gid = match world {
+            Some(world) => {
+                let gid = identifiers::model::get_gid(&world)?;
+                let gid = gid.unwrap_or(EntityGid::new(0));
+                let gid = gid.next();
+                let gid = identifiers::model::set_gid(&world, gid)?;
+                gid
+            }
+            None => {
+                // Otherwise we keep assigning 0 until the world gets created!
+                assert_eq!(&entity.key(), &EntityKey::new(WORLD_KEY));
+                EntityGid::new(0)
+            }
+        };
+
+        self.state.entities.add_entity(gid, entity)?;
 
         Ok(self
             .entry(&LookupBy::Key(&entity.key()))?

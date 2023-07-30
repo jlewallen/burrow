@@ -121,6 +121,7 @@ impl QuickThing {
 pub struct BuildSurroundings {
     hands: Vec<QuickThing>,
     ground: Vec<QuickThing>,
+    world: Entry,
     #[allow(dead_code)] // TODO Combine with Rc<Session>?
     set: SetSession,
     session: Rc<Session>,
@@ -137,10 +138,14 @@ impl BuildSurroundings {
         let session = domain.open_session()?;
         let set = session.set_session()?;
 
+        // TODO One problem at a time.
+        let world = Build::new_world(&session)?.named("World")?.into_entry()?;
+
         Ok(Self {
             hands: Vec::new(),
             ground: Vec::new(),
             session,
+            world,
             set,
         })
     }
@@ -148,10 +153,14 @@ impl BuildSurroundings {
     pub fn new_in_session(session: Rc<Session>) -> Result<Self> {
         let set = session.set_session()?;
 
+        // TODO One problem at a time.
+        let world = Build::new_world(&session)?.named("World")?.into_entry()?;
+
         Ok(Self {
             hands: Vec::new(),
             ground: Vec::new(),
             session,
+            world,
             set,
         })
     }
@@ -196,10 +205,7 @@ impl BuildSurroundings {
             )?
             .into_entry()?;
 
-        let world = Build::new_world(&self.session)?
-            .named("World")?
-            .with_username("burrow", person.key())?
-            .into_entry()?;
+        self.world.add_username_to_key("burrow", person.key())?;
 
         let area = Build::new(&self.session)?
             .named("Welcome Area")?
@@ -213,14 +219,14 @@ impl BuildSurroundings {
             )?
             .into_entry()?;
 
-        self.session.flush(&DevNullNotifier {})?;
+        self.flush()?;
 
         let session: SessionRef = Rc::clone(&self.session) as SessionRef;
 
         Ok((
             session,
             Surroundings::Living {
-                world,
+                world: self.world.clone(),
                 living: person,
                 area,
             },

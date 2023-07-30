@@ -23,7 +23,7 @@ expression: reply.to_json()?
         "scopes": {
           "location": {
             "container": {
-              "gid": 3,
+              "gid": 2,
               "key": "E-1",
               "klass": "",
               "name": "Welcome Area"
@@ -36,7 +36,7 @@ expression: reply.to_json()?
                   "acls": {
                     "rules": []
                   },
-                  "value": 4
+                  "value": 3
                 },
                 "name": {
                   "acls": {

@@ -13,6 +13,53 @@ expression: domain.snapshot().await?
       "public": "",
       "signature": null
     },
+    "key": "world",
+    "klass": {
+      "py/type": ""
+    },
+    "parent": null,
+    "scopes": {
+      "identifiers": {
+        "acls": {
+          "rules": []
+        },
+        "gid": 6
+      },
+      "props": {
+        "props": {
+          "map": {
+            "gid": {
+              "acls": {
+                "rules": []
+              },
+              "value": 0
+            },
+            "name": {
+              "acls": {
+                "rules": []
+              },
+              "value": "World"
+            }
+          }
+        }
+      },
+      "usernames": {
+        "users": {
+          "burrow": "E-3"
+        }
+      }
+    }
+  },
+  {
+    "acls": {
+      "rules": []
+    },
+    "creator": null,
+    "identity": {
+      "private": "",
+      "public": "",
+      "signature": null
+    },
     "key": "E-0",
     "klass": {
       "py/type": ""
@@ -219,53 +266,6 @@ expression: domain.snapshot().await?
       "public": "",
       "signature": null
     },
-    "key": "world",
-    "klass": {
-      "py/type": ""
-    },
-    "parent": null,
-    "scopes": {
-      "identifiers": {
-        "acls": {
-          "rules": []
-        },
-        "gid": 7
-      },
-      "props": {
-        "props": {
-          "map": {
-            "gid": {
-              "acls": {
-                "rules": []
-              },
-              "value": 5
-            },
-            "name": {
-              "acls": {
-                "rules": []
-              },
-              "value": "World"
-            }
-          }
-        }
-      },
-      "usernames": {
-        "users": {
-          "burrow": "E-3"
-        }
-      }
-    }
-  },
-  {
-    "acls": {
-      "rules": []
-    },
-    "creator": null,
-    "identity": {
-      "private": "",
-      "public": "",
-      "signature": null
-    },
     "key": "E-4",
     "klass": {
       "py/type": ""
@@ -276,7 +276,7 @@ expression: domain.snapshot().await?
         "capacity": null,
         "holding": [
           {
-            "gid": 7,
+            "gid": 6,
             "key": "E-5",
             "klass": "",
             "name": "East"
@@ -298,7 +298,7 @@ expression: domain.snapshot().await?
               "acls": {
                 "rules": []
               },
-              "value": 6
+              "value": 5
             },
             "name": {
               "acls": {
@@ -337,7 +337,7 @@ expression: domain.snapshot().await?
       },
       "location": {
         "container": {
-          "gid": 6,
+          "gid": 5,
           "key": "E-4",
           "klass": "",
           "name": "Welcome Area"
@@ -350,7 +350,7 @@ expression: domain.snapshot().await?
               "acls": {
                 "rules": []
               },
-              "value": 7
+              "value": 6
             },
             "name": {
               "acls": {

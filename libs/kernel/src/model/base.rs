@@ -74,6 +74,10 @@ impl EntityGid {
     pub fn gid_to_string(&self) -> String {
         format!("{}", self.0)
     }
+
+    pub fn next(&self) -> EntityGid {
+        EntityGid(self.0 + 1)
+    }
 }
 
 impl Display for EntityGid {

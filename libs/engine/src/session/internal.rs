@@ -128,11 +128,21 @@ pub trait AssignEntityId {
     fn assign(&self, entity: &EntityPtr) -> Result<(EntityKey, EntityGid)>;
 }
 
+impl AssignEntityId for EntityGid {
+    fn assign(&self, entity: &EntityPtr) -> Result<(EntityKey, EntityGid)> {
+        let key = entity.key().clone();
+        let gid = self.clone();
+        info!(%key, %gid, "assigning gid");
+        let mut entity = entity.borrow_mut();
+        entity.set_gid(gid.clone())?;
+        Ok((key, gid))
+    }
+}
+
 impl AssignEntityId for GlobalIds {
     fn assign(&self, entity: &EntityPtr) -> Result<(EntityKey, EntityGid)> {
-        let mut entity = entity.borrow_mut();
         let key = entity.key().clone();
-        let gid = entity.gid();
+        let gid = { entity.borrow().gid() };
         // Entities should never be added with an existing gid, how would
         // the creator know the value to assign? This is happening, though.
         // assert!(existing.is_none());
@@ -143,9 +153,7 @@ impl AssignEntityId for GlobalIds {
             }
             None => {
                 let gid = self.get();
-                info!(%key, %gid, "assigning gid");
-                entity.set_gid(gid.clone())?;
-                Ok((key, gid))
+                gid.assign(entity)
             }
         }
     }
@@ -157,9 +165,9 @@ pub struct Entities {
 }
 
 impl Entities {
-    pub fn add_entity(&self, ids: &GlobalIds, entity: &EntityPtr) -> Result<()> {
+    pub fn add_entity(&self, gid: EntityGid, entity: &EntityPtr) -> Result<()> {
         let clone = entity.clone();
-        let (key, gid) = ids.assign(entity)?;
+        let (key, gid) = gid.assign(entity)?;
         self.entities.add_entity(LoadedEntity {
             key,
             entity: clone,
