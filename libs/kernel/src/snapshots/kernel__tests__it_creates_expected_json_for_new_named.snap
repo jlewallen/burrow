@@ -1,40 +1,83 @@
 ---
 source: libs/kernel/src/tests.rs
-expression: e.to_json_value()?
+expression: "[world.to_json_value()?, jacob.to_json_value()?]"
 ---
-{
-  "acls": {
-    "rules": []
-  },
-  "creator": null,
-  "identity": {
-    "private": "",
-    "public": "",
-    "signature": null
-  },
-  "key": "E-0",
-  "klass": {
-    "py/type": "scopes.ItemClass"
-  },
-  "parent": null,
-  "scopes": {
-    "props": {
+[
+  {
+    "acls": {
+      "rules": []
+    },
+    "creator": {
+      "gid": null,
+      "key": "E-0",
+      "klass": "scopes.WorldClass",
+      "name": "Jacob"
+    },
+    "identity": {
+      "private": "",
+      "public": "",
+      "signature": null
+    },
+    "key": "E-1",
+    "klass": {
+      "py/type": "scopes.WorldClass"
+    },
+    "parent": null,
+    "scopes": {
       "props": {
-        "map": {
-          "desc": {
-            "acls": {
-              "rules": []
+        "props": {
+          "map": {
+            "desc": {
+              "acls": {
+                "rules": []
+              },
+              "value": "What a great place"
             },
-            "value": "Description of New Named"
-          },
-          "name": {
-            "acls": {
-              "rules": []
+            "name": {
+              "acls": {
+                "rules": []
+              },
+              "value": "New World"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "acls": {
+      "rules": []
+    },
+    "creator": null,
+    "identity": {
+      "private": "",
+      "public": "",
+      "signature": null
+    },
+    "key": "E-0",
+    "klass": {
+      "py/type": "scopes.WorldClass"
+    },
+    "parent": null,
+    "scopes": {
+      "props": {
+        "props": {
+          "map": {
+            "desc": {
+              "acls": {
+                "rules": []
+              },
+              "value": "Hah"
             },
-            "value": "New Named"
+            "name": {
+              "acls": {
+                "rules": []
+              },
+              "value": "Jacob"
+            }
           }
         }
       }
     }
   }
-}
+]

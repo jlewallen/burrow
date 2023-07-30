@@ -116,6 +116,10 @@ impl Entity {
     pub fn to_json_value(&self) -> Result<serde_json::Value, DomainError> {
         Ok(serde_json::to_value(self)?)
     }
+
+    pub fn entity_ref(&self) -> EntityRef {
+        EntityRef::new_from_entity(self, None)
+    }
 }
 
 impl HasScopes for Entity {
@@ -156,12 +160,16 @@ impl Default for EntityRef {
 impl EntityRef {
     pub(crate) fn new_from_raw(entity: &Rc<RefCell<Entity>>) -> Self {
         let shared_entity = entity.borrow();
+        Self::new_from_entity(&shared_entity, Some(Rc::downgrade(entity)))
+    }
+
+    pub(crate) fn new_from_entity(entity: &Entity, shared: Option<Weak<RefCell<Entity>>>) -> Self {
         Self {
-            key: shared_entity.key().clone(),
-            class: shared_entity.class().to_owned(),
-            name: shared_entity.name(),
-            gid: shared_entity.gid(),
-            entity: Some(Rc::downgrade(entity)),
+            key: entity.key().clone(),
+            class: entity.class().to_owned(),
+            name: entity.name(),
+            gid: entity.gid(),
+            entity: shared,
         }
     }
 
@@ -207,6 +215,16 @@ impl EntityBuilder {
 
     pub fn with_key(mut self, key: EntityKey) -> Self {
         self.key = Some(key);
+        self
+    }
+
+    pub fn creator(mut self, value: EntityRef) -> Self {
+        self.creator = Some(value);
+        self
+    }
+
+    pub fn parent(mut self, value: EntityRef) -> Self {
+        self.parent = Some(value);
         self
     }
 

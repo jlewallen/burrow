@@ -186,6 +186,10 @@ impl EntityClass {
         }
     }
 
+    pub fn world() -> Self {
+        Self::new("scopes.WorldClass")
+    }
+
     pub fn area() -> Self {
         Self::new("scopes.AreaClass")
     }

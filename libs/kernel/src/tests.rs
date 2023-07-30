@@ -7,12 +7,20 @@ use anyhow::Result;
 #[test]
 fn it_creates_expected_json_for_new_named() -> Result<()> {
     let _session = KeysOnlySession::open();
-    let e: Entity = build_entity()
-        .name("New Named")
-        .desc("Description of New Named")
+    let jacob: Entity = build_entity()
+        .class(EntityClass::world())
+        .name("Jacob")
+        .desc("Hah")
         .try_into()?;
 
-    insta::assert_json_snapshot!(e.to_json_value()?);
+    let world: Entity = build_entity()
+        .class(EntityClass::world())
+        .creator(jacob.entity_ref())
+        .name("New World")
+        .desc("What a great place")
+        .try_into()?;
+
+    insta::assert_json_snapshot!([world.to_json_value()?, jacob.to_json_value()?]);
 
     Ok(())
 }
