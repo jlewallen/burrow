@@ -29,7 +29,6 @@ pub struct Session {
     plugins: Arc<RefCell<SessionPlugins>>,
     middleware: Arc<RefCell<Vec<Rc<dyn Middleware>>>>,
     hooks: ManagedHooks,
-
     keys: Arc<dyn Sequence<EntityKey>>,
     identities: Arc<dyn Sequence<Identity>>,
     state: Rc<State>,
@@ -51,6 +50,10 @@ impl Session {
 
         let plugins = registered_plugins.create_plugins()?;
         let plugins = Arc::new(RefCell::new(plugins));
+        let middleware: Arc<RefCell<Vec<Rc<dyn Middleware>>>> =
+            Arc::new(RefCell::new(vec![Rc::new(ExpandSurroundingsMiddleware {
+                finder: Arc::clone(&finder),
+            })]));
 
         let hooks = {
             let plugins = plugins.borrow();
@@ -64,7 +67,7 @@ impl Session {
             open: AtomicBool::new(true),
             finder: Arc::clone(finder),
             plugins,
-            middleware: Default::default(),
+            middleware,
             hooks,
             keys: Arc::clone(keys),
             identities: Arc::clone(identities),
@@ -206,33 +209,13 @@ impl Performer for Session {
 
         debug!("perform {:?}", perform);
 
-        match perform {
-            Perform::Living { living, action } => {
-                info!("perform:living");
+        let target = self.state.clone();
+        let request_fn = Box::new(move |value: Perform| -> Result<Effect, anyhow::Error> {
+            target.perform(value)
+        });
 
-                let surroundings = MakeSurroundings {
-                    finder: self.finder.clone(),
-                    living: living.clone(),
-                }
-                .try_into()?;
-
-                info!("surroundings {:?}", &surroundings);
-
-                self.perform(Perform::Surroundings {
-                    surroundings,
-                    action,
-                })
-            }
-            _ => {
-                let target = self.state.clone();
-                let request_fn = Box::new(move |value: Perform| -> Result<Effect, anyhow::Error> {
-                    target.perform(value)
-                });
-
-                let middleware = self.middleware.borrow();
-                apply_middleware(&middleware, perform, request_fn)
-            }
-        }
+        let middleware = self.middleware.borrow();
+        apply_middleware(&middleware, perform, request_fn)
     }
 }
 
@@ -387,4 +370,30 @@ fn user_name_to_entry<R: EntryResolver>(resolve: &R, name: &str) -> Result<Entry
     resolve
         .entry(&LookupBy::Key(&user_key))?
         .ok_or(DomainError::EntityNotFound)
+}
+
+struct ExpandSurroundingsMiddleware {
+    finder: Arc<dyn Finder>,
+}
+
+impl Middleware for ExpandSurroundingsMiddleware {
+    fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
+        match value {
+            Perform::Living { living, action } => {
+                let surroundings = MakeSurroundings {
+                    finder: self.finder.clone(),
+                    living: living.clone(),
+                }
+                .try_into()?;
+
+                info!("surroundings {:?}", &surroundings);
+
+                next.handle(Perform::Surroundings {
+                    surroundings,
+                    action,
+                })
+            }
+            _ => next.handle(value),
+        }
+    }
 }
