@@ -98,19 +98,32 @@ pub enum RevertReason {
 }
 
 #[derive(Clone, Debug)]
+pub enum EffectReply {
+    Instance(Rc<dyn Reply>),
+}
+
+impl ToJson for EffectReply {
+    fn to_tagged_json(&self) -> std::result::Result<Value, serde_json::Error> {
+        match self {
+            EffectReply::Instance(reply) => reply.to_tagged_json(),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum Effect {
     Ok,
     Prevented,
     Nothing,
     // Revert(RevertReason),
-    Reply(Rc<dyn Reply>),
+    Reply(EffectReply),
     Pong(TracePath),
     // This is tempting. Right now we recursively call the performer. I'm not
     // sure this gives us in benefit, but it could come in really handy when we
     // start to dynamically alter behavior in chained actions. Leaving this as
     // it stands until I have a stronger opinion.
-    // Chain(Rc<dyn Action>),
+    // Chain(PerformAction),
 }
 
 #[derive(Clone, Default)]
@@ -147,7 +160,7 @@ impl ToJson for Effect {
 
 impl<T: Reply + 'static> From<T> for Effect {
     fn from(value: T) -> Self {
-        Self::Reply(Rc::new(value))
+        Self::Reply(EffectReply::Instance(Rc::new(value)))
     }
 }
 

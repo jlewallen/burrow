@@ -42,10 +42,12 @@ fn evaluate_commands(domain: Domain, cmd: Command) -> Result<()> {
             .evaluate_and_perform(&cmd.username, text)?
         {
             match effect {
-                Effect::Reply(reply) => {
-                    let text = renderer.render_reply(&reply)?;
-                    println!("{}", text);
-                }
+                Effect::Reply(reply) => match reply {
+                    kernel::EffectReply::Instance(reply) => {
+                        let text = renderer.render_reply(&reply)?;
+                        println!("{}", text);
+                    }
+                },
                 _ => todo!(),
             }
         }
