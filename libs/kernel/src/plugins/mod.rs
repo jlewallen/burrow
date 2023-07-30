@@ -4,7 +4,7 @@ use tracing::*;
 
 pub use std::rc::Rc;
 
-use super::{model::*, Action, ManagedHooks};
+use super::{model::*, Action};
 use crate::Incoming;
 
 pub mod mw;
@@ -64,9 +64,6 @@ pub trait Plugin: ParsesActions {
 
     fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>>;
 
-    /// Working to remove.
-    fn register_hooks(&self, hooks: &ManagedHooks) -> Result<()>;
-
     // If we can get this working alongside Perform and Evaluator we can remove this.
     fn deliver(&self, incoming: &Incoming) -> Result<()>;
 
@@ -109,6 +106,7 @@ impl SessionPlugins {
             .collect())
     }
 
+    /*
     pub fn hooks(&self) -> Result<ManagedHooks> {
         let hooks = ManagedHooks::default();
         for plugin in self.plugins.iter() {
@@ -117,6 +115,7 @@ impl SessionPlugins {
         }
         Ok(hooks)
     }
+    */
 
     pub fn deliver(&self, incoming: Incoming) -> Result<()> {
         for plugin in self.plugins.iter() {

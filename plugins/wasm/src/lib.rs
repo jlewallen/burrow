@@ -310,10 +310,6 @@ impl Plugin for WasmPlugin {
         Ok(Vec::default())
     }
 
-    fn register_hooks(&self, hooks: &ManagedHooks) -> Result<()> {
-        hooks::register(hooks, &self.runners)
-    }
-
     fn deliver(&self, _incoming: &Incoming) -> Result<()> {
         Ok(())
     }
@@ -327,6 +323,7 @@ mod hooks {
     use super::*;
     use plugins_core::moving::model::{AfterMoveHook, BeforeMovingHook, CanMove, MovingHooks};
 
+    #[allow(dead_code)]
     pub fn register(hooks: &ManagedHooks, runners: &Runners) -> Result<()> {
         hooks.with::<MovingHooks, _>(|h| {
             let rune_moving_hooks = Box::new(WasmMovingHooks {

@@ -183,11 +183,6 @@ impl Plugin for RpcPlugin {
         Ok(Vec::default())
     }
 
-    #[tracing::instrument(name = "rpc-register", skip_all)]
-    fn register_hooks(&self, _hooks: &ManagedHooks) -> Result<()> {
-        Ok(())
-    }
-
     #[tracing::instrument(name = "rpc-deliver", skip_all)]
     fn deliver(&self, _incoming: &Incoming) -> Result<()> {
         Ok(())

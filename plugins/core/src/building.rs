@@ -1,4 +1,4 @@
-use kernel::{EvaluationResult, ManagedHooks, ParsesActions, Plugin};
+use kernel::{EvaluationResult, ParsesActions, Plugin};
 
 use crate::library::plugin::*;
 
@@ -36,10 +36,6 @@ impl Plugin for BuildingPlugin {
 
     fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>> {
         Ok(Vec::default())
-    }
-
-    fn register_hooks(&self, _hooks: &ManagedHooks) -> Result<()> {
-        Ok(())
     }
 
     fn deliver(&self, _incoming: &Incoming) -> Result<()> {

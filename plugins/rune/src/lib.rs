@@ -88,10 +88,6 @@ impl Plugin for RunePlugin {
         })])
     }
 
-    fn register_hooks(&self, _hooks: &ManagedHooks) -> Result<()> {
-        Ok(())
-    }
-
     fn deliver(&self, incoming: &Incoming) -> Result<()> {
         for (_, runner) in self.runners.borrow_mut().iter_mut() {
             runner.deliver(incoming)?;

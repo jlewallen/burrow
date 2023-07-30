@@ -4,7 +4,7 @@ use std::{cell::RefCell, collections::VecDeque, rc::Rc, sync::Arc};
 use tracing::{dispatcher::get_default, info, span, trace, warn, Level, Subscriber};
 
 use dynlib_sys::{prelude::*, DynamicNext};
-use kernel::{ManagedHooks, Plugin, PluginFactory};
+use kernel::{Plugin, PluginFactory};
 use plugins_core::library::plugin::*;
 use plugins_rpc::{have_surroundings, Querying, SessionServices};
 
@@ -347,10 +347,6 @@ impl Plugin for DynamicPlugin {
         Ok(vec![Rc::new(DynamicMiddleware {
             children: Rc::clone(&self.middleware),
         })])
-    }
-
-    fn register_hooks(&self, _hooks: &ManagedHooks) -> Result<()> {
-        Ok(())
     }
 
     fn deliver(&self, incoming: &Incoming) -> Result<()> {

@@ -36,10 +36,6 @@ impl Plugin for MovingPlugin {
         Ok(Vec::default())
     }
 
-    fn register_hooks(&self, _hooks: &ManagedHooks) -> Result<()> {
-        Ok(())
-    }
-
     fn deliver(&self, _incoming: &Incoming) -> Result<()> {
         Ok(())
     }

@@ -61,10 +61,7 @@ impl Session {
             .collect();
         let middleware = Arc::new(RefCell::new(middleware));
 
-        let hooks = {
-            let plugins = plugins.borrow();
-            plugins.hooks()?
-        };
+        let hooks = ManagedHooks::default();
 
         let session = Rc::new_cyclic(move |weak: &Weak<Session>| Self {
             opened,
