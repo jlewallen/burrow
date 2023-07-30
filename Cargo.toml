@@ -16,7 +16,6 @@ members = [
     "plugins/dynlib",
     "plugins/dynlib-sys",
     "examples/shared",
-    "examples/rpc",
     "examples/wasm",
     "libs/tests",
     "cli",

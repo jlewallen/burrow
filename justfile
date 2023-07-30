@@ -1,6 +1,6 @@
 export RUST_LOG := "info"
 
-default: test build
+default: test build plugins
 
 build:
     cargo build --workspace
@@ -11,25 +11,25 @@ test:
 plugins:
     cargo build --package plugin-example-shared
 
-deliver: plugins
+deliver:
     cargo run -- eval --deliver
 
-eval: plugins
+eval:
     cargo run -- eval
 
-migrate: plugins
+migrate:
     cargo run -- migrate
 
-dump: plugins
+dump:
     cargo run -- dump
 
-shell: plugins
+shell:
     cargo run -- shell
 
-serve: plugins
+serve:
     cargo run -- serve
 
-look *args='': plugins
+look *args='':
     cargo run -- eval --text look --text look --text look --separate-sessions {{args}}
 
 bench: plugins
