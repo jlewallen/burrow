@@ -148,7 +148,7 @@ impl Middleware for RuneMiddleware {
 
 impl ParsesActions for RunePlugin {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
-        try_parsing(parser::LeadActionParser {}, i)
+        try_parsing(parser::EditActionParser {}, i)
     }
 }
 
@@ -248,9 +248,9 @@ mod parser {
 
     use super::actions::EditAction;
 
-    pub struct LeadActionParser {}
+    pub struct EditActionParser {}
 
-    impl ParsesActions for LeadActionParser {
+    impl ParsesActions for EditActionParser {
         fn try_parse_action(&self, i: &str) -> EvaluationResult {
             let (_, action) = map(
                 preceded(pair(tag("rune"), spaces), noun_or_specific),
