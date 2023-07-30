@@ -51,13 +51,7 @@ impl Entry {
 
     pub fn entity_ref(&self) -> EntityRef {
         let entity = self.entity.borrow();
-        EntityRef {
-            key: self.key.clone(),
-            class: entity.class().to_owned(),
-            name: entity.name(),
-            gid: entity.gid(),
-            entity: None,
-        }
+        entity.entity_ref()
     }
 
     pub fn name(&self) -> Result<Option<String>, DomainError> {
@@ -148,7 +142,7 @@ impl TryFrom<EntityRef> for Option<Entry> {
 
     fn try_from(value: EntityRef) -> Result<Self, Self::Error> {
         let session = get_my_session().expect("No active session");
-        session.entry(&LookupBy::Key(&value.key))
+        session.entry(&LookupBy::Key(value.key()))
     }
 }
 

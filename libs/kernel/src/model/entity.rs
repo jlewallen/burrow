@@ -134,15 +134,16 @@ impl HasScopes for Entity {
     }
 }
 
+// TODO Make this generic across 'entity's type?
 #[derive(Clone, Serialize, Deserialize)]
 pub struct EntityRef {
-    pub(super) key: EntityKey,
+    key: EntityKey,
     #[serde(rename = "klass")]
-    pub(super) class: String,
-    pub(super) name: Option<String>,
-    pub(super) gid: Option<EntityGid>,
+    class: String,
+    name: Option<String>,
+    gid: Option<EntityGid>,
     #[serde(skip)]
-    pub(super) entity: Option<Weak<RefCell<Entity>>>,
+    entity: Option<Weak<RefCell<Entity>>>,
 }
 
 impl Default for EntityRef {
@@ -153,6 +154,18 @@ impl Default for EntityRef {
             name: Default::default(),
             gid: Default::default(),
             entity: Default::default(),
+        }
+    }
+}
+
+impl Into<EntityRef> for &Entity {
+    fn into(self) -> EntityRef {
+        EntityRef {
+            key: self.key().clone(),
+            class: self.class().to_owned(),
+            name: self.name(),
+            gid: self.gid(),
+            entity: None,
         }
     }
 }
@@ -180,15 +193,29 @@ impl EntityRef {
     pub fn has_entity(&self) -> bool {
         self.entity.is_some()
     }
+
+    pub fn entity(&self) -> Result<Rc<RefCell<Entity>>, DomainError> {
+        match &self.entity {
+            Some(e) => match e.upgrade() {
+                Some(e) => Ok(e),
+                None => Err(DomainError::DanglingEntity),
+            },
+            None => Err(DomainError::DanglingEntity),
+        }
+    }
 }
 
 impl std::fmt::Debug for EntityRef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("EntityRef")
-            .field("key", &self.key)
-            .field("name", &self.name)
-            .field("gid", &self.gid)
-            .finish()
+        let name = match &self.name {
+            Some(name) => name.to_owned(),
+            None => "<none>".to_owned(),
+        };
+        if let Some(gid) = &self.gid {
+            write!(f, "Entity(#{}, `{}`, {})", &gid, &name, &self.key)
+        } else {
+            write!(f, "Entity(?, `{}`, {})", &name, &self.key)
+        }
     }
 }
 

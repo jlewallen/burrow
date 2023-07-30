@@ -77,7 +77,7 @@ impl EntityPtr {
     }
 
     pub fn key(&self) -> EntityKey {
-        self.lazy.borrow().key.clone()
+        self.lazy.borrow().key().clone()
     }
 }
 
@@ -117,15 +117,7 @@ impl Deref for EntityPtr {
 impl Debug for EntityPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let lazy = self.lazy.borrow();
-        let name = match &lazy.name {
-            Some(name) => name.to_owned(),
-            None => "<none>".to_owned(),
-        };
-        if let Some(gid) = &lazy.gid {
-            write!(f, "Entity(#{}, `{}`, {})", &gid, &name, &lazy.key)
-        } else {
-            write!(f, "Entity(?, `{}`, {})", &name, &lazy.key)
-        }
+        write!(f, "{:?}", lazy)
     }
 }
 
@@ -139,12 +131,9 @@ pub trait IntoEntity {
 
 impl IntoEntity for EntityRef {
     fn to_entity(&self) -> Result<EntityPtr, DomainError> {
-        match &self.entity {
-            Some(e) => match e.upgrade() {
-                Some(e) => Ok(e.into()),
-                None => Err(DomainError::DanglingEntity),
-            },
-            None => Err(DomainError::DanglingEntity),
+        match self.entity() {
+            Ok(e) => Ok(e.into()),
+            Err(e) => Err(e),
         }
     }
 }
@@ -152,7 +141,7 @@ impl IntoEntity for EntityRef {
 impl IntoEntry for EntityRef {
     fn to_entry(&self) -> Result<Entry, DomainError> {
         get_my_session()?
-            .entry(&LookupBy::Key(&self.key))?
+            .entry(&LookupBy::Key(self.key()))?
             .ok_or(DomainError::DanglingEntity)
     }
 }
@@ -161,13 +150,7 @@ impl TryInto<EntityPtr> for &EntityRef {
     type Error = DomainError;
 
     fn try_into(self) -> std::result::Result<EntityPtr, Self::Error> {
-        match &self.entity {
-            Some(e) => match e.upgrade() {
-                Some(e) => Ok(e.into()),
-                None => Err(DomainError::DanglingEntity),
-            },
-            None => Err(DomainError::DanglingEntity),
-        }
+        self.to_entity()
     }
 }
 
@@ -176,7 +159,7 @@ impl TryFrom<EntityRef> for Entry {
 
     fn try_from(value: EntityRef) -> Result<Self, Self::Error> {
         get_my_session()?
-            .entry(&LookupBy::Key(&value.key))?
+            .entry(&LookupBy::Key(value.key()))?
             .ok_or(DomainError::DanglingEntity)
     }
 }
