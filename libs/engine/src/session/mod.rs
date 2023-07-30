@@ -214,20 +214,10 @@ impl Performer for Session {
                     surroundings
                 };
 
-                let target = self.state.clone();
-                let request_fn = Box::new(|value: Perform| -> Result<Effect, anyhow::Error> {
-                    target.perform(value)
-                });
-
-                let middleware = self.middleware.borrow();
-                apply_middleware(
-                    &middleware,
-                    Perform::Surroundings {
-                        surroundings,
-                        action,
-                    },
-                    request_fn,
-                )
+                self.perform(Perform::Surroundings {
+                    surroundings,
+                    action,
+                })
             }
             _ => {
                 let target = self.state.clone();
