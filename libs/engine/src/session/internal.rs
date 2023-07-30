@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use std::{cell::RefCell, collections::HashMap, fmt::Debug, rc::Rc};
 use tracing::*;
 
-use crate::{sequences::GlobalIds, storage::PersistedEntity};
+use crate::storage::PersistedEntity;
 use kernel::*;
 
 pub struct LoadedEntity {
@@ -136,26 +136,6 @@ impl AssignEntityId for EntityGid {
         let mut entity = entity.borrow_mut();
         entity.set_gid(gid.clone())?;
         Ok((key, gid))
-    }
-}
-
-impl AssignEntityId for GlobalIds {
-    fn assign(&self, entity: &EntityPtr) -> Result<(EntityKey, EntityGid)> {
-        let key = entity.key().clone();
-        let gid = { entity.borrow().gid() };
-        // Entities should never be added with an existing gid, how would
-        // the creator know the value to assign? This is happening, though.
-        // assert!(existing.is_none());
-        match gid {
-            Some(gid) => {
-                warn!(%gid, %key, "already has gid");
-                Ok((key, gid))
-            }
-            None => {
-                let gid = self.get();
-                gid.assign(entity)
-            }
-        }
     }
 }
 
