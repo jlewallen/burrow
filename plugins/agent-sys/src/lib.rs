@@ -105,7 +105,7 @@ impl EntryResolver for AgentSession {
     fn entry(&self, lookup: &kernel::LookupBy) -> Result<Option<Entry>, DomainError> {
         let entities = self.entities.borrow();
         match lookup {
-            kernel::LookupBy::Key(key) => Ok(entities.get(*key)?),
+            kernel::LookupBy::Key(key) => Ok(entities.get(key)?),
             kernel::LookupBy::Gid(_) => unimplemented!("Entry by Gid"),
         }
     }
@@ -286,7 +286,7 @@ where
     value: T,
 }
 
-impl<'a, T, S> WithEntities<T, S>
+impl<T, S> WithEntities<T, S>
 where
     S: ActiveSession,
 {
@@ -328,9 +328,7 @@ where
 struct AgentPerformer {}
 
 impl Performer for AgentPerformer {
-    fn perform(&self, perform: kernel::Perform) -> Result<Effect> {
-        match perform {
-            _ => todo!(),
-        }
+    fn perform(&self, _perform: kernel::Perform) -> Result<Effect> {
+        todo!()
     }
 }

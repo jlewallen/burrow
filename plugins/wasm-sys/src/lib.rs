@@ -60,7 +60,7 @@ mod ipc {
     }
 
     pub fn send<T: Encode>(message: &T) {
-        let encoded: Vec<u8> = match bincode::encode_to_vec(&message, bincode::config::legacy()) {
+        let encoded: Vec<u8> = match bincode::encode_to_vec(message, bincode::config::legacy()) {
             Ok(encoded) => encoded,
             Err(err) => {
                 error!("Failed to serialize event: {}", err);
@@ -119,6 +119,7 @@ pub mod prelude {
 
     pub use agent_sys::*;
 
+    #[allow(clippy::missing_safety_doc)]
     pub unsafe fn agent_state<T>(state: Box<T>) {
         crate::ffi::agent_store(Box::into_raw(state) as *const c_void);
     }

@@ -222,14 +222,12 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
 
                 let notifier = QueuedNotifier::default();
                 let now = Utc::now();
-                match domain.tick(now, &notifier) {
-                    Err(e) => warn!("tick failed: {:?}", e),
-                    Ok(_) => {}
+                if let Err(e) = domain.tick(now, &notifier) {
+                    warn!("tick failed: {:?}", e);
                 }
 
-                match notifier.forward(&StandardOutNotifier::new(&self_key)) {
-                    Err(e) => warn!("tick failed forwarding notifications: {:?}", e),
-                    Ok(_) => {}
+                if let Err(e) = notifier.forward(&StandardOutNotifier::new(&self_key)) {
+                    warn!("tick failed forwarding notifications: {:?}", e);
                 }
             }
         }

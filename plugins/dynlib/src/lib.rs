@@ -105,7 +105,7 @@ impl LoadedLibrary {
         let services = SessionServices::new_for_my_session(Some(&self.prefix))?;
         let messages: Vec<Query> = messages
             .into_iter()
-            .map(|b| Ok(DynMessage::from_bytes(&b)?))
+            .map(|b| DynMessage::from_bytes(&b))
             .collect::<Result<Vec<_>>>()?
             .into_iter()
             .map(|m| match m {
@@ -114,7 +114,7 @@ impl LoadedLibrary {
             })
             .collect();
 
-        let querying = Querying::new();
+        let querying = Querying::default();
         for payload in querying.process(messages, &services)? {
             self.send(&DynMessage::Payload(payload).to_bytes()?);
         }
@@ -200,7 +200,7 @@ impl DynamicPlugin {
         Ok(())
     }
 
-    fn push_messages_to_all(&self, pushing: &Vec<DynMessage>) -> Result<()> {
+    fn push_messages_to_all(&self, pushing: &[DynMessage]) -> Result<()> {
         self.push_messages_with(move |_ll| Some(pushing.to_vec()))
     }
 
@@ -356,7 +356,7 @@ impl Plugin for DynamicPlugin {
         let services = SessionServices::new_for_my_session(None)?;
         let messages = have_surroundings(surroundings, &services)?
             .into_iter()
-            .map(|m| DynMessage::Payload(m))
+            .map(DynMessage::Payload)
             .collect::<Vec<_>>();
 
         self.push_messages_to_all(&messages)?;

@@ -36,7 +36,7 @@ pub trait CompareChanges<L, R> {
 
 pub struct TreeDiff {}
 
-impl<'a> CompareChanges<serde_json::Value, serde_json::Value> for TreeDiff {
+impl CompareChanges<serde_json::Value, serde_json::Value> for TreeDiff {
     fn any_changes(
         &self,
         pair: AnyChanges<serde_json::Value, serde_json::Value>,

@@ -68,9 +68,8 @@ where
     if !dispatcher::has_been_set() {
         let subscriber = dh.tracing_subscriber();
         let dispatch = Dispatch::new(subscriber);
-        match dispatcher::set_global_default(dispatch) {
-            Err(e) => println!("Error configuring plugin tracing: {:?}", e),
-            Ok(_) => {}
+        if let Err(e) = dispatcher::set_global_default(dispatch) {
+            println!("Error configuring plugin tracing: {:?}", e);
         };
     }
 
@@ -94,6 +93,7 @@ where
     }
 }
 
+#[allow(clippy::missing_safety_doc)]
 pub unsafe fn default_agent_tick<A>(dh: &mut dyn DynamicHost, state: *const std::ffi::c_void)
 where
     A: Agent + Default,

@@ -174,9 +174,8 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
             loop {
                 sleep(std::time::Duration::from_secs(1)).await;
                 let now = Utc::now();
-                match domain.tick(now, &notifier) {
-                    Err(e) => warn!("tick failed: {:?}", e),
-                    Ok(_) => {}
+                if let Err(e) = domain.tick(now, &notifier) {
+                    warn!("tick failed: {:?}", e);
                 }
             }
         }

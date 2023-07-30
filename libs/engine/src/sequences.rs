@@ -6,15 +6,14 @@ pub trait Sequence<T>: Send + Sync {
     fn following(&self) -> T;
 }
 
+#[derive(Default)]
 pub struct DeterministicKeys {
     sequence: AtomicU64,
 }
 
 impl DeterministicKeys {
     pub fn new() -> Self {
-        Self {
-            sequence: AtomicU64::new(0),
-        }
+        Self::default()
     }
 }
 

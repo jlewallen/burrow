@@ -96,7 +96,7 @@ impl Session {
 
         match action {
             Some(action) => {
-                let living = user_name_to_entry(self, &user_name)?;
+                let living = user_name_to_entry(self, user_name)?;
                 let perform = Perform::Living {
                     living,
                     action: action.into(),

@@ -73,7 +73,7 @@ impl EntityPtr {
     }
 
     pub fn to_json_value(&self) -> Result<serde_json::Value, DomainError> {
-        Ok(self.entity.borrow().to_json_value()?)
+        self.entity.borrow().to_json_value()
     }
 }
 
@@ -94,9 +94,9 @@ impl From<Entity> for EntityPtr {
     }
 }
 
-impl Into<EntityRef> for &EntityPtr {
-    fn into(self) -> EntityRef {
-        self.lazy.borrow().clone()
+impl From<&EntityPtr> for EntityRef {
+    fn from(value: &EntityPtr) -> Self {
+        value.lazy.borrow().clone()
     }
 }
 
@@ -126,15 +126,15 @@ impl Debug for EntityPtr {
 }
 
 pub trait IntoEntry {
-    fn into_entry(&self) -> Result<Entry, DomainError>;
+    fn to_entry(&self) -> Result<Entry, DomainError>;
 }
 
 pub trait IntoEntity {
-    fn into_entity(&self) -> Result<EntityPtr, DomainError>;
+    fn to_entity(&self) -> Result<EntityPtr, DomainError>;
 }
 
 impl IntoEntity for EntityRef {
-    fn into_entity(&self) -> Result<EntityPtr, DomainError> {
+    fn to_entity(&self) -> Result<EntityPtr, DomainError> {
         match &self.entity {
             Some(e) => match e.upgrade() {
                 Some(e) => Ok(e.into()),
@@ -146,7 +146,7 @@ impl IntoEntity for EntityRef {
 }
 
 impl IntoEntry for EntityRef {
-    fn into_entry(&self) -> Result<Entry, DomainError> {
+    fn to_entry(&self) -> Result<Entry, DomainError> {
         get_my_session()?
             .entry(&LookupBy::Key(&self.key))?
             .ok_or(DomainError::DanglingEntity)

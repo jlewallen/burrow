@@ -5,13 +5,10 @@ use rpc_proto::{Payload, Query, Sender};
 
 use crate::sessions::Services;
 
+#[derive(Default)]
 pub struct Querying {}
 
 impl Querying {
-    pub fn new() -> Self {
-        Self {}
-    }
-
     pub fn process(&self, messages: Vec<Query>, services: &dyn Services) -> Result<Vec<Payload>> {
         let mut payloads = Vec::new();
 

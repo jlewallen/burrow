@@ -30,15 +30,15 @@ impl From<&EntityKey> for kernel::EntityKey {
     }
 }
 
-impl Into<EntityKey> for kernel::EntityKey {
-    fn into(self) -> EntityKey {
-        EntityKey(self.into())
+impl From<kernel::EntityKey> for EntityKey {
+    fn from(value: kernel::EntityKey) -> Self {
+        EntityKey(value.into())
     }
 }
 
-impl Into<kernel::EntityKey> for EntityKey {
-    fn into(self) -> kernel::EntityKey {
-        kernel::EntityKey::from_string(self.0)
+impl From<EntityKey> for kernel::EntityKey {
+    fn from(value: EntityKey) -> Self {
+        Self::from_string(value.0)
     }
 }
 
@@ -67,18 +67,16 @@ impl From<serde_json::Value> for JsonValue {
     }
 }
 
-impl Into<serde_json::Value> for JsonValue {
-    fn into(self) -> serde_json::Value {
-        match self {
-            JsonValue::Null => serde_json::Value::Null,
-            JsonValue::Bool(bool) => serde_json::Value::Bool(bool),
-            JsonValue::Number(n) => serde_json::Value::Number(n.into()),
-            JsonValue::String(s) => serde_json::Value::String(s),
-            JsonValue::Array(a) => {
-                serde_json::Value::Array(a.into_iter().map(|i| i.into()).collect())
-            }
+impl From<JsonValue> for serde_json::Value {
+    fn from(value: JsonValue) -> Self {
+        match value {
+            JsonValue::Null => Self::Null,
+            JsonValue::Bool(bool) => Self::Bool(bool),
+            JsonValue::Number(n) => Self::Number(n.into()),
+            JsonValue::String(s) => Self::String(s),
+            JsonValue::Array(a) => Self::Array(a.into_iter().map(|i| i.into()).collect()),
             JsonValue::Object(v) => {
-                serde_json::Value::Object(v.into_iter().map(|(k, v)| (k, v.into())).collect())
+                Self::Object(v.into_iter().map(|(k, v)| (k, v.into())).collect())
             }
         }
     }
@@ -128,9 +126,9 @@ impl From<serde_json::Number> for JsonNumber {
     }
 }
 
-impl Into<serde_json::Number> for JsonNumber {
-    fn into(self) -> serde_json::Number {
-        match self {
+impl From<JsonNumber> for serde_json::Number {
+    fn from(value: JsonNumber) -> Self {
+        match value {
             JsonNumber::PosInt(i) => i.into(),
             JsonNumber::NegInt(i) => i.into(),
             JsonNumber::Float(f) => serde_json::Number::from_f64(f).expect("Non-finite number"),
@@ -147,9 +145,9 @@ impl std::fmt::Debug for Json {
     }
 }
 
-impl Into<serde_json::Value> for Json {
-    fn into(self) -> serde_json::Value {
-        self.0.into()
+impl From<Json> for serde_json::Value {
+    fn from(value: Json) -> Self {
+        value.0.into()
     }
 }
 
@@ -227,15 +225,15 @@ pub enum Query {
     // Lookup(u32, Vec<LookupBy>),
 }
 
-impl Into<kernel::Audience> for Audience {
-    fn into(self) -> kernel::Audience {
-        match self {
-            Audience::Nobody => kernel::Audience::Nobody,
-            Audience::Everybody => kernel::Audience::Everybody,
+impl From<Audience> for kernel::Audience {
+    fn from(value: Audience) -> Self {
+        match value {
+            Audience::Nobody => Self::Nobody,
+            Audience::Everybody => Self::Everybody,
             Audience::Individuals(keys) => {
-                kernel::Audience::Individuals(keys.into_iter().map(|k| k.into()).collect())
+                Self::Individuals(keys.into_iter().map(|k| k.into()).collect())
             }
-            Audience::Area(area) => kernel::Audience::Area(area.into()),
+            Audience::Area(area) => Self::Area(area.into()),
         }
     }
 }
@@ -277,11 +275,11 @@ impl TryFrom<kernel::Effect> for Effect {
     }
 }
 
-impl Into<kernel::Effect> for Effect {
-    fn into(self) -> kernel::Effect {
-        match self {
+impl From<Effect> for kernel::Effect {
+    fn from(value: Effect) -> Self {
+        match value {
             Effect::Reply(value) => {
-                kernel::Effect::Reply(Rc::new(JsonReply::from(<Json as Into<
+                Self::Reply(Rc::new(JsonReply::from(<Json as Into<
                     serde_json::Value,
                 >>::into(value))))
             }
@@ -340,11 +338,11 @@ impl IncomingMessage {
     }
 }
 
-impl Into<Incoming> for IncomingMessage {
-    fn into(self) -> Incoming {
-        Incoming {
-            key: self.key,
-            value: self.value.into(),
+impl From<IncomingMessage> for Incoming {
+    fn from(value: IncomingMessage) -> Self {
+        Self {
+            key: value.key,
+            value: value.value.into(),
         }
     }
 }
@@ -382,16 +380,22 @@ impl<S> Sender<S> {
         self.queue.iter()
     }
 
-    pub fn into_iter(self) -> impl Iterator<Item = S> {
-        self.queue.into_iter()
-    }
-
     pub fn clear(&mut self) {
         self.queue.clear()
     }
 
     pub fn pop(&mut self) -> Option<S> {
         self.queue.pop()
+    }
+}
+
+impl<S> IntoIterator for Sender<S> {
+    type Item = S;
+
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.queue.into_iter()
     }
 }
 

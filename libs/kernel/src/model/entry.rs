@@ -77,7 +77,7 @@ impl Entry {
     pub fn has_scope<T: Scope>(&self) -> Result<bool, DomainError> {
         let entity = self.entity();
         let entity = entity.borrow();
-        let scopes = entity.into_scopes();
+        let scopes = entity.scopes();
 
         Ok(scopes.has_scope::<T>())
     }
@@ -85,7 +85,7 @@ impl Entry {
     pub fn scope<T: Scope>(&self) -> Result<OpenedScope<T>, DomainError> {
         let entity = self.entity();
         let entity = entity.borrow();
-        let scope = entity.into_scopes().load_scope::<T>()?;
+        let scope = entity.scopes().load_scope::<T>()?;
 
         Ok(OpenedScope::new(scope))
     }
@@ -93,7 +93,7 @@ impl Entry {
     pub fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeMut<T>, DomainError> {
         let entity = self.entity();
         let entity = entity.borrow();
-        let scope = entity.into_scopes().load_scope::<T>()?;
+        let scope = entity.scopes().load_scope::<T>()?;
 
         Ok(OpenedScopeMut::new(self.entity(), scope))
     }
@@ -118,7 +118,7 @@ impl Serialize for Entry {
     {
         let name = self
             .name()
-            .map_err(|e| serde::ser::Error::custom(e))?
+            .map_err(serde::ser::Error::custom)?
             .unwrap_or_else(|| "None".to_owned());
         let mut state = serializer.serialize_struct("Entry", 2)?;
         state.serialize_field("key", &self.key)?;
@@ -148,7 +148,7 @@ impl TryFrom<EntityRef> for Option<Entry> {
 
     fn try_from(value: EntityRef) -> Result<Self, Self::Error> {
         let session = get_my_session().expect("No active session");
-        Ok(session.entry(&LookupBy::Key(&value.key))?)
+        session.entry(&LookupBy::Key(&value.key))
     }
 }
 
@@ -206,7 +206,7 @@ impl<T: Scope> OpenedScopeMut<T> {
     pub fn save(&mut self) -> Result<(), DomainError> {
         let mut entity = self.owner.borrow_mut();
 
-        entity.into_scopes_mut().replace_scope::<T>(&self.target)
+        entity.scopes_mut().replace_scope::<T>(&self.target)
     }
 
     pub fn as_ref(&mut self) -> &mut T {

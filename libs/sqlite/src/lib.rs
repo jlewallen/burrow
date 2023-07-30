@@ -221,7 +221,7 @@ where
             .connection()
             .prepare("SELECT MIN(time) FROM futures WHERE time > ?1 ORDER BY time")?;
 
-        let upcoming: Option<DateTime<Utc>> = stmt.query_row([&now], |row| Ok(row.get(0)?))?;
+        let upcoming: Option<DateTime<Utc>> = stmt.query_row([&now], |row| row.get(0))?;
 
         trace!(?upcoming, "query-futures");
 

@@ -6,6 +6,7 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
+use std::str::FromStr;
 use std::{collections::HashMap, fmt::Display};
 
 use super::base::*;
@@ -46,6 +47,14 @@ impl Needs<SessionRef> for Entity {
     }
 }
 
+impl FromStr for Entity {
+    type Err = DomainError;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        Self::from_value(serde_json::from_str(s)?)
+    }
+}
+
 impl Entity {
     pub fn new_blank() -> Result<Self> {
         Ok(Self::new_with_key(get_my_session()?.new_key()))
@@ -53,10 +62,6 @@ impl Entity {
 
     pub fn from_value(value: serde_json::Value) -> Result<Entity, DomainError> {
         Ok(serde_json::from_value(value)?)
-    }
-
-    pub fn from_str(serialized: &str) -> Result<Entity, DomainError> {
-        Self::from_value(serde_json::from_str(serialized)?)
     }
 
     pub fn new_with_key(key: EntityKey) -> Self {
@@ -113,14 +118,14 @@ impl Entity {
 }
 
 impl HasScopes for Entity {
-    fn into_scopes(&self) -> Scopes {
+    fn scopes(&self) -> Scopes {
         Scopes {
             key: &self.key,
             map: &self.scopes,
         }
     }
 
-    fn into_scopes_mut(&mut self) -> ScopesMut {
+    fn scopes_mut(&mut self) -> ScopesMut {
         ScopesMut {
             key: &self.key,
             map: &mut self.scopes,

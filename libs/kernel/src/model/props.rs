@@ -16,17 +16,9 @@ impl Property {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Props {
     map: HashMap<String, Property>,
-}
-
-impl Default for Props {
-    fn default() -> Self {
-        Self {
-            map: Default::default(),
-        }
-    }
 }
 
 impl Props {
@@ -91,9 +83,9 @@ impl Default for Properties {
     }
 }
 
-impl Into<Properties> for Props {
-    fn into(self) -> Properties {
-        Properties { props: Some(self) }
+impl From<Props> for Properties {
+    fn from(value: Props) -> Self {
+        Self { props: Some(value) }
     }
 }
 
@@ -110,7 +102,7 @@ pub trait CoreProps {
 }
 
 fn load_props(entity: &Entity) -> Result<Box<Properties>, DomainError> {
-    let mut scope = entity.into_scopes().load_scope::<Properties>()?;
+    let mut scope = entity.scopes().load_scope::<Properties>()?;
 
     if scope.props.is_none() {
         scope.props = Some(Props::default());
@@ -120,9 +112,7 @@ fn load_props(entity: &Entity) -> Result<Box<Properties>, DomainError> {
 }
 
 fn save_props(entity: &mut Entity, properties: Box<Properties>) -> Result<(), DomainError> {
-    entity
-        .into_scopes_mut()
-        .replace_scope::<Properties>(&properties)
+    entity.scopes_mut().replace_scope::<Properties>(&properties)
 }
 
 impl CoreProps for Entity {

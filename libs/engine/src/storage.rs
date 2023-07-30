@@ -199,6 +199,6 @@ impl EntityStorage for InMemoryStorage {
     fn query_all(&self) -> Result<Vec<PersistedEntity>> {
         let entities = self.entities.read().expect("Lock error");
 
-        Ok(entities.values().map(|e| e.clone()).collect())
+        Ok(entities.values().cloned().collect())
     }
 }

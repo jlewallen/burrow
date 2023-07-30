@@ -116,7 +116,7 @@ impl When {
             When::Interval(duration) => Ok(Utc::now()
                 .checked_add_signed(*duration)
                 .ok_or_else(|| DomainError::Overflow)?),
-            When::Time(time) => Ok(time.clone()),
+            When::Time(time) => Ok(*time),
         }
     }
 }
@@ -169,10 +169,7 @@ pub struct Kind {
 
 impl Kind {
     pub fn new(identity: Identity) -> Self {
-        Self {
-            identity,
-            ..Self::default()
-        }
+        Self { identity }
     }
 }
 

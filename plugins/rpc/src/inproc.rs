@@ -8,6 +8,7 @@ use crate::{
     sessions::{AlwaysErrorsServices, Services},
 };
 
+#[derive(Default)]
 pub struct InProcessServer<P> {
     agent: P,
 }
@@ -17,9 +18,7 @@ where
     R: Default + Inbox<Payload, Query>,
 {
     pub fn new() -> Self {
-        Self {
-            agent: R::default(),
-        }
+        Self::default()
     }
 
     pub fn initialize(&mut self) -> Result<()> {
@@ -43,7 +42,7 @@ where
 
     fn drain(&mut self, mut to_server: Sender<Query>, services: &dyn Services) -> Result<()> {
         let mut to_agent: Sender<_> = Default::default();
-        let querying = Querying::new();
+        let querying = Querying::default();
 
         while let Some(sending) = to_server.pop() {
             querying.service(&sending, &mut to_agent, services)?;

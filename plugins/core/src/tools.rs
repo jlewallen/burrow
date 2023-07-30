@@ -62,16 +62,16 @@ pub fn navigate_between(
 pub fn container_of(item: &Entry) -> Result<EntityPtr, DomainError> {
     let location = item.scope::<Location>()?;
     if let Some(container) = &location.container {
-        Ok(container.into_entity()?)
+        Ok(container.to_entity()?)
     } else {
-        Err(DomainError::ContainerRequired.into())
+        Err(DomainError::ContainerRequired)
     }
 }
 
 pub fn area_of(living: &Entry) -> Result<EntityPtr, DomainError> {
     let occupying = living.scope::<Occupying>()?;
 
-    Ok(occupying.area.into_entity()?)
+    occupying.area.to_entity()
 }
 
 pub fn get_contained_keys(area: &Entry) -> Result<Vec<EntityKey>, DomainError> {
@@ -110,7 +110,7 @@ pub fn contained_by(container: &Entry) -> Result<Vec<Entry>, DomainError> {
     let mut entities: Vec<Entry> = vec![];
     if let Ok(containing) = container.scope::<Containing>() {
         for entity in &containing.holding {
-            entities.push(entity.into_entry()?);
+            entities.push(entity.to_entry()?);
         }
     }
 
@@ -187,7 +187,7 @@ pub fn obliterate(obliterating: &Entry) -> Result<()> {
     // NOTE: It's very easy to get confused about which entity is which.
     let location = obliterating.scope::<Location>()?;
     if let Some(container) = &location.container {
-        let container = container.into_entry()?;
+        let container = container.to_entry()?;
         let mut containing = container.scope_mut::<Containing>()?;
 
         containing.stop_carrying(obliterating)?;
@@ -207,7 +207,7 @@ pub fn get_adjacent_keys(entry: &Entry) -> Result<Vec<EntityKey>> {
     Ok(containing
         .holding
         .iter()
-        .map(|e| e.into_entry())
+        .map(|e| e.to_entry())
         .collect::<Result<Vec<Entry>, kernel::DomainError>>()?
         .into_iter()
         .map(|e| {

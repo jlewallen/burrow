@@ -149,13 +149,10 @@ impl<'e> ScopesMut<'e> {
         debug!("scope-replace");
 
         // TODO Would love to just take the value.
-        let previous = match self.map.get(scope_key) {
-            Some(value) => Some(match value {
-                ScopeValue::Original(original) => original.clone(),
-                ScopeValue::Intermediate { value, previous: _ } => value.clone(),
-            }),
-            None => None.into(),
-        };
+        let previous = self.map.get(scope_key).map(|value| match value {
+            ScopeValue::Original(original) => original.clone(),
+            ScopeValue::Intermediate { value, previous: _ } => value.clone(),
+        });
 
         let value = ScopeValue::Intermediate { value, previous };
 
@@ -166,7 +163,7 @@ impl<'e> ScopesMut<'e> {
 }
 
 pub trait HasScopes {
-    fn into_scopes(&self) -> Scopes;
+    fn scopes(&self) -> Scopes;
 
-    fn into_scopes_mut(&mut self) -> ScopesMut;
+    fn scopes_mut(&mut self) -> ScopesMut;
 }

@@ -38,18 +38,15 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
     for key in keys.iter() {
         info!("loading {:?}", key);
         let entity = session.load_entity(&LookupBy::Key(key))?;
-        match entity {
-            Some(entity) => {
-                debug!("{:?}", entity.key());
+        if let Some(entity) = entity {
+            debug!("{:?}", entity.key());
 
-                if false {
-                    // Reset Behaviors scope on all entities.
-                    let mut entity = entity.borrow_mut();
-                    let mut scopes = entity.into_scopes_mut();
-                    scopes.replace_scope(&Behaviors::default())?;
-                }
+            if false {
+                // Reset Behaviors scope on all entities.
+                let mut entity = entity.borrow_mut();
+                let mut scopes = entity.scopes_mut();
+                scopes.replace_scope(&Behaviors::default())?;
             }
-            None => {}
         }
     }
 

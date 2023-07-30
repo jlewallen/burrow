@@ -52,7 +52,7 @@ where
 {
     fn apply_query(query: &Query, services: &dyn Services) -> Result<Sender<Payload>> {
         let mut to_agent: Sender<_> = Default::default();
-        let querying = Querying::new();
+        let querying = Querying::default();
         querying.service(query, &mut to_agent, services)?;
 
         Ok(to_agent)

@@ -1,6 +1,6 @@
 use std::{
-    convert::identity,
     io::{self, Write},
+    str::FromStr,
 };
 
 use anyhow::Result;
@@ -36,9 +36,9 @@ pub struct Filtered {
     entity: Option<Entity>,
 }
 
-impl Into<PersistedEntity> for Filtered {
-    fn into(self) -> PersistedEntity {
-        self.persisted
+impl From<Filtered> for PersistedEntity {
+    fn from(val: Filtered) -> Self {
+        val.persisted
     }
 }
 
@@ -75,12 +75,12 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
         Some(key) => domain
             .query_entity(&LookupBy::Key(&EntityKey::new(key)))
             .into_iter()
-            .flat_map(identity)
+            .flatten()
             .collect(),
         None => domain
             .query_all()?
             .into_iter()
-            .map(|p| Filtered::from(p))
+            .map(Filtered::from)
             .map(|f| {
                 if cmd.name.is_some() {
                     Ok(f.hydrate()?)
@@ -93,13 +93,12 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
             .filter(|f| {
                 cmd.name
                     .as_ref()
-                    .map(|pattern| {
+                    .and_then(|pattern| {
                         f.entity()
                             .unwrap()
                             .name()
                             .map(|name| name.contains(pattern))
                     })
-                    .flatten()
                     .unwrap_or(true)
             })
             .map(|f| f.into())

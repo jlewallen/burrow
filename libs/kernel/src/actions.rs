@@ -123,9 +123,9 @@ impl Debug for TracePath {
     }
 }
 
-impl Into<String> for TracePath {
-    fn into(self) -> String {
-        self.0.join("")
+impl From<TracePath> for String {
+    fn from(value: TracePath) -> Self {
+        value.0.join("")
     }
 }
 

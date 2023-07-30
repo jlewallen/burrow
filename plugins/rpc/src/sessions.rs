@@ -187,11 +187,9 @@ impl Services for SessionServices {
 
     fn schedule(&self, key: &str, millis: i64, serialized: Json) -> Result<()> {
         let session = get_my_session().with_context(|| "SessionServer::schedule")?;
-        let time = NaiveDateTime::from_timestamp_opt(
-            (millis / 1000) as i64,
-            ((millis % 1000) * 1_000_000) as u32,
-        )
-        .ok_or_else(|| DomainError::Overflow)?;
+        let time =
+            NaiveDateTime::from_timestamp_opt(millis / 1000, ((millis % 1000) * 1_000_000) as u32)
+                .ok_or_else(|| DomainError::Overflow)?;
 
         let prefix = self
             .prefix

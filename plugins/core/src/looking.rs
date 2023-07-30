@@ -128,7 +128,7 @@ pub mod model {
         let mut items = Vec::new();
         if let Ok(containing) = vessel.scope::<Containing>() {
             for lazy_entity in &containing.holding {
-                let entity = &lazy_entity.into_entry()?;
+                let entity = &lazy_entity.to_entry()?;
                 items.push(entity.observe(user)?);
             }
         }
@@ -143,7 +143,7 @@ pub mod model {
         let mut living: Vec<ObservedEntity> = vec![];
         if let Ok(occupyable) = area.scope::<Occupyable>() {
             for entity in &occupyable.occupied {
-                if let Some(observed) = (&entity.into_entry()?).observe(user)? {
+                if let Some(observed) = (&entity.to_entry()?).observe(user)? {
                     living.push(observed);
                 }
             }
@@ -152,31 +152,29 @@ pub mod model {
         let mut items = vec![];
         if let Ok(containing) = area.scope::<Containing>() {
             for entity in &containing.holding {
-                items.push((&entity.into_entry()?).observe(user)?);
+                items.push((&entity.to_entry()?).observe(user)?);
             }
         }
 
         let mut carrying = vec![];
         if let Ok(containing) = user.scope::<Containing>() {
             for entity in &containing.holding {
-                carrying.push((&entity.into_entry()?).observe(user)?);
+                carrying.push((&entity.to_entry()?).observe(user)?);
             }
         }
 
         let mut routes = vec![];
         if let Ok(movement) = user.scope::<Movement>() {
             for route in &movement.routes {
-                routes.push((&route.area.into_entry()?).observe(user)?);
+                routes.push((&route.area.to_entry()?).observe(user)?);
             }
         }
 
         Ok(AreaObservation {
             area: area
                 .observe(user)?
-                .ok_or_else(|| LookError::InvisibleSurroundingArea)?,
-            person: user
-                .observe(user)?
-                .ok_or_else(|| LookError::InvisibleSelf)?,
+                .ok_or(LookError::InvisibleSurroundingArea)?,
+            person: user.observe(user)?.ok_or(LookError::InvisibleSelf)?,
             living,
             items: items.into_iter().flatten().collect(),
             carrying: carrying.into_iter().flatten().collect(),

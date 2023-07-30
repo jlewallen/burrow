@@ -7,21 +7,17 @@ pub fn json_derive_to_json(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = input.ident;
 
-    let done = match input.data {
-        _ => {
-            quote! {
-                impl ToJson for #name {
-                    fn to_json(&self) -> std::result::Result<serde_json::Value, serde_json::Error> {
-                        let value = serde_json::to_value(self)?;
-                        let key = stringify!(#name);
-                        let mut c = key.chars();
-                        let key = match c.next() {
-                            None => String::new(),
-                            Some(f) => f.to_lowercase().collect::<String>() + c.as_str(),
-                        };
-                        Ok(serde_json::json!({ key: value }))
-                    }
-                }
+    let done = quote! {
+        impl ToJson for #name {
+            fn to_json(&self) -> std::result::Result<serde_json::Value, serde_json::Error> {
+                let value = serde_json::to_value(self)?;
+                let key = stringify!(#name);
+                let mut c = key.chars();
+                let key = match c.next() {
+                    None => String::new(),
+                    Some(f) => f.to_lowercase().collect::<String>() + c.as_str(),
+                };
+                Ok(serde_json::json!({ key: value }))
             }
         }
     };

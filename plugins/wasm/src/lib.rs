@@ -66,7 +66,7 @@ impl WasmRunner {
         let services = SessionServices::new_for_my_session(None)?;
         let messages: Vec<Query> = messages
             .into_iter()
-            .map(|b| Ok(WasmMessage::from_bytes(&b)?))
+            .map(|b| WasmMessage::from_bytes(&b))
             .collect::<Result<Vec<_>>>()?
             .into_iter()
             .map(|m| match m {
@@ -75,7 +75,7 @@ impl WasmRunner {
             })
             .collect();
 
-        let querying = Querying::new();
+        let querying = Querying::default();
         for payload in querying.process(messages, &services)? {
             self.send(WasmMessage::Payload(payload).to_bytes()?)?;
         }
@@ -85,7 +85,7 @@ impl WasmRunner {
 
     fn call_agent_tick(&mut self) -> Result<()> {
         let state = {
-            let env = self.env.as_ref(&mut self.store);
+            let env = self.env.as_ref(&self.store);
             env.state.ok_or_else(|| anyhow!("Module missing state."))?
         };
 
@@ -114,7 +114,7 @@ impl WasmRunner {
         let services = SessionServices::new_for_my_session(None)?;
         let messages: Vec<Vec<u8>> = have_surroundings(surroundings, &services)?
             .into_iter()
-            .map(|m| Ok(WasmMessage::Payload(m).to_bytes()?))
+            .map(|m| WasmMessage::Payload(m).to_bytes())
             .collect::<Result<Vec<_>>>()?;
 
         for message in messages.into_iter() {

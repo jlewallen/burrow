@@ -142,7 +142,7 @@ pub mod model {
             let holding = self
                 .holding
                 .iter()
-                .map(|h| h.into_entry())
+                .map(|h| h.to_entry())
                 .collect::<Result<Vec<_>, _>>()?;
 
             for held in holding {

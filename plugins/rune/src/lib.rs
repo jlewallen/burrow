@@ -123,9 +123,7 @@ impl Middleware for RuneMiddleware {
             runners
                 .iter_mut()
                 .fold(Some(value), |perform, (_, runner)| {
-                    perform
-                        .map(|perform| runner.before(perform).expect("Error in before"))
-                        .flatten()
+                    perform.and_then(|perform| runner.before(perform).expect("Error in before"))
                 })
         };
 
