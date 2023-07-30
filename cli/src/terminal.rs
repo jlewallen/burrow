@@ -21,7 +21,7 @@ impl Renderer {
     }
 
     pub fn render_reply(&self, reply: &Rc<dyn Reply>) -> Result<String> {
-        let value = reply.to_json()?;
+        let value = reply.to_tagged_json()?;
         self.text.render_value(&value)
     }
 }

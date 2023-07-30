@@ -158,7 +158,7 @@ impl From<serde_json::Value> for Json {
 }
 
 impl ToJson for Json {
-    fn to_json(&self) -> std::result::Result<serde_json::Value, serde_json::Error> {
+    fn to_tagged_json(&self) -> std::result::Result<serde_json::Value, serde_json::Error> {
         Ok(self.0.clone().into())
     }
 }
@@ -269,7 +269,7 @@ impl TryFrom<kernel::Effect> for Effect {
 
     fn try_from(value: kernel::Effect) -> std::result::Result<Self, Self::Error> {
         match value {
-            kernel::Effect::Reply(reply) => Ok(Self::Reply(reply.to_json()?.try_into()?)),
+            kernel::Effect::Reply(reply) => Ok(Self::Reply(reply.to_tagged_json()?.try_into()?)),
             _ => todo!(),
         }
     }

@@ -130,10 +130,10 @@ impl From<TracePath> for String {
 }
 
 impl ToJson for Effect {
-    fn to_json(&self) -> std::result::Result<Value, serde_json::Error> {
+    fn to_tagged_json(&self) -> std::result::Result<Value, serde_json::Error> {
         // TODO I'll need to work on this, if not to make tests scale.
         match self {
-            Effect::Reply(reply) => reply.to_json(),
+            Effect::Reply(reply) => reply.to_tagged_json(),
             _ => todo!(),
         }
     }

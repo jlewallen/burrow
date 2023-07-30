@@ -320,7 +320,7 @@ impl ActiveSession for Session {
 
     fn schedule(&self, key: &str, when: When, message: &dyn ToJson) -> Result<()> {
         let key = key.to_owned();
-        let message = message.to_json()?;
+        let message = message.to_tagged_json()?;
         let scheduling = Scheduling { key, when, message };
         let perform = Perform::Schedule(scheduling);
 

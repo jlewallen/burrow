@@ -26,7 +26,7 @@ impl TryInto<ExampleFuture> for Incoming {
 }
 
 impl ToJson for ExampleFuture {
-    fn to_json(&self) -> std::result::Result<serde_json::Value, serde_json::Error> {
+    fn to_tagged_json(&self) -> std::result::Result<serde_json::Value, serde_json::Error> {
         Ok(serde_json::to_value(self)?)
     }
 }
@@ -84,7 +84,7 @@ impl Agent for ExampleAgent {
 struct ExampleReply {}
 
 impl ToJson for ExampleReply {
-    fn to_json(&self) -> std::result::Result<serde_json::Value, serde_json::Error> {
+    fn to_tagged_json(&self) -> std::result::Result<serde_json::Value, serde_json::Error> {
         serde_json::to_value(self)
     }
 }

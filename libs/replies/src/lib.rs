@@ -5,7 +5,7 @@ use std::fmt::Debug;
 use macros::ToJson;
 
 pub trait ToJson: Debug {
-    fn to_json(&self) -> Result<Value, serde_json::Error>;
+    fn to_tagged_json(&self) -> Result<Value, serde_json::Error>;
 }
 
 pub trait Reply: ToJson {}
@@ -129,7 +129,7 @@ mod tests {
     pub fn test_to_json_tags_enum() {
         assert_eq!(
             HelloWorld::Message("Hey!".to_owned())
-                .to_json()
+                .to_tagged_json()
                 .expect("ToJson failed"),
             json!({ "helloWorld": { "message": "Hey!" } })
         );

@@ -538,7 +538,7 @@ mod tests {
         let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
 
-        assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+        assert_eq!(reply.to_tagged_json()?, SimpleReply::Done.to_tagged_json()?);
 
         assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
         assert_eq!(area.scope::<Containing>()?.holding.len(), 0);
@@ -563,7 +563,7 @@ mod tests {
         let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
 
-        assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+        assert_eq!(reply.to_tagged_json()?, SimpleReply::Done.to_tagged_json()?);
 
         let held = &person.scope::<Containing>()?.holding;
         let ground = &area.scope::<Containing>()?.holding;
@@ -599,7 +599,7 @@ mod tests {
         let action = action.unwrap();
         let reply = action.perform(session.clone(), &surroundings)?;
 
-        assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+        assert_eq!(reply.to_tagged_json()?, SimpleReply::Done.to_tagged_json()?);
 
         assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
         assert_eq!(area.scope::<Containing>()?.holding.len(), 0);
@@ -621,7 +621,10 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, person, area) = surroundings.unpack();
 
-        assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+        assert_eq!(
+            reply.to_tagged_json()?,
+            SimpleReply::NotFound.to_tagged_json()?
+        );
 
         assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
         assert_eq!(area.scope::<Containing>()?.holding.len(), 1);
@@ -641,7 +644,7 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, person, area) = surroundings.unpack();
 
-        assert_eq!(reply.to_json()?, SimpleReply::Done.to_json()?);
+        assert_eq!(reply.to_tagged_json()?, SimpleReply::Done.to_tagged_json()?);
 
         assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
         assert_eq!(area.scope::<Containing>()?.holding.len(), 1);
@@ -663,7 +666,10 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, person, area) = surroundings.unpack();
 
-        assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+        assert_eq!(
+            reply.to_tagged_json()?,
+            SimpleReply::NotFound.to_tagged_json()?
+        );
 
         assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
         assert_eq!(area.scope::<Containing>()?.holding.len(), 0);
@@ -685,7 +691,10 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, person, area) = surroundings.unpack();
 
-        assert_eq!(reply.to_json()?, SimpleReply::NotFound.to_json()?);
+        assert_eq!(
+            reply.to_tagged_json()?,
+            SimpleReply::NotFound.to_tagged_json()?
+        );
 
         assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
         assert_eq!(area.scope::<Containing>()?.holding.len(), 1);
@@ -711,7 +720,7 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_world, person, _area) = surroundings.unpack();
 
-        insta::assert_json_snapshot!(reply.to_json()?);
+        insta::assert_json_snapshot!(reply.to_tagged_json()?);
 
         assert_eq!(person.scope::<Containing>()?.holding.len(), 2);
         assert_eq!(vessel.scope::<Containing>()?.holding.len(), 0);
@@ -741,7 +750,7 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_world, person, _area) = surroundings.unpack();
 
-        insta::assert_json_snapshot!(reply.to_json()?);
+        insta::assert_json_snapshot!(reply.to_tagged_json()?);
 
         assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
         assert_eq!(vessel.scope::<Containing>()?.holding.len(), 1);
@@ -769,7 +778,7 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_world, person, _area) = surroundings.unpack();
 
-        insta::assert_json_snapshot!(reply.to_json()?);
+        insta::assert_json_snapshot!(reply.to_tagged_json()?);
 
         assert_eq!(person.scope::<Containing>()?.holding.len(), 2);
         assert_eq!(vessel.scope::<Containing>()?.holding.len(), 0);

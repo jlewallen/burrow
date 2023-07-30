@@ -9,7 +9,7 @@ pub fn json_derive_to_json(input: TokenStream) -> TokenStream {
 
     let done = quote! {
         impl ToJson for #name {
-            fn to_json(&self) -> std::result::Result<serde_json::Value, serde_json::Error> {
+            fn to_tagged_json(&self) -> std::result::Result<serde_json::Value, serde_json::Error> {
                 let value = serde_json::to_value(self)?;
                 let key = stringify!(#name);
                 let mut c = key.chars();

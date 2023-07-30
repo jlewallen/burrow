@@ -79,7 +79,7 @@ impl State {
 
         for raised in pending.iter() {
             debug!("{:?}", raised.event);
-            debug!("{:?}", raised.event.to_json()?);
+            debug!("{:?}", raised.event.to_tagged_json()?);
             let audience_keys = finder.find_audience(&raised.audience)?;
             for key in audience_keys {
                 notifier.notify(&key, &raised.event)?;

@@ -424,7 +424,7 @@ pub mod model {
     impl Reply for DynamicReply {}
 
     impl ToJson for DynamicReply {
-        fn to_json(&self) -> Result<Value, serde_json::Error> {
+        fn to_tagged_json(&self) -> Result<Value, serde_json::Error> {
             serde_json::to_value(self)
         }
     }

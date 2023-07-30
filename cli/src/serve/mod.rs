@@ -127,7 +127,7 @@ impl Notifier for SenderNotifier {
     fn notify(&self, audience: &EntityKey, observed: &Rc<dyn DomainEvent>) -> Result<()> {
         debug!("notify {:?} -> {:?}", audience, observed);
 
-        let serialized = observed.to_json()?;
+        let serialized = observed.to_tagged_json()?;
         let outgoing = ServerMessage::Notify(audience.to_string(), serialized);
         self.tx.send(outgoing)?;
 
@@ -413,7 +413,7 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
                             move || {
                                 let session = domain.open_session().expect("Error opening session");
                                 let effect = evaluate_commands(session, &notifier, &name, &text)?;
-                                Ok(effect.to_json()?)
+                                Ok(effect.to_tagged_json()?)
                             }
                         });
 

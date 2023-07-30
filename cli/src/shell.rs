@@ -77,7 +77,7 @@ impl StandardOutNotifier {
 impl Notifier for StandardOutNotifier {
     fn notify(&self, audience: &EntityKey, observed: &Rc<dyn DomainEvent>) -> Result<()> {
         if *audience == self.key {
-            let serialized = serde_json::to_string_pretty(&observed.to_json()?)?;
+            let serialized = serde_json::to_string_pretty(&observed.to_tagged_json()?)?;
             println!("{}", serialized);
         }
 
@@ -119,7 +119,7 @@ impl Middleware for InteractiveEditor {
     ) -> Result<Effect, anyhow::Error> {
         match next.handle(value)? {
             Effect::Reply(reply) => {
-                let value = reply.to_json()?;
+                let value = reply.to_tagged_json()?;
                 match &value {
                     serde_json::Value::Object(object) => {
                         for (key, value) in object {

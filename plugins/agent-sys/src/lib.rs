@@ -171,7 +171,7 @@ impl ActiveSession for AgentSession {
         futures.push(ScheduledFuture {
             key: key.to_owned(),
             time: time.to_utc_time()?,
-            serialized: message.to_json()?,
+            serialized: message.to_tagged_json()?,
         });
         Ok(())
     }
@@ -261,7 +261,7 @@ where
         for raised in raised.iter() {
             queries.push(Query::Raise(
                 raised.audience.clone().into(),
-                raised.event.to_json()?.into(),
+                raised.event.to_tagged_json()?.into(),
             ));
         }
 

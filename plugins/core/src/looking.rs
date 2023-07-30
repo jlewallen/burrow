@@ -312,7 +312,7 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, _person, _area) = surroundings.unpack();
 
-        insta::assert_json_snapshot!(reply.to_json()?);
+        insta::assert_json_snapshot!(reply.to_tagged_json()?);
 
         build.close()?;
 
@@ -332,7 +332,7 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, _person, _area) = surroundings.unpack();
 
-        insta::assert_json_snapshot!(reply.to_json()?);
+        insta::assert_json_snapshot!(reply.to_tagged_json()?);
 
         build.close()?;
 
@@ -354,7 +354,7 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, _person, _area) = surroundings.unpack();
 
-        insta::assert_json_snapshot!(reply.to_json()?);
+        insta::assert_json_snapshot!(reply.to_tagged_json()?);
 
         build.close()?;
 
@@ -376,7 +376,7 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, _person, _area) = surroundings.unpack();
 
-        insta::assert_json_snapshot!(reply.to_json()?);
+        insta::assert_json_snapshot!(reply.to_tagged_json()?);
 
         build.close()?;
 
@@ -393,7 +393,7 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, _person, _area) = surroundings.unpack();
 
-        insta::assert_json_snapshot!(reply.to_json()?);
+        insta::assert_json_snapshot!(reply.to_tagged_json()?);
 
         build.close()?;
 
@@ -415,7 +415,7 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, _person, _area) = surroundings.unpack();
 
-        insta::assert_json_snapshot!(reply.to_json()?);
+        insta::assert_json_snapshot!(reply.to_tagged_json()?);
 
         build.close()?;
 
@@ -433,7 +433,7 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, _person, _area) = surroundings.unpack();
 
-        insta::assert_json_snapshot!(reply.to_json()?);
+        insta::assert_json_snapshot!(reply.to_tagged_json()?);
 
         build.close()?;
 
@@ -451,7 +451,7 @@ mod tests {
         let reply = action.perform(session.clone(), &surroundings)?;
         let (_, _person, _area) = surroundings.unpack();
 
-        insta::assert_json_snapshot!(reply.to_json()?);
+        insta::assert_json_snapshot!(reply.to_tagged_json()?);
 
         build.close()?;
 
