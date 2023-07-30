@@ -184,7 +184,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         LoggingStyle::Default => {
             tracing_subscriber::registry()
                 .with(tracing_subscriber::EnvFilter::new(get_rust_log()))
-                .with(tracing_subscriber::fmt::layer().with_thread_ids(true))
+                .with(tracing_subscriber::fmt::layer().with_thread_ids(false))
                 .init();
         }
         LoggingStyle::Hierarchical => {
