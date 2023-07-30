@@ -105,13 +105,11 @@ impl Session {
                     Ok(Effect::Nothing) => Ok(None),
                     Ok(i) => Ok(Some(i)),
                     Err(original_err) => {
+                        self.open.store(false, Ordering::Relaxed);
                         if let Err(_rollback_err) = self.storage.rollback(false) {
                             // TODO Include that this failed as part of the error.
                             panic!("TODO error rolling back");
                         }
-
-                        self.open.store(false, Ordering::Relaxed);
-
                         Err(original_err)
                     }
                 }
@@ -126,6 +124,23 @@ impl Session {
         let plugins = self.plugins.borrow();
 
         plugins.deliver(incoming)?;
+
+        Ok(())
+    }
+
+    pub fn initialize(&self) -> Result<()> {
+        let _activated = self.set_session()?;
+
+        {
+            let mut middleware = self.middleware.borrow_mut();
+            middleware.extend({
+                let mut plugins = self.plugins.borrow_mut();
+                plugins.middleware()?
+            });
+        }
+
+        let mut plugins = self.plugins.borrow_mut();
+        plugins.initialize()?;
 
         Ok(())
     }
@@ -158,36 +173,29 @@ impl Session {
         Ok(())
     }
 
-    pub fn initialize(&self) -> Result<()> {
-        let _activated = self.set_session()?;
-
-        {
-            let mut middleware = self.middleware.borrow_mut();
-            middleware.extend({
-                let mut plugins = self.plugins.borrow_mut();
-                plugins.middleware()?
-            });
-        }
-
-        let mut plugins = self.plugins.borrow_mut();
-        plugins.initialize()?;
-
-        Ok(())
-    }
-
     fn save_changes<T: Notifier>(&self, notifier: &T) -> Result<()> {
-        let changes = self.state.close(&self.storage, notifier, &self.finder)?;
-
-        if changes {
-            // Check for a force rollback, usually debugging purposes.
-            if should_force_rollback() {
-                let _span = span!(Level::DEBUG, "FORCED").entered();
-                self.storage.rollback(true)
-            } else {
-                self.storage.commit()
+        match self.state.close(&self.storage, notifier, &self.finder) {
+            Ok(changes) => {
+                if changes {
+                    if should_force_rollback() {
+                        let _span = span!(Level::DEBUG, "FORCED").entered();
+                        self.storage.rollback(true)
+                    } else {
+                        self.storage.commit()
+                    }
+                } else {
+                    self.storage.rollback(true)
+                }
             }
-        } else {
-            self.storage.rollback(true)
+            Err(e) => {
+                warn!("Save error, rolling back: {:?}", e);
+                self.open.store(false, Ordering::Relaxed);
+                if let Err(_rollback_err) = self.storage.rollback(false) {
+                    // TODO Include that this failed as part of the error.
+                    panic!("TODO error rolling back");
+                }
+                Err(e)
+            }
         }
     }
 }
