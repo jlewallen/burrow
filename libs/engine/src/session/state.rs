@@ -9,15 +9,10 @@ use crate::{
 };
 use kernel::*;
 
-pub struct RaisedEvent {
-    pub(crate) audience: Audience,
-    pub(crate) event: Rc<dyn DomainEvent>,
-}
-
 #[derive(Default)]
 pub struct State {
     pub(crate) entities: Rc<Entities>,
-    raised: Rc<RefCell<Vec<RaisedEvent>>>,
+    raised: Rc<RefCell<Vec<Raised>>>,
     futures: Rc<RefCell<Vec<Scheduling>>>,
     destroyed: RefCell<Vec<EntityKey>>,
 }
@@ -46,23 +41,25 @@ impl State {
     }
 
     fn flush_entities(&self, storage: &Rc<dyn Storage>) -> Result<bool> {
-        let destroyed = self.destroyed.borrow();
-
+        let mut destroyed = self.destroyed.borrow_mut();
         let saves = SavesEntities {
             storage,
             destroyed: &destroyed,
         };
-        saves.save_modified_entities(&self.entities)
+        let changes = saves.save_modified_entities(&self.entities)?;
+
+        destroyed.clear();
+
+        Ok(changes)
     }
 
     fn flush_raised<T: Notifier>(&self, notifier: &T, finder: &Arc<dyn Finder>) -> Result<bool> {
         let mut pending = self.raised.borrow_mut();
-        let npending = pending.len();
-        if npending == 0 {
+        if pending.is_empty() {
             return Ok(false);
         }
 
-        info!(%npending, "raising");
+        info!(pending = %pending.len(), "raising");
 
         for raised in pending.iter() {
             debug!("{:?}", raised.event);
@@ -79,7 +76,10 @@ impl State {
     }
 
     fn flush_futures(&self, storage: &Rc<dyn Storage>) -> Result<bool> {
-        let futures = self.futures.borrow();
+        let mut futures = self.futures.borrow_mut();
+        if futures.is_empty() {
+            return Ok(false);
+        }
 
         for future in futures.iter() {
             storage.queue(PersistedFuture {
@@ -89,16 +89,15 @@ impl State {
             })?;
         }
 
-        Ok(futures.len() > 0)
+        futures.clear();
+
+        Ok(true)
     }
 
     fn queue_raised(&self, raised: Raised) -> Result<()> {
         info!("{:?}", raised);
 
-        self.raised.borrow_mut().push(RaisedEvent {
-            audience: raised.audience,
-            event: raised.event,
-        });
+        self.raised.borrow_mut().push(raised);
 
         Ok(())
     }
@@ -106,9 +105,7 @@ impl State {
     fn queue_scheduled(&self, scheduling: Scheduling) -> Result<()> {
         info!("{:?}", scheduling);
 
-        let mut futures = self.futures.borrow_mut();
-
-        futures.push(scheduling);
+        self.futures.borrow_mut().push(scheduling);
 
         Ok(())
     }
