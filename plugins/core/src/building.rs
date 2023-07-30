@@ -253,7 +253,7 @@ pub mod actions {
             match tools::navigate_between(&area, &new_area, &living)? {
                 DomainOutcome::Ok => session.perform(Perform::Living {
                     living,
-                    action: Rc::new(LookAction {}),
+                    action: PerformAction::Instance(Rc::new(LookAction {})),
                 }),
                 DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
             }

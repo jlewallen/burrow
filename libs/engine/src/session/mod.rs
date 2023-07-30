@@ -105,7 +105,7 @@ impl Session {
                 let living = user_name_to_entry(self, user_name)?;
                 let perform = Perform::Living {
                     living,
-                    action: action.into(),
+                    action: PerformAction::Instance(action.into()),
                 };
                 match self.perform(perform) {
                     Ok(Effect::Nothing) => Ok(None),

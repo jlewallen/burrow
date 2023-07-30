@@ -16,7 +16,8 @@ use crate::{make_domain, terminal::default_external_editor};
 
 use engine::{self, DevNullNotifier, Domain, HasUsernames, Notifier, SessionOpener};
 use kernel::{
-    get_my_session, DomainEvent, Effect, EntityKey, EntryResolver, Middleware, Perform, SimpleReply,
+    get_my_session, DomainEvent, Effect, EntityKey, EntryResolver, Middleware, Perform,
+    PerformAction, SimpleReply,
 };
 use replies::EditorReply;
 
@@ -162,7 +163,10 @@ impl Middleware for InteractiveEditor {
                                 let session = get_my_session()?;
                                 match session.entry(&kernel::LookupBy::Key(&self.living))? {
                                     Some(living) => {
-                                        return session.perform(Perform::Living { living, action });
+                                        return session.perform(Perform::Living {
+                                            living,
+                                            action: PerformAction::Instance(action),
+                                        });
                                     }
                                     None => break,
                                 }

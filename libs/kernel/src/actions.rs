@@ -64,17 +64,22 @@ pub struct Scheduling {
 }
 
 #[derive(Clone, Debug)]
+pub enum PerformAction {
+    Instance(Rc<dyn Action>),
+}
+
+#[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum Perform {
     Living {
         living: Entry,
-        action: Rc<dyn Action>,
+        action: PerformAction,
     },
     Surroundings {
         surroundings: Surroundings,
-        action: Rc<dyn Action>,
+        action: PerformAction,
     },
-    Chain(Rc<dyn Action>),
+    Chain(PerformAction),
     Delivery(Incoming),
     Raised(Raised),
     Schedule(Scheduling),

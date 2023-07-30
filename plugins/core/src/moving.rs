@@ -306,7 +306,7 @@ pub mod actions {
 
                                     session.perform(Perform::Living {
                                         living,
-                                        action: Rc::new(LookAction {}),
+                                        action: PerformAction::Instance(Rc::new(LookAction {})),
                                     })
                                 }
                                 DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),

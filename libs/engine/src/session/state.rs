@@ -133,18 +133,20 @@ impl Performer for State {
             Perform::Surroundings {
                 surroundings,
                 action,
-            } => {
-                let _span = span!(Level::DEBUG, "A").entered();
-                info!("action:perform {:?}", &action);
-                let res = action.perform(get_my_session()?, &surroundings);
-                if let Ok(effect) = &res {
-                    trace!("action:effect {:?}", effect);
-                    info!("action:effect");
-                } else {
-                    warn!("action:error {:?}", res);
+            } => match action {
+                PerformAction::Instance(action) => {
+                    let _span = span!(Level::DEBUG, "A").entered();
+                    info!("action:perform {:?}", &action);
+                    let res = action.perform(get_my_session()?, &surroundings);
+                    if let Ok(effect) = &res {
+                        trace!("action:effect {:?}", effect);
+                        info!("action:effect");
+                    } else {
+                        warn!("action:error {:?}", res);
+                    }
+                    res
                 }
-                res
-            }
+            },
             Perform::Raised(raised) => {
                 self.queue_raised(raised)?;
 
