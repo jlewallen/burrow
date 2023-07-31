@@ -1,4 +1,5 @@
 mod identifiers;
+mod memory;
 mod users;
 
 pub mod domain;
