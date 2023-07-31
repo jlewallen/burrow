@@ -101,6 +101,9 @@ pub mod actions {
 }
 
 pub mod tests {
+    pub use anyhow::Result;
+    pub use chrono::TimeZone;
+    pub use chrono::Utc;
     pub use serde::de::DeserializeOwned;
     pub use std::collections::HashSet;
     pub use std::rc::Rc;
@@ -109,6 +112,8 @@ pub mod tests {
     pub use crate::{BuildSurroundings, QuickThing};
     pub use kernel::*;
     pub use tracing::*;
+
+    pub use super::plugin::try_parsing;
 
     pub trait ToDebugJson {
         fn to_debug_json(&self) -> Result<serde_json::Value, serde_json::Error>;

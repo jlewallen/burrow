@@ -53,8 +53,6 @@ impl ParsesActions for MemoryPlugin {
 
 pub mod model {
     use crate::library::model::*;
-    use engine::SpecificMemory;
-    pub use engine::{memories_of, remember, MemoryEvent};
 
     #[derive(Debug, Serialize, ToJson)]
     #[serde(rename_all = "camelCase")]
@@ -88,6 +86,69 @@ pub mod model {
     }
 
     impl Reply for RecallReply {}
+
+    #[derive(Debug, Serialize, Deserialize, Clone)]
+    pub struct ItemEvent {
+        pub(crate) key: EntityKey,
+        pub(crate) gid: EntityGid,
+        pub(crate) name: String,
+    }
+
+    #[derive(Debug, Serialize, Deserialize, Clone)]
+    pub enum MemoryEvent {
+        Created(ItemEvent),
+        Destroyed(ItemEvent),
+    }
+
+    #[derive(Debug, Serialize, Deserialize, Clone)]
+    pub struct SpecificMemory {
+        pub time: DateTime<Utc>,
+        pub event: MemoryEvent,
+    }
+
+    #[derive(Debug, Serialize, Deserialize, Default)]
+    pub struct Memory {
+        memory: Vec<SpecificMemory>,
+    }
+
+    impl Memory {}
+
+    impl Needs<SessionRef> for Memory {
+        fn supply(&mut self, _session: &SessionRef) -> Result<()> {
+            Ok(())
+        }
+    }
+
+    impl Scope for Memory {
+        fn serialize(&self) -> Result<serde_json::Value> {
+            Ok(serde_json::to_value(self)?)
+        }
+
+        fn scope_key() -> &'static str {
+            "memory"
+        }
+    }
+
+    impl Into<Vec<SpecificMemory>> for Memory {
+        fn into(self) -> Vec<SpecificMemory> {
+            self.memory
+        }
+    }
+
+    pub fn memories_of(entity: &Entry) -> Result<Vec<SpecificMemory>, DomainError> {
+        let memory = entity.scope::<Memory>()?;
+        Ok(memory.memory.clone())
+    }
+
+    pub fn remember(
+        entity: &Entry,
+        time: DateTime<Utc>,
+        event: MemoryEvent,
+    ) -> Result<(), DomainError> {
+        let mut memory = entity.scope_mut::<Memory>()?;
+        memory.memory.push(SpecificMemory { time, event });
+        memory.save()
+    }
 }
 
 pub mod actions {
@@ -113,9 +174,8 @@ pub mod actions {
 }
 
 pub mod parser {
-    use crate::library::parser::*;
-
     use super::actions::*;
+    use crate::library::parser::*;
 
     pub struct RecallActionParser {}
 
@@ -132,14 +192,8 @@ pub mod parser {
 
 #[cfg(test)]
 mod tests {
-    use chrono::TimeZone;
-    use chrono::Utc;
-    use engine::ItemEvent;
-
     use super::model::*;
     use super::parser::*;
-    use super::*;
-    use crate::library::plugin::try_parsing;
     use crate::library::tests::*;
 
     #[test]
