@@ -1,28 +1,23 @@
-use kernel::{DomainError, Entry};
-
-use crate::memory::model::Memory;
-
-use self::model::{MemoryEvent, SpecificMemory};
-
 pub mod model {
     use anyhow::Result;
     use chrono::{DateTime, Utc};
-    use kernel::*;
     use serde::{Deserialize, Serialize};
 
-    #[derive(Debug, Serialize, Deserialize)]
+    use kernel::*;
+
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct ItemEvent {
         key: EntityKey,
         name: String,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub enum MemoryEvent {
         Created(ItemEvent),
         Destroyed(ItemEvent),
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct SpecificMemory {
         time: DateTime<Utc>,
         event: MemoryEvent,
@@ -56,18 +51,18 @@ pub mod model {
             self.memory
         }
     }
-}
 
-use model::*;
+    pub fn memories_of(entity: &Entry) -> Result<Vec<SpecificMemory>, DomainError> {
+        let memory = entity.scope::<Memory>()?;
+        Ok(memory.memory.clone())
+    }
 
-fn memories_of(entity: &Entry) -> Result<Vec<SpecificMemory>, DomainError> {
-    let memory = entity.scope::<Memory>()?;
-    todo!()
-}
-
-fn remember(entity: &Entry, event: MemoryEvent) -> Result<(), DomainError> {
-    // let mut usernames = world.scope_mut::<Usernames>()?;
-    // usernames.set(username, key);
-    // usernames.save()
-    todo!()
+    pub fn remember(entity: &Entry, event: MemoryEvent) -> Result<(), DomainError> {
+        let mut memory = entity.scope_mut::<Memory>()?;
+        memory.memory.push(SpecificMemory {
+            time: Utc::now(),
+            event,
+        });
+        Ok(())
+    }
 }
