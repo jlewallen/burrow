@@ -218,17 +218,17 @@ fn evaluate_commands(
 
     let rendered = match effect {
         Effect::Reply(reply) => match reply {
-            EffectReply::Instance(reply) => renderer.render_reply(&reply)?,
+            EffectReply::Instance(reply) => Some(renderer.render_reply(&reply)?),
         },
+        Effect::Ok => None,
         _ => todo!(),
     };
 
     let notifier = QueuedNotifier::default();
-
     session.close(&notifier)?;
-
-    println!("{}", rendered);
-
+    if let Some(rendered) = rendered {
+        println!("{}", rendered);
+    }
     notifier.forward(&StandardOutNotifier::new(&self_key))?;
 
     Ok(())

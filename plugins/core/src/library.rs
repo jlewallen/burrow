@@ -31,6 +31,10 @@ pub mod parser {
         map(word, |s: &str| Item::Named(s.to_owned()))(i)
     }
 
+    pub fn text_to_end_of_line(i: &str) -> IResult<&str, &str> {
+        take_while1(|_c: char| true)(i)
+    }
+
     pub fn string_literal(i: &str) -> IResult<&str, &str> {
         delimited(tag("\""), string_inside, tag("\""))(i)
     }

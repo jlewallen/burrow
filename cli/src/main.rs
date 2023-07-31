@@ -8,7 +8,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use engine::{sequences::Sequence, storage::StorageFactory, Domain};
 use kernel::{EntityKey, Identity, RegisteredPlugins};
 use plugins_core::{
-    building::BuildingPluginFactory, carrying::CarryingPluginFactory,
+    building::BuildingPluginFactory, carrying::CarryingPluginFactory, chat::ChatPluginFactory,
     looking::LookingPluginFactory, memory::MemoryPluginFactory, moving::MovingPluginFactory,
     DefaultFinder,
 };
@@ -149,6 +149,7 @@ async fn make_domain(plugins: PluginConfiguration) -> Result<Domain> {
         registered_plugins.register(RpcPluginFactory::start().await?);
     }
     registered_plugins.register(LookingPluginFactory::default());
+    registered_plugins.register(ChatPluginFactory::default());
     registered_plugins.register(MovingPluginFactory::default());
     registered_plugins.register(CarryingPluginFactory::default());
     registered_plugins.register(BuildingPluginFactory::default());
