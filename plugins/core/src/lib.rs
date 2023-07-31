@@ -4,13 +4,14 @@ pub mod carrying;
 pub mod finding;
 pub mod library;
 pub mod looking;
+pub mod memory;
 pub mod moving;
 pub mod tools;
 
 pub use build::*;
 pub use finding::*;
 
-/*
+#[cfg(test)]
 pub fn log_test() {
     use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -21,4 +22,3 @@ pub fn log_test() {
         .with(tracing_subscriber::fmt::layer().with_thread_ids(true))
         .init();
 }
-*/

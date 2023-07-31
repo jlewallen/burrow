@@ -7,8 +7,9 @@ pub mod model {
 
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct ItemEvent {
-        key: EntityKey,
-        name: String,
+        pub key: EntityKey,
+        pub gid: EntityGid,
+        pub name: String,
     }
 
     #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -19,8 +20,8 @@ pub mod model {
 
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct SpecificMemory {
-        time: DateTime<Utc>,
-        event: MemoryEvent,
+        pub time: DateTime<Utc>,
+        pub event: MemoryEvent,
     }
 
     #[derive(Debug, Serialize, Deserialize, Default)]
@@ -57,12 +58,13 @@ pub mod model {
         Ok(memory.memory.clone())
     }
 
-    pub fn remember(entity: &Entry, event: MemoryEvent) -> Result<(), DomainError> {
+    pub fn remember(
+        entity: &Entry,
+        time: DateTime<Utc>,
+        event: MemoryEvent,
+    ) -> Result<(), DomainError> {
         let mut memory = entity.scope_mut::<Memory>()?;
-        memory.memory.push(SpecificMemory {
-            time: Utc::now(),
-            event,
-        });
-        Ok(())
+        memory.memory.push(SpecificMemory { time, event });
+        memory.save()
     }
 }

@@ -71,6 +71,7 @@ pub mod parser {
 
 pub mod model {
     pub use anyhow::Result;
+    pub use chrono::{DateTime, Utc};
     pub use kernel::*;
     pub use macros::*;
     pub use serde::{Deserialize, Serialize};

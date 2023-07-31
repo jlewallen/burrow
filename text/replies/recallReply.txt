@@ -1,0 +1,6 @@
+Hmmm, yes, there was something that you were trying to remember...
+{% for memory in recallReply.memories -%}
+{{ memory }}
+{%- else -%}
+Actually, nothing comes to mind. Drat.
+{%- endfor -%}

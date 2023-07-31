@@ -9,7 +9,8 @@ use engine::{sequences::Sequence, storage::StorageFactory, Domain};
 use kernel::{EntityKey, Identity, RegisteredPlugins};
 use plugins_core::{
     building::BuildingPluginFactory, carrying::CarryingPluginFactory,
-    looking::LookingPluginFactory, moving::MovingPluginFactory, DefaultFinder,
+    looking::LookingPluginFactory, memory::MemoryPluginFactory, moving::MovingPluginFactory,
+    DefaultFinder,
 };
 use plugins_dynlib::DynamicPluginFactory;
 use plugins_rpc::RpcPluginFactory;
@@ -151,6 +152,7 @@ async fn make_domain(plugins: PluginConfiguration) -> Result<Domain> {
     registered_plugins.register(MovingPluginFactory::default());
     registered_plugins.register(CarryingPluginFactory::default());
     registered_plugins.register(BuildingPluginFactory::default());
+    registered_plugins.register(MemoryPluginFactory::default());
     let finder = Arc::new(DefaultFinder::default());
     let storage_factory = Arc::new(Factory::new("world.sqlite3")?);
     storage_factory.migrate()?;
