@@ -237,6 +237,7 @@ pub enum BasicReply {
 }
 
 #[function_component]
+#[allow(non_snake_case)]
 pub fn HistoryEntryItem(props: &Props) -> Html {
     let myself = use_context::<Myself>().expect("No myself context");
     log::debug!("myself: {:?}", myself);
