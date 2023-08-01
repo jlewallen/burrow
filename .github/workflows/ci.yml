@@ -8,8 +8,30 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build_and_test:
+  build:
     name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+    steps:
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-${{ matrix.toolchain }}-cargo-ci-${{ hashFiles('**/Cargo.toml') }}
+      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      - run: rustup target add wasm32-unknown-unknown
+      - run: cargo build --verbose
+      - run: cargo test --workspace --verbose
+
+  bench:
+    name: Bench
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -29,7 +51,6 @@ jobs:
       - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
       - run: rustup target add wasm32-unknown-unknown
       - run: cargo build --verbose
-      - run: cargo test --workspace --verbose
       - run: cargo bench --workspace --verbose
       - run: cargo bench --bench simple -- --profile-time=5
         working-directory: libs/tests
