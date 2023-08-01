@@ -421,8 +421,8 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
                         Ok(Ok(reply)) => session_tx
                             .send(ServerMessage::Reply(reply))
                             .expect("Error sending reply"),
-                        Ok(Err(_)) => todo!(),
-                        Err(_) => todo!(),
+                        Ok(Err(e)) => todo!("{:?}", e),
+                        Err(e) => todo!("{:?}", e),
                     };
                 }
                 _ => todo!(),

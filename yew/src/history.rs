@@ -24,12 +24,16 @@ pub struct SessionHistory {
 
 impl SessionHistory {
     pub fn append(&self, value: serde_json::Value) -> Self {
-        let mut ugly_clone = self.entries.clone();
-        ugly_clone.push(HistoryEntry::new(value));
-
-        Self {
-            entries: ugly_clone,
-        }
+        let entries = if !value.is_null() {
+            self.entries
+                .clone()
+                .into_iter()
+                .chain([HistoryEntry::new(value)])
+                .collect()
+        } else {
+            self.entries.clone()
+        };
+        Self { entries }
     }
 }
 

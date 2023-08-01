@@ -153,6 +153,7 @@ impl ToJson for Effect {
         // TODO I'll need to work on this, if not to make tests scale.
         match self {
             Effect::Reply(reply) => reply.to_tagged_json(),
+            Effect::Ok => serde_json::to_value(()),
             _ => todo!(),
         }
     }
