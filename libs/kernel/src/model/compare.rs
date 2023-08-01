@@ -49,14 +49,14 @@ impl CompareChanges<serde_json::Value, serde_json::Value> for TreeDiff {
         let mut d = Recorder::default();
         diff(&pair.before, &pair.after, &mut d);
 
-        let modifications = d
+        let calls = d
             .calls
             .iter()
             .filter(|c| !matches!(c, ChangeType::Unchanged(_, _)))
-            .count();
+            .collect::<Vec<_>>();
 
-        if modifications > 0 {
-            for each in d.calls {
+        if !calls.is_empty() {
+            for each in calls {
                 match each {
                     ChangeType::Unchanged(_, _) => {}
                     ChangeType::Removed(k, _)
