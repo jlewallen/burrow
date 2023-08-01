@@ -173,7 +173,7 @@ impl<'a> SavesEntities<'a> {
     fn check_for_changes(&self, l: &mut LoadedEntity) -> Result<Option<ModifiedEntity>> {
         use kernel::compare::*;
 
-        let _span = span!(Level::TRACE, "flushing", key = l.key.to_string()).entered();
+        let _span = span!(Level::INFO, "flushing", key = l.key.to_string()).entered();
 
         if let Some(modified) = any_entity_changes(AnyChanges {
             before: l.serialized.as_ref().map(Original::String),

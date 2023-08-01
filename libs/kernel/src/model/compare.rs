@@ -59,7 +59,15 @@ impl CompareChanges<serde_json::Value, serde_json::Value> for TreeDiff {
             for each in d.calls {
                 match each {
                     ChangeType::Unchanged(_, _) => {}
-                    _ => debug!("modified: {:?}", each),
+                    ChangeType::Removed(k, _)
+                    | ChangeType::Added(k, _)
+                    | ChangeType::Modified(k, _, _) => info!(
+                        "modified {:?}",
+                        k.into_iter()
+                            .map(|k| format!("{}", k))
+                            .collect::<Vec<_>>()
+                            .join(".")
+                    ),
                 }
             }
 
