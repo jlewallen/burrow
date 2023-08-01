@@ -1,15 +1,15 @@
-name: Build
+name: Nightly
 
 on:
-  push:
-  pull_request:
+  schedule:
+    - cron: "0 5/17 * * *"
 
 env: 
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-    name: Build
+  bench:
+    name: Bench
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -29,4 +29,14 @@ jobs:
       - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
       - run: rustup target add wasm32-unknown-unknown
       - run: cargo build --verbose
-      - run: cargo test --workspace --verbose
+      - run: cargo bench --workspace --verbose
+      - run: cargo bench --bench simple -- --profile-time=5
+        working-directory: libs/tests
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./target/criterion
+          destination_dir: build/criterion
+
