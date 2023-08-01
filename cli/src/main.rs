@@ -9,8 +9,8 @@ use engine::{sequences::Sequence, storage::StorageFactory, Domain};
 use kernel::{EntityKey, Identity, RegisteredPlugins};
 use plugins_core::{
     building::BuildingPluginFactory, carrying::CarryingPluginFactory, chat::ChatPluginFactory,
-    looking::LookingPluginFactory, memory::MemoryPluginFactory, moving::MovingPluginFactory,
-    DefaultFinder,
+    emote::EmotePluginFactory, looking::LookingPluginFactory, memory::MemoryPluginFactory,
+    moving::MovingPluginFactory, DefaultFinder,
 };
 use plugins_dynlib::DynamicPluginFactory;
 use plugins_rpc::RpcPluginFactory;
@@ -150,6 +150,7 @@ async fn make_domain(plugins: PluginConfiguration) -> Result<Domain> {
     }
     registered_plugins.register(LookingPluginFactory::default());
     registered_plugins.register(ChatPluginFactory::default());
+    registered_plugins.register(EmotePluginFactory::default());
     registered_plugins.register(MovingPluginFactory::default());
     registered_plugins.register(CarryingPluginFactory::default());
     registered_plugins.register(BuildingPluginFactory::default());

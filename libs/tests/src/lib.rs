@@ -1,5 +1,6 @@
 use anyhow::Result;
 use plugins_core::chat::ChatPluginFactory;
+use plugins_core::emote::EmotePluginFactory;
 use plugins_core::memory::MemoryPluginFactory;
 use std::env::temp_dir;
 use std::rc::Rc;
@@ -123,6 +124,7 @@ where
     registered_plugins.register(DynamicPluginFactory::default());
     registered_plugins.register(LookingPluginFactory::default());
     registered_plugins.register(ChatPluginFactory::default());
+    registered_plugins.register(EmotePluginFactory::default());
     registered_plugins.register(MovingPluginFactory::default());
     registered_plugins.register(CarryingPluginFactory::default());
     registered_plugins.register(BuildingPluginFactory::default());

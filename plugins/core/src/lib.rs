@@ -2,6 +2,7 @@ pub mod build;
 pub mod building;
 pub mod carrying;
 pub mod chat;
+pub mod emote;
 pub mod finding;
 pub mod library;
 pub mod looking;
