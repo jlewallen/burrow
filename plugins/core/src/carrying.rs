@@ -77,32 +77,10 @@ pub mod model {
     impl DomainEvent for CarryingEvent {}
 
     #[derive(Debug, Serialize, Deserialize, Default)]
-    pub struct Location {
-        pub container: Option<EntityRef>,
-    }
-
-    impl Scope for Location {
-        fn serialize(&self) -> Result<serde_json::Value> {
-            Ok(serde_json::to_value(self)?)
-        }
-
-        fn scope_key() -> &'static str {
-            "location"
-        }
-    }
-
-    impl Needs<SessionRef> for Location {
-        fn supply(&mut self, session: &SessionRef) -> Result<()> {
-            self.container = session.ensure_optional_entity(&self.container)?;
-            Ok(())
-        }
-    }
-
-    #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Containing {
-        pub holding: Vec<EntityRef>,
-        pub capacity: Option<u32>,
-        pub produces: HashMap<String, String>,
+        pub(crate) holding: Vec<EntityRef>,
+        pub(crate) capacity: Option<u32>,
+        pub(crate) produces: HashMap<String, String>,
     }
 
     impl Scope for Containing {
@@ -511,8 +489,8 @@ mod tests {
     use super::parser::*;
     use super::*;
     use crate::carrying::model::Containing;
-    use crate::carrying::model::Location;
     use crate::library::tests::*;
+    use crate::location::Location;
 
     #[test]
     fn it_holds_unheld_items() -> Result<()> {

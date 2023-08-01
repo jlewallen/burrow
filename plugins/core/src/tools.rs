@@ -2,35 +2,60 @@ use anyhow::Result;
 use tracing::info;
 
 use super::{
-    carrying::model::{Carryable, Containing, Location},
+    carrying::model::{Carryable, Containing},
+    fashion::model::Wearing,
+    location::{change_location, Location},
     moving::model::{Exit, Occupyable, Occupying},
 };
 use kernel::{get_my_session, model::*, DomainOutcome, EntityPtr};
+
+pub use super::location::container_of;
 
 pub fn is_container(item: &Entry) -> Result<bool, DomainError> {
     item.has_scope::<Containing>()
 }
 
+pub fn wear_article(from: &Entry, to: &Entry, item: &Entry) -> Result<DomainOutcome, DomainError> {
+    change_location(
+        from,
+        to,
+        item,
+        |s: &mut Containing, item: Entry| s.stop_carrying(&item),
+        |s: &mut Wearing, item: Entry| {
+            s.start_wearing(&item)?;
+            Ok(Some(item))
+        },
+    )
+}
+
+pub fn remove_article(
+    from: &Entry,
+    to: &Entry,
+    item: &Entry,
+) -> Result<DomainOutcome, DomainError> {
+    change_location(
+        from,
+        to,
+        item,
+        |s: &mut Wearing, item: Entry| s.stop_wearing(&item),
+        |s: &mut Containing, item: Entry| {
+            s.start_carrying(&item)?;
+            Ok(Some(item))
+        },
+    )
+}
+
 pub fn move_between(from: &Entry, to: &Entry, item: &Entry) -> Result<DomainOutcome, DomainError> {
-    info!("moving {:?} {:?} {:?}", item, from, to);
-
-    let mut from = from.scope_mut::<Containing>()?;
-    let mut into = to.scope_mut::<Containing>()?;
-
-    match from.stop_carrying(item)? {
-        Some(removed) => {
-            let mut location = item.scope_mut::<Location>()?;
-            location.container = Some(to.try_into()?);
-
-            into.start_carrying(&removed)?;
-            from.save()?;
-            into.save()?;
-            location.save()?;
-
-            Ok(DomainOutcome::Ok)
-        }
-        None => Ok(DomainOutcome::Nope),
-    }
+    change_location(
+        from,
+        to,
+        item,
+        |s: &mut Containing, item: Entry| s.stop_carrying(&item),
+        |s: &mut Containing, item: Entry| {
+            s.start_carrying(&item)?;
+            Ok(Some(item.clone()))
+        },
+    )
 }
 
 pub fn navigate_between(
@@ -59,15 +84,6 @@ pub fn navigate_between(
     }
 }
 
-pub fn container_of(item: &Entry) -> Result<EntityPtr, DomainError> {
-    let location = item.scope::<Location>()?;
-    if let Some(container) = &location.container {
-        Ok(container.to_entity()?)
-    } else {
-        Err(DomainError::ContainerRequired)
-    }
-}
-
 pub fn area_of(living: &Entry) -> Result<EntityPtr, DomainError> {
     let occupying = living.scope::<Occupying>()?;
 
@@ -88,9 +104,7 @@ pub fn set_container(container: &Entry, items: &Vec<Entry>) -> Result<(), Domain
     let mut containing = container.scope_mut::<Containing>()?;
     for item in items {
         containing.start_carrying(item)?;
-        let mut location = item.scope_mut::<Location>()?;
-        location.container = Some(container.try_into()?);
-        location.save()?;
+        Location::set(item, container.try_into()?)?;
     }
     containing.save()
 }
