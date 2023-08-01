@@ -60,14 +60,26 @@ pub mod model {
         moving::model::{Movement, Occupyable},
     };
 
-    pub fn qualify_name(quantity: f32, name: &str) -> String {
-        use indefinite::*;
-        use inflection::*;
-        if quantity > 1.0 {
-            let pluralized = plural::<_, String>(name);
-            format!("{} {}", quantity, &pluralized)
-        } else {
-            indefinite(name)
+    pub enum Unqualified<'a> {
+        Quantity(f32, &'a str),
+        Living(&'a str),
+    }
+
+    impl<'a> Unqualified<'a> {
+        pub fn qualify(self) -> String {
+            match self {
+                Unqualified::Quantity(quantity, name) => {
+                    use indefinite::*;
+                    use inflection::*;
+                    if quantity > 1.0 {
+                        let pluralized = plural::<_, String>(name);
+                        format!("{} {}", quantity, &pluralized)
+                    } else {
+                        indefinite(name)
+                    }
+                }
+                Unqualified::Living(name) => name.to_owned(),
+            }
         }
     }
 
@@ -87,14 +99,23 @@ pub mod model {
     impl Observe<ObservedEntity> for &Entry {
         fn observe(&self, _user: &Entry) -> Result<Option<ObservedEntity>> {
             let quantity = {
-                let carryable = self.scope::<Carryable>()?;
-                carryable.quantity()
+                if let Some(carryable) = self.maybe_scope::<Carryable>()? {
+                    Some(carryable.quantity())
+                } else {
+                    None
+                }
             };
             let key = self.key().to_string();
-            let myself = self.entity().borrow();
-            let name = myself.name();
-            let desc = myself.desc();
-            let qualified = name.as_ref().map(|n| qualify_name(quantity, n));
+            let observing = self.entity().borrow();
+            let name = observing.name();
+            let desc = observing.desc();
+            let qualified = name
+                .as_ref()
+                .map(|n| match quantity {
+                    Some(quantity) => Unqualified::Quantity(quantity, n),
+                    None => Unqualified::Living(n),
+                })
+                .map(|u| u.qualify());
             Ok(Some(ObservedEntity {
                 key,
                 name,
@@ -403,6 +424,7 @@ mod tests {
         let vessel = build
             .entity()?
             .named("Vessel")?
+            .carryable()?
             .holding(&vec![build.make(QuickThing::Object("Key"))?])?
             .into_entry()?;
         let (session, surroundings) = build.hands(vec![QuickThing::Actual(vessel)]).build()?;
@@ -422,7 +444,7 @@ mod tests {
     #[test]
     fn it_fails_to_look_at_not_found_entities() -> Result<()> {
         let mut build = BuildSurroundings::new()?;
-        let vessel = build.entity()?.named("Hammer")?.into_entry()?;
+        let vessel = build.entity()?.named("Hammer")?.carryable()?.into_entry()?;
         let (session, surroundings) = build.hands(vec![QuickThing::Actual(vessel)]).build()?;
 
         let action = try_parsing(LookActionParser {}, "look at shovel")?;
@@ -440,7 +462,7 @@ mod tests {
     #[test]
     fn it_looks_at_entities() -> Result<()> {
         let mut build = BuildSurroundings::new()?;
-        let vessel = build.entity()?.named("Hammer")?.into_entry()?;
+        let vessel = build.entity()?.named("Hammer")?.carryable()?.into_entry()?;
         let (session, surroundings) = build.hands(vec![QuickThing::Actual(vessel)]).build()?;
 
         let action = try_parsing(LookActionParser {}, "look at hammer")?;
@@ -459,12 +481,16 @@ mod tests {
     fn qualify_name_basics() {
         // Not going to test all of indefinite's behavior here, just build edge
         // cases in our integrating logic.
-        assert_eq!(qualify_name(1.0, "box"), "a box");
-        assert_eq!(qualify_name(2.0, "box"), "2 boxes");
-        assert_eq!(qualify_name(1.0, "person"), "a person");
-        assert_eq!(qualify_name(2.0, "person"), "2 people");
-        assert_eq!(qualify_name(1.0, "orange"), "an orange");
-        assert_eq!(qualify_name(2.0, "orange"), "2 oranges");
-        assert_eq!(qualify_name(1.0, "East Exit"), "an East Exit");
+        assert_eq!(Unqualified::Quantity(1.0, "box").qualify(), "a box");
+        assert_eq!(Unqualified::Quantity(2.0, "box").qualify(), "2 boxes");
+        assert_eq!(Unqualified::Quantity(1.0, "person").qualify(), "a person");
+        assert_eq!(Unqualified::Quantity(2.0, "person").qualify(), "2 people");
+        assert_eq!(Unqualified::Quantity(1.0, "orange").qualify(), "an orange");
+        assert_eq!(Unqualified::Quantity(2.0, "orange").qualify(), "2 oranges");
+        assert_eq!(
+            Unqualified::Quantity(1.0, "East Exit").qualify(),
+            "an East Exit"
+        );
+        assert_eq!(Unqualified::Living("Jacob").qualify(), "Jacob");
     }
 }

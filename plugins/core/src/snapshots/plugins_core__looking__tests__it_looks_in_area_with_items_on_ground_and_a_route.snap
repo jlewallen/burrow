@@ -1,6 +1,6 @@
 ---
 source: plugins/core/src/looking.rs
-expression: reply.to_json()?
+expression: reply.to_debug_json()?
 ---
 {
   "areaObservation": {
@@ -8,7 +8,7 @@ expression: reply.to_json()?
       "desc": null,
       "key": "E-2",
       "name": "Welcome Area",
-      "qualified": "a Welcome Area"
+      "qualified": "Welcome Area"
     },
     "carrying": [],
     "items": [
@@ -28,7 +28,7 @@ expression: reply.to_json()?
         "desc": null,
         "key": "E-5",
         "name": "East Exit",
-        "qualified": "an East Exit"
+        "qualified": "East Exit"
       }
     ],
     "living": [
@@ -36,14 +36,14 @@ expression: reply.to_json()?
         "desc": null,
         "key": "E-1",
         "name": "Living",
-        "qualified": "a Living"
+        "qualified": "Living"
       }
     ],
     "person": {
       "desc": null,
       "key": "E-1",
       "name": "Living",
-      "qualified": "a Living"
+      "qualified": "Living"
     },
     "routes": []
   }

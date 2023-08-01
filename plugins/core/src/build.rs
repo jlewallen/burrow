@@ -50,6 +50,12 @@ impl Build {
         Ok(self)
     }
 
+    pub fn carryable(&mut self) -> Result<&mut Self> {
+        tools::set_quantity(&self.into_entry()?, 1.0)?;
+
+        Ok(self)
+    }
+
     pub fn of_quantity(&mut self, quantity: f32) -> Result<&mut Self> {
         tools::set_quantity(&self.into_entry()?, quantity)?;
 
@@ -100,7 +106,10 @@ pub enum QuickThing {
 impl QuickThing {
     pub fn make(&self, session: &Rc<Session>) -> Result<Entry> {
         match self {
-            QuickThing::Object(name) => Ok(Build::new(session)?.named(name)?.into_entry()?),
+            QuickThing::Object(name) => Ok(Build::new(session)?
+                .named(name)?
+                .carryable()?
+                .into_entry()?),
             QuickThing::Multiple(name, quantity) => Ok(Build::new(session)?
                 .named(name)?
                 .of_quantity(*quantity)?

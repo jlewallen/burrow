@@ -21,6 +21,16 @@ expression: reply.to_debug_json()?
         },
         "parent": null,
         "scopes": {
+          "carryable": {
+            "kind": {
+              "identity": {
+                "private": "Private#0",
+                "public": "Public#0",
+                "signature": null
+              }
+            },
+            "quantity": 1.0
+          },
           "location": {
             "container": {
               "gid": 2,
