@@ -128,4 +128,17 @@ pub mod tests {
             self.to_tagged_json()
         }
     }
+
+    pub fn parse_and_perform<T: ParsesActions>(
+        parser: T,
+        line: &str,
+    ) -> Result<(Surroundings, Effect)> {
+        let mut build = BuildSurroundings::new()?;
+        let (session, surroundings) = build.plain().build()?;
+        let action = try_parsing(parser, line)?;
+        let action = action.unwrap();
+        let effect = action.perform(session.clone(), &surroundings)?;
+        build.close()?;
+        Ok((surroundings, effect))
+    }
 }

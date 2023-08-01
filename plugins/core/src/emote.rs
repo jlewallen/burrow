@@ -123,34 +123,18 @@ mod tests {
 
     #[test]
     fn it_raises_laugh_events() -> Result<()> {
-        let mut build = BuildSurroundings::new()?;
-        let (session, surroundings) = build.plain().build()?;
+        let (_surroundings, effect) = parse_and_perform(LaughActionParser {}, "laugh")?;
 
-        let action = try_parsing(LaughActionParser {}, "laugh")?;
-        let action = action.unwrap();
-        let reply = action.perform(session.clone(), &surroundings)?;
-        let (_, _person, _area) = surroundings.unpack();
-
-        assert!(matches!(reply, Effect::Ok));
-
-        build.close()?;
+        assert!(matches!(effect, Effect::Ok));
 
         Ok(())
     }
 
     #[test]
     fn it_raises_lol_events() -> Result<()> {
-        let mut build = BuildSurroundings::new()?;
-        let (session, surroundings) = build.plain().build()?;
+        let (_surroundings, effect) = parse_and_perform(LaughActionParser {}, "lol")?;
 
-        let action = try_parsing(LaughActionParser {}, "lol")?;
-        let action = action.unwrap();
-        let reply = action.perform(session.clone(), &surroundings)?;
-        let (_, _person, _area) = surroundings.unpack();
-
-        assert!(matches!(reply, Effect::Ok));
-
-        build.close()?;
+        assert!(matches!(effect, Effect::Ok));
 
         Ok(())
     }

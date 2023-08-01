@@ -138,23 +138,15 @@ pub mod parser {
 
 #[cfg(test)]
 mod tests {
-    // use super::model::*;
     use super::parser::*;
     use crate::library::tests::*;
 
     #[test]
     fn it_raises_conversation_events() -> Result<()> {
-        let mut build = BuildSurroundings::new()?;
-        let (session, surroundings) = build.plain().build()?;
+        let (_surroundings, effect) =
+            parse_and_perform(SpeakActionParser {}, "say hello, everyone!")?;
 
-        let action = try_parsing(SpeakActionParser {}, "say hello, everyone!")?;
-        let action = action.unwrap();
-        let reply = action.perform(session.clone(), &surroundings)?;
-        let (_, _person, _area) = surroundings.unpack();
-
-        assert!(matches!(reply, Effect::Ok));
-
-        build.close()?;
+        assert!(matches!(effect, Effect::Ok));
 
         Ok(())
     }
