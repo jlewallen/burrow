@@ -4,7 +4,7 @@ use tracing::*;
 
 use dynlib_sys::prelude::*;
 use macros::*;
-use plugins_core::{carrying::model::CarryingEvent, library::model::*, *};
+use plugins_core::library::model::*;
 
 #[derive(Debug, Serialize, Deserialize, ToJson)]
 enum ExampleFuture {
@@ -35,26 +35,7 @@ impl Agent for ExampleAgent {
         Ok(())
     }
 
-    fn have_surroundings(&mut self, surroundings: Surroundings) -> Result<()> {
-        let (world, living, area) = surroundings.unpack();
-
-        trace!("world {:?}", world);
-        trace!("living {:?}", living);
-        trace!("area {:?}", area);
-        let area_of = tools::area_of(&living)?;
-        trace!("area-of: {:?}", area_of);
-
-        if false {
-            for dropping in tools::contained_by(&area)? {
-                let raise = CarryingEvent::ItemDropped {
-                    living: living.entity_ref(),
-                    item: dropping.entity_ref(),
-                    area: area.entity_ref(),
-                };
-                get_my_session()?.raise(Audience::Area(area.key().clone()), Box::new(raise))?;
-            }
-        }
-
+    fn have_surroundings(&mut self, _surroundings: Surroundings) -> Result<()> {
         Ok(())
     }
 

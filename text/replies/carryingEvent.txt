@@ -1,1 +1,6 @@
-{{ carryingEvent | json_encode(pretty=true) }}
+{%- if carryingEvent.itemHeld -%}
+{{ carryingEvent.itemHeld.living.name }} held {{ carryingEvent.itemHeld.item.qualified }}
+{%- endif  -%}
+{%- if carryingEvent.itemDropped -%}
+{{ carryingEvent.itemDropped.living.name }} dropped {{ carryingEvent.itemDropped.item.qualified }}
+{%- endif  -%}

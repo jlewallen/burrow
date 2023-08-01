@@ -64,12 +64,12 @@ pub mod model {
     pub enum CarryingEvent {
         ItemHeld {
             living: EntityRef,
-            item: EntityRef,
+            item: ObservedEntity,
             area: EntityRef,
         },
         ItemDropped {
             living: EntityRef,
-            item: EntityRef,
+            item: ObservedEntity,
             area: EntityRef,
         },
     }
@@ -280,7 +280,7 @@ pub mod model {
 }
 
 pub mod actions {
-    use crate::{carrying::model::CarryingEvent, library::actions::*};
+    use crate::{carrying::model::CarryingEvent, library::actions::*, looking::model::Observe};
 
     #[action]
     pub struct HoldAction {
@@ -303,7 +303,7 @@ pub mod actions {
                         Audience::Area(area.key().clone()),
                         CarryingEvent::ItemHeld {
                             living: user.entity_ref(),
-                            item: holding.entity_ref(),
+                            item: (&holding).observe(&user)?.expect("No observed entity"),
                             area: area.entity_ref(),
                         },
                     )?
@@ -337,7 +337,7 @@ pub mod actions {
                             Audience::Area(area.key().clone()),
                             CarryingEvent::ItemDropped {
                                 living: user.entity_ref(),
-                                item: dropping.entity_ref(),
+                                item: (&dropping).observe(&user)?.expect("No observed entity"),
                                 area: area.entity_ref(),
                             },
                         )?
