@@ -67,19 +67,24 @@ impl Notifier for QueuedNotifier {
 
 struct StandardOutNotifier {
     key: EntityKey,
+    renderer: crate::text::Renderer,
 }
 
 impl StandardOutNotifier {
-    fn new(key: &EntityKey) -> Self {
-        Self { key: key.clone() }
+    fn new(key: &EntityKey, renderer: crate::text::Renderer) -> Self {
+        Self {
+            key: key.clone(),
+            renderer,
+        }
     }
 }
 
 impl Notifier for StandardOutNotifier {
     fn notify(&self, audience: &EntityKey, observed: &Rc<dyn DomainEvent>) -> Result<()> {
         if *audience == self.key {
-            let serialized = serde_json::to_string_pretty(&observed.to_tagged_json()?)?;
-            println!("{}", serialized);
+            let value = observed.to_tagged_json()?;
+            let rendererd = self.renderer.render_value(&value)?;
+            println!("{}", rendererd);
         }
 
         Ok(())
@@ -214,7 +219,8 @@ fn evaluate_commands(
         SimpleReply::What.into()
     };
 
-    let renderer = Renderer::new(session.clone())?;
+    let text = crate::text::Renderer::new()?;
+    let renderer = Renderer::new(session.clone(), text.clone())?;
 
     let rendered = match effect {
         Effect::Reply(reply) => match reply {
@@ -229,7 +235,7 @@ fn evaluate_commands(
     if let Some(rendered) = rendered {
         println!("{}", rendered);
     }
-    notifier.forward(&StandardOutNotifier::new(&self_key))?;
+    notifier.forward(&StandardOutNotifier::new(&self_key, text))?;
 
     Ok(())
 }
@@ -247,9 +253,12 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
         println!("No previous history.");
     }
 
+    let text = crate::text::Renderer::new()?;
+
     tokio::task::spawn({
         let domain = domain.clone();
         let self_key = self_key.clone();
+        let standard_out = StandardOutNotifier::new(&self_key, text);
 
         async move {
             loop {
@@ -261,7 +270,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
                     warn!("tick failed: {:?}", e);
                 }
 
-                if let Err(e) = notifier.forward(&StandardOutNotifier::new(&self_key)) {
+                if let Err(e) = notifier.forward(&standard_out) {
                     warn!("tick failed forwarding notifications: {:?}", e);
                 }
             }

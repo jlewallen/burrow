@@ -7,22 +7,19 @@ use engine::Session;
 use replies::Reply;
 
 pub struct Renderer {
-    text: crate::text::Renderer,
+    target: crate::text::Renderer,
     #[allow(dead_code)]
     session: Rc<Session>,
 }
 
 impl Renderer {
-    pub fn new(session: Rc<Session>) -> Result<Self> {
-        Ok(Self {
-            text: crate::text::Renderer::new()?,
-            session,
-        })
+    pub fn new(session: Rc<Session>, target: crate::text::Renderer) -> Result<Self> {
+        Ok(Self { target, session })
     }
 
     pub fn render_reply(&self, reply: &Rc<dyn Reply>) -> Result<String> {
         let value = reply.to_tagged_json()?;
-        self.text.render_value(&value)
+        self.target.render_value(&value)
     }
 }
 

@@ -5,6 +5,7 @@ use tracing::info;
 
 use replies::Reply;
 
+#[derive(Clone)]
 pub struct Renderer {
     tera: Tera,
 }
@@ -49,6 +50,7 @@ impl Renderer {
         Ok(Self { tera })
     }
 
+    #[must_use]
     pub fn render_value(&self, value: &serde_json::Value) -> Result<String> {
         let mut all = "".to_string();
 

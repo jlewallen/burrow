@@ -1,0 +1,1 @@
+{{ movingEvent | json_encode(pretty=true) }}
