@@ -29,8 +29,13 @@ impl Command {
 }
 
 fn load_and_save_scope<T: Scope>(entity: &Entry) -> Result<bool, DomainError> {
+    use anyhow::Context;
     if entity.has_scope::<T>()? {
-        Ok(entity.scope_mut::<T>()?.save().map(|_| true)?)
+        Ok(entity
+            .scope_mut::<T>()
+            .with_context(|| format!("{}", T::scope_key()))?
+            .save()
+            .map(|_| true)?)
     } else {
         Ok(false)
     }
