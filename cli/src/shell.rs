@@ -219,6 +219,9 @@ fn evaluate_commands(
         SimpleReply::What.into()
     };
 
+    let notifier = QueuedNotifier::default();
+    session.close(&notifier)?;
+
     let text = crate::text::Renderer::new()?;
     let renderer = Renderer::new(session.clone(), text.clone())?;
 
@@ -230,8 +233,6 @@ fn evaluate_commands(
         _ => todo!(),
     };
 
-    let notifier = QueuedNotifier::default();
-    session.close(&notifier)?;
     if let Some(rendered) = rendered {
         println!("{}", rendered);
     }
