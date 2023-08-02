@@ -4,7 +4,8 @@ use yew::prelude::*;
 #[derive(Properties, Clone, PartialEq)]
 pub struct Props {
     pub value: String,
-    pub onsubmit: Callback<String>,
+    pub onchange: Option<Callback<String>>,
+    pub onsubmit: Option<Callback<String>>,
 }
 
 pub enum Msg {
@@ -28,7 +29,7 @@ impl Component for TextInput {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::Submit(text) => {
-                ctx.props().onsubmit.emit(text);
+                ctx.props().onsubmit.as_ref().map(|e| e.emit(text));
                 true
             }
         }

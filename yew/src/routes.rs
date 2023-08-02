@@ -8,13 +8,20 @@ use crate::login::Login;
 pub enum Route {
     #[at("/login")]
     Login,
+    #[at("/register")]
+    Register,
     #[at("/")]
     Home,
+    #[not_found]
+    #[at("/404")]
+    NotFound,
 }
 
 pub fn switch(selected_route: Route) -> Html {
     match selected_route {
         Route::Login => html! {<Login />},
+        Route::Register => html! {<Login />},
         Route::Home => html! {<Home />},
+        Route::NotFound => todo!(),
     }
 }

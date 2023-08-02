@@ -10,44 +10,43 @@ body {
 }
 
 html {
-    overflow-y: hidden;
+  overflow-y: hidden;
 }
 
 body {
-    height: 100vh;
+  height: 100vh;
 }
 
 #wrapper {
-    height: 100%;
+  height: 100%;
 }
 
 #hack {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 #main {
-     margin-top: 0em;
+  margin-top: 0em;
 }
 
 #upper {
-    flex: 1;
-    overflow: auto;
+  flex: 1;
+  overflow: auto;
 }
 
 #upper.obscured {
-    opacity: 0.5;
+  opacity: 0.5;
 }
 
 #app {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
-#lower {
-}
+#lower {}
 
 .command-line-editor {
   margin: 1em;
