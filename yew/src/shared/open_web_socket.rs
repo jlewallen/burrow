@@ -4,8 +4,8 @@ use std::rc::Rc;
 use yew::{prelude::*, Children};
 use yewdux::prelude::*;
 
-use crate::history::SessionHistory;
 use crate::services::{get_token, ReceivedMessage, WebSocketMessage, WebSocketService};
+use crate::shared::SessionHistory;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Evaluator {

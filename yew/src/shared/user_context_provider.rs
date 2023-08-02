@@ -3,7 +3,7 @@
 use yew::prelude::*;
 use yew_hooks::prelude::*;
 
-use crate::error::Error;
+use crate::errors::Error;
 use crate::services::{current, get_token, set_token};
 use crate::types::UserInfo;
 

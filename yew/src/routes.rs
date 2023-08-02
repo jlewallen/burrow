@@ -1,9 +1,9 @@
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::home::Home;
-use crate::login::Login;
-use crate::login::Logout;
+use crate::pages::Home;
+use crate::pages::Login;
+use crate::pages::Logout;
 
 #[derive(Debug, Clone, Copy, PartialEq, Routable)]
 pub enum Route {

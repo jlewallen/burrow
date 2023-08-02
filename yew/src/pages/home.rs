@@ -5,9 +5,9 @@ use web_sys::HtmlElement;
 use yew::prelude::*;
 use yewdux::prelude::*;
 
-use crate::command_line::CommandLine;
-use crate::history::{History, SessionHistory};
-use crate::open_web_socket::Evaluator;
+use crate::shared::CommandLine;
+use crate::shared::Evaluator;
+use crate::shared::{History, SessionHistory};
 
 pub enum Msg {
     UpdateHistory(Rc<SessionHistory>),

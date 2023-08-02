@@ -4,19 +4,10 @@ use yew_hooks::prelude::*;
 use yew_router::prelude::*;
 
 use crate::hooks::*;
-use crate::list_errors::*;
 use crate::routes::*;
 use crate::services::*;
+use crate::shared::*;
 use crate::types::*;
-
-#[function_component(Logout)]
-pub fn logout_page() -> Html {
-    let user_ctx = use_user_context();
-    user_ctx.logout();
-    html! {
-        <div>{{ "Bye" }}</div>
-    }
-}
 
 #[function_component(Login)]
 pub fn login_page() -> Html {

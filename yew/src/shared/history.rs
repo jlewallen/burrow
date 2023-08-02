@@ -1,10 +1,12 @@
-// use gloo_console as console;
-use crate::open_web_socket::Myself;
+#[allow(unused_imports)]
+use gloo_console as console;
 use replies::*;
 use serde::{Deserialize, Serialize};
 use std::rc::Rc;
 use yew::prelude::*;
 use yewdux::prelude::*;
+
+use crate::shared::Myself;
 
 #[derive(Debug, Serialize, Clone, Eq, PartialEq)]
 pub struct HistoryEntry {

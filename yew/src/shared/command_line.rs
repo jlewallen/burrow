@@ -1,6 +1,6 @@
 use yew::prelude::*;
 
-use crate::text_input::TextInput;
+use crate::shared::TextInput;
 
 #[derive(Properties, Clone, PartialEq)]
 pub struct Props {

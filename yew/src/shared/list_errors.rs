@@ -1,4 +1,4 @@
-use crate::error::*;
+use crate::errors::*;
 use yew::prelude::*;
 
 #[derive(Properties, Clone, PartialEq, Eq)]
