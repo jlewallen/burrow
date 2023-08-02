@@ -1,5 +1,4 @@
 use kernel::{Incoming, Surroundings};
-use plugins_core::tools;
 use wasm_sys::prelude::*;
 
 #[derive(Default)]
@@ -11,19 +10,7 @@ impl Agent for WasmExample {
     }
 
     fn have_surroundings(&mut self, surroundings: Surroundings) -> Result<()> {
-        let (world, living, area) = surroundings.unpack();
-
-        // info!("surroundings {:?}", surroundings);
-        // let area = area.entity()?;
-        // area.set_name("My world now!")?;
-
-        trace!("world {:?}", world);
-        trace!("living {:?}", living);
-        trace!("area {:?}", area);
-
-        let area_of = tools::area_of(&living)?;
-
-        trace!("area-of: {:?}", area_of);
+        let (_world, _living, _area) = surroundings.unpack();
 
         Ok(())
     }

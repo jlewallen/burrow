@@ -2,6 +2,7 @@ use anyhow::Result;
 use plugins_core::chat::ChatPluginFactory;
 use plugins_core::emote::EmotePluginFactory;
 use plugins_core::memory::MemoryPluginFactory;
+use plugins_core::security::SecurityPluginFactory;
 use std::env::temp_dir;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -129,6 +130,7 @@ where
     registered_plugins.register(CarryingPluginFactory::default());
     registered_plugins.register(BuildingPluginFactory::default());
     registered_plugins.register(MemoryPluginFactory::default());
+    registered_plugins.register(SecurityPluginFactory::default());
     let finder = Arc::new(DefaultFinder::default());
     let keys = Arc::new(DeterministicKeys::new());
     let identities = Arc::new(DeterministicKeys::new());

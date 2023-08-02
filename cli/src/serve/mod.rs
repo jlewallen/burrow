@@ -273,10 +273,7 @@ async fn shutdown_signal() {
 mod jwt_auth;
 
 mod auth {
-    use argon2::{
-        password_hash::{rand_core::OsRng, SaltString},
-        Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
-    };
+    use argon2::{Argon2, PasswordHash, PasswordVerifier};
     use axum::{
         extract::Extension,
         http::{header, Response, StatusCode},
@@ -309,20 +306,6 @@ mod auth {
         Json(payload): Json<LoginUserWrapper>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
         info!("login");
-
-        let salt = SaltString::generate(&mut OsRng);
-        let hashed_password = Argon2::default()
-            .hash_password(payload.user.password.as_bytes(), &salt)
-            .map_err(|e| {
-                let error_response = serde_json::json!({
-                    "status": "fail",
-                    "message": format!("Error while hashing password: {}", e),
-                });
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response))
-            })
-            .map(|hash| hash.to_string())?;
-
-        info!("expecting hash {:?}", hashed_password);
 
         let user_key = state.find_user_key(&payload.user.email).map_err(|e| {
             let error_response = serde_json::json!({

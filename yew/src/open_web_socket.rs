@@ -1,3 +1,4 @@
+#[allow(unused_imports)]
 use gloo_console as console;
 use std::rc::Rc;
 use yew::{prelude::*, Children};

@@ -10,6 +10,7 @@ pub mod location;
 pub mod looking;
 pub mod memory;
 pub mod moving;
+pub mod security;
 pub mod tools;
 
 pub use build::*;

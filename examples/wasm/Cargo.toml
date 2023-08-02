@@ -9,9 +9,6 @@ crate-type = ["cdylib"]
 [dependencies.kernel]
 path = "../../libs/kernel"
 
-[dependencies.plugins-core]
-path = "../../plugins/core"
-
 [dependencies.wasm-sys]
 path = "../../plugins/wasm-sys"
 

@@ -10,7 +10,7 @@ use kernel::{EntityKey, Identity, RegisteredPlugins};
 use plugins_core::{
     building::BuildingPluginFactory, carrying::CarryingPluginFactory, chat::ChatPluginFactory,
     emote::EmotePluginFactory, looking::LookingPluginFactory, memory::MemoryPluginFactory,
-    moving::MovingPluginFactory, DefaultFinder,
+    moving::MovingPluginFactory, security::SecurityPluginFactory, DefaultFinder,
 };
 use plugins_dynlib::DynamicPluginFactory;
 use plugins_rpc::RpcPluginFactory;
@@ -155,6 +155,7 @@ async fn make_domain(plugins: PluginConfiguration) -> Result<Domain> {
     registered_plugins.register(CarryingPluginFactory::default());
     registered_plugins.register(BuildingPluginFactory::default());
     registered_plugins.register(MemoryPluginFactory::default());
+    registered_plugins.register(SecurityPluginFactory::default());
     let finder = Arc::new(DefaultFinder::default());
     let storage_factory = Arc::new(Factory::new("world.sqlite3")?);
     storage_factory.migrate()?;
