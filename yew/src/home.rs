@@ -18,8 +18,7 @@ pub enum Msg {
 pub struct Home {
     refs: Vec<NodeRef>,
     evaluate_callback: Callback<String>,
-    #[allow(dead_code)]
-    dispatch: Dispatch<SessionHistory>,
+    _dispatch: Dispatch<SessionHistory>,
 }
 
 impl Component for Home {
@@ -38,7 +37,7 @@ impl Component for Home {
         Self {
             refs: vec![NodeRef::default()],
             evaluate_callback: evaluator.callback.clone(),
-            dispatch,
+            _dispatch: dispatch,
         }
     }
 

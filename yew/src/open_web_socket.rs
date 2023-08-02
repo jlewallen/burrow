@@ -71,11 +71,14 @@ impl Component for AlwaysOpenWebSocket {
                             serde_json::to_string(&WebSocketMessage::Token { token }).unwrap(),
                         )
                         .unwrap();
+                } else {
+                    console::info!("received connecting no-token");
                 }
 
                 true
             }
             Self::Message::Received(ReceivedMessage::Item(value)) => {
+                console::info!("received", &value);
                 match serde_json::from_str::<WebSocketMessage>(&value).unwrap() {
                     WebSocketMessage::Welcome { self_key } => {
                         self.myself = Myself {

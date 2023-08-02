@@ -23,13 +23,12 @@ impl UseUserContextHandle {
         self.navigator.push(&Route::Home);
     }
 
-    #[allow(dead_code)]
     pub fn logout(&self) {
         // Clear global token after logged out
         set_token(None);
         self.inner.set(UserInfo::default());
         // Redirect to home page
-        self.navigator.push(&Route::Home);
+        self.navigator.push(&Route::Login);
     }
 }
 

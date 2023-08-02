@@ -9,6 +9,15 @@ use crate::routes::*;
 use crate::services::*;
 use crate::types::*;
 
+#[function_component(Logout)]
+pub fn logout_page() -> Html {
+    let user_ctx = use_user_context();
+    user_ctx.logout();
+    html! {
+        <div>{{ "Bye" }}</div>
+    }
+}
+
 #[function_component(Login)]
 pub fn login_page() -> Html {
     let user_ctx = use_user_context();

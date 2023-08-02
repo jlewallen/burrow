@@ -34,6 +34,11 @@ pub struct Session {
     state: Rc<State>,
 }
 
+pub enum EvaluateAs<'a> {
+    Name(&'a str),
+    Key(&'a EntityKey),
+}
+
 impl Session {
     pub fn new(
         keys: &Arc<dyn Sequence<EntityKey>>,
@@ -89,6 +94,14 @@ impl Session {
     }
 
     pub fn evaluate_and_perform(&self, user_name: &str, text: &str) -> Result<Option<Effect>> {
+        self.evaluate_and_perform_as(EvaluateAs::Name(user_name), text)
+    }
+
+    pub fn evaluate_and_perform_as(
+        &self,
+        evaluate_as: EvaluateAs,
+        text: &str,
+    ) -> Result<Option<Effect>> {
         if !self.open.load(Ordering::Relaxed) {
             return Err(DomainError::SessionClosed.into());
         }
@@ -102,7 +115,13 @@ impl Session {
 
         match action {
             Some(action) => {
-                let living = user_name_to_entry(self, user_name)?;
+                let living = match evaluate_as {
+                    EvaluateAs::Name(user_name) => user_name_to_entry(self, user_name)?,
+                    EvaluateAs::Key(key) => self
+                        .entry(&LookupBy::Key(&key))?
+                        .expect("No living found with key"),
+                };
+
                 let perform = Perform::Living {
                     living,
                     action: PerformAction::Instance(action.into()),

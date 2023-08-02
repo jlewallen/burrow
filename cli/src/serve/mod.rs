@@ -58,12 +58,10 @@ enum ServerMessage {
 #[serde(rename_all = "camelCase")]
 enum ClientMessage {
     Token { token: String },
-    Login { username: String },
     Evaluate(String),
 }
 
 pub struct ClientSession {
-    name: String,
     key: EntityKey,
 }
 
@@ -94,11 +92,8 @@ impl Config {
 }
 
 impl AppState {
-    pub fn try_start_session(&self, name: &str, key: &EntityKey) -> Result<ClientSession> {
-        Ok(ClientSession {
-            name: name.to_string(),
-            key: key.clone(),
-        })
+    pub fn try_start_session(&self, key: &EntityKey) -> Result<ClientSession> {
+        Ok(ClientSession { key: key.clone() })
     }
 
     pub async fn tick(&self, now: DateTime<Utc>) -> Result<AfterTick> {
@@ -533,26 +528,19 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
                     };
                     (StatusCode::UNAUTHORIZED, Json(json_error))
                 });
-                match claims {
-                    Ok(claims) => info!("claims: {:?}", claims),
-                    Err(e) => warn!("{:?}", e),
-                }
+                session = match claims {
+                    Ok(claims) => {
+                        info!("claims: {:?}", claims.claims.sub);
 
-                break;
-            }
-            Message::Item(ClientMessage::Login { username: given }) => {
-                session = match state.find_user_key(&given) {
-                    Ok(Some(key)) => Some(
-                        state
-                            .try_start_session(&given, &key.0)
-                            .expect("Error starting session"),
-                    ),
-                    Err(err) => {
-                        warn!("find-user-key: {:?}", err);
+                        let key = claims.claims.sub;
 
-                        None
+                        Some(
+                            state
+                                .try_start_session(&EntityKey::new(&key))
+                                .expect("Error starting session"),
+                        )
                     }
-                    _ => None,
+                    Err(e) => panic!("{:?}", e),
                 };
 
                 break;
@@ -619,7 +607,6 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
         }
     });
 
-    let name = session.name.clone();
     let user_state = state.clone();
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(Message::Item(message))) = receiver.next().await {
@@ -631,12 +618,12 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
                         tokio::task::spawn_blocking({
                             let domain = app_state.domain.clone();
                             let notifier = app_state.notifier();
-                            let name = name.clone();
                             let text = text.clone();
 
                             move || {
                                 let session = domain.open_session().expect("Error opening session");
-                                let effect = evaluate_commands(session, &notifier, &name, &text)?;
+                                let effect =
+                                    evaluate_commands(session, &notifier, "jlewallen", &text)?;
                                 Ok(effect.to_tagged_json()?)
                             }
                         });
