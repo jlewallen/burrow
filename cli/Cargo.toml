@@ -3,7 +3,7 @@ name = "cli"
 version = "0.1.0"
 authors = ["Jacob Lewallen <jlewallen@gmail.com>"]
 edition = "2021"
- 
+
 [dependencies.replies]
 path = "../libs/replies"
 
@@ -45,10 +45,11 @@ serde_json = "1.0.96"
 futures = "0.3"
 axum = { version = "0.6.18", features = ["ws", "headers", "json"] }
 axum-typed-websockets = "0.5.0"
-tower-http = { version = "0.4.0", features = ["fs", "trace"] }
+tower-http = { version = "0.4.0", features = ["fs", "cors", "trace"] }
 tera = "1.19.0"
 rustyline = "11.0.0"
 tempfile = "3.5.0"
 tracing-tree = "0.2.3"
 nanoid = "0.4.0"
 chrono = "0.4.26"
+jsonwebtoken = "8.3.0"

@@ -1,7 +1,10 @@
 use anyhow::Result;
 use axum::{
     extract::Extension,
-    http::{HeaderMap, StatusCode},
+    http::{
+        header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
+        HeaderMap, HeaderValue, Method, StatusCode,
+    },
     response::IntoResponse,
     routing::{get, get_service, post},
     Json, Router,
@@ -18,6 +21,7 @@ use std::{
 use tokio::{signal, sync::Mutex, task::JoinHandle};
 use tokio::{sync::broadcast, time::sleep};
 use tower_http::{
+    cors::CorsLayer,
     services::ServeDir,
     trace::{DefaultMakeSpan, TraceLayer},
 };
@@ -54,12 +58,12 @@ enum ClientMessage {
     Evaluate(String),
 }
 
-struct ClientSession {
+pub struct ClientSession {
     name: String,
     key: EntityKey,
 }
 
-struct AppState {
+pub struct AppState {
     domain: Domain,
     tick_deadline: Mutex<Option<DateTime<Utc>>>,
     tx: broadcast::Sender<ServerMessage>,
@@ -82,20 +86,7 @@ impl AppState {
 
         match can_tick {
             Some(deadline) => Ok(AfterTick::Deadline(deadline)),
-            None => {
-                Ok(self.domain.tick(now, &self.notifier())?)
-
-                /*
-                match maybe_deadline {
-                    Some(deadline) => {
-                        let mut tick_deadline = self.tick_deadline.lock().await;
-                        *tick_deadline = Some(deadline.clone());
-
-                        Ok(AfterTick::Deadline(deadline.clone()))
-                    }
-                    None => Ok(AfterTick::Flushed),
-                }*/
-            }
+            None => Ok(self.domain.tick(now, &self.notifier())?),
         }
     }
 
@@ -135,6 +126,8 @@ impl Notifier for SenderNotifier {
     }
 }
 
+use auth::*;
+
 #[tokio::main]
 pub async fn execute_command(cmd: &Command) -> Result<()> {
     info!("serving");
@@ -153,12 +146,22 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
 
     let notifier = app_state.notifier();
 
+    let cors = CorsLayer::new()
+        .allow_origin("http://127.0.0.1:8080".parse::<HeaderValue>().unwrap())
+        .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
+        .allow_credentials(true)
+        .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE]);
+
     let app = Router::new()
         .fallback(get_service(
             ServeDir::new(assets_dir).append_index_html_on_directories(true),
         ))
         .route("/tick", post(tick_handler))
         .route("/ws", get(ws_handler))
+        .route("/user", get(user_handler))
+        .route("/user/login", post(login_handler))
+        .route("/user", post(register_handler))
+        .layer(cors)
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(DefaultMakeSpan::default().include_headers(false)),
@@ -218,30 +221,62 @@ async fn shutdown_signal() {
     info!("signal received, starting graceful shutdown");
 }
 
-fn empty_map() -> HashMap<String, String> {
-    Default::default()
-}
+mod auth {
+    use axum::{extract::Extension, response::IntoResponse, Json};
+    use serde::Deserialize;
+    use std::sync::Arc;
+    use tracing::info;
 
-fn empty_headers() -> HeaderMap {
-    Default::default()
-}
+    use super::AppState;
 
-fn deadline_headers(now: DateTime<Utc>, deadline: Option<DateTime<Utc>>) -> HeaderMap {
-    match deadline {
-        Some(deadline) => {
-            let mut headers = HeaderMap::new();
-            let remaining = deadline.sub(now);
-            let remaining = format!("{:?}", remaining.num_milliseconds());
-            headers.insert("retry-after", format!("{:?}", deadline).parse().unwrap());
-            headers.insert("retry-delay-ms", remaining.parse().unwrap());
-            headers
-        }
-        None => {
-            let mut headers = HeaderMap::new();
-            let remaining = format!("{}", 1000);
-            headers.insert("retry-delay-ms", remaining.parse().unwrap());
-            headers
-        }
+    #[derive(Deserialize)]
+    #[allow(dead_code)]
+    pub(crate) struct LoginUser {
+        email: String,
+        password: String,
+    }
+
+    #[derive(Deserialize)]
+    #[allow(dead_code)]
+    pub(crate) struct LoginUserWrapper {
+        user: LoginUser,
+    }
+
+    pub(crate) async fn login_handler(
+        Extension(_state): Extension<Arc<AppState>>,
+        Json(_payload): Json<LoginUserWrapper>,
+    ) -> impl IntoResponse {
+        info!("login");
+        todo!()
+    }
+
+    #[derive(Deserialize)]
+    #[allow(dead_code)]
+    pub(crate) struct RegisterUser {
+        email: String,
+        name: String,
+        password: String,
+    }
+
+    #[derive(Deserialize)]
+    #[allow(dead_code)]
+    pub(crate) struct RegisterUserWrapper {
+        user: RegisterUser,
+    }
+
+    pub(crate) async fn register_handler(
+        Extension(_state): Extension<Arc<AppState>>,
+        Json(_payload): Json<RegisterUserWrapper>,
+    ) -> impl IntoResponse {
+        info!("register");
+        todo!()
+    }
+
+    pub(crate) async fn user_handler(
+        Extension(_state): Extension<Arc<AppState>>,
+    ) -> impl IntoResponse {
+        info!("user");
+        todo!()
     }
 }
 
@@ -279,6 +314,32 @@ async fn tick_handler(Extension(state): Extension<Arc<AppState>>) -> impl IntoRe
     }
 }
 
+fn empty_map() -> HashMap<String, String> {
+    Default::default()
+}
+
+fn empty_headers() -> HeaderMap {
+    Default::default()
+}
+
+fn deadline_headers(now: DateTime<Utc>, deadline: Option<DateTime<Utc>>) -> HeaderMap {
+    match deadline {
+        Some(deadline) => {
+            let mut headers = HeaderMap::new();
+            let remaining = deadline.sub(now);
+            let remaining = format!("{:?}", remaining.num_milliseconds());
+            headers.insert("retry-after", format!("{:?}", deadline).parse().unwrap());
+            headers.insert("retry-delay-ms", remaining.parse().unwrap());
+            headers
+        }
+        None => {
+            let mut headers = HeaderMap::new();
+            let remaining = format!("{}", 1000);
+            headers.insert("retry-delay-ms", remaining.parse().unwrap());
+            headers
+        }
+    }
+}
 async fn ws_handler(
     ws: WebSocketUpgrade<ServerMessage, ClientMessage>,
     Extension(state): Extension<Arc<AppState>>,
