@@ -1,10 +1,10 @@
+use gloo_console as console;
 use std::rc::Rc;
 use yew::{prelude::*, Children};
 use yewdux::prelude::*;
-// use gloo_console as console;
 
 use crate::history::SessionHistory;
-use crate::services::{ReceivedMessage, WebSocketMessage, WebSocketService};
+use crate::services::{get_token, ReceivedMessage, WebSocketMessage, WebSocketService};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Evaluator {
@@ -64,15 +64,13 @@ impl Component for AlwaysOpenWebSocket {
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Self::Message::Received(ReceivedMessage::Connecting) => {
-                self.wss
-                    .try_send(
-                        serde_json::to_string(&WebSocketMessage::Login {
-                            username: "jlewallen".into(),
-                            password: "jlewallen".into(),
-                        })
-                        .unwrap(),
-                    )
-                    .unwrap();
+                if let Some(token) = get_token() {
+                    self.wss
+                        .try_send(
+                            serde_json::to_string(&WebSocketMessage::Token { token }).unwrap(),
+                        )
+                        .unwrap();
+                }
 
                 true
             }

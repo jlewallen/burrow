@@ -12,7 +12,7 @@ use crate::{
     types::*,
 };
 
-const API_ROOT: &str = "http://192.168.0.100:3000"; // dotenv!("API_ROOT");
+const API_ROOT: &str = "http://127.0.0.1:3000"; // dotenv!("API_ROOT");
 const TOKEN_KEY: &str = "yew.token";
 
 lazy_static! {
@@ -51,6 +51,7 @@ pub async fn login(login_info: LoginInfoWrapper) -> Result<UserInfoWrapper, Erro
     request_post::<LoginInfoWrapper, UserInfoWrapper>("/user/login".to_string(), login_info).await
 }
 
+#[allow(dead_code)]
 pub async fn register(register_info: RegisterInfoWrapper) -> Result<UserInfoWrapper, Error> {
     request_post::<RegisterInfoWrapper, UserInfoWrapper>("/user".to_string(), register_info).await
 }
@@ -108,6 +109,7 @@ where
 }
 
 /// Delete request
+#[allow(dead_code)]
 pub async fn request_delete<T>(url: String) -> Result<T, Error>
 where
     T: DeserializeOwned + 'static + std::fmt::Debug,
@@ -133,6 +135,7 @@ where
 }
 
 /// Put request with a body
+#[allow(dead_code)]
 pub async fn request_put<B, T>(url: String, body: B) -> Result<T, Error>
 where
     T: DeserializeOwned + 'static + std::fmt::Debug,

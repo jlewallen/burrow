@@ -5,6 +5,7 @@ use axum::{
         header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
         HeaderMap, HeaderValue, Method, StatusCode,
     },
+    middleware,
     response::IntoResponse,
     routing::{get, get_service, post},
     Json, Router,
@@ -27,11 +28,13 @@ use tower_http::{
 };
 use tracing::{debug, info, warn};
 
-use engine::{AfterTick, DevNullNotifier, Domain, HasUsernames, Notifier, Session, SessionOpener};
+use engine::{
+    AfterTick, DevNullNotifier, Domain, HasUsernames, Notifier, Passwords, Session, SessionOpener,
+};
 use kernel::{DomainEvent, Effect, EntityKey, EntryResolver, SimpleReply};
 use replies::ToJson;
 
-use crate::{make_domain, PluginConfiguration};
+use crate::{make_domain, serve::jwt_auth::ErrorResponse, PluginConfiguration};
 
 #[derive(Debug, Args)]
 pub struct Command {}
@@ -54,6 +57,7 @@ enum ServerMessage {
 #[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 enum ClientMessage {
+    Token { token: String },
     Login { username: String },
     Evaluate(String),
 }
@@ -67,6 +71,26 @@ pub struct AppState {
     domain: Domain,
     tick_deadline: Mutex<Option<DateTime<Utc>>>,
     tx: broadcast::Sender<ServerMessage>,
+    env: Config,
+}
+
+pub struct Config {
+    pub jwt_secret: String,
+    pub jwt_expires_in: String,
+    pub jwt_maxage: i32,
+}
+
+impl Config {
+    pub fn from_env() -> Option<Self> {
+        let jwt_secret = std::env::var("JWT_SECRET").ok()?;
+        let jwt_expires_in = std::env::var("JWT_EXPIRED_IN").ok()?;
+        let jwt_maxage = std::env::var("JWT_MAXAGE").ok()?;
+        Some(Self {
+            jwt_secret,
+            jwt_expires_in,
+            jwt_maxage: jwt_maxage.parse::<i32>().ok()?,
+        })
+    }
 }
 
 impl AppState {
@@ -96,11 +120,23 @@ impl AppState {
         }
     }
 
-    fn find_user_key(&self, name: &str) -> Result<Option<EntityKey>> {
+    fn find_user_key(&self, name: &str) -> Result<Option<(EntityKey, Option<String>)>> {
         let session = self.domain.open_session().expect("Error opening session");
 
         let world = session.world()?.expect("No world");
-        let maybe_key = world.find_name_key(name)?;
+        let maybe_key = match world.find_name_key(name)? {
+            Some(key) => {
+                let user = session.entry(&kernel::LookupBy::Key(&key))?;
+                let user = user.unwrap();
+                let hash = user
+                    .maybe_scope::<Passwords>()?
+                    .map(|s| s.get().map(|s| s.clone()))
+                    .flatten();
+
+                Some((key, hash))
+            }
+            None => None,
+        };
 
         session.close(&DevNullNotifier::default())?;
 
@@ -138,10 +174,17 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
 
     let (tx, _rx) = broadcast::channel(100);
 
+    let env_config = Config::from_env();
+
     let app_state = Arc::new(AppState {
         domain: domain.clone(),
         tick_deadline: Default::default(),
         tx,
+        env: env_config.unwrap_or(Config {
+            jwt_secret: "RSgTQSRXNxeVIZfPOK1dIQ==".to_owned(),
+            jwt_expires_in: "24h".to_owned(),
+            jwt_maxage: 60,
+        }),
     });
 
     let notifier = app_state.notifier();
@@ -158,7 +201,13 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
         ))
         .route("/tick", post(tick_handler))
         .route("/ws", get(ws_handler))
-        .route("/user", get(user_handler))
+        .route(
+            "/user",
+            get(user_handler).route_layer(middleware::from_fn_with_state(
+                app_state.clone(),
+                jwt_auth::auth,
+            )),
+        )
         .route("/user/login", post(login_handler))
         .route("/user", post(register_handler))
         .layer(cors)
@@ -221,9 +270,22 @@ async fn shutdown_signal() {
     info!("signal received, starting graceful shutdown");
 }
 
+mod jwt_auth;
+
 mod auth {
-    use axum::{extract::Extension, response::IntoResponse, Json};
-    use serde::Deserialize;
+    use argon2::{
+        password_hash::{rand_core::OsRng, SaltString},
+        Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
+    };
+    use axum::{
+        extract::Extension,
+        http::{header, Response, StatusCode},
+        response::IntoResponse,
+        Json,
+    };
+    use axum_extra::extract::cookie::{Cookie, SameSite};
+    use serde::{Deserialize, Serialize};
+    use serde_json::json;
     use std::sync::Arc;
     use tracing::info;
 
@@ -243,11 +305,93 @@ mod auth {
     }
 
     pub(crate) async fn login_handler(
-        Extension(_state): Extension<Arc<AppState>>,
-        Json(_payload): Json<LoginUserWrapper>,
-    ) -> impl IntoResponse {
+        Extension(state): Extension<Arc<AppState>>,
+        Json(payload): Json<LoginUserWrapper>,
+    ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
         info!("login");
-        todo!()
+
+        let salt = SaltString::generate(&mut OsRng);
+        let hashed_password = Argon2::default()
+            .hash_password(payload.user.password.as_bytes(), &salt)
+            .map_err(|e| {
+                let error_response = serde_json::json!({
+                    "status": "fail",
+                    "message": format!("Error while hashing password: {}", e),
+                });
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response))
+            })
+            .map(|hash| hash.to_string())?;
+
+        info!("expecting hash {:?}", hashed_password);
+
+        let user_key = state.find_user_key(&payload.user.email).map_err(|e| {
+            let error_response = serde_json::json!({
+                "status": "fail",
+                "message": format!("Error: {}", e),
+            });
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response))
+        })?;
+
+        let Some(user_key) = user_key else {
+            let error_response = serde_json::json!({
+                "status": "forbidden"
+            });
+            return Err((StatusCode::FORBIDDEN, Json(error_response)));
+        };
+        let Some(hash) = user_key.1 else {
+            let error_response = serde_json::json!({
+                "status": "forbidden"
+            });
+            return Err((StatusCode::FORBIDDEN, Json(error_response)));
+        };
+
+        let key = user_key.0.to_string();
+
+        let is_valid = match PasswordHash::new(&hash) {
+            Ok(parsed_hash) => Argon2::default()
+                .verify_password(payload.user.password.as_bytes(), &parsed_hash)
+                .map_or(false, |_| true),
+            Err(_) => false,
+        };
+
+        if !is_valid {
+            let error_response = serde_json::json!({
+                "status": "fail",
+                "message": "Invalid email or password"
+            });
+            return Err((StatusCode::BAD_REQUEST, Json(error_response)));
+        }
+
+        let user = User { key };
+
+        let now = chrono::Utc::now();
+        let iat = now.timestamp() as usize;
+        let exp = (now + chrono::Duration::minutes(60)).timestamp() as usize;
+        let claims: TokenClaims = TokenClaims {
+            sub: user.key.to_string(),
+            exp,
+            iat,
+        };
+
+        let token = jsonwebtoken::encode(
+            &jsonwebtoken::Header::default(),
+            &claims,
+            &jsonwebtoken::EncodingKey::from_secret(state.env.jwt_secret.as_ref()),
+        )
+        .unwrap();
+
+        let cookie = Cookie::build("token", token.to_owned())
+            .path("/")
+            .max_age(::time::Duration::hours(1))
+            .same_site(SameSite::Lax)
+            .http_only(true)
+            .finish();
+
+        let mut response = Response::new(json!({ "user" : { "token": token } }).to_string());
+        response
+            .headers_mut()
+            .insert(header::SET_COOKIE, cookie.to_string().parse().unwrap());
+        Ok(response)
     }
 
     #[derive(Deserialize)]
@@ -267,16 +411,32 @@ mod auth {
     pub(crate) async fn register_handler(
         Extension(_state): Extension<Arc<AppState>>,
         Json(_payload): Json<RegisterUserWrapper>,
-    ) -> impl IntoResponse {
+    ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
         info!("register");
-        todo!()
+        Ok(Response::new(
+            json!({ "user" : { "key": "".to_owned(), "token": "".to_owned() } }).to_string(),
+        ))
     }
 
     pub(crate) async fn user_handler(
         Extension(_state): Extension<Arc<AppState>>,
-    ) -> impl IntoResponse {
-        info!("user");
-        todo!()
+    ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+        Ok(Response::new(
+            json!({ "user" : { "key": "".to_owned() } }).to_string(),
+        ))
+    }
+
+    #[allow(non_snake_case)]
+    #[derive(Debug, Deserialize, Serialize, Clone)]
+    pub struct User {
+        pub key: String,
+    }
+
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct TokenClaims {
+        pub sub: String,
+        pub iat: usize,
+        pub exp: usize,
     }
 }
 
@@ -377,11 +537,31 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
 
     while let Some(Ok(m)) = receiver.next().await {
         match m {
+            Message::Item(ClientMessage::Token { token }) => {
+                let claims = jsonwebtoken::decode::<TokenClaims>(
+                    &token,
+                    &jsonwebtoken::DecodingKey::from_secret(state.env.jwt_secret.as_ref()),
+                    &jsonwebtoken::Validation::default(),
+                )
+                .map_err(|_| {
+                    let json_error = ErrorResponse {
+                        status: "fail",
+                        message: "Invalid token".to_string(),
+                    };
+                    (StatusCode::UNAUTHORIZED, Json(json_error))
+                });
+                match claims {
+                    Ok(claims) => info!("claims: {:?}", claims),
+                    Err(e) => warn!("{:?}", e),
+                }
+
+                break;
+            }
             Message::Item(ClientMessage::Login { username: given }) => {
                 session = match state.find_user_key(&given) {
                     Ok(Some(key)) => Some(
                         state
-                            .try_start_session(&given, &key)
+                            .try_start_session(&given, &key.0)
                             .expect("Error starting session"),
                     ),
                     Err(err) => {

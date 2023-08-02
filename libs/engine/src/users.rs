@@ -66,4 +66,37 @@ pub mod model {
             add_username_to_key(self, username, key)
         }
     }
+
+    const WEB: &str = "web";
+
+    #[derive(Debug, Serialize, Deserialize, Default)]
+    pub struct Passwords {
+        passwords: HashMap<String, String>,
+    }
+
+    impl Passwords {
+        pub fn get(&self) -> Option<&String> {
+            self.passwords.get(WEB)
+        }
+
+        pub fn set(&mut self, secret: String) {
+            self.passwords.insert(WEB.to_owned(), secret);
+        }
+    }
+
+    impl Needs<SessionRef> for Passwords {
+        fn supply(&mut self, _session: &SessionRef) -> Result<()> {
+            Ok(())
+        }
+    }
+
+    impl Scope for Passwords {
+        fn serialize(&self) -> Result<serde_json::Value> {
+            Ok(serde_json::to_value(self)?)
+        }
+
+        fn scope_key() -> &'static str {
+            "passwords"
+        }
+    }
 }

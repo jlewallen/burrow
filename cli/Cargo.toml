@@ -53,3 +53,6 @@ tracing-tree = "0.2.3"
 nanoid = "0.4.0"
 chrono = "0.4.26"
 jsonwebtoken = "8.3.0"
+axum-extra = { version = "0.7.5", features = ["cookie"] }
+argon2 = "0.5.1"
+time = "0.3.24"

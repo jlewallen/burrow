@@ -18,7 +18,7 @@ use yew::Callback;
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum WebSocketMessage {
-    Login { username: String, password: String },
+    Token { token: String },
     Welcome { self_key: String },
     Evaluate(String),
     Reply(serde_json::Value),
