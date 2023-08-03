@@ -45,6 +45,7 @@ pub fn user_context_provider(props: &Props) -> Html {
                         Error::Unauthorized | Error::Forbidden => set_token(None),
                         _ => (),
                     }
+                    user_ctx.set(UserContext::Anonymous);
                 }
                 || ()
             },
