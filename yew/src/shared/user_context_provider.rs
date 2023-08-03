@@ -22,10 +22,10 @@ pub fn user_context_provider(props: &Props) -> Html {
         let current_user = current_user.clone();
         use_mount(move || {
             if get_token().is_some() {
-                log::info!("user-context token");
+                log::info!("user-context: checking token");
                 current_user.run();
             } else {
-                log::info!("user-context no token");
+                log::info!("user-context: missing token");
             }
         });
     }
@@ -35,12 +35,12 @@ pub fn user_context_provider(props: &Props) -> Html {
         use_effect_with_deps(
             move |current_user| {
                 if let Some(user_info) = &current_user.data {
-                    log::info!("user-context set");
+                    log::info!("user-context: ok!");
                     user_ctx.set(UserContext::User(user_info.user.clone()));
                 }
 
                 if let Some(error) = &current_user.error {
-                    log::info!("user-context error {:?}", error);
+                    log::info!("user-context: error {:?}", error);
                     match error {
                         Error::Unauthorized | Error::Forbidden => set_token(None),
                         _ => (),

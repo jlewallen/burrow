@@ -81,7 +81,7 @@ where
         if data.status().is_success() {
             let data: Result<T, _> = data.json::<T>().await;
             if let Ok(data) = data {
-                log::debug!("response");
+                // log::debug!("response");
                 Ok(data)
             } else {
                 Err(Error::DeserializeError)

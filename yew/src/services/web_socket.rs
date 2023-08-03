@@ -42,19 +42,19 @@ impl ActiveConnection {
     fn new(incoming: Callback<(Sender<Option<String>>, ReceivedMessage)>) -> Self {
         let (in_tx, mut in_rx) = futures::channel::mpsc::channel::<Option<String>>(100);
 
-        log::debug!("ws:new");
+        log::trace!("ws:new");
 
         // This needs to have a shorter timeout.
         let ws = WebSocket::open("ws://127.0.0.1:3000/ws").unwrap();
         let (mut write, mut read) = ws.split();
 
-        log::debug!("ws:opened");
+        log::trace!("ws:opened");
 
         let busy = Arc::new(AtomicBool::new(true));
         let check_busy = Arc::clone(&busy);
 
         spawn_local(async move {
-            log::debug!("ws:tx-open");
+            log::trace!("ws:tx-open");
 
             while let Some(s) = in_rx.next().await {
                 let ok = match s {
@@ -78,7 +78,7 @@ impl ActiveConnection {
 
             busy.store(false, Ordering::SeqCst);
 
-            log::debug!("ws:tx-close");
+            log::trace!("ws:tx-close");
         });
 
         let closer = in_tx.clone();
@@ -86,7 +86,7 @@ impl ActiveConnection {
         spawn_local({
             let in_tx = in_tx.clone();
             async move {
-                log::debug!("ws:rx-open");
+                log::trace!("ws:rx-open");
 
                 while let Some(msg) = read.next().await {
                     match msg {
@@ -107,11 +107,11 @@ impl ActiveConnection {
                     }
                 }
 
-                log::debug!("ws:rx-closing");
+                log::trace!("ws:rx-closing");
 
                 closer.clone().send(None).await.unwrap();
 
-                log::debug!("ws:rx-close");
+                log::trace!("ws:rx-close");
             }
         });
 
@@ -179,7 +179,7 @@ impl WebSocketService {
 
     #[allow(dead_code)]
     pub fn try_send(&self, value: String) -> Result<(), TrySendError<Option<String>>> {
-        log::info!("sending {:?}", value);
+        log::trace!("sending {:?}", value);
         self.connection
             .as_ref()
             .borrow()

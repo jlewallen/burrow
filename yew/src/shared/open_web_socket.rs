@@ -85,7 +85,6 @@ mod manage_connection {
 
                     wss.set(Some(service));
                 } else {
-                    log::info!("conn:anonymous");
                     wss.set(None);
                 }
             },

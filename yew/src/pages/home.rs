@@ -49,7 +49,7 @@ impl Component for Home {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Self::Message::Evaluator(evaluator) => {
-                log::info!("update-evaluator");
+                log::trace!("update-evaluator");
 
                 self.evaluator = evaluator;
 
@@ -58,7 +58,7 @@ impl Component for Home {
             Self::Message::History(history) => {
                 self.history = Some(history);
 
-                log::info!("update-history");
+                log::trace!("update-history");
 
                 let refresher = ctx.link().callback(|_| Self::Message::Refresh);
 
