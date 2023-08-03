@@ -4,8 +4,8 @@ use yew::prelude::*;
 use yew_hooks::prelude::*;
 
 use crate::errors::Error;
+use crate::hooks::UserContext;
 use crate::services::{current, get_token, set_token};
-use crate::types::UserInfo;
 
 #[derive(Properties, Clone, PartialEq)]
 pub struct Props {
@@ -15,7 +15,7 @@ pub struct Props {
 /// User context provider.
 #[function_component(UserContextProvider)]
 pub fn user_context_provider(props: &Props) -> Html {
-    let user_ctx = use_state(UserInfo::default);
+    let user_ctx = use_state(UserContext::default);
     let current_user = use_async(async move { current().await });
 
     {
@@ -36,7 +36,7 @@ pub fn user_context_provider(props: &Props) -> Html {
             move |current_user| {
                 if let Some(user_info) = &current_user.data {
                     log::info!("user-context set");
-                    user_ctx.set(user_info.user.clone());
+                    user_ctx.set(UserContext::User(user_info.user.clone()));
                 }
 
                 if let Some(error) = &current_user.error {
@@ -53,8 +53,8 @@ pub fn user_context_provider(props: &Props) -> Html {
     }
 
     html! {
-        <ContextProvider<UseStateHandle<UserInfo>> context={user_ctx}>
+        <ContextProvider<UseStateHandle<UserContext>> context={user_ctx}>
             { for props.children.iter() }
-        </ContextProvider<UseStateHandle<UserInfo>>>
+        </ContextProvider<UseStateHandle<UserContext>>>
     }
 }

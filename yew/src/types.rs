@@ -34,13 +34,6 @@ pub struct UserInfo {
     pub token: String,
 }
 
-impl UserInfo {
-    #[allow(dead_code)]
-    pub fn is_authenticated(&self) -> bool {
-        !self.token.is_empty()
-    }
-}
-
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct UserInfoWrapper {

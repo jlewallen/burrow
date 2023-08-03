@@ -250,8 +250,9 @@ pub enum BasicReply {
 #[function_component(HistoryEntryItem)]
 pub fn history_entry_item(props: &Props) -> Html {
     let user = use_user_context();
+    let key = user.key().expect("expected authenticated user with key");
     let myself = Myself {
-        key: Some(user.key.clone()),
+        key: Some(key.clone()),
     };
     log::debug!("myself: {:?}", myself);
 

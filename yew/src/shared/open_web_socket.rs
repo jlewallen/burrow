@@ -29,10 +29,10 @@ mod manage_connection {
         let set_evaluator = evaluator.clone();
         use_effect_with_deps(
             move |(user,)| {
-                if user.is_authenticated() {
+                if let Some(token) = user.token() {
                     log::info!("conn:authenticated");
 
-                    let token = user.token.clone();
+                    let token = token.clone();
                     let first = serde_json::to_string(&WebSocketMessage::Token {
                         token: token.clone(),
                     })
