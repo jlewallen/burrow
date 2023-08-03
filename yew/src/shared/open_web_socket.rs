@@ -38,15 +38,12 @@ mod manage_connection {
                     })
                     .expect("web socket message token error");
 
-                    // let append = append.clone();
-
                     let service = WebSocketService::new(Some(first), {
                         Callback::from(
                             move |(mut c, r): (Sender<Option<String>>, ReceivedMessage)| {
-                                // let _ok = true;
                                 match r {
                                     ReceivedMessage::Item(item) => {
-                                        log::info!("{:?}", item);
+                                        // log::info!("{:?}", item);
                                         match serde_json::from_str::<WebSocketMessage>(&item)
                                             .unwrap()
                                         {

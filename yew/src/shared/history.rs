@@ -34,14 +34,14 @@ impl Reducible for SessionHistory {
 impl SessionHistory {
     pub fn append(&self, value: serde_json::Value) -> Self {
         let entries = if !value.is_null() {
-            log::info!("appending {:?} {:?}", self.entries.len(), value);
+            // log::info!("appending {:?} {:?}", self.entries.len(), value);
             self.entries
                 .clone()
                 .into_iter()
                 .chain([HistoryEntry::new(value)])
                 .collect()
         } else {
-            log::info!("cloning");
+            // log::info!("cloning");
             self.entries.clone()
         };
         Self { entries }

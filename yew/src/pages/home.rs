@@ -91,8 +91,6 @@ impl Component for Home {
     }
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
-        log::info!("home view {:?}", self.history);
-
         let evaluator = self.evaluator.clone();
 
         if let Some(history) = self.history.clone() {
