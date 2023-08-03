@@ -2,6 +2,7 @@ use futures::{
     channel::mpsc::{Sender, TrySendError},
     SinkExt, StreamExt,
 };
+use futures_util::future::{select, Either};
 use gloo_timers::future::TimeoutFuture;
 use reqwasm::websocket::{futures::WebSocket, Message};
 use serde::{Deserialize, Serialize};
@@ -56,11 +57,22 @@ impl ActiveConnection {
             log::debug!("ws:tx-open");
 
             while let Some(s) = in_rx.next().await {
-                match s {
+                let ok = match s {
                     Some(s) => {
-                        write.send(Message::Text(s)).await.unwrap();
+                        let to = TimeoutFuture::new(1_000);
+                        match select(to, write.send(Message::Text(s))).await {
+                            Either::Right((_, _)) => Some(true),
+                            Either::Left((_, b)) => {
+                                drop(b);
+                                None
+                            }
+                        }
                     }
-                    None => break,
+                    None => None,
+                };
+
+                if ok.is_none() {
+                    break;
                 }
             }
 
@@ -94,6 +106,8 @@ impl ActiveConnection {
                         }
                     }
                 }
+
+                log::debug!("ws:rx-closing");
 
                 closer.clone().send(None).await.unwrap();
 

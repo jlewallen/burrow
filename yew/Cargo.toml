@@ -31,6 +31,7 @@ parking_lot = "0.12.1"
 yew-hooks = "0.2.0"
 anyhow = "1.0.72"
 thiserror = "1.0.44"
+futures-util = "0.3.28"
 
 [dependencies.web-sys]
 version = "0.3"
