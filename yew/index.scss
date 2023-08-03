@@ -64,6 +64,13 @@ body {
   }
 }
 
+form {
+  .form-group {
+    padding-top: 0.5em;
+    padding-bottom: 0.5em;
+  }
+}
+
 .command-line-editor {
   flex-grow: 1;
   margin: 1em;

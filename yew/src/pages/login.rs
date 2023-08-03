@@ -91,12 +91,14 @@ pub fn login_page() -> Html {
                                         oninput={oninput_password}
                                         />
                                 </fieldset>
-                                <button
-                                    class="btn btn-lg btn-primary pull-xs-right"
-                                    type="submit"
-                                    disabled=false>
-                                    { "Sign in" }
-                                </button>
+                                <fieldset class="form-group">
+                                    <button
+                                        class="btn btn-lg btn-primary pull-xs-right"
+                                        type="submit"
+                                        disabled=false>
+                                        { "Sign in" }
+                                    </button>
+                                </fieldset>
                             </fieldset>
                         </form>
                     </div>

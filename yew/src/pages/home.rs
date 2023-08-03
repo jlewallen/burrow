@@ -1,11 +1,11 @@
 use gloo_timers::callback::Timeout;
 use web_sys::HtmlElement;
 use yew::prelude::*;
-use yew_router::prelude::use_navigator;
 
-use crate::routes::Route;
+use crate::shared::history_items::HistoryItems;
 use crate::shared::CommandLine;
 use crate::shared::Evaluator;
+use crate::shared::LogoutButton;
 use crate::shared::SessionHistory;
 
 pub enum Msg {
@@ -21,8 +21,6 @@ pub struct Home {
     _history_listener: ContextHandle<SessionHistory>,
     _evaluator_listener: ContextHandle<Evaluator>,
 }
-
-use crate::shared::history_items::HistoryItems;
 
 impl Component for Home {
     type Message = Msg;
@@ -45,7 +43,7 @@ impl Component for Home {
         Self {
             history: Some(history),
             refs: vec![NodeRef::default()],
-            evaluator: evaluator,
+            evaluator,
             _history_listener: history_listener,
             _evaluator_listener: evaluator_listener,
         }
@@ -122,18 +120,5 @@ impl Component for Home {
         } else {
             html! { <div> {{ "Busy" }} </div> }
         }
-    }
-}
-
-#[function_component(LogoutButton)]
-pub fn logout_button() -> Html {
-    let navigator = use_navigator().unwrap();
-
-    let logout = move |_| {
-        navigator.push(&Route::Login);
-    };
-
-    html! {
-        <div class="logout" onclick={logout}>{ "Logout" }</div>
     }
 }
