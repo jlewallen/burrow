@@ -1,11 +1,10 @@
 mod app;
+mod errors;
 mod hooks;
 mod pages;
 mod routes;
 mod services;
 mod shared;
-
-mod errors;
 mod types;
 
 use app::App;

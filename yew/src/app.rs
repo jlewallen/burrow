@@ -2,7 +2,6 @@ use yew::prelude::*;
 use yew_router::prelude::*;
 
 use crate::routes::*;
-
 use crate::shared::{AlwaysOpenWebSocket, UserContextProvider};
 
 #[function_component(App)]

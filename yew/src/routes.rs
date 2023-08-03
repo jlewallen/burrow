@@ -3,15 +3,12 @@ use yew_router::prelude::*;
 
 use crate::pages::Home;
 use crate::pages::Login;
-use crate::pages::Logout;
 use crate::shared::RequireUser;
 
 #[derive(Debug, Clone, Copy, PartialEq, Routable)]
 pub enum Route {
     #[at("/login")]
     Login,
-    #[at("/logout")]
-    Logout,
     #[at("/register")]
     Register,
     #[at("/")]
@@ -24,7 +21,6 @@ pub enum Route {
 pub fn switch(selected_route: Route) -> Html {
     match selected_route {
         Route::Login => html! { <Login /> },
-        Route::Logout => html! { <Logout /> },
         Route::Register => html! { <Login /> },
         Route::Home => html! { <RequireUser><Home /></RequireUser> },
         Route::NotFound => todo!(),

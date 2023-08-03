@@ -45,18 +45,14 @@ pub struct UseUserContextHandle {
 
 impl UseUserContextHandle {
     pub fn login(&self, value: UserInfo) {
-        // Set global token after logged in
         set_token(Some(value.token.clone()));
         self.inner.set(UserContext::User(value));
-        // Redirect to home page
         self.navigator.push(&Route::Home);
     }
 
     pub fn logout(&self) {
-        // Clear global token after logged out
         set_token(None);
         self.inner.set(UserContext::Anonymous);
-        // Redirect to home page
         self.navigator.push(&Route::Login);
     }
 }

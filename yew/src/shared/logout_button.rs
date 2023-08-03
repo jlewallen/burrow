@@ -1,14 +1,13 @@
 use yew::prelude::*;
-use yew_router::prelude::use_navigator;
 
-use crate::routes::Route;
+use crate::hooks::use_user_context;
 
 #[function_component(LogoutButton)]
 pub fn logout_button() -> Html {
-    let navigator = use_navigator().unwrap();
+    let user_ctx = use_user_context();
 
     let logout = move |_| {
-        navigator.push(&Route::Login);
+        user_ctx.logout();
     };
 
     html! {

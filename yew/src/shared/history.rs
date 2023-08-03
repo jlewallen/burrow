@@ -20,7 +20,7 @@ impl HistoryEntry {
 
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct SessionHistory {
-    entries: Vec<HistoryEntry>,
+    pub entries: Vec<HistoryEntry>,
 }
 
 impl Reducible for SessionHistory {
@@ -230,21 +230,21 @@ fn simple_reply(reply: &SimpleReply) -> Html {
     }
 }
 
-#[derive(Properties, Clone, PartialEq)]
-pub struct Props {
-    pub entry: HistoryEntry,
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum BasicReply {
-    Simple(SimpleReply),
+    SimpleReply(SimpleReply),
     EntityObservation(EntityObservation),
     InsideObservation(InsideObservation),
     AreaObservation(AreaObservation),
     SimpleObservation(SimpleObservation),
-    Editor(EditorReply),
-    Json(JsonReply),
+    EditorReply(EditorReply),
+    JsonReply(JsonReply),
+}
+
+#[derive(Properties, Clone, PartialEq)]
+pub struct Props {
+    pub entry: HistoryEntry,
 }
 
 #[function_component(HistoryEntryItem)]
@@ -262,38 +262,15 @@ pub fn history_entry_item(props: &Props) -> Html {
             BasicReply::AreaObservation(reply) => area_observation(&reply),
             BasicReply::InsideObservation(reply) => inside_observation(&reply),
             BasicReply::SimpleObservation(reply) => simple_observation(&reply, &myself),
-            BasicReply::Simple(reply) => simple_reply(&reply),
+            BasicReply::SimpleReply(reply) => simple_reply(&reply),
             BasicReply::EntityObservation(_) => todo!(),
-            BasicReply::Editor(_) => todo!(),
-            BasicReply::Json(_) => todo!(),
+            BasicReply::EditorReply(_) => todo!(),
+            BasicReply::JsonReply(_) => todo!(),
         }
     } else {
         html! {
             <div class="entry unknown">
                 { props.entry.value.to_string() }
-            </div>
-        }
-    }
-}
-
-pub mod history_items {
-    use super::HistoryEntryItem;
-    use yew::prelude::*;
-
-    use super::SessionHistory;
-
-    #[derive(Properties, Clone, PartialEq, Eq)]
-    pub struct Props {
-        pub history: SessionHistory,
-    }
-
-    #[function_component(HistoryItems)]
-    pub fn history_items(props: &Props) -> Html {
-        html! {
-            <div class="history">
-                <div class="entries">
-                    { for props.history.entries.iter().map(|entry| html!{ <HistoryEntryItem entry={entry.clone()} /> }) }
-                </div>
             </div>
         }
     }
