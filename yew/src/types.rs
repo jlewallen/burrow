@@ -30,6 +30,7 @@ pub struct RegisterInfoWrapper {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct UserInfo {
+    pub key: String,
     pub token: String,
 }
 

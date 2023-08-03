@@ -67,7 +67,10 @@ pub async fn auth<B>(
     })?
     .claims;
 
-    let user = User { key: claims.sub };
+    let user = User {
+        token: token,
+        key: claims.sub,
+    };
 
     req.extensions_mut().insert(user);
     Ok(next.run(req).await)

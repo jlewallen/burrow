@@ -1,12 +1,11 @@
-#[allow(unused_imports)]
-use gloo_console as console;
+use std::rc::Rc;
+
+#[allow(dead_code)]
 use replies::*;
 use serde::{Deserialize, Serialize};
-use std::rc::Rc;
 use yew::prelude::*;
-use yewdux::prelude::*;
 
-use crate::shared::Myself;
+use crate::{hooks::use_user_context, shared::Myself};
 
 #[derive(Debug, Serialize, Clone, Eq, PartialEq)]
 pub struct HistoryEntry {
@@ -19,20 +18,30 @@ impl HistoryEntry {
     }
 }
 
-#[derive(Default, Store, PartialEq)]
+#[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct SessionHistory {
     entries: Vec<HistoryEntry>,
+}
+
+impl Reducible for SessionHistory {
+    type Action = serde_json::Value;
+
+    fn reduce(self: Rc<Self>, action: Self::Action) -> Rc<Self> {
+        Rc::new(self.append(action))
+    }
 }
 
 impl SessionHistory {
     pub fn append(&self, value: serde_json::Value) -> Self {
         let entries = if !value.is_null() {
+            log::info!("appending {:?} {:?}", self.entries.len(), value);
             self.entries
                 .clone()
                 .into_iter()
                 .chain([HistoryEntry::new(value)])
                 .collect()
         } else {
+            log::info!("cloning");
             self.entries.clone()
         };
         Self { entries }
@@ -238,10 +247,12 @@ pub enum BasicReply {
     Json(JsonReply),
 }
 
-#[function_component]
-#[allow(non_snake_case)]
-pub fn HistoryEntryItem(props: &Props) -> Html {
-    let myself = use_context::<Myself>().expect("No myself context");
+#[function_component(HistoryEntryItem)]
+pub fn history_entry_item(props: &Props) -> Html {
+    let user = use_user_context();
+    let myself = Myself {
+        key: Some(user.key.clone()),
+    };
     log::debug!("myself: {:?}", myself);
 
     let value = &props.entry.value;
@@ -264,45 +275,23 @@ pub fn HistoryEntryItem(props: &Props) -> Html {
     }
 }
 
-pub enum Msg {
-    UpdateHistory(std::rc::Rc<SessionHistory>),
-}
+pub mod history_items {
+    use super::HistoryEntryItem;
+    use yew::prelude::*;
 
-pub struct History {
-    history: Rc<SessionHistory>,
-    #[allow(dead_code)]
-    dispatch: Dispatch<SessionHistory>,
-}
+    use super::SessionHistory;
 
-impl Component for History {
-    type Message = Msg;
-    type Properties = ();
-
-    fn create(ctx: &Context<Self>) -> Self {
-        let callback = ctx.link().callback(Msg::UpdateHistory);
-        let dispatch = Dispatch::<SessionHistory>::subscribe(move |h| callback.emit(h));
-
-        Self {
-            history: dispatch.get(),
-            dispatch,
-        }
+    #[derive(Properties, Clone, PartialEq, Eq)]
+    pub struct Props {
+        pub history: SessionHistory,
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
-        match msg {
-            Msg::UpdateHistory(history) => {
-                self.history = history;
-
-                true
-            }
-        }
-    }
-
-    fn view(&self, _ctx: &Context<Self>) -> Html {
+    #[function_component(HistoryItems)]
+    pub fn history_items(props: &Props) -> Html {
         html! {
             <div class="history">
                 <div class="entries">
-                    { for self.history.entries.iter().map(|entry| html!{ <HistoryEntryItem entry={entry.clone()} /> }) }
+                    { for props.history.entries.iter().map(|entry| html!{ <HistoryEntryItem entry={entry.clone()} /> }) }
                 </div>
             </div>
         }

@@ -25,6 +25,7 @@ pub enum ClientMessage {
 
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
 pub enum ServerMessage {
     Error(String),
     Welcome { self_key: String },
@@ -118,6 +119,9 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
             }))
             .await;
     } else {
+        /* Do this after checking credentials, avoids sending this on spurious
+         * disconnections. */
+        /*
         info!("bad credentials");
 
         let _ = sender
@@ -125,6 +129,7 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
                 "Sorry, there's a problem with your credentials.".to_string(),
             )))
             .await;
+        */
 
         return;
     }

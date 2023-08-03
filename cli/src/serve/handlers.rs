@@ -72,13 +72,11 @@ pub(crate) async fn login_handler(
         return Err((StatusCode::BAD_REQUEST, Json(error_response)));
     }
 
-    let user = User { key };
-
     let now = chrono::Utc::now();
     let iat = now.timestamp() as usize;
     let exp = (now + chrono::Duration::minutes(60)).timestamp() as usize;
     let claims: TokenClaims = TokenClaims {
-        sub: user.key.to_string(),
+        sub: key.to_string(),
         exp,
         iat,
     };
@@ -97,7 +95,8 @@ pub(crate) async fn login_handler(
         .http_only(true)
         .finish();
 
-    let mut response = Response::new(json!({ "user" : { "token": token } }).to_string());
+    let mut response =
+        Response::new(json!({ "user" : { "token": token, "key": key } }).to_string());
     response
         .headers_mut()
         .insert(header::SET_COOKIE, cookie.to_string().parse().unwrap());
@@ -124,7 +123,7 @@ pub(crate) async fn register_handler(
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     info!("register");
     Ok(Response::new(
-        json!({ "user" : { "key": "".to_owned(), "token": "".to_owned() } }).to_string(),
+        json!({ "user" : { "token": "".to_owned(), "key": "".to_owned() } }).to_string(),
     ))
 }
 
@@ -133,13 +132,14 @@ pub(crate) async fn user_handler(
     Extension(user): Extension<User>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     Ok(Response::new(
-        json!({ "user" : { "key": user.key } }).to_string(),
+        json!({ "user" : { "token": user.token, "key": user.key } }).to_string(),
     ))
 }
 
 #[allow(non_snake_case)]
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct User {
+    pub token: String,
     pub key: String,
 }
 

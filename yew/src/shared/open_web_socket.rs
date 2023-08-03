@@ -1,15 +1,129 @@
-#[allow(unused_imports)]
-use gloo_console as console;
-use std::rc::Rc;
-use yew::{prelude::*, Children};
-use yewdux::prelude::*;
+use std::{cell::RefCell, rc::Rc};
+use yew::prelude::*;
 
-use crate::services::{get_token, ReceivedMessage, WebSocketMessage, WebSocketService};
-use crate::shared::SessionHistory;
+mod manage_connection {
+    use futures::channel::mpsc::Sender;
+    use yew::functional::use_reducer;
+    use yew::{prelude::*, Children};
 
-#[derive(Debug, Clone, PartialEq)]
+    use crate::{
+        hooks::use_user_context,
+        services::{ReceivedMessage, WebSocketMessage, WebSocketService},
+        shared::{Evaluator, SessionHistory},
+    };
+
+    #[derive(Properties, Clone, PartialEq)]
+    pub struct Props {
+        pub children: Children,
+    }
+
+    /// User context provider.
+    #[function_component(ManageConnection)]
+    pub fn manage_connection(props: &Props) -> Html {
+        let history = use_reducer(SessionHistory::default);
+        let evaluator = use_state(Evaluator::default);
+        let wss = use_state(|| None::<WebSocketService>);
+        let user_ctx = use_user_context();
+
+        let append = history.clone();
+        let set_evaluator = evaluator.clone();
+        use_effect_with_deps(
+            move |(user,)| {
+                if user.is_authenticated() {
+                    log::info!("conn:authenticated");
+
+                    let token = user.token.clone();
+                    let first = serde_json::to_string(&WebSocketMessage::Token {
+                        token: token.clone(),
+                    })
+                    .expect("web socket message token error");
+
+                    // let append = append.clone();
+
+                    let service = WebSocketService::new(Some(first), {
+                        Callback::from(
+                            move |(mut c, r): (Sender<Option<String>>, ReceivedMessage)| {
+                                // let _ok = true;
+                                match r {
+                                    ReceivedMessage::Item(item) => {
+                                        log::info!("{:?}", item);
+                                        match serde_json::from_str::<WebSocketMessage>(&item)
+                                            .unwrap()
+                                        {
+                                            WebSocketMessage::Welcome { self_key: _ } => {
+                                                let reply = serde_json::to_string(
+                                                    &WebSocketMessage::Evaluate("look".into()),
+                                                )
+                                                .unwrap();
+                                                c.try_send(Some(reply))
+                                                    .expect("welcome: try send failed");
+                                            }
+                                            WebSocketMessage::Reply(value) => {
+                                                log::debug!("notify:");
+
+                                                append.dispatch(value);
+                                            }
+                                            WebSocketMessage::Notify((key, value)) => {
+                                                log::debug!("notify: key={:?}", key);
+
+                                                append.dispatch(value);
+                                            }
+                                            _ => todo!(),
+                                        };
+                                    }
+                                };
+                            },
+                        )
+                    });
+
+                    set_evaluator.set(Evaluator::new(Callback::from({
+                        let service = service.clone();
+                        move |value| {
+                            let value =
+                                serde_json::to_string(&WebSocketMessage::Evaluate(value)).unwrap();
+
+                            service.try_send(value).expect("try send failed");
+                        }
+                    })));
+
+                    wss.set(Some(service));
+                } else {
+                    log::info!("conn:anonymous");
+                    wss.set(None);
+                }
+            },
+            (user_ctx,),
+        );
+
+        html! {
+            <ContextProvider<SessionHistory> context={(*history).clone()}>
+                <ContextProvider<Evaluator> context={(*evaluator).clone()}>
+                { for props.children.iter() }
+                </ContextProvider<Evaluator>>
+            </ContextProvider<SessionHistory>>
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct Evaluator {
-    pub callback: Callback<String>,
+    callback: Rc<RefCell<Option<Callback<String>>>>,
+}
+
+impl Evaluator {
+    pub fn new(callback: Callback<String>) -> Self {
+        Self {
+            callback: Rc::new(RefCell::new(Some(callback))),
+        }
+    }
+
+    pub fn evaluate(&self, line: String) -> () {
+        let callback = self.callback.borrow();
+        match callback.as_ref() {
+            Some(callback) => callback.emit(line),
+            None => todo!(),
+        };
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -17,118 +131,4 @@ pub struct Myself {
     pub key: Option<String>,
 }
 
-impl Reducible for Myself {
-    type Action = String;
-
-    fn reduce(self: Rc<Self>, action: Self::Action) -> Rc<Self> {
-        Myself { key: Some(action) }.into()
-    }
-}
-
-#[derive(Properties, Clone, PartialEq)]
-pub struct Props {
-    pub children: Children,
-}
-
-pub enum Msg {
-    Received(ReceivedMessage),
-    Evaluate(String),
-}
-
-pub struct AlwaysOpenWebSocket {
-    wss: WebSocketService,
-    evaluator: Evaluator,
-    myself: Myself,
-}
-
-impl Component for AlwaysOpenWebSocket {
-    type Message = Msg;
-    type Properties = Props;
-
-    fn create(ctx: &Context<Self>) -> Self {
-        let receive_callback = ctx
-            .link()
-            .callback(|m: ReceivedMessage| Self::Message::Received(m));
-        let evaluate_callback = ctx.link().callback(|m: String| Self::Message::Evaluate(m));
-
-        let wss = WebSocketService::new(receive_callback);
-
-        Self {
-            wss,
-            myself: Myself { key: None },
-            evaluator: Evaluator {
-                callback: evaluate_callback,
-            },
-        }
-    }
-
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
-        match msg {
-            Self::Message::Received(ReceivedMessage::Connecting) => {
-                if let Some(token) = get_token() {
-                    self.wss
-                        .try_send(
-                            serde_json::to_string(&WebSocketMessage::Token { token }).unwrap(),
-                        )
-                        .unwrap();
-                } else {
-                    console::info!("received connecting no-token");
-                }
-
-                true
-            }
-            Self::Message::Received(ReceivedMessage::Item(value)) => {
-                console::info!("received", &value);
-                match serde_json::from_str::<WebSocketMessage>(&value).unwrap() {
-                    WebSocketMessage::Welcome { self_key } => {
-                        self.myself = Myself {
-                            key: Some(self_key),
-                        };
-                        self.wss
-                            .try_send(
-                                serde_json::to_string(&WebSocketMessage::Evaluate("look".into()))
-                                    .unwrap(),
-                            )
-                            .unwrap();
-
-                        false
-                    }
-                    WebSocketMessage::Reply(value) => {
-                        let dispatch = Dispatch::<SessionHistory>::new();
-
-                        dispatch.reduce(move |history| Rc::new(history.append(value)));
-
-                        true
-                    }
-                    WebSocketMessage::Notify((key, value)) => {
-                        let dispatch = Dispatch::<SessionHistory>::new();
-
-                        log::debug!("notify: key={:?}", key);
-
-                        dispatch.reduce(move |history| Rc::new(history.append(value)));
-
-                        true
-                    }
-                    _ => false,
-                }
-            }
-            Self::Message::Evaluate(value) => {
-                self.wss
-                    .try_send(serde_json::to_string(&WebSocketMessage::Evaluate(value)).unwrap())
-                    .unwrap();
-
-                false
-            }
-        }
-    }
-
-    fn view(&self, ctx: &Context<Self>) -> Html {
-        html! {
-            <ContextProvider<Evaluator> context={self.evaluator.clone()}>
-                <ContextProvider<Myself> context={self.myself.clone()}>
-                    { for ctx.props().children.iter() }
-                </ContextProvider<Myself>>
-            </ContextProvider<Evaluator>>
-        }
-    }
-}
+pub type AlwaysOpenWebSocket = manage_connection::ManageConnection;

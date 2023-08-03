@@ -28,7 +28,6 @@ pub enum WebSocketMessage {
 
 #[derive(Debug)]
 pub enum ReceivedMessage {
-    Connecting,
     Item(String),
 }
 
@@ -39,7 +38,7 @@ struct ActiveConnection {
 }
 
 impl ActiveConnection {
-    fn new(incoming: Callback<ReceivedMessage>) -> Self {
+    fn new(incoming: Callback<(Sender<Option<String>>, ReceivedMessage)>) -> Self {
         let (in_tx, mut in_rx) = futures::channel::mpsc::channel::<Option<String>>(100);
 
         log::debug!("ws:new");
@@ -59,7 +58,6 @@ impl ActiveConnection {
             while let Some(s) = in_rx.next().await {
                 match s {
                     Some(s) => {
-                        log::debug!("ws:send {}", s);
                         write.send(Message::Text(s)).await.unwrap();
                     }
                     None => break,
@@ -73,31 +71,34 @@ impl ActiveConnection {
 
         let closer = in_tx.clone();
 
-        spawn_local(async move {
-            log::debug!("ws:rx-open");
+        spawn_local({
+            let in_tx = in_tx.clone();
+            async move {
+                log::debug!("ws:rx-open");
 
-            while let Some(msg) = read.next().await {
-                match msg {
-                    Ok(Message::Text(data)) => {
-                        log::trace!("ws:text {}", data);
-                        incoming.emit(ReceivedMessage::Item(data))
-                    }
-                    Ok(Message::Bytes(b)) => {
-                        let decoded = std::str::from_utf8(&b);
-                        if let Ok(val) = decoded {
-                            log::trace!("ws:bytes {}", &val);
-                            incoming.emit(ReceivedMessage::Item(val.into()))
+                while let Some(msg) = read.next().await {
+                    match msg {
+                        Ok(Message::Text(data)) => {
+                            log::trace!("ws:text {}", data);
+                            incoming.emit((in_tx.clone(), ReceivedMessage::Item(data)))
+                        }
+                        Ok(Message::Bytes(b)) => {
+                            let decoded = std::str::from_utf8(&b);
+                            if let Ok(val) = decoded {
+                                log::trace!("ws:bytes {}", &val);
+                                incoming.emit((in_tx.clone(), ReceivedMessage::Item(val.into())))
+                            }
+                        }
+                        Err(e) => {
+                            log::error!("ws: {:?}", e)
                         }
                     }
-                    Err(e) => {
-                        log::error!("ws: {:?}", e)
-                    }
                 }
+
+                closer.clone().send(None).await.unwrap();
+
+                log::debug!("ws:rx-close");
             }
-
-            closer.clone().send(None).await.unwrap();
-
-            log::debug!("ws:rx-close");
         });
 
         Self {
@@ -116,18 +117,22 @@ impl ActiveConnection {
 }
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct WebSocketService {
     connection: Arc<RefCell<Option<ActiveConnection>>>,
 }
 
 impl WebSocketService {
-    pub fn new(incoming: Callback<ReceivedMessage>) -> Self {
+    pub fn new(
+        first: Option<String>,
+        incoming: Callback<(Sender<Option<String>>, ReceivedMessage)>,
+    ) -> Self {
         let connection = Arc::new(RefCell::new(None::<ActiveConnection>));
         let sender = Arc::clone(&connection);
 
         spawn_local(async move {
             loop {
-                let connecting = {
+                let _connecting = {
                     let mut c = connection.borrow_mut();
                     let reconnecting = match &*c {
                         Some(c) => !c.is_busy(),
@@ -136,16 +141,20 @@ impl WebSocketService {
                     if reconnecting {
                         log::debug!("connecting");
 
-                        *c = Some(ActiveConnection::new(incoming.clone()));
+                        let starting = ActiveConnection::new(incoming.clone());
+
+                        if let Some(first) = &first {
+                            starting
+                                .try_send(first.clone())
+                                .expect("ws send first failed");
+                        }
+
+                        *c = Some(starting);
                         true
                     } else {
                         false
                     }
                 };
-
-                if connecting {
-                    incoming.emit(ReceivedMessage::Connecting);
-                }
 
                 TimeoutFuture::new(1_000).await;
             }
@@ -154,7 +163,9 @@ impl WebSocketService {
         Self { connection: sender }
     }
 
+    #[allow(dead_code)]
     pub fn try_send(&self, value: String) -> Result<(), TrySendError<Option<String>>> {
+        log::info!("sending {:?}", value);
         self.connection
             .as_ref()
             .borrow()
