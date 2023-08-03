@@ -1,7 +1,9 @@
 use gloo_timers::callback::Timeout;
 use web_sys::HtmlElement;
 use yew::prelude::*;
+use yew_router::prelude::use_navigator;
 
+use crate::routes::Route;
 use crate::shared::CommandLine;
 use crate::shared::Evaluator;
 use crate::shared::SessionHistory;
@@ -109,7 +111,10 @@ impl Component for Home {
                                     { "Buttons" }
                                 </div>
                             </div>
-                            <CommandLine oncommand={move |line: String| evaluator.evaluate(line.clone())} />
+                            <div class="bottom-bar">
+                                <CommandLine oncommand={move |line: String| evaluator.evaluate(line.clone())} />
+                                <LogoutButton />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -117,5 +122,18 @@ impl Component for Home {
         } else {
             html! { <div> {{ "Busy" }} </div> }
         }
+    }
+}
+
+#[function_component(LogoutButton)]
+pub fn logout_button() -> Html {
+    let navigator = use_navigator().unwrap();
+
+    let logout = move |_| {
+        navigator.push(&Route::Login);
+    };
+
+    html! {
+        <div class="logout" onclick={logout}>{ "Logout" }</div>
     }
 }

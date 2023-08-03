@@ -46,9 +46,26 @@ body {
   flex-direction: column;
 }
 
-#lower {}
+#lower {
+  .bottom-bar {
+    display: flex;
+    flex-direction: row;
+
+    .logout {
+      padding-right: 1em;
+      font-weight: bold;
+      font-size: 12pt;
+      display: flex;
+      justify-content: center;
+      flex-direction: column;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+  }
+}
 
 .command-line-editor {
+  flex-grow: 1;
   margin: 1em;
 
   input {
