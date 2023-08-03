@@ -14,13 +14,13 @@ path = "../../libs/kernel"
 path = "../core"
 
 [dependencies]
-anyhow = "1.0.71"
+anyhow = "1.0.72"
 tracing = "0.1.37"
-serde = { version = "1.0.163", features = ["derive"] }
-serde_json = "1.0.96"
-rune = "0.12.3"
+serde = { version = "1.0.180", features = ["derive"] }
+serde_json = "1.0.104"
+rune = "0.12.4"
 glob = "0.3.1"
-rune-modules = { version = "0.12.3", features = ["rand", "time", "json"] }
+rune-modules = { version = "0.12.4", features = ["rand", "time", "json"] }
 
 [dev-dependencies]
-insta = { version = "1.29.0", features = ["yaml", "json"] }
+insta = { version = "1.31.0", features = ["yaml", "json"] }

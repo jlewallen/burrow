@@ -17,7 +17,7 @@ path = "../core"
 path = "../rpc-proto"
 
 [dependencies]
-anyhow = "1.0.71"
-serde_json = "1.0.99"
+anyhow = "1.0.72"
+serde_json = "1.0.104"
 tracing = "0.1.37"
 chrono = "0.4.26"

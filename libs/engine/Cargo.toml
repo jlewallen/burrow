@@ -11,8 +11,8 @@ doctest = false
 path = "../kernel"
 
 [dependencies]
-anyhow = "1.0.71"
+anyhow = "1.0.72"
 chrono = { version = "0.4.26", features = ["serde"] }
-serde = { version = "1.0.163", features = ["derive"] }
-serde_json = "1.0.96"
+serde = { version = "1.0.180", features = ["derive"] }
+serde_json = "1.0.104"
 tracing = "0.1.37"

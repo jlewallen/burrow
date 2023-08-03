@@ -11,12 +11,12 @@ harness = false
 doctest = false
 
 [dependencies]
-anyhow = "1.0.71"
+anyhow = "1.0.72"
 criterion-macro = "0.4.0"
-pprof = { version = "0.12.0", features = ["criterion", "flamegraph"] }
-tokio = { version = "1.28.2", features = ["full"] }
-serde_json = "1.0.96"
-tempfile = "3.6.0"
+pprof = { version = "0.12.1", features = ["criterion", "flamegraph"] }
+tokio = { version = "1.29.1", features = ["full"] }
+serde_json = "1.0.104"
+tempfile = "3.7.0"
 
 [dependencies.kernel]
 path = "../kernel"
@@ -46,8 +46,8 @@ path = "../../plugins/rpc"
 path = "../../plugins/dynlib"
 
 [dev-dependencies]
-ctor = "0.2.2"
-insta = { version = "1.29.0", features = ["json"] }
-pprof = { version = "0.12.0", features = ["criterion", "flamegraph"] }
+ctor = "0.2.4"
+insta = { version = "1.31.0", features = ["json"] }
+pprof = { version = "0.12.1", features = ["criterion", "flamegraph"] }
 criterion = { version = "0.5.1", features = ["html_reports", "tokio"] }
 criterion-macro = "0.4.0"
