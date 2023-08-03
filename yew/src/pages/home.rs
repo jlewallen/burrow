@@ -9,8 +9,8 @@ use crate::shared::LogoutButton;
 use crate::shared::SessionHistory;
 
 pub enum Msg {
-    UpdateHistory(SessionHistory),
-    UpdateEvaluator(Evaluator),
+    History(SessionHistory),
+    Evaluator(Evaluator),
     Refresh,
 }
 
@@ -29,15 +29,12 @@ impl Component for Home {
     fn create(ctx: &Context<Self>) -> Self {
         let (history, history_listener) = ctx
             .link()
-            .context::<SessionHistory>(ctx.link().callback(|history| Msg::UpdateHistory(history)))
+            .context::<SessionHistory>(ctx.link().callback(|history| Msg::History(history)))
             .expect("No history context");
 
         let (evaluator, evaluator_listener) = ctx
             .link()
-            .context::<Evaluator>(
-                ctx.link()
-                    .callback(|evaluator| Msg::UpdateEvaluator(evaluator)),
-            )
+            .context::<Evaluator>(ctx.link().callback(|evaluator| Msg::Evaluator(evaluator)))
             .expect("No evalutor context");
 
         Self {
@@ -51,14 +48,14 @@ impl Component for Home {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Self::Message::UpdateEvaluator(evaluator) => {
+            Self::Message::Evaluator(evaluator) => {
                 log::info!("update-evaluator");
 
                 self.evaluator = evaluator;
 
                 true
             }
-            Self::Message::UpdateHistory(history) => {
+            Self::Message::History(history) => {
                 self.history = Some(history);
 
                 log::info!("update-history");
@@ -97,7 +94,7 @@ impl Component for Home {
             html! {
                 <div id="hack">
                     <div id="upper" ref={&self.refs[0]}>
-                        <div id="main"><HistoryItems history={history.clone()} /></div>
+                        <div id="main"><HistoryItems history={history} /></div>
                     </div>
                     <div id="lower">
                         <div class="interactables">

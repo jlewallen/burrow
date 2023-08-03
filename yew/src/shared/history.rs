@@ -34,30 +34,25 @@ impl Reducible for SessionHistory {
 impl SessionHistory {
     pub fn append(&self, value: serde_json::Value) -> Self {
         let entries = if !value.is_null() {
-            // log::info!("appending {:?} {:?}", self.entries.len(), value);
             self.entries
                 .clone()
                 .into_iter()
                 .chain([HistoryEntry::new(value)])
                 .collect()
         } else {
-            // log::info!("cloning");
             self.entries.clone()
         };
         Self { entries }
     }
 }
 
+const NO_NAME: &str = "No Name";
+
 fn simple_entities_list(entities: &Vec<ObservedEntity>) -> Html {
     let names = entities
         .iter()
-        .map(
-            // TODO Super awkward clone, I'm tired though.
-            |e| /* html! { <span> { */ e.name.clone().or(Some("?".into())).unwrap(), /* } </span> } */
-        )
+        .map(|e| e.name.clone().or(Some(NO_NAME.into())).unwrap())
         .collect::<Vec<_>>()
-        // .intersperse(", "); // TODO This may be a thing some day and
-        // would be nice if this had Html returned above, maybe.
         .join(", ");
 
     html! {
@@ -69,7 +64,7 @@ fn area_observation(reply: &AreaObservation) -> Html {
     let name: &str = if let Some(name) = &reply.area.name {
         &name
     } else {
-        "No Name"
+        NO_NAME
     };
 
     let desc: Html = if let Some(desc) = &reply.area.desc {
@@ -140,36 +135,6 @@ fn inside_observation(reply: &InsideObservation) -> Html {
     }
 }
 
-#[derive(Debug, Deserialize)]
-struct ItemHeld {
-    living: ObservedEntity,
-    item: ObservedEntity,
-}
-
-#[derive(Debug, Deserialize)]
-struct ItemDropped {
-    living: ObservedEntity,
-    item: ObservedEntity,
-}
-
-#[derive(Debug, Deserialize)]
-struct LivingLeft {
-    living: ObservedEntity,
-}
-
-#[derive(Debug, Deserialize)]
-struct LivingArrived {
-    living: ObservedEntity,
-}
-
-#[derive(Debug, Deserialize)]
-struct KnownSimpleObservations {
-    left: Option<LivingLeft>,
-    arrived: Option<LivingArrived>,
-    held: Option<ItemHeld>,
-    dropped: Option<ItemDropped>,
-}
-
 fn simple_observation(reply: &SimpleObservation, myself: &Myself) -> Html {
     // I'm going to love cleaning this up later. Considering a quick function
     // for the "You" vs name work. We also need to introduce inflections of
@@ -232,14 +197,28 @@ fn simple_reply(reply: &SimpleReply) -> Html {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub enum BasicReply {
+pub enum AllKnownItems {
     SimpleReply(SimpleReply),
-    EntityObservation(EntityObservation),
-    InsideObservation(InsideObservation),
     AreaObservation(AreaObservation),
+    InsideObservation(InsideObservation),
+    EntityObservation(EntityObservation),
     SimpleObservation(SimpleObservation),
     EditorReply(EditorReply),
     JsonReply(JsonReply),
+}
+
+impl AllKnownItems {
+    fn render(&self, myself: &Myself) -> Html {
+        match self {
+            Self::AreaObservation(reply) => area_observation(&reply),
+            Self::InsideObservation(reply) => inside_observation(&reply),
+            Self::SimpleReply(reply) => simple_reply(&reply),
+            Self::SimpleObservation(reply) => simple_observation(&reply, myself),
+            Self::EntityObservation(_) => todo!(),
+            Self::EditorReply(_) => todo!(),
+            Self::JsonReply(_) => todo!(),
+        }
+    }
 }
 
 #[derive(Properties, Clone, PartialEq)]
@@ -254,24 +233,45 @@ pub fn history_entry_item(props: &Props) -> Html {
     let myself = Myself {
         key: Some(key.clone()),
     };
-    log::debug!("myself: {:?}", myself);
 
     let value = &props.entry.value;
-    if let Ok(reply) = serde_json::from_value::<BasicReply>(value.clone()) {
-        match reply {
-            BasicReply::AreaObservation(reply) => area_observation(&reply),
-            BasicReply::InsideObservation(reply) => inside_observation(&reply),
-            BasicReply::SimpleObservation(reply) => simple_observation(&reply, &myself),
-            BasicReply::SimpleReply(reply) => simple_reply(&reply),
-            BasicReply::EntityObservation(_) => todo!(),
-            BasicReply::EditorReply(_) => todo!(),
-            BasicReply::JsonReply(_) => todo!(),
-        }
+    if let Ok(item) = serde_json::from_value::<AllKnownItems>(value.clone()) {
+        item.render(&myself)
     } else {
         html! {
             <div class="entry unknown">
-                { props.entry.value.to_string() }
+                { value.to_string() }
             </div>
         }
     }
+}
+
+#[derive(Debug, Deserialize)]
+struct ItemHeld {
+    living: ObservedEntity,
+    item: ObservedEntity,
+}
+
+#[derive(Debug, Deserialize)]
+struct ItemDropped {
+    living: ObservedEntity,
+    item: ObservedEntity,
+}
+
+#[derive(Debug, Deserialize)]
+struct LivingLeft {
+    living: ObservedEntity,
+}
+
+#[derive(Debug, Deserialize)]
+struct LivingArrived {
+    living: ObservedEntity,
+}
+
+#[derive(Debug, Deserialize)]
+struct KnownSimpleObservations {
+    left: Option<LivingLeft>,
+    arrived: Option<LivingArrived>,
+    held: Option<ItemHeld>,
+    dropped: Option<ItemDropped>,
 }

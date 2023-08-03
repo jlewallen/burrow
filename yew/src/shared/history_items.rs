@@ -1,6 +1,6 @@
-use super::HistoryEntryItem;
 use yew::prelude::*;
 
+use super::HistoryEntryItem;
 use super::SessionHistory;
 
 #[derive(Properties, Clone, PartialEq, Eq)]

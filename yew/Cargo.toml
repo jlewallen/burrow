@@ -32,6 +32,7 @@ yew-hooks = "0.2.0"
 anyhow = "1.0.72"
 thiserror = "1.0.44"
 futures-util = "0.3.28"
+monaco = { version = "0.3.0", features = ["yew"] }
 
 [dependencies.web-sys]
 version = "0.3"
