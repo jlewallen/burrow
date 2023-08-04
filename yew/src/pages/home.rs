@@ -1,10 +1,10 @@
-use gloo_timers::callback::Timeout;
 use replies::EditorReply;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlElement;
 use yew::html::RenderError;
 use yew::prelude::*;
 use yew::suspense::*;
+use yew_hooks::use_timeout;
 
 use crate::shared::editor::Editor;
 use crate::shared::history_items::HistoryItems;
@@ -15,108 +15,63 @@ use crate::types::AllKnownItems;
 use crate::types::SaveWorkingCopyAction;
 use crate::types::SessionHistory;
 
-pub enum Msg {
-    History(SessionHistory),
-    Evaluator(Evaluator),
-    Refresh,
-}
+#[function_component(Home)]
+pub fn home() -> Html {
+    let upper_ref = use_node_ref();
 
-pub struct Home {
-    refs: Vec<NodeRef>,
-    history: Option<SessionHistory>,
-    evaluator: Evaluator,
-    _history_listener: ContextHandle<SessionHistory>,
-    _evaluator_listener: ContextHandle<Evaluator>,
-}
+    let evaluator = use_context::<Evaluator>();
+    let Some(evaluator) = evaluator else  {
+        log::info!("home: no evaluator");
+        return html! { <div></div> }
+    };
 
-impl Component for Home {
-    type Message = Msg;
-    type Properties = ();
+    let history = use_context::<SessionHistory>();
+    let Some(history) = history else  {
+        log::info!("home: no history");
+        return html! { <div></div> }
+    };
 
-    fn create(ctx: &Context<Self>) -> Self {
-        let (history, history_listener) = ctx
-            .link()
-            .context::<SessionHistory>(ctx.link().callback(|history| Msg::History(history)))
-            .expect("No history context");
+    let scroll_delay = {
+        let upper_ref = upper_ref.clone();
 
-        let (evaluator, evaluator_listener) = ctx
-            .link()
-            .context::<Evaluator>(ctx.link().callback(|evaluator| Msg::Evaluator(evaluator)))
-            .expect("No evalutor context");
+        use_timeout(
+            move || {
+                let upper_div = &upper_ref.cast::<HtmlElement>().unwrap();
 
-        Self {
-            history: Some(history),
-            refs: vec![NodeRef::default()],
-            evaluator,
-            _history_listener: history_listener,
-            _evaluator_listener: evaluator_listener,
-        }
-    }
-
-    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
-        match msg {
-            Self::Message::Evaluator(evaluator) => {
-                log::trace!("update-evaluator");
-
-                self.evaluator = evaluator;
-
-                true
-            }
-            Self::Message::History(history) => {
-                self.history = Some(history);
-
-                log::trace!("update-history");
-
-                let refresher = ctx.link().callback(|_| Self::Message::Refresh);
-
-                let timeout = Timeout::new(25, move || {
-                    refresher.emit(());
-                });
-
-                timeout.forget();
-
-                true
-            }
-            Self::Message::Refresh => {
-                let upper = &self.refs[0];
-                let upper_div = &upper.cast::<HtmlElement>().unwrap();
-
-                log::debug!(
+                log::trace!(
                     "update-history:refresh ({}, {})",
                     upper_div.scroll_top(),
                     upper_div.scroll_height()
                 );
 
                 upper_div.set_scroll_top(upper_div.scroll_height());
+            },
+            25,
+        )
+    };
 
-                true
-            }
-        }
-    }
+    use_effect_with_deps(
+        move |(_history,)| {
+            scroll_delay.reset();
+        },
+        (history.clone(),),
+    );
 
-    fn view(&self, _ctx: &Context<Self>) -> Html {
-        let evaluator = self.evaluator.clone();
-
-        if let Some(history) = self.history.clone() {
-            html! {
-                <div id="hack">
-                    <div id="upper" ref={&self.refs[0]}>
-                        <div id="main"><HistoryItems history={history} /></div>
-                    </div>
-                    <div id="lower">
-                        <div class="interactables">
-                            <BottomEditor />
-                            <div class="bottom-bar">
-                                <CommandLine oncommand={move |line: String| evaluator.evaluate(line.clone())} />
-                                <LogoutButton />
-                            </div>
-                        </div>
+    html! {
+        <div id="hack">
+            <div id="upper" ref={upper_ref}>
+                <div id="main"><HistoryItems history={history} /></div>
+            </div>
+            <div id="lower">
+                <div class="interactables">
+                    <BottomEditor />
+                    <div class="bottom-bar">
+                        <CommandLine oncommand={move |line: String| evaluator.evaluate(line.clone())} />
+                        <LogoutButton />
                     </div>
                 </div>
-            }
-        } else {
-            html! { <div> {{ "Busy" }} </div> }
-        }
+            </div>
+        </div>
     }
 }
 
