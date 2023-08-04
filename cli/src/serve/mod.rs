@@ -11,6 +11,7 @@ use crate::{make_domain, PluginConfiguration};
 mod handlers;
 mod jwt_auth;
 mod route;
+mod rpc;
 mod state;
 mod ws;
 

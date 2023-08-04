@@ -1,6 +1,8 @@
 use std::{cell::RefCell, rc::Rc};
 use yew::prelude::*;
 
+use crate::services::WebSocketMessage;
+
 mod manage_connection {
     use futures::channel::mpsc::Sender;
     use yew::functional::use_reducer;
@@ -77,9 +79,7 @@ mod manage_connection {
                     set_evaluator.set(Evaluator::new(Callback::from({
                         let service = service.clone();
                         move |value| {
-                            let value =
-                                serde_json::to_string(&WebSocketMessage::Evaluate(value)).unwrap();
-
+                            let value = serde_json::to_string(&value).unwrap();
                             service.try_send(value).expect("try send failed");
                         }
                     })));
@@ -104,20 +104,30 @@ mod manage_connection {
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Evaluator {
-    callback: Rc<RefCell<Option<Callback<String>>>>,
+    callback: Rc<RefCell<Option<Callback<WebSocketMessage>>>>,
 }
 
 impl Evaluator {
-    pub fn new(callback: Callback<String>) -> Self {
+    pub fn new(callback: Callback<WebSocketMessage>) -> Self {
         Self {
             callback: Rc::new(RefCell::new(Some(callback))),
         }
     }
 
-    pub fn evaluate(&self, line: String) -> () {
+    pub fn perform(&self, action: serde_json::Value) -> () {
+        let message = WebSocketMessage::Perform(action);
         let callback = self.callback.borrow();
         match callback.as_ref() {
-            Some(callback) => callback.emit(line),
+            Some(callback) => callback.emit(message),
+            None => todo!(),
+        };
+    }
+
+    pub fn evaluate(&self, line: String) -> () {
+        let message = WebSocketMessage::Evaluate(line);
+        let callback = self.callback.borrow();
+        match callback.as_ref() {
+            Some(callback) => callback.emit(message),
             None => todo!(),
         };
     }

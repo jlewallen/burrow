@@ -119,7 +119,7 @@ impl Component for Home {
 
 trait Editable {
     fn editor_text(&self) -> Result<String, serde_json::Error>;
-    fn make_reply(&self, value: String) -> Result<String, serde_json::Error>;
+    fn make_save_action(&self, value: String) -> Result<serde_json::Value, serde_json::Error>;
 }
 
 impl Editable for replies::EditorReply {
@@ -131,7 +131,7 @@ impl Editable for replies::EditorReply {
         }
     }
 
-    fn make_reply(&self, value: String) -> Result<String, serde_json::Error> {
+    fn make_save_action(&self, value: String) -> Result<serde_json::Value, serde_json::Error> {
         let _copy = match self.editing() {
             replies::WorkingCopy::Description(_) => replies::WorkingCopy::Description(value),
             replies::WorkingCopy::Json(_) => {
@@ -147,7 +147,7 @@ impl Editable for replies::EditorReply {
         };
         */
 
-        Ok("{}".to_owned())
+        Ok(serde_json::Value::Object(Default::default()))
     }
 }
 
@@ -161,13 +161,21 @@ use yew::suspense::*;
 
 #[function_component(BottomEditor)]
 pub fn bottom_editor(props: &BottomEditorProps) -> HtmlResult {
+    let evaluator = use_context::<Evaluator>();
+    let Some(evaluator) = evaluator else  {
+        log::info!("editor: no evaluator");
+        return Ok(html! { <div></div> })
+    };
+
     let Some(latest) = props.latest.clone() else {
+        log::info!("editor: no latest");
         return Ok(html! { <div></div> })
     };
 
     let known: Option<AllKnownItems> = latest.into();
 
     let Some(AllKnownItems::EditorReply(editor)) = &known else {
+        log::info!("editor: ignoring reply");
         return Ok(html! { <div></div> })
     };
 
@@ -179,9 +187,9 @@ pub fn bottom_editor(props: &BottomEditorProps) -> HtmlResult {
         let editor = editor.clone();
         Callback::from(move |code| {
             log::info!("on-save {:?}", code);
-            match editor.make_reply(code) {
-                Ok(_reply) => todo!(),
-                Err(_) => todo!(),
+            match editor.make_save_action(code) {
+                Ok(action) => evaluator.perform(action),
+                Err(e) => log::error!("error making save action: {:?}", e),
             }
         })
     };

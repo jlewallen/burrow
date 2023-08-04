@@ -22,6 +22,7 @@ pub enum WebSocketMessage {
     Token { token: String },
     Welcome { self_key: String },
     Evaluate(String),
+    Perform(serde_json::Value),
     Reply(serde_json::Value),
     Notify((String, serde_json::Value)),
     Error(String),

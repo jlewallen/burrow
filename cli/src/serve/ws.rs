@@ -9,10 +9,14 @@ use tokio::task::JoinHandle;
 use tracing::{info, warn};
 
 use engine::{EvaluateAs, Notifier, Session, SessionOpener};
-use kernel::{Effect, EntityKey, SimpleReply};
+use kernel::{
+    Effect, EntityKey, EntryResolver, LookupBy, Perform, PerformAction, Performer, SimpleReply,
+};
 use replies::ToJson;
 
-use crate::serve::{handlers::TokenClaims, jwt_auth::ErrorResponse, ClientSession};
+use crate::serve::{
+    handlers::TokenClaims, jwt_auth::ErrorResponse, rpc::try_parse_action, ClientSession,
+};
 
 use super::AppState;
 
@@ -21,6 +25,7 @@ use super::AppState;
 pub enum ClientMessage {
     Token { token: String },
     Evaluate(String),
+    Perform(serde_json::Value),
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -177,6 +182,43 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(Message::Item(message))) = receiver.next().await {
             match message {
+                ClientMessage::Perform(value) => {
+                    let app_state: &AppState = user_state.borrow();
+
+                    let handle: JoinHandle<Result<serde_json::Value>> =
+                        tokio::task::spawn_blocking({
+                            let domain = app_state.domain.clone();
+                            let notifier = app_state.notifier();
+                            let our_key = our_key.clone();
+
+                            move || {
+                                let session = domain.open_session().expect("Error opening session");
+                                // TODO This could be a PerformAction
+                                let action: Rc<_> = try_parse_action(value)
+                                    .expect("try parse action failed")
+                                    .into();
+                                let living = session
+                                    .entry(&LookupBy::Key(&EntityKey::new(&our_key)))
+                                    .expect("Living lookup failed")
+                                    .expect("Living not found");
+                                let perform = Perform::Living {
+                                    living,
+                                    action: PerformAction::Instance(action),
+                                };
+                                let effect = session.perform(perform).expect("Perform failed");
+                                session.close(&notifier).expect("Error closing session");
+                                Ok(effect.to_tagged_json()?)
+                            }
+                        });
+
+                    match handle.await {
+                        Ok(Ok(reply)) => session_tx
+                            .send(ServerMessage::Reply(reply))
+                            .expect("Error sending reply"),
+                        Ok(Err(e)) => todo!("{:?}", e),
+                        Err(e) => todo!("{:?}", e),
+                    };
+                }
                 ClientMessage::Evaluate(text) => {
                     let app_state: &AppState = user_state.borrow();
 
