@@ -7,7 +7,7 @@ use crate::shared::{AlwaysOpenWebSocket, UserContextProvider};
 #[function_component(App)]
 pub fn app() -> Html {
     html! {
-        <BrowserRouter>
+        <HashRouter>
             <UserContextProvider>
                 <AlwaysOpenWebSocket>
                     <div id="app">
@@ -15,6 +15,6 @@ pub fn app() -> Html {
                     </div>
                 </AlwaysOpenWebSocket>
             </UserContextProvider>
-        </BrowserRouter>
+        </HashRouter>
     }
 }
