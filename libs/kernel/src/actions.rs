@@ -86,6 +86,26 @@ pub enum Perform {
     Ping(TracePath),
 }
 
+impl Perform {
+    pub fn enum_name(&self) -> &str {
+        match self {
+            Perform::Living {
+                living: _,
+                action: _,
+            } => "Living",
+            Perform::Surroundings {
+                surroundings: _,
+                action: _,
+            } => "Surroundings",
+            Perform::Chain(_) => "Chain",
+            Perform::Delivery(_) => "Delivery",
+            Perform::Raised(_) => "Raised",
+            Perform::Schedule(_) => "Schedule",
+            Perform::Ping(_) => "Ping",
+        }
+    }
+}
+
 pub trait Performer {
     fn perform(&self, perform: Perform) -> Result<Effect>;
 }

@@ -46,7 +46,7 @@ mod manage_connection {
                             move |(mut c, r): (Sender<Option<String>>, ReceivedMessage)| {
                                 match r {
                                     ReceivedMessage::Item(item) => {
-                                        // log::info!("{:?}", item);
+                                        log::trace!("{:?}", item);
                                         match serde_json::from_str::<WebSocketMessage>(&item)
                                             .unwrap()
                                         {
@@ -80,7 +80,7 @@ mod manage_connection {
                         let service = service.clone();
                         move |value| {
                             let value = serde_json::to_string(&value).unwrap();
-                            log::info!("send {}", &value);
+                            log::trace!("send {}", &value);
                             service.try_send(value).expect("try send failed");
                         }
                     })));
@@ -117,7 +117,6 @@ impl Evaluator {
 
     pub fn perform(&self, action: serde_json::Value) -> () {
         let message = WebSocketMessage::Perform(action);
-        log::info!("perform {:?}", &message);
         let callback = self.callback.borrow();
         match callback.as_ref() {
             Some(callback) => callback.emit(message),
@@ -127,7 +126,6 @@ impl Evaluator {
 
     pub fn evaluate(&self, line: String) -> () {
         let message = WebSocketMessage::Evaluate(line);
-        log::info!("evaluate {:?}", &message);
         let callback = self.callback.borrow();
         match callback.as_ref() {
             Some(callback) => callback.emit(message),
