@@ -181,9 +181,12 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
     let user_state = state.clone();
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(Message::Item(message))) = receiver.next().await {
+            info!("item {:?}", &message);
             match message {
                 ClientMessage::Perform(value) => {
                     let app_state: &AppState = user_state.borrow();
+
+                    info!("ws:perform");
 
                     let handle: JoinHandle<Result<serde_json::Value>> =
                         tokio::task::spawn_blocking({
@@ -205,6 +208,8 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
                                     living,
                                     action: PerformAction::Instance(action),
                                 };
+                                info!("perform {:?}", &perform);
+                                let _session = session.set_session()?;
                                 let effect = session.perform(perform).expect("Perform failed");
                                 session.close(&notifier).expect("Error closing session");
                                 Ok(effect.to_tagged_json()?)

@@ -8,6 +8,7 @@ use crate::shared::CommandLine;
 use crate::shared::Evaluator;
 use crate::shared::LogoutButton;
 use crate::types::AllKnownItems;
+use crate::types::SaveWorkingCopyAction;
 use crate::types::{HistoryEntry, SessionHistory};
 
 pub enum Msg {
@@ -132,7 +133,7 @@ impl Editable for replies::EditorReply {
     }
 
     fn make_save_action(&self, value: String) -> Result<serde_json::Value, serde_json::Error> {
-        let _copy = match self.editing() {
+        let copy = match self.editing() {
             replies::WorkingCopy::Description(_) => replies::WorkingCopy::Description(value),
             replies::WorkingCopy::Json(_) => {
                 replies::WorkingCopy::Json(serde_json::from_str(&value)?)
@@ -140,14 +141,12 @@ impl Editable for replies::EditorReply {
             replies::WorkingCopy::Script(_) => replies::WorkingCopy::Script(value),
         };
 
-        /*
         let action = SaveWorkingCopyAction {
-            key: EntityKey::new(self.key()),
+            key: self.key().to_owned(),
             copy,
         };
-        */
 
-        Ok(serde_json::Value::Object(Default::default()))
+        serde_json::to_value(action)
     }
 }
 

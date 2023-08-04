@@ -80,6 +80,7 @@ mod manage_connection {
                         let service = service.clone();
                         move |value| {
                             let value = serde_json::to_string(&value).unwrap();
+                            log::info!("send {}", &value);
                             service.try_send(value).expect("try send failed");
                         }
                     })));
@@ -116,6 +117,7 @@ impl Evaluator {
 
     pub fn perform(&self, action: serde_json::Value) -> () {
         let message = WebSocketMessage::Perform(action);
+        log::info!("perform {:?}", &message);
         let callback = self.callback.borrow();
         match callback.as_ref() {
             Some(callback) => callback.emit(message),
@@ -125,6 +127,7 @@ impl Evaluator {
 
     pub fn evaluate(&self, line: String) -> () {
         let message = WebSocketMessage::Evaluate(line);
+        log::info!("evaluate {:?}", &message);
         let callback = self.callback.borrow();
         match callback.as_ref() {
             Some(callback) => callback.emit(message),

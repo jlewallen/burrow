@@ -125,3 +125,10 @@ impl SessionHistory {
 pub struct Myself {
     pub key: Option<String>,
 }
+
+/// Controversial, this is from `building.rs`
+#[derive(Serialize, Deserialize /*, ToJson*/)]
+pub struct SaveWorkingCopyAction {
+    pub key: String, // EntityKey
+    pub copy: WorkingCopy,
+}
