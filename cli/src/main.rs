@@ -67,6 +67,10 @@ fn get_rust_log() -> String {
         original.push_str(",tower_http=info");
     }
 
+    if !original.contains("hyper=") {
+        original.push_str(",hyper=info");
+    }
+
     if !original.contains("rustyline=") {
         original.push_str(",rustyline=info");
     }
