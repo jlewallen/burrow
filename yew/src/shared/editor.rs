@@ -75,6 +75,9 @@ pub fn editor(props: &Props) -> Html {
                 editor_link.with_editor(|editor| {
                     let raw_editor: &IStandaloneCodeEditor = editor.as_ref();
 
+                    // We always take focus when we're shown.
+                    raw_editor.focus();
+
                     // Registers Escape
                     let keycode = monaco::sys::KeyCode::Escape.to_value();
                     raw_editor.add_command(

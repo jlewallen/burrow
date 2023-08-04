@@ -1,5 +1,6 @@
 use gloo_timers::callback::Timeout;
 use replies::EditorReply;
+use wasm_bindgen::JsCast;
 use web_sys::HtmlElement;
 use yew::html::RenderError;
 use yew::prelude::*;
@@ -151,11 +152,18 @@ impl Editable for replies::EditorReply {
     }
 }
 
-#[derive(Properties, PartialEq)]
-pub struct BottomEditorProps {}
+pub fn focus_command_line() {
+    let document = web_sys::window().unwrap().document().unwrap();
+    let commands = document.get_element_by_id("command-line");
+    let commands = commands.unwrap();
+    let commands = commands
+        .dyn_into::<web_sys::HtmlInputElement>()
+        .expect("html cast error");
+    commands.focus().expect("focus error");
+}
 
 #[function_component(BottomEditor)]
-pub fn bottom_editor(_props: &BottomEditorProps) -> HtmlResult {
+pub fn bottom_editor() -> HtmlResult {
     let evaluator = use_context::<Evaluator>();
     let Some(evaluator) = evaluator else  {
         log::info!("editor: no evaluator");
@@ -188,6 +196,7 @@ pub fn bottom_editor(_props: &BottomEditorProps) -> HtmlResult {
         Callback::from(move |_| {
             log::info!("on-quit");
             editing.set(None);
+            focus_command_line();
         })
     };
 
@@ -200,6 +209,7 @@ pub fn bottom_editor(_props: &BottomEditorProps) -> HtmlResult {
                     Ok(action) => {
                         evaluator.perform(action);
                         editing.set(None);
+                        focus_command_line();
                     }
                     Err(e) => log::error!("error making save action: {:?}", e),
                 }

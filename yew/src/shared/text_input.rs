@@ -3,6 +3,7 @@ use yew::prelude::*;
 
 #[derive(Properties, Clone, PartialEq)]
 pub struct Props {
+    pub id: Option<String>,
     pub value: String,
     pub focus: Option<u64>,
     pub onchange: Option<Callback<String>>,
@@ -58,12 +59,22 @@ impl Component for TextInput {
             }
         });
 
-        html! {
-            <input
-                placeholder={ctx.props().value.clone()}
-                type="text"
-                {onkeydown}
-            />
+        if let Some(id) = ctx.props().id.clone() {
+            html! {
+                <input id={id}
+                    placeholder={ctx.props().value.clone()}
+                    type="text"
+                    {onkeydown}
+                />
+            }
+        } else {
+            html! {
+                <input
+                    placeholder={ctx.props().value.clone()}
+                    type="text"
+                    {onkeydown}
+                />
+            }
         }
     }
 }

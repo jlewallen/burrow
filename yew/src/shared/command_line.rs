@@ -11,7 +11,7 @@ pub struct Props {
 pub fn command_line(props: &Props) -> Html {
     html! {
         <div class="command-line-editor">
-            <TextInput value="" onsubmit={props.oncommand.clone()} />
+            <TextInput id="command-line" value="" onsubmit={props.oncommand.clone()} />
         </div>
     }
 }
