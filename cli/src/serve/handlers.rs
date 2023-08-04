@@ -74,7 +74,7 @@ pub(crate) async fn login_handler(
 
     let now = chrono::Utc::now();
     let iat = now.timestamp() as usize;
-    let exp = (now + chrono::Duration::minutes(60)).timestamp() as usize;
+    let exp = (now + chrono::Duration::hours(72)).timestamp() as usize;
     let claims: TokenClaims = TokenClaims {
         sub: key.to_string(),
         exp,
