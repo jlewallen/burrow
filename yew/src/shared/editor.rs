@@ -39,29 +39,31 @@ pub fn custom_editor(props: &CustomEditorProps) -> Html {
 pub struct Props {
     pub code: String,
     pub on_save: Callback<String>,
+    pub on_quit: Callback<()>,
 }
 
 #[function_component(Editor)]
 pub fn editor(props: &Props) -> Html {
     let text_model = use_state_eq(|| TextModel::create(&props.code, Some("rust"), None).unwrap());
 
-    // This is the current code output. As it's static from the example, we set it to the content.
     let on_save = props.on_save.clone();
 
-    // Here we setup the Callback for when the editor is created.
+    let on_quit = props.on_quit.clone();
+
     let on_editor_created = {
-        // We need to clone the text_model/code so we can use them.
         let text_model = text_model.clone();
 
-        // This is a javascript closure, used to pass to Monaco, using wasm-bindgen.
-        let js_closure = {
+        let quit_js_closure = {
+            Closure::<dyn Fn()>::new(move || {
+                on_quit.emit(());
+            })
+        };
+
+        let save_js_closure = {
             let text_model = text_model.clone();
 
-            // We update the code state when the Monaco model changes.
-            // See https://yew.rs/docs/0.20.0/concepts/function-components/pre-defined-hooks
             Closure::<dyn Fn()>::new(move || {
-                log::info!("changed");
-                // code.set(text_model.get_value());
+                log::info!("save!");
                 on_save.emit(text_model.get_value());
             })
         };
@@ -71,14 +73,22 @@ pub fn editor(props: &Props) -> Html {
         use_callback(
             move |editor_link: CodeEditorLink, _text_model| {
                 editor_link.with_editor(|editor| {
+                    let raw_editor: &IStandaloneCodeEditor = editor.as_ref();
+
+                    // Registers Escape
+                    let keycode = monaco::sys::KeyCode::Escape.to_value();
+                    raw_editor.add_command(
+                        keycode.into(),
+                        quit_js_closure.as_ref().unchecked_ref(),
+                        None,
+                    );
+
                     // Registers Ctrl/Cmd + Enter hotkey
                     let keycode = monaco::sys::KeyCode::Enter.to_value()
                         | (monaco::sys::KeyMod::ctrl_cmd() as u32);
-                    let raw_editor: &IStandaloneCodeEditor = editor.as_ref();
-
                     raw_editor.add_command(
                         keycode.into(),
-                        js_closure.as_ref().unchecked_ref(),
+                        save_js_closure.as_ref().unchecked_ref(),
                         None,
                     );
                 });

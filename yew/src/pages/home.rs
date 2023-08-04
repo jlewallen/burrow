@@ -1,6 +1,9 @@
 use gloo_timers::callback::Timeout;
+use replies::EditorReply;
 use web_sys::HtmlElement;
+use yew::html::RenderError;
 use yew::prelude::*;
+use yew::suspense::*;
 
 use crate::shared::editor::Editor;
 use crate::shared::history_items::HistoryItems;
@@ -9,7 +12,7 @@ use crate::shared::Evaluator;
 use crate::shared::LogoutButton;
 use crate::types::AllKnownItems;
 use crate::types::SaveWorkingCopyAction;
-use crate::types::{HistoryEntry, SessionHistory};
+use crate::types::SessionHistory;
 
 pub enum Msg {
     History(SessionHistory),
@@ -94,8 +97,6 @@ impl Component for Home {
         let evaluator = self.evaluator.clone();
 
         if let Some(history) = self.history.clone() {
-            let latest = history.latest();
-
             html! {
                 <div id="hack">
                     <div id="upper" ref={&self.refs[0]}>
@@ -103,7 +104,7 @@ impl Component for Home {
                     </div>
                     <div id="lower">
                         <div class="interactables">
-                            <BottomEditor {latest} />
+                            <BottomEditor />
                             <div class="bottom-bar">
                                 <CommandLine oncommand={move |line: String| evaluator.evaluate(line.clone())} />
                                 <LogoutButton />
@@ -151,52 +152,66 @@ impl Editable for replies::EditorReply {
 }
 
 #[derive(Properties, PartialEq)]
-pub struct BottomEditorProps {
-    latest: Option<HistoryEntry>,
-}
-
-use yew::html::RenderError;
-use yew::suspense::*;
+pub struct BottomEditorProps {}
 
 #[function_component(BottomEditor)]
-pub fn bottom_editor(props: &BottomEditorProps) -> HtmlResult {
+pub fn bottom_editor(_props: &BottomEditorProps) -> HtmlResult {
     let evaluator = use_context::<Evaluator>();
     let Some(evaluator) = evaluator else  {
         log::info!("editor: no evaluator");
         return Ok(html! { <div></div> })
     };
 
-    let Some(latest) = props.latest.clone() else {
-        log::info!("editor: no latest");
-        return Ok(html! { <div></div> })
+    let editing = use_state(|| None::<EditorReply>);
+
+    {
+        let editing = editing.clone();
+        let history = use_context::<SessionHistory>();
+        use_effect_with_deps(
+            move |(history,)| {
+                if let Some(history) = history {
+                    let latest = history.latest();
+                    if let Some(latest) = latest.clone() {
+                        let known: Option<AllKnownItems> = latest.into();
+                        if let Some(AllKnownItems::EditorReply(reply)) = &known {
+                            editing.set(Some(reply.clone()));
+                        };
+                    };
+                };
+            },
+            (history,),
+        );
+    }
+
+    let on_quit = {
+        let editing = editing.clone();
+        Callback::from(move |_| {
+            log::info!("on-quit");
+            editing.set(None);
+        })
     };
-
-    let known: Option<AllKnownItems> = latest.into();
-
-    let Some(AllKnownItems::EditorReply(editor)) = &known else {
-        log::info!("editor: ignoring reply");
-        return Ok(html! { <div></div> })
-    };
-
-    let code = editor
-        .editor_text()
-        .map_err(|_| RenderError::Suspended(Suspension::new().0))?; // .map_err(RenderError)?;
 
     let on_save = {
-        let editor = editor.clone();
+        let editing = editing.clone();
         Callback::from(move |code| {
             log::trace!("on-save {:?}", code);
-            match editor.make_save_action(code) {
-                Ok(action) => {
-                    evaluator.perform(action);
-                    // outer_save.emit(());
+            if let Some(original) = editing.as_ref() {
+                match original.make_save_action(code) {
+                    Ok(action) => {
+                        evaluator.perform(action);
+                        editing.set(None);
+                    }
+                    Err(e) => log::error!("error making save action: {:?}", e),
                 }
-                Err(e) => log::error!("error making save action: {:?}", e),
             }
         })
     };
 
     Ok(html! {
-        <Editor code={code} {on_save} />
+        if let Some(editing) = editing.as_ref() {
+            <Editor code={editing.editor_text().map_err(|_| RenderError::Suspended(Suspension::new().0))?} {on_save} {on_quit} />
+        } else {
+            <div></div>
+        }
     })
 }
