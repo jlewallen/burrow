@@ -19,9 +19,7 @@ use tower_http::{
 
 use super::{handlers::*, jwt_auth, state::AppState, ws::*};
 
-pub fn create_router(app_state: Arc<AppState>) -> Router {
-    let assets_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
-
+pub fn create_router(assets_dir: PathBuf, app_state: Arc<AppState>) -> Router {
     let cors = CorsLayer::new()
         .allow_origin("http://127.0.0.1:8080".parse::<HeaderValue>().unwrap())
         .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])

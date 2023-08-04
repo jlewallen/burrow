@@ -1,6 +1,7 @@
 use anyhow::Result;
 use chrono::Utc;
 use clap::Args;
+use std::path::PathBuf;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::signal;
 use tokio::time::sleep;
@@ -53,7 +54,11 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
         }
     });
 
-    let app = route::create_router(app_state);
+    let assets_dir = PathBuf::new().join("assets");
+
+    info!("assets: {:?}", &assets_dir);
+
+    let app = route::create_router(assets_dir, app_state);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     info!("listening on {}", addr);
