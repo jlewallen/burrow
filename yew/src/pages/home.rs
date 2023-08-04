@@ -187,7 +187,10 @@ pub fn bottom_editor(props: &BottomEditorProps) -> HtmlResult {
         Callback::from(move |code| {
             log::trace!("on-save {:?}", code);
             match editor.make_save_action(code) {
-                Ok(action) => evaluator.perform(action),
+                Ok(action) => {
+                    evaluator.perform(action);
+                    // outer_save.emit(());
+                }
                 Err(e) => log::error!("error making save action: {:?}", e),
             }
         })

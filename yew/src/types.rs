@@ -132,3 +132,16 @@ pub struct SaveWorkingCopyAction {
     pub key: String, // EntityKey
     pub copy: WorkingCopy,
 }
+
+#[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
+pub enum Interaction {
+    LoggedIn,
+    EditorClosed,
+}
+
+impl Default for Interaction {
+    fn default() -> Self {
+        Self::LoggedIn
+    }
+}

@@ -4,6 +4,7 @@ use yew::prelude::*;
 #[derive(Properties, Clone, PartialEq)]
 pub struct Props {
     pub value: String,
+    pub focus: Option<u64>,
     pub onchange: Option<Callback<String>>,
     pub onsubmit: Option<Callback<String>>,
 }
