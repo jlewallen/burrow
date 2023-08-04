@@ -1,4 +1,5 @@
 pub mod command_line;
+pub mod editor;
 pub mod history;
 pub mod history_items;
 pub mod list_errors;
@@ -9,6 +10,7 @@ pub mod text_input;
 pub mod user_context_provider;
 
 pub use command_line::*;
+pub use editor::*;
 pub use history::*;
 pub use history_items::*;
 pub use list_errors::*;

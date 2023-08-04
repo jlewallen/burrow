@@ -2,11 +2,13 @@ use gloo_timers::callback::Timeout;
 use web_sys::HtmlElement;
 use yew::prelude::*;
 
+use crate::shared::editor::Editor;
 use crate::shared::history_items::HistoryItems;
 use crate::shared::CommandLine;
 use crate::shared::Evaluator;
 use crate::shared::LogoutButton;
-use crate::shared::SessionHistory;
+use crate::types::AllKnownItems;
+use crate::types::{HistoryEntry, SessionHistory};
 
 pub enum Msg {
     History(SessionHistory),
@@ -91,6 +93,8 @@ impl Component for Home {
         let evaluator = self.evaluator.clone();
 
         if let Some(history) = self.history.clone() {
+            let latest = history.latest();
+
             html! {
                 <div id="hack">
                     <div id="upper" ref={&self.refs[0]}>
@@ -98,14 +102,7 @@ impl Component for Home {
                     </div>
                     <div id="lower">
                         <div class="interactables">
-                            <div class="editor" style="display: none;">
-                                <div class="">
-                                    { "Tabs" }
-                                </div>
-                                <div class="buttons">
-                                    { "Buttons" }
-                                </div>
-                            </div>
+                            <BottomEditor {latest} />
                             <div class="bottom-bar">
                                 <CommandLine oncommand={move |line: String| evaluator.evaluate(line.clone())} />
                                 <LogoutButton />
@@ -118,4 +115,78 @@ impl Component for Home {
             html! { <div> {{ "Busy" }} </div> }
         }
     }
+}
+
+trait Editable {
+    fn editor_text(&self) -> Result<String, serde_json::Error>;
+    fn make_reply(&self, value: String) -> Result<String, serde_json::Error>;
+}
+
+impl Editable for replies::EditorReply {
+    fn editor_text(&self) -> Result<String, serde_json::Error> {
+        match self.editing() {
+            replies::WorkingCopy::Description(value) => Ok(value.clone()),
+            replies::WorkingCopy::Json(value) => serde_json::to_string_pretty(value),
+            replies::WorkingCopy::Script(value) => Ok(value.clone()),
+        }
+    }
+
+    fn make_reply(&self, value: String) -> Result<String, serde_json::Error> {
+        let _copy = match self.editing() {
+            replies::WorkingCopy::Description(_) => replies::WorkingCopy::Description(value),
+            replies::WorkingCopy::Json(_) => {
+                replies::WorkingCopy::Json(serde_json::from_str(&value)?)
+            }
+            replies::WorkingCopy::Script(_) => replies::WorkingCopy::Script(value),
+        };
+
+        /*
+        let action = SaveWorkingCopyAction {
+            key: EntityKey::new(self.key()),
+            copy,
+        };
+        */
+
+        Ok("{}".to_owned())
+    }
+}
+
+#[derive(Properties, PartialEq)]
+pub struct BottomEditorProps {
+    latest: Option<HistoryEntry>,
+}
+
+use yew::html::RenderError;
+use yew::suspense::*;
+
+#[function_component(BottomEditor)]
+pub fn bottom_editor(props: &BottomEditorProps) -> HtmlResult {
+    let Some(latest) = props.latest.clone() else {
+        return Ok(html! { <div></div> })
+    };
+
+    let known: Option<AllKnownItems> = latest.into();
+
+    let Some(AllKnownItems::EditorReply(editor)) = &known else {
+        return Ok(html! { <div></div> })
+    };
+
+    let code = editor
+        .editor_text()
+        .map_err(|_| RenderError::Suspended(Suspension::new().0))?; // .map_err(RenderError)?;
+
+    let on_save = {
+        let editor = editor.clone();
+        Callback::from(move |code| {
+            log::info!("on-save {:?}", code);
+            match editor.make_reply(code) {
+                Ok(_reply) => todo!(),
+                Err(_) => todo!(),
+            }
+        })
+    };
+
+    Ok(html! {
+        <Editor code={code} {on_save} />
+    })
 }

@@ -9,7 +9,8 @@ mod manage_connection {
     use crate::{
         hooks::use_user_context,
         services::{ReceivedMessage, WebSocketMessage, WebSocketService},
-        shared::{Evaluator, SessionHistory},
+        shared::Evaluator,
+        types::SessionHistory,
     };
 
     #[derive(Properties, Clone, PartialEq)]
@@ -120,11 +121,6 @@ impl Evaluator {
             None => todo!(),
         };
     }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Myself {
-    pub key: Option<String>,
 }
 
 pub type AlwaysOpenWebSocket = manage_connection::ManageConnection;

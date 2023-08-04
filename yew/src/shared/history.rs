@@ -1,50 +1,11 @@
-use std::rc::Rc;
-
-#[allow(dead_code)]
 use replies::*;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use yew::prelude::*;
 
-use crate::{hooks::use_user_context, shared::Myself};
-
-#[derive(Debug, Serialize, Clone, Eq, PartialEq)]
-pub struct HistoryEntry {
-    pub value: serde_json::Value,
-}
-
-impl HistoryEntry {
-    pub fn new(value: serde_json::Value) -> Self {
-        Self { value }
-    }
-}
-
-#[derive(Clone, Default, Debug, PartialEq, Eq)]
-pub struct SessionHistory {
-    pub entries: Vec<HistoryEntry>,
-}
-
-impl Reducible for SessionHistory {
-    type Action = serde_json::Value;
-
-    fn reduce(self: Rc<Self>, action: Self::Action) -> Rc<Self> {
-        Rc::new(self.append(action))
-    }
-}
-
-impl SessionHistory {
-    pub fn append(&self, value: serde_json::Value) -> Self {
-        let entries = if !value.is_null() {
-            self.entries
-                .clone()
-                .into_iter()
-                .chain([HistoryEntry::new(value)])
-                .collect()
-        } else {
-            self.entries.clone()
-        };
-        Self { entries }
-    }
-}
+use crate::{
+    hooks::use_user_context,
+    types::{AllKnownItems, HistoryEntry, Myself},
+};
 
 const NO_NAME: &str = "No Name";
 
@@ -195,19 +156,11 @@ fn simple_reply(reply: &SimpleReply) -> Html {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum AllKnownItems {
-    SimpleReply(SimpleReply),
-    AreaObservation(AreaObservation),
-    InsideObservation(InsideObservation),
-    EntityObservation(EntityObservation),
-    SimpleObservation(SimpleObservation),
-    EditorReply(EditorReply),
-    JsonReply(JsonReply),
+trait Render {
+    fn render(&self, myself: &Myself) -> Html;
 }
 
-impl AllKnownItems {
+impl Render for AllKnownItems {
     fn render(&self, myself: &Myself) -> Html {
         match self {
             Self::AreaObservation(reply) => area_observation(&reply),
@@ -215,7 +168,9 @@ impl AllKnownItems {
             Self::SimpleReply(reply) => simple_reply(&reply),
             Self::SimpleObservation(reply) => simple_observation(&reply, myself),
             Self::EntityObservation(_) => todo!(),
-            Self::EditorReply(_) => todo!(),
+            Self::EditorReply(_) => html! {
+                <div class="entry hidden"> { "EDITOR" } </div>
+            },
             Self::JsonReply(_) => todo!(),
         }
     }

@@ -1,6 +1,7 @@
 use yew::prelude::*;
 use yew_router::prelude::*;
 
+use crate::pages::Example;
 use crate::pages::Home;
 use crate::pages::Login;
 use crate::shared::RequireUser;
@@ -13,6 +14,8 @@ pub enum Route {
     Register,
     #[at("/")]
     Home,
+    #[at("/example")]
+    Example,
     #[not_found]
     #[at("/404")]
     NotFound,
@@ -23,6 +26,7 @@ pub fn switch(selected_route: Route) -> Html {
         Route::Login => html! { <Login /> },
         Route::Register => html! { <Login /> },
         Route::Home => html! { <RequireUser><Home /></RequireUser> },
+        Route::Example => html! { <RequireUser><Example /></RequireUser> },
         Route::NotFound => todo!(),
     }
 }

@@ -1,7 +1,7 @@
 use yew::prelude::*;
 
 use super::HistoryEntryItem;
-use super::SessionHistory;
+use crate::types::SessionHistory;
 
 #[derive(Properties, Clone, PartialEq, Eq)]
 pub struct Props {
