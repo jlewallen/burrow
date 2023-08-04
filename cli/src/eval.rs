@@ -4,12 +4,14 @@ use clap::Args;
 use std::{ops::Sub, rc::Rc};
 use tracing::info;
 
-use crate::{make_domain, text::Renderer, PluginConfiguration};
+use crate::{text::Renderer, DomainBuilder};
 use engine::{AfterTick, DevNullNotifier, Domain, Session, SessionOpener};
 use kernel::Effect;
 
 #[derive(Debug, Args, Clone)]
 pub struct Command {
+    #[arg(short, long, value_name = "FILE")]
+    path: Option<String>,
     #[arg(short, long, default_value = "jlewallen")]
     username: String,
     #[arg(short, long)]
@@ -21,8 +23,8 @@ pub struct Command {
 }
 
 impl Command {
-    fn plugin_configuration(&self) -> PluginConfiguration {
-        PluginConfiguration::default()
+    fn builder(&self) -> DomainBuilder {
+        DomainBuilder::new(self.path.clone())
     }
 }
 
@@ -84,7 +86,8 @@ fn evaluate_commands(domain: Domain, cmd: Command) -> Result<()> {
 
 #[tokio::main]
 pub async fn execute_command(cmd: &Command) -> Result<()> {
-    let domain = make_domain(cmd.plugin_configuration()).await?;
+    let builder = cmd.builder();
+    let domain = builder.build().await?;
     let cmd = cmd.clone();
 
     tokio::task::spawn_blocking(|| evaluate_commands(domain, cmd)).await?

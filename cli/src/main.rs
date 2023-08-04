@@ -30,8 +30,6 @@ mod text;
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
-    #[arg(short, long, value_name = "FILE")]
-    path: Option<PathBuf>,
     #[arg(short, long, action = clap::ArgAction::Count)]
     verbose: u8,
     #[command(subcommand)]
@@ -98,21 +96,68 @@ impl Sequence<Identity> for NanoIds {
     }
 }
 
-struct PluginConfiguration {
+struct DomainBuilder {
+    path: Option<String>,
     wasm: bool,
     dynlib: bool,
     rune: bool,
     rpc: bool,
 }
 
-impl Default for PluginConfiguration {
+impl Default for DomainBuilder {
     fn default() -> Self {
         Self {
+            path: None,
             wasm: false,
             dynlib: true,
             rune: true,
             rpc: false,
         }
+    }
+}
+
+impl DomainBuilder {
+    pub fn new(path: Option<String>) -> DomainBuilder {
+        Self {
+            path,
+            ..Default::default()
+        }
+    }
+
+    pub async fn build(&self) -> Result<Domain> {
+        let mut registered_plugins = RegisteredPlugins::default();
+        if self.dynlib {
+            registered_plugins.register(DynamicPluginFactory::default());
+        }
+        if self.rune {
+            registered_plugins.register(RunePluginFactory::default());
+        }
+        if self.wasm {
+            registered_plugins.register(WasmPluginFactory::new(&get_assets_path()?)?);
+        }
+        if self.rpc {
+            registered_plugins.register(RpcPluginFactory::start().await?);
+        }
+        registered_plugins.register(LookingPluginFactory::default());
+        registered_plugins.register(ChatPluginFactory::default());
+        registered_plugins.register(EmotePluginFactory::default());
+        registered_plugins.register(MovingPluginFactory::default());
+        registered_plugins.register(CarryingPluginFactory::default());
+        registered_plugins.register(BuildingPluginFactory::default());
+        registered_plugins.register(MemoryPluginFactory::default());
+        registered_plugins.register(SecurityPluginFactory::default());
+        let finder = Arc::new(DefaultFinder::default());
+        let storage_factory = Arc::new(Factory::new(
+            self.path.as_ref().unwrap_or(&"world.sqlite3".to_owned()),
+        )?);
+        storage_factory.migrate()?;
+        Ok(Domain::new(
+            storage_factory,
+            Arc::new(registered_plugins),
+            finder,
+            Arc::new(NanoIds {}),
+            Arc::new(NanoIds {}),
+        ))
     }
 }
 
@@ -132,40 +177,6 @@ fn get_assets_path() -> Result<PathBuf> {
     }
 
     Ok(cwd.join("plugins/wasm/assets"))
-}
-
-async fn make_domain(plugins: PluginConfiguration) -> Result<Domain> {
-    let mut registered_plugins = RegisteredPlugins::default();
-    if plugins.dynlib {
-        registered_plugins.register(DynamicPluginFactory::default());
-    }
-    if plugins.rune {
-        registered_plugins.register(RunePluginFactory::default());
-    }
-    if plugins.wasm {
-        registered_plugins.register(WasmPluginFactory::new(&get_assets_path()?)?);
-    }
-    if plugins.rpc {
-        registered_plugins.register(RpcPluginFactory::start().await?);
-    }
-    registered_plugins.register(LookingPluginFactory::default());
-    registered_plugins.register(ChatPluginFactory::default());
-    registered_plugins.register(EmotePluginFactory::default());
-    registered_plugins.register(MovingPluginFactory::default());
-    registered_plugins.register(CarryingPluginFactory::default());
-    registered_plugins.register(BuildingPluginFactory::default());
-    registered_plugins.register(MemoryPluginFactory::default());
-    registered_plugins.register(SecurityPluginFactory::default());
-    let finder = Arc::new(DefaultFinder::default());
-    let storage_factory = Arc::new(Factory::new("world.sqlite3")?);
-    storage_factory.migrate()?;
-    Ok(Domain::new(
-        storage_factory,
-        Arc::new(registered_plugins),
-        finder,
-        Arc::new(NanoIds {}),
-        Arc::new(NanoIds {}),
-    ))
 }
 
 struct RandomKeys {}

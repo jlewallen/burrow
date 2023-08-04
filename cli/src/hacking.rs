@@ -1,16 +1,15 @@
 use anyhow::Result;
-// use tracing::info;
 
-use crate::{make_domain, PluginConfiguration};
+use crate::DomainBuilder;
 
 use engine::{DevNullNotifier, HasUsernames, SessionOpener};
 use kernel::{DomainError, Entry, EntryResolver, LookupBy};
-// use plugins_core::carrying::model::{Carryable, Containing};
 use plugins_core::moving::model::Occupying;
 
 #[tokio::main]
 pub async fn execute_command() -> Result<()> {
-    let domain = make_domain(PluginConfiguration::default()).await?;
+    let builder = DomainBuilder::default();
+    let domain = builder.build().await?;
     let session = domain.open_session()?;
 
     let world = session.world()?.expect("No world");

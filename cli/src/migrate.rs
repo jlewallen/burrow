@@ -10,21 +10,19 @@ use plugins_core::{
 use plugins_rune::Behaviors;
 use tracing::{debug, info};
 
-use crate::{make_domain, PluginConfiguration};
+use crate::DomainBuilder;
 use engine::{DevNullNotifier, SessionOpener};
 use kernel::{DomainError, EntityKey, Entry, HasScopes, LoadsEntities, LookupBy, Scope};
 
 #[derive(Debug, Args, Clone)]
-pub struct Command {}
+pub struct Command {
+    #[arg(short, long, value_name = "FILE")]
+    path: Option<String>,
+}
 
 impl Command {
-    fn plugin_configuration(&self) -> PluginConfiguration {
-        PluginConfiguration {
-            wasm: false,
-            dynlib: false,
-            rune: false,
-            rpc: false,
-        }
+    fn builder(&self) -> DomainBuilder {
+        DomainBuilder::new(self.path.clone())
     }
 }
 
@@ -43,7 +41,8 @@ fn load_and_save_scope<T: Scope>(entity: &Entry) -> Result<bool, DomainError> {
 
 #[tokio::main]
 pub async fn execute_command(cmd: &Command) -> Result<()> {
-    let domain = make_domain(cmd.plugin_configuration()).await?;
+    let builder = cmd.builder();
+    let domain = builder.build().await?;
 
     info!("loading keys...");
     let entities = domain.query_all()?;

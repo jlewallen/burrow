@@ -11,8 +11,7 @@ use tokio::time::sleep;
 use tracing::*;
 
 use crate::terminal::Renderer;
-use crate::PluginConfiguration;
-use crate::{make_domain, terminal::default_external_editor};
+use crate::{terminal::default_external_editor, DomainBuilder};
 
 use engine::{self, DevNullNotifier, Domain, HasUsernames, Notifier, SessionOpener};
 use kernel::{
@@ -26,13 +25,15 @@ use plugins_rune::actions::SaveScriptAction;
 
 #[derive(Debug, Args)]
 pub struct Command {
+    #[arg(short, long, value_name = "FILE")]
+    path: Option<String>,
     #[arg(short, long, default_value = "jlewallen")]
     username: String,
 }
 
 impl Command {
-    fn plugin_configuration(&self) -> PluginConfiguration {
-        PluginConfiguration::default()
+    fn builder(&self) -> DomainBuilder {
+        DomainBuilder::new(self.path.clone())
     }
 }
 
@@ -243,7 +244,8 @@ fn evaluate_commands(
 
 #[tokio::main]
 pub async fn execute_command(cmd: &Command) -> Result<()> {
-    let domain = make_domain(cmd.plugin_configuration()).await?;
+    let builder = cmd.builder();
+    let domain = builder.build().await?;
 
     let self_key = find_user_key(&domain, &cmd.username)
         .await?

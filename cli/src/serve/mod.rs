@@ -6,7 +6,7 @@ use tokio::signal;
 use tokio::time::sleep;
 use tracing::*;
 
-use crate::{make_domain, PluginConfiguration};
+use crate::DomainBuilder;
 
 mod handlers;
 mod jwt_auth;
@@ -20,11 +20,14 @@ use state::*;
 use ws::*;
 
 #[derive(Debug, Args)]
-pub struct Command {}
+pub struct Command {
+    #[arg(short, long, value_name = "FILE")]
+    path: Option<String>,
+}
 
 impl Command {
-    fn plugin_configuration(&self) -> PluginConfiguration {
-        PluginConfiguration::default()
+    fn builder(&self) -> DomainBuilder {
+        DomainBuilder::new(self.path.clone())
     }
 }
 
@@ -32,7 +35,8 @@ impl Command {
 pub async fn execute_command(cmd: &Command) -> Result<()> {
     info!("serving");
 
-    let domain = make_domain(cmd.plugin_configuration()).await?;
+    let builder = cmd.builder();
+    let domain = builder.build().await?;
     let app_state = Arc::new(AppState::new(domain.clone()));
 
     tokio::task::spawn({

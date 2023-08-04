@@ -8,10 +8,12 @@ use clap::Args;
 use engine::storage::PersistedEntity;
 use kernel::{CoreProps, Entity, EntityKey, LookupBy};
 
-use crate::{make_domain, PluginConfiguration};
+use crate::DomainBuilder;
 
 #[derive(Debug, Args, Clone)]
 pub struct Command {
+    #[arg(short, long, value_name = "FILE")]
+    path: Option<String>,
     #[arg(short, long)]
     lines: bool,
     #[arg(short, long)]
@@ -21,13 +23,8 @@ pub struct Command {
 }
 
 impl Command {
-    fn plugin_configuration(&self) -> PluginConfiguration {
-        PluginConfiguration {
-            wasm: false,
-            dynlib: false,
-            rune: false,
-            rpc: false,
-        }
+    fn builder(&self) -> DomainBuilder {
+        DomainBuilder::new(self.path.clone())
     }
 }
 
@@ -69,7 +66,8 @@ impl Filtered {
 
 #[tokio::main]
 pub async fn execute_command(cmd: &Command) -> Result<()> {
-    let domain = make_domain(cmd.plugin_configuration()).await?;
+    let builder = cmd.builder();
+    let domain = builder.build().await?;
 
     let entities: Vec<PersistedEntity> = match &cmd.key {
         Some(key) => domain
