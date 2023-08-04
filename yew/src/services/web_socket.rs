@@ -1,3 +1,4 @@
+use dotenv_codegen::dotenv;
 use futures::{
     channel::mpsc::{Sender, TrySendError},
     SinkExt, StreamExt,
@@ -39,6 +40,8 @@ struct ActiveConnection {
     busy: Arc<AtomicBool>,
 }
 
+const WS_URL: &str = dotenv!("WS_URL");
+
 impl ActiveConnection {
     fn new(incoming: Callback<(Sender<Option<String>>, ReceivedMessage)>) -> Self {
         let (in_tx, mut in_rx) = futures::channel::mpsc::channel::<Option<String>>(100);
@@ -46,7 +49,7 @@ impl ActiveConnection {
         log::trace!("ws:new");
 
         // This needs to have a shorter timeout.
-        let ws = WebSocket::open("ws://127.0.0.1:3000/ws").unwrap();
+        let ws = WebSocket::open(WS_URL).unwrap();
         let (mut write, mut read) = ws.split();
 
         log::trace!("ws:opened");
