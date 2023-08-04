@@ -157,7 +157,7 @@ impl Performer for State {
 
                 Ok(Effect::Ok)
             }
-            _ => todo!(),
+            _ => todo!("{:?}", perform),
         }
     }
 }

@@ -5,60 +5,7 @@ expression: reply.to_debug_json()?
 {
   "editorReply": {
     "editing": {
-      "json": {
-        "acls": {
-          "rules": []
-        },
-        "creator": null,
-        "identity": {
-          "private": "",
-          "public": "",
-          "signature": null
-        },
-        "key": "E-2",
-        "klass": {
-          "py/type": "scopes.ItemClass"
-        },
-        "parent": null,
-        "scopes": {
-          "carryable": {
-            "kind": {
-              "identity": {
-                "private": "Private#0",
-                "public": "Public#0",
-                "signature": null
-              }
-            },
-            "quantity": 1.0
-          },
-          "location": {
-            "container": {
-              "gid": 2,
-              "key": "E-1",
-              "klass": "scopes.ItemClass",
-              "name": "Welcome Area"
-            }
-          },
-          "props": {
-            "props": {
-              "map": {
-                "gid": {
-                  "acls": {
-                    "rules": []
-                  },
-                  "value": 3
-                },
-                "name": {
-                  "acls": {
-                    "rules": []
-                  },
-                  "value": "Cool Broom"
-                }
-              }
-            }
-          }
-        }
-      }
+      "markdown": "Cool Broom\n\n## Separator\n\n"
     },
     "key": "E-2"
   }

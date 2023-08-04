@@ -79,7 +79,7 @@ impl From<SimpleObservation> for serde_json::Value {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum WorkingCopy {
-    Description(String),
+    Markdown(String),
     Json(serde_json::Value),
     Script(String),
 }

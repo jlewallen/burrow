@@ -169,7 +169,7 @@ impl Render for AllKnownItems {
             Self::SimpleObservation(reply) => simple_observation(&reply, myself),
             Self::EntityObservation(_) => todo!(),
             Self::EditorReply(_) => html! {
-                <div class="entry hidden"> { "EDITOR" } </div>
+                <div class="entry hidden"> { "Opening editor..." } </div>
             },
             Self::JsonReply(_) => todo!(),
         }

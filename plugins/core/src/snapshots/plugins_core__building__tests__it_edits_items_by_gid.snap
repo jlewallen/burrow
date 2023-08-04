@@ -5,55 +5,7 @@ expression: reply.to_debug_json()?
 {
   "editorReply": {
     "editing": {
-      "json": {
-        "acls": {
-          "rules": []
-        },
-        "creator": null,
-        "identity": {
-          "private": "",
-          "public": "",
-          "signature": null
-        },
-        "key": "E-0",
-        "klass": {
-          "py/type": "scopes.ItemClass"
-        },
-        "parent": null,
-        "scopes": {
-          "containing": {
-            "capacity": null,
-            "holding": [],
-            "produces": {}
-          },
-          "occupying": {
-            "area": {
-              "gid": 2,
-              "key": "E-1",
-              "klass": "scopes.ItemClass",
-              "name": "Welcome Area"
-            }
-          },
-          "props": {
-            "props": {
-              "map": {
-                "gid": {
-                  "acls": {
-                    "rules": []
-                  },
-                  "value": 1
-                },
-                "name": {
-                  "acls": {
-                    "rules": []
-                  },
-                  "value": "Living"
-                }
-              }
-            }
-          }
-        }
-      }
+      "markdown": "Living\n\n## Separator\n\n"
     },
     "key": "E-0"
   }

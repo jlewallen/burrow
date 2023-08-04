@@ -111,6 +111,8 @@ async fn find_user_key(domain: &Domain, name: &str) -> Result<Option<EntityKey>>
     .await?
 }
 
+pub static MD_EXTENSION: &str = "md";
+#[allow(dead_code)]
 pub static TEXT_EXTENSION: &str = "txt";
 pub static JSON_EXTENSION: &str = "json";
 
@@ -137,15 +139,15 @@ impl Middleware for InteractiveEditor {
                                         let reply: EditorReply =
                                             serde_json::from_value(value.clone())?;
                                         let action: Rc<dyn kernel::Action> = match reply.editing() {
-                                            replies::WorkingCopy::Description(original) => {
+                                            replies::WorkingCopy::Markdown(original) => {
                                                 let edited = default_external_editor(
                                                     &original,
-                                                    TEXT_EXTENSION,
+                                                    MD_EXTENSION,
                                                 )?;
 
                                                 Rc::new(SaveWorkingCopyAction {
                                                     key: EntityKey::new(reply.key()),
-                                                    copy: replies::WorkingCopy::Description(edited),
+                                                    copy: replies::WorkingCopy::Markdown(edited),
                                                 })
                                             }
                                             replies::WorkingCopy::Json(original) => {

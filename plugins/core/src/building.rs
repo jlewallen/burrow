@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use kernel::{EvaluationResult, ParsesActions, Plugin};
 
 use crate::library::plugin::*;
@@ -68,8 +70,60 @@ pub mod model {
     impl Reply for EditorReply {}
 }
 
+#[derive(Default, Clone, Debug)]
+struct QuickEdit {
+    name: Option<String>,
+    desc: Option<String>,
+}
+
+impl TryFrom<&Entry> for QuickEdit {
+    type Error = DomainError;
+
+    fn try_from(value: &Entry) -> std::result::Result<Self, Self::Error> {
+        let name = value.name()?;
+        let desc = value.desc()?;
+        Ok(Self { name, desc })
+    }
+}
+
+const SEPARATOR: &str = "## Separator";
+
+impl FromStr for QuickEdit {
+    type Err = DomainError;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        let parts: Vec<_> = s.split(SEPARATOR).collect();
+        if parts.len() != 2 {
+            return Err(DomainError::Anyhow(anyhow::anyhow!("malformed quick edit")));
+        }
+
+        let (name, desc) = match parts[..] {
+            [name, desc] => (name, desc),
+            _ => todo!(),
+        };
+
+        let name = Some(name.trim().to_owned());
+        let desc = Some(desc.trim().to_owned());
+
+        Ok(Self { name, desc })
+    }
+}
+
+impl ToString for QuickEdit {
+    fn to_string(&self) -> String {
+        format!(
+            "{}\n\n{}\n\n{}",
+            self.name.as_ref().map(|s| s.as_str()).unwrap_or(""),
+            SEPARATOR,
+            self.desc.as_ref().map(|s| s.as_str()).unwrap_or("")
+        )
+    }
+}
+
 pub mod actions {
-    use crate::{library::actions::*, looking::actions::LookAction};
+    use std::str::FromStr;
+
+    use crate::{building::QuickEdit, library::actions::*, looking::actions::LookAction};
 
     #[action]
     pub struct EditAction {
@@ -87,10 +141,10 @@ pub mod actions {
             match session.find_item(surroundings, &self.item)? {
                 Some(editing) => {
                     info!("editing {:?}", editing);
-                    let editing = editing.entity();
+                    let quick_edit: QuickEdit = (&editing).try_into()?;
                     Ok(EditorReply::new(
                         editing.key().to_string(),
-                        WorkingCopy::Json(editing.to_json_value()?),
+                        WorkingCopy::Markdown(quick_edit.to_string()),
                     )
                     .into())
                 }
@@ -138,19 +192,11 @@ pub mod actions {
         }
 
         fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
-            debug!("describing {:?}!", self.item);
-
-            match session.find_item(surroundings, &self.item)? {
-                Some(editing) => {
-                    info!("describing {:?}", editing);
-                    Ok(EditorReply::new(
-                        editing.key().to_string(),
-                        WorkingCopy::Description(editing.desc()?.unwrap_or("".to_owned())),
-                    )
-                    .into())
-                }
-                None => Ok(SimpleReply::NotFound.into()),
-            }
+            let (_, living, _) = surroundings.unpack();
+            let action = PerformAction::Instance(Rc::new(EditAction {
+                item: self.item.clone(),
+            }));
+            session.perform(Perform::Living { living, action })
         }
     }
 
@@ -313,9 +359,15 @@ pub mod actions {
                     info!("mutate:entity {:?}", entity);
 
                     match &self.copy {
-                        WorkingCopy::Description(desc) => {
+                        WorkingCopy::Markdown(text) => {
+                            let quick = QuickEdit::from_str(text)?;
                             let mut entity = entity.borrow_mut();
-                            entity.set_desc(desc)?
+                            if let Some(name) = quick.name {
+                                entity.set_name(&name)?;
+                            }
+                            if let Some(desc) = quick.desc {
+                                entity.set_desc(&desc)?;
+                            }
                         }
                         WorkingCopy::Json(value) => {
                             info!("mutate:json");
@@ -699,10 +751,13 @@ mod tests {
         let (_world, _living, _area) = surroundings.unpack();
 
         let description = "Would be really weird if this was the original description".to_owned();
+        let mut quick_edit = QuickEdit::default();
+        quick_edit.name = Some("NAME!".to_owned());
+        quick_edit.desc = Some(description.to_owned());
 
         let action = Box::new(SaveWorkingCopyAction {
             key: EntityKey::new("world"),
-            copy: WorkingCopy::Description(description.clone()),
+            copy: WorkingCopy::Markdown(quick_edit.to_string()),
         });
         let reply = action.perform(session.clone(), &surroundings)?;
         let (world, _living, _area) = surroundings.unpack();

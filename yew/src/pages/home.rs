@@ -128,7 +128,7 @@ trait Editable {
 impl Editable for replies::EditorReply {
     fn editor_text(&self) -> Result<String, serde_json::Error> {
         match self.editing() {
-            replies::WorkingCopy::Description(value) => Ok(value.clone()),
+            replies::WorkingCopy::Markdown(value) => Ok(value.clone()),
             replies::WorkingCopy::Json(value) => serde_json::to_string_pretty(value),
             replies::WorkingCopy::Script(value) => Ok(value.clone()),
         }
@@ -136,7 +136,7 @@ impl Editable for replies::EditorReply {
 
     fn make_save_action(&self, value: String) -> Result<serde_json::Value, serde_json::Error> {
         let copy = match self.editing() {
-            replies::WorkingCopy::Description(_) => replies::WorkingCopy::Description(value),
+            replies::WorkingCopy::Markdown(_) => replies::WorkingCopy::Markdown(value),
             replies::WorkingCopy::Json(_) => {
                 replies::WorkingCopy::Json(serde_json::from_str(&value)?)
             }

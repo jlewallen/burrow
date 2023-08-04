@@ -1,11 +1,11 @@
 ---
 source: plugins/core/src/building.rs
-expression: reply.to_json()?
+expression: reply.to_debug_json()?
 ---
 {
   "editorReply": {
     "editing": {
-      "description": ""
+      "markdown": "Welcome Area\n\n## Separator\n\n"
     },
     "key": "E-1"
   }
