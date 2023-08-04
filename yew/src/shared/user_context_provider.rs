@@ -20,12 +20,14 @@ pub fn user_context_provider(props: &Props) -> Html {
 
     {
         let current_user = current_user.clone();
+        let user_ctx = user_ctx.clone();
         use_mount(move || {
             if get_token().is_some() {
                 log::info!("user-context: checking token");
                 current_user.run();
             } else {
                 log::info!("user-context: missing token");
+                user_ctx.set(UserContext::Anonymous);
             }
         });
     }
