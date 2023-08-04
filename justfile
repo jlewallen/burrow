@@ -2,35 +2,47 @@ export RUST_LOG := "info"
 
 default: test build plugins
 
-build:
+setup:
+    cp -n .env.default .env
+
+build: setup
     cargo build --workspace
 
-test:
+test: setup
     cargo test --workspace
 
-plugins:
+plugins: setup
     cargo build --package plugin-example-shared
 
-deliver:
+deliver: setup
     cargo run -- eval --deliver
 
-eval:
+eval: setup
     cargo run -- eval
 
-migrate:
+migrate: setup
     cargo run -- migrate
 
-dump:
+dump: setup
     cargo run -- dump
 
-shell:
+shell: setup
     cargo run -- shell
 
-serve:
+serve: setup
     cargo run -- serve
 
-look *args='':
+look *args='': setup
     cargo run -- eval --text look --text look --text look --separate-sessions {{args}}
+
+image:
+    docker build -t jlewallen/burrow .
+
+test-image:
+    docker run --name test-burrow --rm -p 3000:3000 -v `pwd`:/app/data \
+        -e RUST_LOG=debug,tower_http=debug \
+        jlewallen/burrow \
+        /app/cli serve --path /app/data/world.sqlite3
 
 bench: plugins
     cargo bench --workspace

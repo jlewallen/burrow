@@ -27,3 +27,6 @@ history.txt
 
 # Ignore vim swap files.
 *.swp
+
+# Ignore user provided .env file.
+.env
