@@ -56,3 +56,6 @@ jsonwebtoken = "8.3.0"
 axum-extra = { version = "0.7.6", features = ["cookie"] }
 argon2 = "0.5.1"
 time = "0.3.25"
+ed25519-dalek = "1.0.1"
+rand = "0.7.3"
+base64 = "0.21.2"

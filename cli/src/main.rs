@@ -1,6 +1,9 @@
 use anyhow::Result;
+use base64::Engine;
 use clap::{Parser, Subcommand};
+use ed25519_dalek::Keypair;
 use nanoid::nanoid;
+use rand::rngs::OsRng;
 use std::{error::Error, path::PathBuf, sync::Arc};
 use tracing::*;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -100,6 +103,21 @@ impl Sequence<Identity> for NanoIds {
     }
 }
 
+pub struct Ed25519Identities {}
+
+impl Sequence<Identity> for Ed25519Identities {
+    fn following(&self) -> Identity {
+        let mut csprng = OsRng {};
+        let keypair: Keypair = Keypair::generate(&mut csprng);
+        let public = keypair.public.to_bytes();
+        let private = keypair.secret.to_bytes();
+        let engine = base64::prelude::BASE64_STANDARD_NO_PAD;
+        let public = engine.encode(public);
+        let private = engine.encode(private);
+        Identity::new(public, private)
+    }
+}
+
 struct DomainBuilder {
     path: Option<String>,
     wasm: bool,
@@ -160,7 +178,7 @@ impl DomainBuilder {
             Arc::new(registered_plugins),
             finder,
             Arc::new(NanoIds {}),
-            Arc::new(NanoIds {}),
+            Arc::new(Ed25519Identities {}),
         ))
     }
 }

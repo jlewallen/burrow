@@ -157,16 +157,11 @@ pub enum Item {
 pub struct Identity {
     private: String,
     public: String,
-    signature: Option<String>, // TODO Why does this happen in the model?
 }
 
 impl Identity {
     pub fn new(public: String, private: String) -> Self {
-        Self {
-            private,
-            public,
-            signature: None,
-        }
+        Self { private, public }
     }
 }
 

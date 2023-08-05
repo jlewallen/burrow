@@ -15,8 +15,7 @@ expression: "[world.to_json_value()?, jacob.to_json_value()?]"
     },
     "identity": {
       "private": "",
-      "public": "",
-      "signature": null
+      "public": ""
     },
     "key": "E-1",
     "klass": {
@@ -51,8 +50,7 @@ expression: "[world.to_json_value()?, jacob.to_json_value()?]"
     "creator": null,
     "identity": {
       "private": "",
-      "public": "",
-      "signature": null
+      "public": ""
     },
     "key": "E-0",
     "klass": {

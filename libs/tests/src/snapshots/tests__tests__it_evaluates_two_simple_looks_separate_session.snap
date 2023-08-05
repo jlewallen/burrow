@@ -9,9 +9,8 @@ expression: domain.snapshot().await?
     },
     "creator": null,
     "identity": {
-      "private": "",
-      "public": "",
-      "signature": null
+      "private": "Private#0",
+      "public": "Public#0"
     },
     "key": "world",
     "klass": {
@@ -56,9 +55,8 @@ expression: domain.snapshot().await?
     },
     "creator": null,
     "identity": {
-      "private": "",
-      "public": "",
-      "signature": null
+      "private": "Private#1",
+      "public": "Public#1"
     },
     "key": "E-0",
     "klass": {
@@ -92,9 +90,8 @@ expression: domain.snapshot().await?
     },
     "creator": null,
     "identity": {
-      "private": "",
-      "public": "",
-      "signature": null
+      "private": "Private#2",
+      "public": "Public#2"
     },
     "key": "E-1",
     "klass": {
@@ -136,9 +133,8 @@ expression: domain.snapshot().await?
     },
     "creator": null,
     "identity": {
-      "private": "",
-      "public": "",
-      "signature": null
+      "private": "Private#3",
+      "public": "Public#3"
     },
     "key": "E-2",
     "klass": {
@@ -192,9 +188,8 @@ expression: domain.snapshot().await?
     },
     "creator": null,
     "identity": {
-      "private": "",
-      "public": "",
-      "signature": null
+      "private": "Private#5",
+      "public": "Public#5"
     },
     "key": "E-3",
     "klass": {
@@ -248,9 +243,8 @@ expression: domain.snapshot().await?
     },
     "creator": null,
     "identity": {
-      "private": "",
-      "public": "",
-      "signature": null
+      "private": "Private#7",
+      "public": "Public#7"
     },
     "key": "E-4",
     "klass": {
@@ -310,9 +304,8 @@ expression: domain.snapshot().await?
     },
     "creator": null,
     "identity": {
-      "private": "",
-      "public": "",
-      "signature": null
+      "private": "Private#8",
+      "public": "Public#8"
     },
     "key": "E-5",
     "klass": {

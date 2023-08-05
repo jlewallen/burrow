@@ -90,6 +90,7 @@ impl Entity {
     fn new_heavily_customized(
         key: EntityKey,
         class: EntityClass,
+        identity: Identity,
         creator: Option<EntityRef>,
         parent: Option<EntityRef>,
         scopes: ScopeMap,
@@ -98,7 +99,7 @@ impl Entity {
             key,
             parent,
             creator,
-            identity: Default::default(),
+            identity,
             class,
             acls: Default::default(),
             scopes: scopes.into(),
@@ -281,6 +282,7 @@ pub struct EntityBuilder {
     key: Option<EntityKey>,
     class: EntityClass,
     parent: Option<EntityRef>,
+    identity: Option<Identity>,
     creator: Option<EntityRef>,
     scopes: Option<ScopeMap>,
     properties: Properties,
@@ -292,6 +294,7 @@ impl EntityBuilder {
             key: None,
             parent: None,
             creator: None,
+            identity: None,
             scopes: None,
             class: EntityClass::item(),
             properties: Properties::default(),
@@ -325,6 +328,11 @@ impl EntityBuilder {
 
     pub fn desc(mut self, s: &str) -> Self {
         self.properties.set_desc(s).expect("Set desc failed");
+        self
+    }
+
+    pub fn identity(mut self, identity: impl Into<Identity>) -> Self {
+        self.identity = Some(identity.into());
         self
     }
 
@@ -363,6 +371,10 @@ impl TryInto<Entity> for EntityBuilder {
     type Error = DomainError;
 
     fn try_into(self) -> Result<Entity, Self::Error> {
+        let identity = match self.identity {
+            Some(identity) => identity,
+            None => get_my_session()?.new_identity(),
+        };
         let key = match self.key {
             Some(key) => key,
             None => get_my_session()?.new_key(),
@@ -378,6 +390,7 @@ impl TryInto<Entity> for EntityBuilder {
         Ok(Entity::new_heavily_customized(
             key,
             self.class,
+            identity,
             self.creator,
             self.parent,
             scopes,

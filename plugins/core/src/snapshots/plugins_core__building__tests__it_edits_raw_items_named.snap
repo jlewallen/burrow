@@ -11,9 +11,8 @@ expression: reply.to_debug_json()?
         },
         "creator": null,
         "identity": {
-          "private": "",
-          "public": "",
-          "signature": null
+          "private": "Private#3",
+          "public": "Public#3"
         },
         "key": "E-2",
         "klass": {
@@ -24,9 +23,8 @@ expression: reply.to_debug_json()?
           "carryable": {
             "kind": {
               "identity": {
-                "private": "Private#0",
-                "public": "Public#0",
-                "signature": null
+                "private": "Private#4",
+                "public": "Public#4"
               }
             },
             "quantity": 1.0
