@@ -37,6 +37,7 @@ monaco = { git = "https://github.com/jlewallen/rust-monaco.git", features = [
     "yew",
 ] }
 dotenv_codegen = "0.15.0"
+markdown = "0.3.0"
 
 [dependencies.web-sys]
 version = "0.3"

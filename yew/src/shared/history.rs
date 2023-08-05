@@ -29,8 +29,10 @@ fn area_observation(reply: &AreaObservation) -> Html {
     };
 
     let desc: Html = if let Some(desc) = &reply.area.desc {
+        let after_markdown = markdown::to_html(desc);
+        let desc = Html::from_html_unchecked(AttrValue::from(after_markdown));
         html! {
-            <p class="desc">{ desc }</p>
+            <div class="desc">{ desc }</div>
         }
     } else {
         html! { <span></span> }
