@@ -141,6 +141,7 @@ pub enum DomainOutcome {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Item {
     Area,
+    Myself,
     Named(String),
     Route(String),
     Gid(EntityGid),

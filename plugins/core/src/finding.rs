@@ -140,6 +140,19 @@ impl EntityRelationshipSet {
 
                 Ok(None)
             }
+            Item::Myself => {
+                for entity in &self.entities {
+                    #[allow(clippy::single_match)]
+                    match entity {
+                        EntityRelationship::User(e) => {
+                            return Ok(Some(e.clone()));
+                        }
+                        _ => {}
+                    }
+                }
+
+                Ok(None)
+            }
             Item::Named(name) => {
                 for entity in &self.entities {
                     match entity {
