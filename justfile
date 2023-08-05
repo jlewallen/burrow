@@ -39,7 +39,7 @@ image:
     docker build -t jlewallen/burrow .
 
 test-image:
-    docker run --name test-burrow --rm -p 3000:3000 -v `pwd`:/app/data \
+    docker run --name test-burrow --rm -p 5000:3000 -v `pwd`:/app/data \
         -e RUST_LOG=debug,tower_http=debug \
         jlewallen/burrow \
         /app/cli serve --path /app/data/world.sqlite3
