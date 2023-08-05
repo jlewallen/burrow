@@ -126,13 +126,6 @@ pub struct Myself {
     pub key: Option<String>,
 }
 
-/// Controversial, this is from `building.rs`
-#[derive(Serialize, Deserialize /*, ToJson*/)]
-pub struct SaveWorkingCopyAction {
-    pub key: String, // EntityKey
-    pub copy: WorkingCopy,
-}
-
 #[derive(Debug, Clone, PartialEq)]
 #[allow(dead_code)]
 pub enum Interaction {
@@ -144,4 +137,18 @@ impl Default for Interaction {
     fn default() -> Self {
         Self::LoggedIn
     }
+}
+
+/// Controversial, this is from `building.rs`
+#[derive(Serialize, Deserialize /*, ToJson*/)]
+pub struct SaveWorkingCopyAction {
+    pub key: String, // EntityKey
+    pub copy: WorkingCopy,
+}
+
+/// Controversial, this is from `rune/mod.rs`
+#[derive(Serialize, Deserialize /*, ToJson*/)]
+pub struct SaveScriptAction {
+    pub key: String, // EntityKey
+    pub copy: WorkingCopy,
 }

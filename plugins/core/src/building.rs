@@ -374,7 +374,9 @@ pub mod actions {
                             let replacing = Entity::from_value(value.clone())?;
                             entity.replace(replacing);
                         }
-                        WorkingCopy::Script(_) => unimplemented!("TODO (See SaveLeadAction)"),
+                        WorkingCopy::Script(_) => unimplemented!(
+                            "Script implementations are expected to provide save functionality."
+                        ),
                     }
 
                     Ok(SimpleReply::Done.into())

@@ -1,4 +1,5 @@
 use replies::EditorReply;
+use serde::Serialize;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlElement;
 use yew::html::RenderError;
@@ -12,6 +13,7 @@ use crate::shared::CommandLine;
 use crate::shared::Evaluator;
 use crate::shared::LogoutButton;
 use crate::types::AllKnownItems;
+use crate::types::SaveScriptAction;
 use crate::types::SaveWorkingCopyAction;
 use crate::types::SessionHistory;
 
@@ -80,6 +82,13 @@ pub fn home() -> Html {
     }
 }
 
+// Duplicated
+#[derive(Serialize)]
+pub enum AcceptableActions {
+    SaveWorkingCopyAction(SaveWorkingCopyAction),
+    SaveScriptAction(SaveScriptAction),
+}
+
 trait Editable {
     fn editor_text(&self) -> Result<String, serde_json::Error>;
     fn make_save_action(&self, value: String) -> Result<serde_json::Value, serde_json::Error>;
@@ -96,20 +105,28 @@ impl Editable for replies::EditorReply {
     }
 
     fn make_save_action(&self, value: String) -> Result<serde_json::Value, serde_json::Error> {
-        let copy = match self.editing() {
-            replies::WorkingCopy::Markdown(_) => replies::WorkingCopy::Markdown(value),
-            replies::WorkingCopy::Json(_) => {
-                replies::WorkingCopy::Json(serde_json::from_str(&value)?)
+        let key = self.key().to_owned();
+
+        match self.editing() {
+            replies::WorkingCopy::Markdown(_) => serde_json::to_value(
+                AcceptableActions::SaveWorkingCopyAction(SaveWorkingCopyAction {
+                    key,
+                    copy: replies::WorkingCopy::Markdown(value),
+                }),
+            ),
+            replies::WorkingCopy::Json(_) => serde_json::to_value(
+                AcceptableActions::SaveWorkingCopyAction(SaveWorkingCopyAction {
+                    key,
+                    copy: replies::WorkingCopy::Json(serde_json::from_str(&value)?),
+                }),
+            ),
+            replies::WorkingCopy::Script(_) => {
+                serde_json::to_value(AcceptableActions::SaveScriptAction(SaveScriptAction {
+                    key,
+                    copy: replies::WorkingCopy::Script(value),
+                }))
             }
-            replies::WorkingCopy::Script(_) => replies::WorkingCopy::Script(value),
-        };
-
-        let action = SaveWorkingCopyAction {
-            key: self.key().to_owned(),
-            copy,
-        };
-
-        serde_json::to_value(action)
+        }
     }
 
     fn language(&self) -> &str {
