@@ -102,8 +102,14 @@ pub fn editor(props: &Props) -> Html {
         )
     };
 
+    let click_editor = {
+        Callback::from(move |e: MouseEvent| {
+            e.stop_propagation();
+        })
+    };
+
     html! {
-        <div class="bottom-editor">
+        <div class="bottom-editor" onclick={click_editor}>
             <CustomEditor text_model={(*text_model).clone()} {on_editor_created} />
         </div>
     }
