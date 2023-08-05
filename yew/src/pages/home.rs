@@ -17,8 +17,6 @@ use crate::types::SessionHistory;
 
 #[function_component(Home)]
 pub fn home() -> Html {
-    let upper_ref = use_node_ref();
-
     let evaluator = use_context::<Evaluator>();
     let Some(evaluator) = evaluator else  {
         log::info!("home: no evaluator");
@@ -31,6 +29,7 @@ pub fn home() -> Html {
         return html! { <div></div> }
     };
 
+    let upper_ref = use_node_ref();
     let scroll_delay = {
         let upper_ref = upper_ref.clone();
 
@@ -57,8 +56,14 @@ pub fn home() -> Html {
         (history.clone(),),
     );
 
+    let body_click = {
+        Callback::from(|_| {
+            focus_command_line();
+        })
+    };
+
     html! {
-        <div id="hack">
+        <div id="hack" onclick={body_click}>
             <div id="upper" ref={upper_ref}>
                 <div id="main"><HistoryItems history={history} /></div>
             </div>
