@@ -129,12 +129,8 @@ impl EntityRelationshipSet {
         match item {
             Item::Area => {
                 for entity in &self.entities {
-                    #[allow(clippy::single_match)]
-                    match entity {
-                        EntityRelationship::Area(e) => {
-                            return Ok(Some(e.clone()));
-                        }
-                        _ => {}
+                    if let EntityRelationship::Area(e) = entity {
+                        return Ok(Some(e.clone()));
                     }
                 }
 
@@ -142,12 +138,8 @@ impl EntityRelationshipSet {
             }
             Item::Myself => {
                 for entity in &self.entities {
-                    #[allow(clippy::single_match)]
-                    match entity {
-                        EntityRelationship::User(e) => {
-                            return Ok(Some(e.clone()));
-                        }
-                        _ => {}
+                    if let EntityRelationship::User(e) = entity {
+                        return Ok(Some(e.clone()));
                     }
                 }
 
@@ -183,15 +175,11 @@ impl EntityRelationshipSet {
                 debug!("route:haystack {:?}", haystack);
 
                 for entity in &haystack.entities {
-                    #[allow(clippy::single_match)]
-                    match entity {
-                        EntityRelationship::Exit(route_name, area) => {
-                            if matches_string(route_name, name) {
-                                info!("found: {:?} -> {:?}", route_name, area);
-                                return Ok(Some(area.clone()));
-                            }
+                    if let EntityRelationship::Exit(route_name, area) = entity {
+                        if matches_string(route_name, name) {
+                            info!("found: {:?} -> {:?}", route_name, area);
+                            return Ok(Some(area.clone()));
                         }
-                        _ => {}
                     }
                 }
 
