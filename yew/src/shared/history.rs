@@ -160,7 +160,7 @@ fn thing(e: &ObservedEntity) -> Html {
 }
 
 impl Render for CarryingEvent {
-    fn render(&self, myself: &Myself) -> Option<Html> {
+    fn render(&self, _myself: &Myself) -> Option<Html> {
         match self {
             CarryingEvent::ItemHeld {
                 living,
