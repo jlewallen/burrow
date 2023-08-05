@@ -56,11 +56,11 @@ pub mod model {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Emoted {
-        pub who: EntityRef,
+        pub who: ObservedEntity,
     }
 
     impl Emoted {
-        pub fn new(who: EntityRef) -> Self {
+        pub fn new(who: ObservedEntity) -> Self {
             Self { who }
         }
     }
@@ -76,7 +76,7 @@ pub mod model {
 
 pub mod actions {
     use super::model::*;
-    use crate::library::actions::*;
+    use crate::{library::actions::*, looking::model::Observe};
 
     #[action]
     pub struct LaughAction {}
@@ -91,7 +91,9 @@ pub mod actions {
 
             session.raise(
                 Audience::Area(area.key().clone()),
-                Box::new(EmotingEvent::Laugh(Emoted::new(living.entity_ref()))),
+                Box::new(EmotingEvent::Laugh(Emoted::new(
+                    (&living).observe(&living)?.expect("No observed entity"),
+                ))),
             )?;
 
             Ok(Effect::Ok)
