@@ -18,7 +18,7 @@ ssh $HOST docker load -i burrow.tar
 ssh $HOST docker stop burrow || true
 ssh $HOST docker rm -f burrow || true
 ssh $HOST docker run --name burrow -d --rm -p 5000:3000 -v /home/jlewallen/burrow:/app/data \
-	-e RUST_LOG=debug,tower_http=debug \
+	--env-file /home/jlewallen/burrow/env \
 	jlewallen/burrow \
 	/app/cli serve --path /app/data/world.sqlite3
 

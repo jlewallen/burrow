@@ -21,20 +21,12 @@ pub struct AppState {
 
 pub struct Config {
     pub jwt_secret: String,
-    pub jwt_expires_in: String,
-    pub jwt_maxage: i32,
 }
 
 impl Config {
     pub fn from_env() -> Option<Self> {
         let jwt_secret = std::env::var("JWT_SECRET").ok()?;
-        let jwt_expires_in = std::env::var("JWT_EXPIRED_IN").ok()?;
-        let jwt_maxage = std::env::var("JWT_MAXAGE").ok()?;
-        Some(Self {
-            jwt_secret,
-            jwt_expires_in,
-            jwt_maxage: jwt_maxage.parse::<i32>().ok()?,
-        })
+        Some(Self { jwt_secret })
     }
 }
 
@@ -56,17 +48,13 @@ impl Notifier for SenderNotifier {
 
 impl AppState {
     pub fn new(domain: Domain) -> Self {
-        let env_config = Config::from_env();
+        let env = Config::from_env().expect("no config");
         let (tx, _rx) = broadcast::channel(100);
         AppState {
             domain: domain.clone(),
             tick_deadline: Default::default(),
             tx,
-            env: env_config.unwrap_or(Config {
-                jwt_secret: "RSgTQSRXNxeVIZfPOK1dIQ==".to_owned(),
-                jwt_expires_in: "24h".to_owned(),
-                jwt_maxage: 60,
-            }),
+            env,
         }
     }
 
