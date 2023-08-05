@@ -57,8 +57,6 @@ pub mod model {
 
     impl HasUsernames for Entry {
         fn find_name_key(&self, name: &str) -> Result<Option<EntityKey>, DomainError> {
-            let _span = tracing::span!(tracing::Level::DEBUG, "who").entered();
-
             username_to_key(self, name)
         }
 
@@ -97,6 +95,61 @@ pub mod model {
 
         fn scope_key() -> &'static str {
             "passwords"
+        }
+    }
+
+    pub const LIMBO: &str = "limbo";
+    pub const ENCYCLOPEDIA: &str = "encyclopedia";
+    pub const WELCOME_AREA: &str = "welcomeArea";
+
+    #[derive(Debug, Serialize, Deserialize, Default)]
+    pub struct WellKnown {
+        entities: HashMap<String, EntityKey>,
+    }
+
+    #[allow(dead_code)]
+    impl WellKnown {
+        pub fn welcome_area(&self) -> Option<&EntityKey> {
+            self.get(WELCOME_AREA)
+        }
+
+        pub fn encyclopedia(&self) -> Option<&EntityKey> {
+            self.get(ENCYCLOPEDIA)
+        }
+
+        pub fn limbo(&self) -> Option<&EntityKey> {
+            self.get(LIMBO)
+        }
+
+        pub fn get(&self, key: &str) -> Option<&EntityKey> {
+            self.entities.get(key)
+        }
+    }
+
+    impl Needs<SessionRef> for WellKnown {
+        fn supply(&mut self, _session: &SessionRef) -> Result<()> {
+            Ok(())
+        }
+    }
+
+    impl Scope for WellKnown {
+        fn serialize(&self) -> Result<serde_json::Value> {
+            Ok(serde_json::to_value(self)?)
+        }
+
+        fn scope_key() -> &'static str {
+            "wellKnown"
+        }
+    }
+
+    pub trait HasWellKnownEntities {
+        fn get_welcome_area(&self) -> Result<Option<EntityKey>, DomainError>;
+    }
+
+    impl HasWellKnownEntities for Entry {
+        fn get_welcome_area(&self) -> Result<Option<EntityKey>, DomainError> {
+            let well_known = self.scope::<WellKnown>()?;
+            Ok(well_known.welcome_area().cloned())
         }
     }
 }

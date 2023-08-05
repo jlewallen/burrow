@@ -1,9 +1,11 @@
 use anyhow::Context;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
+use engine::HasWellKnownEntities;
 use kernel::build_entity;
 use kernel::ActiveSession;
 use kernel::EntityPtr;
+use plugins_core::tools;
 use std::rc::Rc;
 use tokio::sync::broadcast;
 use tokio::sync::Mutex;
@@ -135,12 +137,19 @@ impl AppState {
             .map(|hash| hash.to_string())
             .expect("hashing password failed");
 
+        let welcome_area_key = world.get_welcome_area()?.expect("no welcome area");
+        let welcome_area = session
+            .entry(&kernel::LookupBy::Key(&welcome_area_key))?
+            .expect("no welcome area");
+
         let creating = build_entity()
             .creator(world.entity_ref())
             .living()
             .name(&user.name)
             .try_into()?;
+
         let creating = session.add_entity(&EntityPtr::new(creating))?;
+        tools::set_occupying(&welcome_area, &vec![creating.clone()])?;
         let mut passwords = creating.scope_mut::<Passwords>()?;
         passwords.set(hashed_password);
         passwords.save()?;
