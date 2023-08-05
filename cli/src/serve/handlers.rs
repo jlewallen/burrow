@@ -8,6 +8,7 @@ use axum::{
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use chrono::{DateTime, Utc};
 use engine::AfterTick;
+use kernel::EntityKey;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{collections::HashMap, ops::Sub, sync::Arc};
@@ -26,6 +27,41 @@ pub(crate) struct LoginUser {
 #[allow(dead_code)]
 pub(crate) struct LoginUserWrapper {
     user: LoginUser,
+}
+
+async fn send_user_token(
+    key: EntityKey,
+    jwt_secret: &String,
+) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    let now = chrono::Utc::now();
+    let iat = now.timestamp() as usize;
+    let exp = (now + chrono::Duration::hours(72)).timestamp() as usize;
+    let claims: TokenClaims = TokenClaims {
+        sub: key.to_string(),
+        exp,
+        iat,
+    };
+
+    let token = jsonwebtoken::encode(
+        &jsonwebtoken::Header::default(),
+        &claims,
+        &jsonwebtoken::EncodingKey::from_secret(jwt_secret.as_bytes()),
+    )
+    .unwrap();
+
+    let cookie = Cookie::build("token", token.to_owned())
+        .path("/")
+        .max_age(::time::Duration::hours(1))
+        .same_site(SameSite::Lax)
+        .http_only(true)
+        .finish();
+
+    let mut response =
+        Response::new(json!({ "user" : { "token": token, "key": key } }).to_string());
+    response
+        .headers_mut()
+        .insert(header::SET_COOKIE, cookie.to_string().parse().unwrap());
+    Ok(response)
 }
 
 pub(crate) async fn login_handler(
@@ -55,7 +91,7 @@ pub(crate) async fn login_handler(
             return Err((StatusCode::FORBIDDEN, Json(error_response)));
         };
 
-    let key = user_key.0.to_string();
+    let key = user_key.0;
 
     let is_valid = match PasswordHash::new(&hash) {
         Ok(parsed_hash) => Argon2::default()
@@ -72,43 +108,15 @@ pub(crate) async fn login_handler(
         return Err((StatusCode::BAD_REQUEST, Json(error_response)));
     }
 
-    let now = chrono::Utc::now();
-    let iat = now.timestamp() as usize;
-    let exp = (now + chrono::Duration::hours(72)).timestamp() as usize;
-    let claims: TokenClaims = TokenClaims {
-        sub: key.to_string(),
-        exp,
-        iat,
-    };
-
-    let token = jsonwebtoken::encode(
-        &jsonwebtoken::Header::default(),
-        &claims,
-        &jsonwebtoken::EncodingKey::from_secret(state.env.jwt_secret.as_ref()),
-    )
-    .unwrap();
-
-    let cookie = Cookie::build("token", token.to_owned())
-        .path("/")
-        .max_age(::time::Duration::hours(1))
-        .same_site(SameSite::Lax)
-        .http_only(true)
-        .finish();
-
-    let mut response =
-        Response::new(json!({ "user" : { "token": token, "key": key } }).to_string());
-    response
-        .headers_mut()
-        .insert(header::SET_COOKIE, cookie.to_string().parse().unwrap());
-    Ok(response)
+    send_user_token(key, &state.env.jwt_secret).await
 }
 
 #[derive(Deserialize)]
 #[allow(dead_code)]
-pub(crate) struct RegisterUser {
-    email: String,
-    name: String,
-    password: String,
+pub struct RegisterUser {
+    pub email: String,
+    pub name: String,
+    pub password: String,
 }
 
 #[derive(Deserialize)]
@@ -118,13 +126,20 @@ pub(crate) struct RegisterUserWrapper {
 }
 
 pub(crate) async fn register_handler(
-    Extension(_state): Extension<Arc<AppState>>,
-    Json(_payload): Json<RegisterUserWrapper>,
+    Extension(state): Extension<Arc<AppState>>,
+    Json(payload): Json<RegisterUserWrapper>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     info!("register");
-    Ok(Response::new(
-        json!({ "user" : { "token": "".to_owned(), "key": "".to_owned() } }).to_string(),
-    ))
+
+    let key = state.register_user(&payload.user).map_err(|e| {
+        let error_response = serde_json::json!({
+            "status": "fail",
+            "message": format!("error: {}", e),
+        });
+        (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response))
+    })?;
+
+    send_user_token(key, &state.env.jwt_secret).await
 }
 
 pub(crate) async fn user_handler(

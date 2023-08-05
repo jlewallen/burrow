@@ -1,5 +1,8 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
+use kernel::build_entity;
+use kernel::ActiveSession;
+use kernel::EntityPtr;
 use std::rc::Rc;
 use tokio::sync::broadcast;
 use tokio::sync::Mutex;
@@ -10,6 +13,7 @@ use engine::{
 };
 use kernel::{DomainEvent, EntityKey, EntryResolver};
 
+use super::handlers::RegisterUser;
 use super::ServerMessage;
 
 pub struct AppState {
@@ -102,6 +106,29 @@ impl AppState {
         session.close(&DevNullNotifier::default())?;
 
         Ok(maybe_key)
+    }
+
+    pub fn register_user(&self, user: &RegisterUser) -> Result<EntityKey> {
+        let session = self.domain.open_session().expect("Error opening session");
+        let world = session.world()?.expect("No world");
+        let existing_key = world.find_name_key(&user.email)?;
+        if existing_key.is_some() {
+            return Err(anyhow::anyhow!("already registered"));
+        }
+
+        let creating = build_entity().living().name(&user.name).try_into()?;
+        let creating = session.add_entity(&EntityPtr::new(creating))?;
+        let mut passwords = creating.scope_mut::<Passwords>()?;
+        passwords.set(user.password.clone());
+        passwords.save()?;
+
+        let key = creating.key().clone();
+
+        world.add_username_to_key(&user.email, &key)?;
+
+        session.close(&DevNullNotifier::default())?;
+
+        Ok(key)
     }
 
     pub fn remove_session(&self, _session: &ClientSession) {}
