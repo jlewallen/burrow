@@ -56,12 +56,12 @@ pub mod model {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Spoken {
-        who: EntityRef,
+        who: ObservedEntity,
         message: String,
     }
 
     impl Spoken {
-        pub fn new(who: EntityRef, message: &str) -> Self {
+        pub fn new(who: ObservedEntity, message: &str) -> Self {
             Self {
                 who,
                 message: message.to_owned(),
@@ -81,7 +81,7 @@ pub mod model {
 
 pub mod actions {
     use super::model::*;
-    use crate::library::actions::*;
+    use crate::{library::actions::*, looking::model::Observe};
 
     #[action]
     pub struct SpeakAction {
@@ -100,7 +100,7 @@ pub mod actions {
                 session.raise(
                     Audience::Area(area.key().clone()),
                     Box::new(TalkingEvent::Conversation(Spoken::new(
-                        living.entity_ref(),
+                        (&living).observe(&living)?.expect("No observed entity"),
                         message,
                     ))),
                 )?;

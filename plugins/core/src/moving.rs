@@ -126,8 +126,14 @@ pub mod model {
     #[derive(Debug, Serialize, ToJson)]
     #[serde(rename_all = "camelCase")]
     pub enum MovingEvent {
-        Left { living: EntityRef, area: EntityRef },
-        Arrived { living: EntityRef, area: EntityRef },
+        Left {
+            living: ObservedEntity,
+            area: ObservedEntity,
+        },
+        Arrived {
+            living: ObservedEntity,
+            area: ObservedEntity,
+        },
     }
 
     impl DomainEvent for MovingEvent {}
@@ -256,6 +262,7 @@ pub mod model {
 pub mod actions {
     use crate::library::actions::*;
     use crate::looking::actions::*;
+    use crate::looking::model::Observe;
     use crate::moving::model::{
         AfterMoveHook, BeforeMovingHook, CanMove, MovingEvent, MovingHooks,
     };
@@ -292,15 +299,23 @@ pub mod actions {
                                     session.raise(
                                         Audience::Area(area.key().clone()),
                                         Box::new(MovingEvent::Left {
-                                            living: living.entity_ref(),
-                                            area: area.entity_ref(),
+                                            living: (&living)
+                                                .observe(&living)?
+                                                .expect("No observed entity"),
+                                            area: (&area)
+                                                .observe(&living)?
+                                                .expect("No observed entity"),
                                         }),
                                     )?;
                                     session.raise(
                                         Audience::Area(to_area.key().clone()),
                                         Box::new(MovingEvent::Arrived {
-                                            living: living.entity_ref(),
-                                            area: to_area.entity_ref(),
+                                            living: (&living)
+                                                .observe(&living)?
+                                                .expect("No observed entity"),
+                                            area: (&to_area)
+                                                .observe(&living)?
+                                                .expect("No observed entity"),
                                         }),
                                     )?;
 

@@ -63,14 +63,14 @@ pub mod model {
     #[serde(rename_all = "camelCase")]
     pub enum CarryingEvent {
         ItemHeld {
-            living: EntityRef,
+            living: ObservedEntity,
             item: ObservedEntity,
-            area: EntityRef,
+            area: ObservedEntity,
         },
         ItemDropped {
-            living: EntityRef,
+            living: ObservedEntity,
             item: ObservedEntity,
-            area: EntityRef,
+            area: ObservedEntity,
         },
     }
 
@@ -280,9 +280,9 @@ pub mod actions {
                     DomainOutcome::Ok => Ok(reply_done(
                         Audience::Area(area.key().clone()),
                         CarryingEvent::ItemHeld {
-                            living: user.entity_ref(),
+                            living: (&user).observe(&user)?.expect("No observed entity"),
                             item: (&holding).observe(&user)?.expect("No observed entity"),
-                            area: area.entity_ref(),
+                            area: (&area).observe(&user)?.expect("No observed entity"),
                         },
                     )?
                     .into()),
@@ -314,9 +314,9 @@ pub mod actions {
                         DomainOutcome::Ok => Ok(reply_done(
                             Audience::Area(area.key().clone()),
                             CarryingEvent::ItemDropped {
-                                living: user.entity_ref(),
+                                living: (&user).observe(&user)?.expect("No observed entity"),
                                 item: (&dropping).observe(&user)?.expect("No observed entity"),
-                                area: area.entity_ref(),
+                                area: (&area).observe(&user)?.expect("No observed entity"),
                             },
                         )?
                         .into()),
