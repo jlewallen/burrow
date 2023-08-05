@@ -8,7 +8,7 @@ use yew::prelude::*;
 
 fn get_options() -> CodeEditorOptions {
     CodeEditorOptions::default()
-        .with_language("rust".to_owned())
+        .with_language("markdown".to_owned())
         .with_value("".to_owned())
         .with_builtin_theme(BuiltinTheme::VsDark)
         .with_automatic_layout(true)
@@ -38,13 +38,15 @@ pub fn custom_editor(props: &CustomEditorProps) -> Html {
 #[derive(Properties, Clone, PartialEq)]
 pub struct Props {
     pub code: String,
+    pub language: String,
     pub on_save: Callback<String>,
     pub on_quit: Callback<()>,
 }
 
 #[function_component(Editor)]
 pub fn editor(props: &Props) -> Html {
-    let text_model = use_state_eq(|| TextModel::create(&props.code, Some("rust"), None).unwrap());
+    let text_model =
+        use_state_eq(|| TextModel::create(&props.code, Some(&props.language), None).unwrap());
 
     let on_save = props.on_save.clone();
 

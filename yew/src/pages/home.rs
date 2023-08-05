@@ -83,6 +83,7 @@ pub fn home() -> Html {
 trait Editable {
     fn editor_text(&self) -> Result<String, serde_json::Error>;
     fn make_save_action(&self, value: String) -> Result<serde_json::Value, serde_json::Error>;
+    fn language(&self) -> &str;
 }
 
 impl Editable for replies::EditorReply {
@@ -109,6 +110,14 @@ impl Editable for replies::EditorReply {
         };
 
         serde_json::to_value(action)
+    }
+
+    fn language(&self) -> &str {
+        match self.editing() {
+            replies::WorkingCopy::Markdown(_) => "markdown",
+            replies::WorkingCopy::Json(_) => "json",
+            replies::WorkingCopy::Script(_) => "rust",
+        }
     }
 }
 
@@ -179,7 +188,8 @@ pub fn bottom_editor() -> HtmlResult {
 
     Ok(html! {
         if let Some(editing) = editing.as_ref() {
-            <Editor code={editing.editor_text().map_err(|_| RenderError::Suspended(Suspension::new().0))?} {on_save} {on_quit} />
+            <Editor code={editing.editor_text().map_err(|_| RenderError::Suspended(Suspension::new().0))?}
+                language={editing.language().to_owned()} {on_save} {on_quit} />
         } else {
             <div></div>
         }
