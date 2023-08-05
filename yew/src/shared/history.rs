@@ -1,10 +1,9 @@
 use replies::*;
-use serde::Deserialize;
 use yew::prelude::*;
 
 use crate::{
     hooks::use_user_context,
-    types::{AllKnownItems, HistoryEntry, Myself},
+    types::{AllKnownItems, CarryingEvent, HistoryEntry, MovingEvent, Myself, TalkingEvent},
 };
 
 const NO_NAME: &str = "No Name";
@@ -98,60 +97,6 @@ fn inside_observation(reply: &InsideObservation) -> Html {
     }
 }
 
-fn simple_observation(reply: &SimpleObservation, myself: &Myself) -> Html {
-    // I'm going to love cleaning this up later. Considering a quick function
-    // for the "You" vs name work. We also need to introduce inflections of
-    // various kinds. I think this will become critical when we've got
-    // quantities working.
-    if let Ok(reply) = serde_json::from_value::<KnownSimpleObservations>(reply.clone().into()) {
-        if let Some(reply) = reply.left {
-            if Some(reply.living.key) != myself.key {
-                html! {
-                    <div class="entry observation simple living-left">{ reply.living.name }{ " left." }</div>
-                }
-            } else {
-                html! { <div></div> }
-            }
-        } else if let Some(reply) = reply.arrived {
-            if Some(reply.living.key) != myself.key {
-                html! {
-                    <div class="entry observation simple living-arrived">{ reply.living.name } { " arrived." }</div>
-                }
-            } else {
-                html! { <div></div> }
-            }
-        } else if let Some(reply) = reply.held {
-            if Some(reply.living.key) == myself.key {
-                html! {
-                    <div class="entry observation simple item-held">{ "You picked up " }{ reply.item.qualified }</div>
-                }
-            } else {
-                html! {
-                    <div class="entry observation simple item-held">{ reply.living.name }{ " held " }{ reply.item.qualified }</div>
-                }
-            }
-        } else if let Some(reply) = reply.dropped {
-            if Some(reply.living.key) == myself.key {
-                html! {
-                    <div class="entry observation simple item-dropped">{ "You dropped " }{ reply.item.qualified }</div>
-                }
-            } else {
-                html! {
-                    <div class="entry observation simple item-dropped">{ reply.living.name }{ " dropped " }{ reply.item.qualified }</div>
-                }
-            }
-        } else {
-            html! {
-                <div class="entry observation simple missing">{ "Missing: " }{ format!("{:?}", reply) }</div>
-            }
-        }
-    } else {
-        html! {
-            <div class="entry observation simple unknown">{ "Unknown: " }{ format!("{:?}", reply) }</div>
-        }
-    }
-}
-
 fn simple_reply(reply: &SimpleReply) -> Html {
     html! {
         <div class="entry simple">{ format!("{:?}", reply) }</div>
@@ -159,20 +104,20 @@ fn simple_reply(reply: &SimpleReply) -> Html {
 }
 
 trait Render {
-    fn render(&self, myself: &Myself) -> Html;
+    fn render(&self, myself: &Myself) -> Option<Html>;
 }
 
 impl Render for AllKnownItems {
-    fn render(&self, myself: &Myself) -> Html {
+    fn render(&self, myself: &Myself) -> Option<Html> {
         match self {
-            Self::AreaObservation(reply) => area_observation(&reply),
-            Self::InsideObservation(reply) => inside_observation(&reply),
-            Self::SimpleReply(reply) => simple_reply(&reply),
-            Self::SimpleObservation(reply) => simple_observation(&reply, myself),
+            Self::AreaObservation(reply) => Some(area_observation(&reply)),
+            Self::InsideObservation(reply) => Some(inside_observation(&reply)),
+            Self::SimpleReply(reply) => Some(simple_reply(&reply)),
+            Self::CarryingEvent(event) => event.render(myself),
+            Self::MovingEvent(event) => event.render(myself),
+            Self::TalkingEvent(event) => event.render(myself),
+            Self::EditorReply(_) => None,
             Self::EntityObservation(_) => todo!(),
-            Self::EditorReply(_) => html! {
-                <div class="entry hidden"> { "Opening editor..." } </div>
-            },
             Self::JsonReply(_) => todo!(),
         }
     }
@@ -193,7 +138,10 @@ pub fn history_entry_item(props: &Props) -> Html {
 
     let value = &props.entry.value;
     if let Ok(item) = serde_json::from_value::<AllKnownItems>(value.clone()) {
-        item.render(&myself)
+        match item.render(&myself) {
+            Some(html) => html,
+            None => html! {},
+        }
     } else {
         html! {
             <div class="entry unknown">
@@ -203,32 +151,55 @@ pub fn history_entry_item(props: &Props) -> Html {
     }
 }
 
-#[derive(Debug, Deserialize)]
-struct ItemHeld {
-    living: ObservedEntity,
-    item: ObservedEntity,
+fn subject(e: &ObservedEntity) -> Html {
+    html! { <span>{ e.qualified.as_ref().unwrap() }</span> }
 }
 
-#[derive(Debug, Deserialize)]
-struct ItemDropped {
-    living: ObservedEntity,
-    item: ObservedEntity,
+fn thing(e: &ObservedEntity) -> Html {
+    html! { <span>{ e.qualified.as_ref().unwrap() }</span> }
 }
 
-#[derive(Debug, Deserialize)]
-struct LivingLeft {
-    living: ObservedEntity,
+impl Render for CarryingEvent {
+    fn render(&self, myself: &Myself) -> Option<Html> {
+        match self {
+            CarryingEvent::ItemHeld {
+                living,
+                item,
+                area: _,
+            } => Some(
+                html! { <div class="entry"> { subject(living) } { " picked up " } { thing(item) }</div> },
+            ),
+            CarryingEvent::ItemDropped {
+                living,
+                item,
+                area: _,
+            } => Some(
+                html! { <div class="entry"> { subject(living) } { " dropped " } { thing(item) }</div> },
+            ),
+        }
+    }
 }
 
-#[derive(Debug, Deserialize)]
-struct LivingArrived {
-    living: ObservedEntity,
+impl Render for MovingEvent {
+    fn render(&self, _myself: &Myself) -> Option<Html> {
+        match self {
+            MovingEvent::Left { living, area: _ } => {
+                Some(html! { <div class="entry"> { subject(living) } { " left." } </div> })
+            }
+            MovingEvent::Arrived { living, area: _ } => {
+                Some(html! { <div class="entry"> { subject(living) } { " arrived." } </div> })
+            }
+        }
+    }
 }
 
-#[derive(Debug, Deserialize)]
-struct KnownSimpleObservations {
-    left: Option<LivingLeft>,
-    arrived: Option<LivingArrived>,
-    held: Option<ItemHeld>,
-    dropped: Option<ItemDropped>,
+impl Render for TalkingEvent {
+    fn render(&self, _myself: &Myself) -> Option<Html> {
+        match self {
+            TalkingEvent::Conversation(s) => Some(
+                html! { <div class="entry"> <span class="speaker">{ s.who.name.as_ref().unwrap() }</span>{ ": " } { &s.message } </div> },
+            ),
+            TalkingEvent::Whispering(_) => todo!(),
+        }
+    }
 }

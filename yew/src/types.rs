@@ -51,9 +51,11 @@ pub enum AllKnownItems {
     AreaObservation(AreaObservation),
     InsideObservation(InsideObservation),
     EntityObservation(EntityObservation),
-    SimpleObservation(SimpleObservation),
     EditorReply(EditorReply),
     JsonReply(JsonReply),
+    CarryingEvent(CarryingEvent),
+    MovingEvent(MovingEvent),
+    TalkingEvent(TalkingEvent),
 }
 
 #[derive(Debug, Serialize, Clone, Eq, PartialEq)]
@@ -151,4 +153,45 @@ pub struct SaveWorkingCopyAction {
 pub struct SaveScriptAction {
     pub key: String, // EntityKey
     pub copy: WorkingCopy,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum CarryingEvent {
+    ItemHeld {
+        living: ObservedEntity,
+        item: ObservedEntity,
+        area: ObservedEntity,
+    },
+    ItemDropped {
+        living: ObservedEntity,
+        item: ObservedEntity,
+        area: ObservedEntity,
+    },
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum MovingEvent {
+    Left {
+        living: ObservedEntity,
+        area: ObservedEntity,
+    },
+    Arrived {
+        living: ObservedEntity,
+        area: ObservedEntity,
+    },
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Spoken {
+    pub who: ObservedEntity,
+    pub message: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum TalkingEvent {
+    Conversation(Spoken),
+    Whispering(Spoken),
 }

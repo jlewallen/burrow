@@ -61,21 +61,6 @@ pub struct EntityObservation {
 
 impl Reply for EntityObservation {}
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct SimpleObservation(serde_json::Value);
-
-impl SimpleObservation {
-    pub fn new(value: serde_json::Value) -> Self {
-        Self(value)
-    }
-}
-
-impl From<SimpleObservation> for serde_json::Value {
-    fn from(o: SimpleObservation) -> Self {
-        o.0
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum WorkingCopy {
