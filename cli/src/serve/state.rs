@@ -1,3 +1,4 @@
+use anyhow::Context;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use kernel::build_entity;
@@ -110,23 +111,46 @@ impl AppState {
 
     pub fn register_user(&self, user: &RegisterUser) -> Result<EntityKey> {
         let session = self.domain.open_session().expect("Error opening session");
+        let _set_session = session.set_session()?;
+
         let world = session.world()?.expect("No world");
-        let existing_key = world.find_name_key(&user.email)?;
+        let existing_key = world
+            .find_name_key(&user.email)
+            .with_context(|| "find-name")?;
         if existing_key.is_some() {
+            warn!("already registered");
             return Err(anyhow::anyhow!("already registered"));
         }
 
-        let creating = build_entity().living().name(&user.name).try_into()?;
+        info!("registering");
+
+        use argon2::{
+            password_hash::{rand_core::OsRng, SaltString},
+            Argon2, PasswordHasher,
+        };
+
+        let salt = SaltString::generate(&mut OsRng);
+        let hashed_password = Argon2::default()
+            .hash_password(user.password.as_bytes(), &salt)
+            .map(|hash| hash.to_string())
+            .expect("hashing password failed");
+
+        let creating = build_entity()
+            .creator(world.entity_ref())
+            .living()
+            .name(&user.name)
+            .try_into()?;
         let creating = session.add_entity(&EntityPtr::new(creating))?;
         let mut passwords = creating.scope_mut::<Passwords>()?;
-        passwords.set(user.password.clone());
+        passwords.set(hashed_password);
         passwords.save()?;
 
         let key = creating.key().clone();
-
         world.add_username_to_key(&user.email, &key)?;
 
         session.close(&DevNullNotifier::default())?;
+
+        info!("registered!");
 
         Ok(key)
     }
