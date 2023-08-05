@@ -11,6 +11,6 @@ pub fn logout_button() -> Html {
     };
 
     html! {
-        <div class="logout" onclick={logout}>{ "Logout" }</div>
+        <div class="logout" onclick={logout}>{ "Bye" }</div>
     }
 }
