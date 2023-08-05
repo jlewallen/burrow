@@ -12,7 +12,7 @@ const NO_NAME: &str = "No Name";
 fn simple_entities_list(entities: &Vec<ObservedEntity>) -> Html {
     let names = entities
         .iter()
-        .map(|e| e.name.clone().or(Some(NO_NAME.into())).unwrap())
+        .map(|e| e.qualified.clone().or(Some(NO_NAME.into())).unwrap())
         .collect::<Vec<_>>()
         .join(", ");
 
@@ -123,21 +123,21 @@ fn simple_observation(reply: &SimpleObservation, myself: &Myself) -> Html {
         } else if let Some(reply) = reply.held {
             if Some(reply.living.key) == myself.key {
                 html! {
-                    <div class="entry observation simple item-held">{ "You picked up " }{ reply.item.name }</div>
+                    <div class="entry observation simple item-held">{ "You picked up " }{ reply.item.qualified }</div>
                 }
             } else {
                 html! {
-                    <div class="entry observation simple item-held">{ reply.living.name }{ " held " }{ reply.item.name }</div>
+                    <div class="entry observation simple item-held">{ reply.living.name }{ " held " }{ reply.item.qualified }</div>
                 }
             }
         } else if let Some(reply) = reply.dropped {
             if Some(reply.living.key) == myself.key {
                 html! {
-                    <div class="entry observation simple item-dropped">{ "You dropped " }{ reply.item.name }</div>
+                    <div class="entry observation simple item-dropped">{ "You dropped " }{ reply.item.qualified }</div>
                 }
             } else {
                 html! {
-                    <div class="entry observation simple item-dropped">{ reply.living.name }{ " dropped " }{ reply.item.name }</div>
+                    <div class="entry observation simple item-dropped">{ reply.living.name }{ " dropped " }{ reply.item.qualified }</div>
                 }
             }
         } else {
