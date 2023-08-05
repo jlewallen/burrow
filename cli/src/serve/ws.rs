@@ -196,11 +196,13 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
                             });
 
                         match handle.await {
-                            Ok(Ok(reply)) => session_tx
-                                .send(ServerMessage::Reply(reply))
-                                .expect("Error sending reply"),
-                            Ok(Err(e)) => todo!("{:?}", e),
-                            Err(e) => todo!("{:?}", e),
+                            Ok(Ok(reply)) => {
+                                session_tx
+                                    .send(ServerMessage::Reply(reply))
+                                    .expect("Error sending reply");
+                            }
+                            Ok(Err(e)) => warn!("{:?}", e),
+                            Err(e) => warn!("{:?}", e),
                         };
                     }
                     _ => todo!(),
