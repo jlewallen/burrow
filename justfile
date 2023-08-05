@@ -3,7 +3,7 @@ export RUST_LOG := "info"
 default: test build plugins
 
 setup:
-    cp -n .env.default .env
+    cp -n .env.default .env || true
 
 build: setup
     cargo build --workspace
