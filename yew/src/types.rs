@@ -20,7 +20,7 @@ pub struct LoginInfoWrapper {
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct RegisterInfo {
-    pub username: String,
+    pub name: String,
     pub email: String,
     pub password: String,
 }
