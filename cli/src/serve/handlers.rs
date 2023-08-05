@@ -210,3 +210,9 @@ pub async fn tick_handler(Extension(state): Extension<Arc<AppState>>) -> impl In
         ),
     }
 }
+
+pub async fn health_handler(Extension(_state): Extension<Arc<AppState>>) -> impl IntoResponse {
+    info!("health!");
+
+    (StatusCode::OK, empty_headers(), Json(empty_map()))
+}

@@ -30,6 +30,7 @@ pub fn create_router(assets_dir: PathBuf, app_state: Arc<AppState>) -> Router {
         .fallback(get_service(
             ServeDir::new(assets_dir).append_index_html_on_directories(true),
         ))
+        .route("/health", get(health_handler))
         .route("/tick", post(tick_handler))
         .route("/ws", get(ws_handler))
         .route(
