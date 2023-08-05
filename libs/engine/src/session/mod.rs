@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::rc::Weak;
 use std::sync::Arc;
 use std::time::Instant;
@@ -130,6 +130,7 @@ impl Session {
                     Ok(Effect::Nothing) => Ok(None),
                     Ok(i) => Ok(Some(i)),
                     Err(original_err) => {
+                        warn!("error: {:?}", original_err);
                         self.open.store(false, Ordering::Relaxed);
                         if let Err(_rollback_err) = self.storage.rollback(false) {
                             // TODO Include that this failed as part of the error.
@@ -384,7 +385,10 @@ impl TryInto<Surroundings> for MakeSurroundings {
     fn try_into(self) -> std::result::Result<Surroundings, Self::Error> {
         let world = self.finder.find_world()?;
         let living = self.living.clone();
-        let area: Entry = self.finder.find_location(&living)?;
+        let area: Entry = self
+            .finder
+            .find_location(&living)
+            .with_context(|| "find-location")?;
 
         Ok(Surroundings::Living {
             world,
@@ -408,7 +412,8 @@ impl Middleware for ExpandSurroundingsMiddleware {
                     finder: self.finder.clone(),
                     living: living.clone(),
                 }
-                .try_into()?;
+                .try_into()
+                .with_context(|| "make-surroundings")?;
 
                 info!("surroundings {:?}", &surroundings);
 

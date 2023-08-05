@@ -140,6 +140,9 @@ impl IntoEntity for EntityRef {
 
 impl IntoEntry for EntityRef {
     fn to_entry(&self) -> Result<Entry, DomainError> {
+        if !self.key().valid() {
+            return Err(DomainError::InvalidKey);
+        }
         get_my_session()?
             .entry(&LookupBy::Key(self.key()))?
             .ok_or(DomainError::DanglingEntity)

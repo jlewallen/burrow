@@ -40,6 +40,10 @@ impl EntityKey {
     pub fn key_to_string(&self) -> &str {
         &self.0
     }
+
+    pub fn valid(&self) -> bool {
+        !self.0.is_empty()
+    }
 }
 
 impl Debug for EntityKey {
@@ -254,6 +258,8 @@ pub enum DomainError {
     Impossible,
     #[error("Overflow")]
     Overflow,
+    #[error("Invalid key")]
+    InvalidKey,
 }
 
 impl From<serde_json::Error> for DomainError {
