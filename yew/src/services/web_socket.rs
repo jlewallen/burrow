@@ -113,7 +113,10 @@ impl ActiveConnection {
 
                 log::trace!("ws:rx-closing");
 
-                closer.clone().send(None).await.unwrap();
+                match closer.clone().send(None).await {
+                    Err(e) => log::warn!("ws:close-error: {:?}", e),
+                    Ok(_) => {}
+                };
 
                 log::trace!("ws:rx-close");
             }
