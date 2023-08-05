@@ -238,8 +238,8 @@ pub enum DomainError {
     ParseFailed(#[source] serde_json::Error),
     #[error("Dangling entity")]
     DanglingEntity,
-    #[error("Anyhow error")]
-    Anyhow(#[source] anyhow::Error),
+    #[error(transparent)]
+    Anyhow(anyhow::Error),
     #[error("No session")]
     NoSession,
     #[error("Expired session")]
