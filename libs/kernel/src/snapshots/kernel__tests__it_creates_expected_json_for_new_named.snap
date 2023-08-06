@@ -27,15 +27,11 @@ expression: "[world.to_json_value()?, jacob.to_json_value()?]"
         "props": {
           "map": {
             "desc": {
-              "acls": {
-                "rules": []
-              },
+              "acls": null,
               "value": "What a great place"
             },
             "name": {
-              "acls": {
-                "rules": []
-              },
+              "acls": null,
               "value": "New World"
             }
           }
@@ -62,15 +58,11 @@ expression: "[world.to_json_value()?, jacob.to_json_value()?]"
         "props": {
           "map": {
             "desc": {
-              "acls": {
-                "rules": []
-              },
+              "acls": null,
               "value": "Hah"
             },
             "name": {
-              "acls": {
-                "rules": []
-              },
+              "acls": null,
               "value": "Jacob"
             }
           }

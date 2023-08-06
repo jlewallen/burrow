@@ -28,15 +28,11 @@ expression: domain.snapshot().await?
         "props": {
           "map": {
             "gid": {
-              "acls": {
-                "rules": []
-              },
+              "acls": null,
               "value": 0
             },
             "name": {
-              "acls": {
-                "rules": []
-              },
+              "acls": null,
               "value": "World"
             }
           }
@@ -68,15 +64,11 @@ expression: domain.snapshot().await?
         "props": {
           "map": {
             "gid": {
-              "acls": {
-                "rules": []
-              },
+              "acls": null,
               "value": 1
             },
             "name": {
-              "acls": {
-                "rules": []
-              },
+              "acls": null,
               "value": "Place"
             }
           }
@@ -111,15 +103,11 @@ expression: domain.snapshot().await?
         "props": {
           "map": {
             "gid": {
-              "acls": {
-                "rules": []
-              },
+              "acls": null,
               "value": 2
             },
             "name": {
-              "acls": {
-                "rules": []
-              },
+              "acls": null,
               "value": "Key"
             }
           }
@@ -166,15 +154,11 @@ expression: domain.snapshot().await?
         "props": {
           "map": {
             "gid": {
-              "acls": {
-                "rules": []
-              },
+              "acls": null,
               "value": 3
             },
             "name": {
-              "acls": {
-                "rules": []
-              },
+              "acls": null,
               "value": "Vessel"
             }
           }
@@ -221,15 +205,11 @@ expression: domain.snapshot().await?
         "props": {
           "map": {
             "gid": {
-              "acls": {
-                "rules": []
-              },
+              "acls": null,
               "value": 4
             },
             "name": {
-              "acls": {
-                "rules": []
-              },
+              "acls": null,
               "value": "Living"
             }
           }
@@ -282,15 +262,11 @@ expression: domain.snapshot().await?
         "props": {
           "map": {
             "gid": {
-              "acls": {
-                "rules": []
-              },
+              "acls": null,
               "value": 5
             },
             "name": {
-              "acls": {
-                "rules": []
-              },
+              "acls": null,
               "value": "Welcome Area"
             }
           }
@@ -333,15 +309,11 @@ expression: domain.snapshot().await?
         "props": {
           "map": {
             "gid": {
-              "acls": {
-                "rules": []
-              },
+              "acls": null,
               "value": 6
             },
             "name": {
-              "acls": {
-                "rules": []
-              },
+              "acls": null,
               "value": "East"
             }
           }

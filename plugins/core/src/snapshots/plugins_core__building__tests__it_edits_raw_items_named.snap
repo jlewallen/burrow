@@ -41,15 +41,11 @@ expression: reply.to_debug_json()?
             "props": {
               "map": {
                 "gid": {
-                  "acls": {
-                    "rules": []
-                  },
+                  "acls": null,
                   "value": 3
                 },
                 "name": {
-                  "acls": {
-                    "rules": []
-                  },
+                  "acls": null,
                   "value": "Cool Broom"
                 }
               }

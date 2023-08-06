@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Property {
-    acls: Acls,
+    acls: Option<Acls>,
     value: serde_json::Value,
 }
 
