@@ -94,7 +94,7 @@ pub mod model {
         }
 
         fn scope_key() -> &'static str {
-            "passwords"
+            "credentials"
         }
     }
 
