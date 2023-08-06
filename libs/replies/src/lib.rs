@@ -128,3 +128,73 @@ mod tests {
         );
     }
 }
+
+pub trait DomainEvent: ToJson + Debug {}
+
+#[derive(Debug, Serialize, Deserialize, ToJson)]
+#[serde(rename_all = "camelCase")]
+pub enum CarryingEvent {
+    Held {
+        living: ObservedEntity,
+        item: ObservedEntity,
+        area: ObservedEntity,
+    },
+    Dropped {
+        living: ObservedEntity,
+        item: ObservedEntity,
+        area: ObservedEntity,
+    },
+}
+
+impl DomainEvent for CarryingEvent {}
+
+#[derive(Debug, Serialize, Deserialize, ToJson)]
+#[serde(rename_all = "camelCase")]
+pub enum MovingEvent {
+    Left {
+        living: ObservedEntity,
+        area: ObservedEntity,
+    },
+    Arrived {
+        living: ObservedEntity,
+        area: ObservedEntity,
+    },
+}
+
+impl DomainEvent for MovingEvent {}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Spoken {
+    pub who: ObservedEntity,
+    pub message: String,
+}
+
+impl Spoken {
+    pub fn new(who: ObservedEntity, message: &str) -> Self {
+        Self {
+            who,
+            message: message.to_owned(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, ToJson)]
+#[serde(rename_all = "camelCase")]
+pub enum TalkingEvent {
+    Conversation(Spoken),
+    Whispering(Spoken),
+}
+
+impl DomainEvent for TalkingEvent {}
+
+#[derive(Debug, Serialize, Deserialize, ToJson)]
+pub struct SaveWorkingCopyAction {
+    pub key: String,
+    pub copy: WorkingCopy,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToJson)]
+pub struct SaveScriptAction {
+    pub key: String,
+    pub copy: WorkingCopy,
+}

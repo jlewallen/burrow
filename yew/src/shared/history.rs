@@ -3,7 +3,7 @@ use yew::prelude::*;
 
 use crate::{
     hooks::use_user_context,
-    types::{AllKnownItems, CarryingEvent, HistoryEntry, MovingEvent, Myself, TalkingEvent},
+    types::{AllKnownItems, HistoryEntry, Myself},
 };
 
 const NO_NAME: &str = "No Name";

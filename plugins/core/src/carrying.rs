@@ -57,24 +57,9 @@ impl ParsesActions for CarryingPlugin {
 pub mod model {
     use crate::{library::model::*, tools};
 
+    pub use kernel::CarryingEvent;
+
     pub type CarryingResult = Result<DomainOutcome>;
-
-    #[derive(Debug, Serialize, ToJson)]
-    #[serde(rename_all = "camelCase")]
-    pub enum CarryingEvent {
-        Held {
-            living: ObservedEntity,
-            item: ObservedEntity,
-            area: ObservedEntity,
-        },
-        Dropped {
-            living: ObservedEntity,
-            item: ObservedEntity,
-            area: ObservedEntity,
-        },
-    }
-
-    impl DomainEvent for CarryingEvent {}
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Containing {

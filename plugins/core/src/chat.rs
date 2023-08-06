@@ -52,31 +52,7 @@ impl ParsesActions for ChatPlugin {
 }
 
 pub mod model {
-    use crate::library::model::*;
-
-    #[derive(Debug, Serialize, Deserialize)]
-    pub struct Spoken {
-        who: ObservedEntity,
-        message: String,
-    }
-
-    impl Spoken {
-        pub fn new(who: ObservedEntity, message: &str) -> Self {
-            Self {
-                who,
-                message: message.to_owned(),
-            }
-        }
-    }
-
-    #[derive(Debug, Serialize, Deserialize, ToJson)]
-    #[serde(rename_all = "camelCase")]
-    pub enum TalkingEvent {
-        Conversation(Spoken),
-        Whispering(Spoken),
-    }
-
-    impl DomainEvent for TalkingEvent {}
+    pub use kernel::TalkingEvent;
 }
 
 pub mod actions {

@@ -4,6 +4,8 @@ use yew::prelude::Reducible;
 
 use replies::*;
 
+pub use replies::{SaveScriptAction, SaveWorkingCopyAction};
+
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct LoginInfo {
@@ -139,59 +141,4 @@ impl Default for Interaction {
     fn default() -> Self {
         Self::LoggedIn
     }
-}
-
-/// Controversial, this is from `building.rs`
-#[derive(Serialize, Deserialize /*, ToJson*/)]
-pub struct SaveWorkingCopyAction {
-    pub key: String, // EntityKey
-    pub copy: WorkingCopy,
-}
-
-/// Controversial, this is from `rune/mod.rs`
-#[derive(Serialize, Deserialize /*, ToJson*/)]
-pub struct SaveScriptAction {
-    pub key: String, // EntityKey
-    pub copy: WorkingCopy,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum CarryingEvent {
-    Held {
-        living: ObservedEntity,
-        item: ObservedEntity,
-        area: ObservedEntity,
-    },
-    Dropped {
-        living: ObservedEntity,
-        item: ObservedEntity,
-        area: ObservedEntity,
-    },
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum MovingEvent {
-    Left {
-        living: ObservedEntity,
-        area: ObservedEntity,
-    },
-    Arrived {
-        living: ObservedEntity,
-        area: ObservedEntity,
-    },
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Spoken {
-    pub who: ObservedEntity,
-    pub message: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum TalkingEvent {
-    Conversation(Spoken),
-    Whispering(Spoken),
 }

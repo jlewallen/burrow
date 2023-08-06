@@ -52,8 +52,6 @@ impl ParsesActions for MovingPlugin {
 }
 
 pub mod model {
-    use macros::ToJson;
-
     use crate::library::model::*;
 
     pub trait BeforeMovingHook {
@@ -122,21 +120,6 @@ pub mod model {
             }
         }
     }
-
-    #[derive(Debug, Serialize, ToJson)]
-    #[serde(rename_all = "camelCase")]
-    pub enum MovingEvent {
-        Left {
-            living: ObservedEntity,
-            area: ObservedEntity,
-        },
-        Arrived {
-            living: ObservedEntity,
-            area: ObservedEntity,
-        },
-    }
-
-    impl DomainEvent for MovingEvent {}
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Occupying {
@@ -263,9 +246,7 @@ pub mod actions {
     use crate::library::actions::*;
     use crate::looking::actions::*;
     use crate::looking::model::Observe;
-    use crate::moving::model::{
-        AfterMoveHook, BeforeMovingHook, CanMove, MovingEvent, MovingHooks,
-    };
+    use crate::moving::model::{AfterMoveHook, BeforeMovingHook, CanMove, MovingHooks};
 
     #[action]
     pub struct GoAction {

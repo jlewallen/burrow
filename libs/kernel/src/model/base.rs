@@ -7,7 +7,7 @@ use std::{
 use thiserror::Error;
 use tracing::*;
 
-use replies::ToJson;
+pub use replies::*;
 
 pub static WORLD_KEY: &str = "world";
 
@@ -18,8 +18,6 @@ pub static DESC_PROPERTY: &str = "desc";
 pub static GID_PROPERTY: &str = "gid";
 
 pub static DESTROYED_PROPERTY: &str = "destroyed";
-
-pub trait DomainEvent: ToJson + Debug {}
 
 #[derive(Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct EntityKey(String);
