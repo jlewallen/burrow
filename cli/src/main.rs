@@ -146,6 +146,12 @@ impl DomainBuilder {
         }
     }
 
+    pub fn storage_factory(&self) -> Result<sqlite::Factory> {
+        Ok(Factory::new(
+            self.path.as_ref().unwrap_or(&"world.sqlite3".to_owned()),
+        )?)
+    }
+
     pub async fn build(&self) -> Result<Domain> {
         let mut registered_plugins = RegisteredPlugins::default();
         if self.dynlib {
@@ -169,9 +175,7 @@ impl DomainBuilder {
         registered_plugins.register(MemoryPluginFactory::default());
         registered_plugins.register(SecurityPluginFactory::default());
         let finder = Arc::new(DefaultFinder::default());
-        let storage_factory = Arc::new(Factory::new(
-            self.path.as_ref().unwrap_or(&"world.sqlite3".to_owned()),
-        )?);
+        let storage_factory = Arc::new(self.storage_factory()?);
         storage_factory.migrate()?;
         Ok(Domain::new(
             storage_factory,
