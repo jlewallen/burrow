@@ -20,14 +20,14 @@ fn simple_entities_list(entities: &Vec<ObservedEntity>) -> Html {
     }
 }
 
-fn area_observation(reply: &AreaObservation) -> Html {
-    let name: &str = if let Some(name) = &reply.area.name {
-        &name
+fn entity_name_desc(entity: &ObservedEntity) -> (Html, Html) {
+    let name: Html = if let Some(name) = &entity.name {
+        html! { <h3> { name } </h3> }
     } else {
-        NO_NAME
+        html! { <h3> { NO_NAME } </h3> }
     };
 
-    let desc: Html = if let Some(desc) = &reply.area.desc {
+    let desc: Html = if let Some(desc) = &entity.desc {
         let after_markdown = markdown::to_html(desc);
         let desc = Html::from_html_unchecked(AttrValue::from(after_markdown));
         html! {
@@ -36,6 +36,23 @@ fn area_observation(reply: &AreaObservation) -> Html {
     } else {
         html! { <span></span> }
     };
+
+    (name, desc)
+}
+
+fn entity_observation(entity: &ObservedEntity) -> Html {
+    let (name, desc) = entity_name_desc(entity);
+
+    html! {
+        <div class="entry observation entity">
+            { name }
+            { desc }
+        </div>
+    }
+}
+
+fn area_observation(reply: &AreaObservation) -> Html {
+    let (name, desc) = entity_name_desc(&reply.area);
 
     let living: Html = if reply.living.len() > 0 {
         html! {
@@ -79,7 +96,7 @@ fn area_observation(reply: &AreaObservation) -> Html {
 
     html! {
         <div class="entry observation area">
-            <h3>{ name }</h3>
+            { name }
             { desc }
             { routes }
             { living }
@@ -113,11 +130,11 @@ impl Render for AllKnownItems {
             Self::AreaObservation(reply) => Some(area_observation(&reply)),
             Self::InsideObservation(reply) => Some(inside_observation(&reply)),
             Self::SimpleReply(reply) => Some(simple_reply(&reply)),
+            Self::EntityObservation(entity) => Some(entity_observation(&entity.entity)),
             Self::CarryingEvent(event) => event.render(myself),
             Self::MovingEvent(event) => event.render(myself),
             Self::TalkingEvent(event) => event.render(myself),
             Self::EditorReply(_) => None,
-            Self::EntityObservation(_) => todo!(),
             Self::JsonReply(_) => todo!(),
         }
     }
