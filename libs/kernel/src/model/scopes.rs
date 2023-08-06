@@ -101,7 +101,7 @@ impl<'e> Scopes<'e> {
 
         match get_my_session() {
             Ok(session) => scope.supply(&session)?,
-            Err(e) => panic!("load-scope: {:?}", e),
+            Err(e) => tracing::warn!("load-scope: {:?}", e),
         };
 
         Ok(scope)
