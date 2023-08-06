@@ -12,8 +12,9 @@ use engine::{sequences::Sequence, storage::StorageFactory, Domain};
 use kernel::{EntityKey, Identity, RegisteredPlugins};
 use plugins_core::{
     building::BuildingPluginFactory, carrying::CarryingPluginFactory, chat::ChatPluginFactory,
-    emote::EmotePluginFactory, looking::LookingPluginFactory, memory::MemoryPluginFactory,
-    moving::MovingPluginFactory, security::SecurityPluginFactory, DefaultFinder,
+    emote::EmotePluginFactory, helping::HelpingPluginFactory, looking::LookingPluginFactory,
+    memory::MemoryPluginFactory, moving::MovingPluginFactory, security::SecurityPluginFactory,
+    DefaultFinder,
 };
 use plugins_dynlib::DynamicPluginFactory;
 use plugins_rpc::RpcPluginFactory;
@@ -174,6 +175,7 @@ impl DomainBuilder {
         registered_plugins.register(BuildingPluginFactory::default());
         registered_plugins.register(MemoryPluginFactory::default());
         registered_plugins.register(SecurityPluginFactory::default());
+        registered_plugins.register(HelpingPluginFactory::default());
         let finder = Arc::new(DefaultFinder::default());
         let storage_factory = Arc::new(self.storage_factory()?);
         storage_factory.migrate()?;

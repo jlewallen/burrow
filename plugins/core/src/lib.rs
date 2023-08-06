@@ -5,6 +5,7 @@ pub mod chat;
 pub mod emote;
 pub mod fashion;
 pub mod finding;
+pub mod helping;
 pub mod library;
 pub mod location;
 pub mod looking;

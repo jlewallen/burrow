@@ -143,13 +143,21 @@ pub mod model {
     }
 
     pub trait HasWellKnownEntities {
-        fn get_welcome_area(&self) -> Result<Option<EntityKey>, DomainError>;
+        fn get_welcome_area(&self) -> Result<Option<EntityKey>, DomainError> {
+            self.get_well_known_by_name(WELCOME_AREA)
+        }
+
+        fn get_encyclopedia(&self) -> Result<Option<EntityKey>, DomainError> {
+            self.get_well_known_by_name(ENCYCLOPEDIA)
+        }
+
+        fn get_well_known_by_name(&self, pattern: &str) -> Result<Option<EntityKey>, DomainError>;
     }
 
     impl HasWellKnownEntities for Entry {
-        fn get_welcome_area(&self) -> Result<Option<EntityKey>, DomainError> {
+        fn get_well_known_by_name(&self, name: &str) -> Result<Option<EntityKey>, DomainError> {
             let well_known = self.scope::<WellKnown>()?;
-            Ok(well_known.welcome_area().cloned())
+            Ok(well_known.get(name).cloned())
         }
     }
 }

@@ -106,6 +106,36 @@ impl From<serde_json::Value> for JsonReply {
 
 impl Reply for JsonReply {}
 
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToJson)]
+#[serde(rename_all = "camelCase")]
+pub struct MarkdownReply {
+    value: String,
+}
+
+impl Into<String> for MarkdownReply {
+    fn into(self) -> String {
+        self.value
+    }
+}
+
+impl From<String> for MarkdownReply {
+    fn from(value: String) -> Self {
+        Self { value }
+    }
+}
+
+impl std::str::FromStr for MarkdownReply {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self {
+            value: s.to_owned(),
+        })
+    }
+}
+
+impl Reply for MarkdownReply {}
+
 #[cfg(test)]
 mod tests {
     use serde_json::json;
