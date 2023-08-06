@@ -90,8 +90,8 @@ mod tests {
 #[allow(dead_code)]
 #[derive(Debug, PartialEq)]
 pub struct AclProtection {
-    path: String,
-    acls: Acls,
+    pub path: String,
+    pub acls: Acls,
 }
 
 impl AclProtection {

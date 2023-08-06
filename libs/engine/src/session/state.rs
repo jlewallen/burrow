@@ -179,6 +179,12 @@ impl<'a> SavesEntities<'a> {
             before: l.serialized.as_ref().map(Original::String),
             after: l.entity.clone(),
         })? {
+            if let Some(acls) = perms::find_acls(&modified.before) {
+                for acl in acls {
+                    trace!("{:?}", &acl.path);
+                }
+            }
+
             // Serialize to string now that we know we'll use this.
             let serialized = modified.after.to_string();
 
