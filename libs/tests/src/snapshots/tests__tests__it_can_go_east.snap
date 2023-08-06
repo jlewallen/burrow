@@ -25,16 +25,14 @@ expression: domain.snapshot().await?
         "gid": 6
       },
       "props": {
-        "props": {
-          "map": {
-            "gid": {
-              "acls": null,
-              "value": 0
-            },
-            "name": {
-              "acls": null,
-              "value": "World"
-            }
+        "core": {
+          "gid": {
+            "acls": null,
+            "value": 0
+          },
+          "name": {
+            "acls": null,
+            "value": "World"
           }
         }
       },
@@ -75,16 +73,14 @@ expression: domain.snapshot().await?
         ]
       },
       "props": {
-        "props": {
-          "map": {
-            "gid": {
-              "acls": null,
-              "value": 1
-            },
-            "name": {
-              "acls": null,
-              "value": "Place"
-            }
+        "core": {
+          "gid": {
+            "acls": null,
+            "value": 1
+          },
+          "name": {
+            "acls": null,
+            "value": "Place"
           }
         }
       }
@@ -114,16 +110,14 @@ expression: domain.snapshot().await?
         }
       },
       "props": {
-        "props": {
-          "map": {
-            "gid": {
-              "acls": null,
-              "value": 2
-            },
-            "name": {
-              "acls": null,
-              "value": "Key"
-            }
+        "core": {
+          "gid": {
+            "acls": null,
+            "value": 2
+          },
+          "name": {
+            "acls": null,
+            "value": "Key"
           }
         }
       }
@@ -165,16 +159,14 @@ expression: domain.snapshot().await?
         }
       },
       "props": {
-        "props": {
-          "map": {
-            "gid": {
-              "acls": null,
-              "value": 3
-            },
-            "name": {
-              "acls": null,
-              "value": "Vessel"
-            }
+        "core": {
+          "gid": {
+            "acls": null,
+            "value": 3
+          },
+          "name": {
+            "acls": null,
+            "value": "Vessel"
           }
         }
       }
@@ -216,16 +208,14 @@ expression: domain.snapshot().await?
         }
       },
       "props": {
-        "props": {
-          "map": {
-            "gid": {
-              "acls": null,
-              "value": 4
-            },
-            "name": {
-              "acls": null,
-              "value": "Living"
-            }
+        "core": {
+          "gid": {
+            "acls": null,
+            "value": 4
+          },
+          "name": {
+            "acls": null,
+            "value": "Living"
           }
         }
       }
@@ -266,16 +256,14 @@ expression: domain.snapshot().await?
         "occupied": []
       },
       "props": {
-        "props": {
-          "map": {
-            "gid": {
-              "acls": null,
-              "value": 5
-            },
-            "name": {
-              "acls": null,
-              "value": "Welcome Area"
-            }
+        "core": {
+          "gid": {
+            "acls": null,
+            "value": 5
+          },
+          "name": {
+            "acls": null,
+            "value": "Welcome Area"
           }
         }
       }
@@ -313,16 +301,14 @@ expression: domain.snapshot().await?
         }
       },
       "props": {
-        "props": {
-          "map": {
-            "gid": {
-              "acls": null,
-              "value": 6
-            },
-            "name": {
-              "acls": null,
-              "value": "East"
-            }
+        "core": {
+          "gid": {
+            "acls": null,
+            "value": 6
+          },
+          "name": {
+            "acls": null,
+            "value": "East"
           }
         }
       }

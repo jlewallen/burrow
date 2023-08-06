@@ -12,7 +12,9 @@ use tracing::{debug, info};
 
 use crate::DomainBuilder;
 use engine::{storage::StorageFactory, DevNullNotifier, SessionOpener};
-use kernel::{DomainError, EntityKey, Entry, HasScopes, LoadsEntities, LookupBy, Scope};
+use kernel::{
+    DomainError, EntityKey, Entry, HasScopes, LoadsEntities, LookupBy, Properties, Scope,
+};
 
 #[derive(Debug, Args, Clone)]
 pub struct Command {
@@ -21,7 +23,7 @@ pub struct Command {
     #[arg(long)]
     scopes: bool,
     #[arg(long)]
-    erase_behaviors: bool,
+    erase_scope: Option<String>,
 }
 
 impl Command {
@@ -33,6 +35,8 @@ impl Command {
 fn load_and_save_scope<T: Scope>(entity: &Entry) -> Result<bool, DomainError> {
     use anyhow::Context;
     if entity.has_scope::<T>()? {
+        tracing::trace!("{:?} {:?}", entity.key(), T::scope_key());
+
         Ok(entity
             .scope_mut::<T>()
             .with_context(|| format!("{}", T::scope_key()))?
@@ -51,7 +55,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
     let factory = builder.storage_factory()?;
     let storage = factory.create_storage()?;
 
-    if cmd.scopes || cmd.erase_behaviors {
+    if cmd.scopes || cmd.erase_scope.is_some() {
         info!("loading keys...");
 
         let entities = storage.query_all()?;
@@ -61,6 +65,8 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
             .collect();
 
         let session = domain.open_session()?;
+        let _set_session = session.set_session()?;
+
         for key in keys.iter() {
             info!("processing {:?}", key);
 
@@ -68,13 +74,14 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
             if let Some(entity) = entity {
                 debug!("{:?}", entity.key());
 
-                if cmd.erase_behaviors {
+                if let Some(key) = &cmd.erase_scope {
                     let mut entity = entity.borrow_mut();
                     let mut scopes = entity.scopes_mut();
-                    scopes.replace_scope(&Behaviors::default())?;
+                    scopes.remove_scope_by_key(key)?;
                 }
                 if cmd.scopes {
                     let entry: Entry = entity.try_into()?;
+                    load_and_save_scope::<Properties>(&entry)?;
                     load_and_save_scope::<Location>(&entry)?;
                     load_and_save_scope::<Carryable>(&entry)?;
                     load_and_save_scope::<Occupyable>(&entry)?;

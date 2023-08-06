@@ -101,7 +101,7 @@ impl<'e> Scopes<'e> {
 
         match get_my_session() {
             Ok(session) => scope.supply(&session)?,
-            Err(e) => debug!("load-scope: {:?}", e),
+            Err(e) => panic!("load-scope: {:?}", e),
         };
 
         Ok(scope)
@@ -147,6 +147,12 @@ impl<'e> ScopesMut<'e> {
         let value = ScopeValue::Intermediate { value, previous };
 
         self.map.insert(scope_key.to_owned(), value);
+
+        Ok(())
+    }
+
+    pub fn remove_scope_by_key(&mut self, scope_key: &str) -> Result<(), DomainError> {
+        self.map.remove(scope_key);
 
         Ok(())
     }

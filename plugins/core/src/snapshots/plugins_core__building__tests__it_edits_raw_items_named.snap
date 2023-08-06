@@ -38,16 +38,14 @@ expression: reply.to_debug_json()?
             }
           },
           "props": {
-            "props": {
-              "map": {
-                "gid": {
-                  "acls": null,
-                  "value": 3
-                },
-                "name": {
-                  "acls": null,
-                  "value": "Cool Broom"
-                }
+            "core": {
+              "gid": {
+                "acls": null,
+                "value": 3
+              },
+              "name": {
+                "acls": null,
+                "value": "Cool Broom"
               }
             }
           }

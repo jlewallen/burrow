@@ -24,16 +24,14 @@ expression: "[world.to_json_value()?, jacob.to_json_value()?]"
     "parent": null,
     "scopes": {
       "props": {
-        "props": {
-          "map": {
-            "desc": {
-              "acls": null,
-              "value": "What a great place"
-            },
-            "name": {
-              "acls": null,
-              "value": "New World"
-            }
+        "core": {
+          "desc": {
+            "acls": null,
+            "value": "What a great place"
+          },
+          "name": {
+            "acls": null,
+            "value": "New World"
           }
         }
       }
@@ -55,16 +53,14 @@ expression: "[world.to_json_value()?, jacob.to_json_value()?]"
     "parent": null,
     "scopes": {
       "props": {
-        "props": {
-          "map": {
-            "desc": {
-              "acls": null,
-              "value": "Hah"
-            },
-            "name": {
-              "acls": null,
-              "value": "Jacob"
-            }
+        "core": {
+          "desc": {
+            "acls": null,
+            "value": "Hah"
+          },
+          "name": {
+            "acls": null,
+            "value": "Jacob"
           }
         }
       }

@@ -17,14 +17,12 @@ impl Property {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct Props {
-    map: HashMap<String, Property>,
-}
+pub struct Props(HashMap<String, Property>);
 
 impl Props {
     fn property_named(&self, name: &str) -> Option<&Property> {
-        if self.map.contains_key(name) {
-            return Some(self.map.index(name));
+        if self.0.contains_key(name) {
+            return Some(self.0.index(name));
         }
         None
     }
@@ -53,37 +51,45 @@ impl Props {
     }
 
     fn set_property(&mut self, name: &str, value: serde_json::Value) {
-        self.map.insert(name.to_string(), Property::new(value));
+        self.0.insert(name.to_string(), Property::new(value));
     }
 
     fn set_u64_property(&mut self, name: &str, value: u64) -> Result<(), DomainError> {
-        self.map
+        self.0
             .insert(name.to_owned(), Property::new(serde_json::to_value(value)?));
 
         Ok(())
     }
 
     pub(super) fn remove_property(&mut self, name: &str) {
-        self.map.remove(name);
+        self.0.remove(name);
+    }
+}
+
+impl Into<HashMap<String, Property>> for Props {
+    fn into(self) -> HashMap<String, Property> {
+        self.0
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Properties {
-    props: Option<Props>,
+    core: Option<Props>,
 }
 
 impl Default for Properties {
     fn default() -> Self {
         Self {
-            props: Some(Default::default()),
+            core: Some(Default::default()),
         }
     }
 }
 
 impl From<Props> for Properties {
     fn from(value: Props) -> Self {
-        Self { props: Some(value) }
+        Self {
+            core: Some(value.clone()),
+        }
     }
 }
 
@@ -100,13 +106,7 @@ pub trait CoreProps {
 }
 
 fn load_props(entity: &Entity) -> Result<Box<Properties>, DomainError> {
-    let mut scope = entity.scopes().load_scope::<Properties>()?;
-
-    if scope.props.is_none() {
-        scope.props = Some(Props::default());
-    }
-
-    Ok(scope)
+    Ok(entity.scopes().load_scope::<Properties>()?)
 }
 
 fn save_props(entity: &mut Entity, properties: Box<Properties>) -> Result<(), DomainError> {
@@ -117,12 +117,12 @@ impl CoreProps for Entity {
     fn props(&self) -> Props {
         let scope = load_props(self).expect("Failed to load properties scope");
 
-        scope.props.unwrap()
+        scope.core.unwrap()
     }
 
     fn set_props(&mut self, props: Props) -> Result<(), DomainError> {
         let mut scope = load_props(self).expect("Failed to load properties scope");
-        scope.props = Some(props);
+        scope.core = Some(props);
         save_props(self, scope)
     }
 
@@ -171,7 +171,7 @@ impl CoreProps for Entity {
 
 impl CoreProps for Properties {
     fn props(&self) -> Props {
-        self.props.clone().unwrap()
+        self.core.clone().unwrap()
     }
 
     fn set_props(&mut self, _props: Props) -> Result<(), DomainError> {
@@ -179,12 +179,12 @@ impl CoreProps for Properties {
     }
 
     fn name(&self) -> Option<String> {
-        self.props.as_ref().unwrap().string_property(NAME_PROPERTY)
+        self.core.as_ref().unwrap().string_property(NAME_PROPERTY)
     }
 
     fn set_name(&mut self, value: &str) -> Result<(), DomainError> {
         let value: serde_json::Value = value.into();
-        self.props
+        self.core
             .as_mut()
             .unwrap()
             .set_property(NAME_PROPERTY, value);
@@ -193,7 +193,7 @@ impl CoreProps for Properties {
     }
 
     fn gid(&self) -> Option<EntityGid> {
-        self.props
+        self.core
             .as_ref()
             .unwrap()
             .u64_property(GID_PROPERTY)
@@ -201,19 +201,19 @@ impl CoreProps for Properties {
     }
 
     fn set_gid(&mut self, gid: EntityGid) -> Result<(), DomainError> {
-        self.props
+        self.core
             .as_mut()
             .unwrap()
             .set_u64_property(GID_PROPERTY, gid.into())
     }
 
     fn desc(&self) -> Option<String> {
-        self.props.as_ref().unwrap().string_property(DESC_PROPERTY)
+        self.core.as_ref().unwrap().string_property(DESC_PROPERTY)
     }
 
     fn set_desc(&mut self, value: &str) -> Result<(), DomainError> {
         let value: serde_json::Value = value.into();
-        self.props
+        self.core
             .as_mut()
             .unwrap()
             .set_property(DESC_PROPERTY, value);
@@ -223,7 +223,7 @@ impl CoreProps for Properties {
 
     fn destroy(&mut self) -> Result<(), DomainError> {
         let value: serde_json::Value = true.into();
-        self.props
+        self.core
             .as_mut()
             .unwrap()
             .set_property(DESTROYED_PROPERTY, value);
