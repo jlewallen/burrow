@@ -11,6 +11,6 @@ pub use domain::*;
 pub use notifications::*;
 pub use session::*;
 
+pub use users::model::Credentials;
 pub use users::model::HasUsernames;
 pub use users::model::HasWellKnownEntities;
-pub use users::model::Passwords;

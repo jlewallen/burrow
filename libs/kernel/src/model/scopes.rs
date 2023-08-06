@@ -156,6 +156,14 @@ impl<'e> ScopesMut<'e> {
 
         Ok(())
     }
+
+    pub fn rename_scope(&mut self, old_key: &str, new_key: &str) -> Result<(), DomainError> {
+        if let Some(value) = self.map.remove(old_key) {
+            self.map.insert(new_key.to_owned(), value);
+        }
+
+        Ok(())
+    }
 }
 
 pub trait HasScopes {

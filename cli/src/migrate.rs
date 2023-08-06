@@ -23,7 +23,11 @@ pub struct Command {
     #[arg(long)]
     scopes: bool,
     #[arg(long)]
-    erase_scope: Option<String>,
+    scope: Option<String>,
+    #[arg(long)]
+    erase: bool,
+    #[arg(long)]
+    rename: Option<String>,
 }
 
 impl Command {
@@ -55,7 +59,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
     let factory = builder.storage_factory()?;
     let storage = factory.create_storage()?;
 
-    if cmd.scopes || cmd.erase_scope.is_some() {
+    if cmd.scopes || cmd.scope.is_some() {
         info!("loading keys...");
 
         let entities = storage.query_all()?;
@@ -74,11 +78,18 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
             if let Some(entity) = entity {
                 debug!("{:?}", entity.key());
 
-                if let Some(key) = &cmd.erase_scope {
+                if let Some(key) = &cmd.scope {
                     let mut entity = entity.borrow_mut();
                     let mut scopes = entity.scopes_mut();
-                    scopes.remove_scope_by_key(key)?;
+                    if cmd.erase {
+                        scopes.remove_scope_by_key(key)?;
+                    } else {
+                        if let Some(new_key) = &cmd.rename {
+                            scopes.rename_scope(key, new_key)?;
+                        }
+                    }
                 }
+
                 if cmd.scopes {
                     let entry: Entry = entity.try_into()?;
                     load_and_save_scope::<Properties>(&entry)?;

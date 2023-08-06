@@ -68,11 +68,11 @@ pub mod model {
     const WEB: &str = "web";
 
     #[derive(Debug, Serialize, Deserialize, Default)]
-    pub struct Passwords {
+    pub struct Credentials {
         passwords: HashMap<String, String>,
     }
 
-    impl Passwords {
+    impl Credentials {
         pub fn get(&self) -> Option<&String> {
             self.passwords.get(WEB)
         }
@@ -82,13 +82,13 @@ pub mod model {
         }
     }
 
-    impl Needs<SessionRef> for Passwords {
+    impl Needs<SessionRef> for Credentials {
         fn supply(&mut self, _session: &SessionRef) -> Result<()> {
             Ok(())
         }
     }
 
-    impl Scope for Passwords {
+    impl Scope for Credentials {
         fn serialize(&self) -> Result<serde_json::Value> {
             Ok(serde_json::to_value(self)?)
         }

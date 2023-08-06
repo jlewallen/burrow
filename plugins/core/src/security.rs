@@ -55,7 +55,7 @@ pub mod model {}
 
 pub mod actions {
     use crate::library::actions::*;
-    use engine::Passwords;
+    use engine::Credentials;
 
     #[action]
     pub struct ChangePasswordAction {
@@ -69,9 +69,9 @@ pub mod actions {
 
         fn perform(&self, _session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             let (_world, living, _area) = surroundings.unpack();
-            let mut passwords = living.scope_mut::<Passwords>()?;
-            passwords.set(self.password.to_owned());
-            passwords.save()?;
+            let mut credentials = living.scope_mut::<Credentials>()?;
+            credentials.set(self.password.to_owned());
+            credentials.save()?;
 
             Ok(Effect::Reply(EffectReply::Instance(Rc::new(
                 SimpleReply::Done,

@@ -12,7 +12,7 @@ use tokio::sync::Mutex;
 use tracing::*;
 
 use engine::{
-    AfterTick, DevNullNotifier, Domain, HasUsernames, Notifier, Passwords, SessionOpener,
+    AfterTick, Credentials, DevNullNotifier, Domain, HasUsernames, Notifier, SessionOpener,
 };
 use kernel::{DomainEvent, EntityKey, EntryResolver};
 
@@ -97,7 +97,7 @@ impl AppState {
                 let user = session.entry(&kernel::LookupBy::Key(&key))?;
                 let user = user.unwrap();
                 let hash = user
-                    .maybe_scope::<Passwords>()?
+                    .maybe_scope::<Credentials>()?
                     .map(|s| s.get().map(|s| s.clone()))
                     .flatten();
 
@@ -150,9 +150,9 @@ impl AppState {
 
         let creating = session.add_entity(&EntityPtr::new(creating))?;
         tools::set_occupying(&welcome_area, &vec![creating.clone()])?;
-        let mut passwords = creating.scope_mut::<Passwords>()?;
-        passwords.set(hashed_password);
-        passwords.save()?;
+        let mut credentials = creating.scope_mut::<Credentials>()?;
+        credentials.set(hashed_password);
+        credentials.save()?;
 
         let key = creating.key().clone();
         world.add_username_to_key(&user.email, &key)?;
