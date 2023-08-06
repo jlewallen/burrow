@@ -17,6 +17,7 @@ RUN cd yew && trunk build
 FROM debian:bullseye-slim
 RUN apt-get update && apt-get install -y libsqlite3-dev && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
+COPY --from=builder /app/build/target/debug/*.so /app
 COPY --from=builder /app/build/target/debug/cli /app
 COPY --from=builder /app/build/yew/dist /app/assets
 RUN ls -alhR /app
