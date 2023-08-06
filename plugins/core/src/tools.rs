@@ -139,6 +139,16 @@ pub fn leads_to<'a>(route: &'a Entry, area: &'a Entry) -> Result<&'a Entry> {
     Ok(route)
 }
 
+pub fn occupied_by(area: &Entry) -> Result<Vec<Entry>> {
+    let occupyable = area.scope::<Occupyable>()?;
+
+    occupyable
+        .occupied
+        .iter()
+        .map(|e| Ok(e.to_entry()?))
+        .collect::<Result<Vec<_>>>()
+}
+
 pub fn get_occupant_keys(area: &Entry) -> Result<Vec<EntityKey>> {
     let occupyable = area.scope::<Occupyable>()?;
 

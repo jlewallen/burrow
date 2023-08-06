@@ -25,6 +25,7 @@ pub enum EntityRelationship {
     User(Entry),
     Area(Entry),
     Holding(Entry),
+    Occupying(Entry),
     Ground(Entry),
     Contained(Entry),
     Exit(String, Entry),
@@ -37,6 +38,7 @@ impl EntityRelationship {
             EntityRelationship::User(e) => e,
             EntityRelationship::Area(e) => e,
             EntityRelationship::Holding(e) => e,
+            EntityRelationship::Occupying(e) => e,
             EntityRelationship::Ground(e) => e,
             EntityRelationship::Contained(e) => e,
             EntityRelationship::Exit(_, e) => e,
@@ -83,12 +85,20 @@ impl EntityRelationshipSet {
                         .map(EntityRelationship::Holding)
                         .collect::<Vec<_>>(),
                 ),
-                EntityRelationship::Area(area) => expanded.extend(
-                    tools::contained_by(area)?
-                        .into_iter()
-                        .map(EntityRelationship::Ground)
-                        .collect::<Vec<_>>(),
-                ),
+                EntityRelationship::Area(area) => {
+                    expanded.extend(
+                        tools::contained_by(area)?
+                            .into_iter()
+                            .map(EntityRelationship::Ground)
+                            .collect::<Vec<_>>(),
+                    );
+                    expanded.extend(
+                        tools::occupied_by(area)?
+                            .into_iter()
+                            .map(EntityRelationship::Occupying)
+                            .collect::<Vec<_>>(),
+                    );
+                }
                 EntityRelationship::Holding(holding) => expanded.extend(
                     tools::contained_by(holding)?
                         .into_iter()
@@ -148,17 +158,10 @@ impl EntityRelationshipSet {
             Item::Named(name) => {
                 for entity in &self.entities {
                     match entity {
-                        EntityRelationship::Contained(e) => {
-                            if matches_description(e, name)? {
-                                return Ok(Some(e.clone()));
-                            }
-                        }
-                        EntityRelationship::Ground(e) => {
-                            if matches_description(e, name)? {
-                                return Ok(Some(e.clone()));
-                            }
-                        }
-                        EntityRelationship::Holding(e) => {
+                        EntityRelationship::Contained(e)
+                        | EntityRelationship::Ground(e)
+                        | EntityRelationship::Holding(e)
+                        | EntityRelationship::Occupying(e) => {
                             if matches_description(e, name)? {
                                 return Ok(Some(e.clone()));
                             }
@@ -212,9 +215,10 @@ fn default_priority(e: &EntityRelationship) -> u32 {
         EntityRelationship::Ground(_) => 2,
         EntityRelationship::Holding(_) => 3,
         EntityRelationship::Contained(_) => 4,
-        EntityRelationship::Exit(_, _) => 5,
-        EntityRelationship::User(_) => 6,
-        EntityRelationship::World(_) => 7,
+        EntityRelationship::Occupying(_) => 5,
+        EntityRelationship::Exit(_, _) => 6,
+        EntityRelationship::User(_) => 7,
+        EntityRelationship::World(_) => 8,
     }
 }
 
