@@ -11,6 +11,9 @@ build: setup
 test: setup
     cargo test --workspace
 
+testall: setup
+    cargo test --workspace --no-fail-fast
+
 plugins: setup
     cargo build --package plugin-example-shared
 
