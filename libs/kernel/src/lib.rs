@@ -1,13 +1,13 @@
 pub mod actions;
 pub mod hooks;
 pub mod model;
+pub mod perms;
 pub mod plugins;
 pub mod session;
 pub mod surround;
 
 pub use actions::*;
 pub use hooks::*;
-pub use model::Needs;
 pub use model::*;
 pub use plugins::*;
 pub use session::*;

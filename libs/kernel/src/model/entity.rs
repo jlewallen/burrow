@@ -183,11 +183,19 @@ pub fn find_entity_refs(value: &serde_json::Value) -> Option<Vec<EntityRef>> {
                 .collect(),
         ),
         serde_json::Value::Object(o) => {
-            let potential: Result<PotentialRef, serde_json::Error> =
-                serde_json::from_value(serde_json::Value::Object(o.clone()));
+            let potential = serde_json::from_value::<PotentialRef>(value.clone());
+
+            // If this object is an EntityRef, we can stop looking, otherwise we
+            // need to keep going deeper.
             match potential {
                 Ok(potential) => potential.good_enough().map(|i| vec![i]),
-                Err(_) => None,
+                Err(_) => Some(
+                    o.iter()
+                        .map(|(_k, v)| find_entity_refs(v))
+                        .flatten()
+                        .flatten()
+                        .collect(),
+                ),
             }
         }
     }
