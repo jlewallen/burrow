@@ -52,30 +52,10 @@ impl ParsesActions for EmotePlugin {
 }
 
 pub mod model {
-    use crate::library::model::*;
-
-    #[derive(Debug, Serialize, Deserialize)]
-    pub struct Emoted {
-        pub who: ObservedEntity,
-    }
-
-    impl Emoted {
-        pub fn new(who: ObservedEntity) -> Self {
-            Self { who }
-        }
-    }
-
-    #[derive(Debug, Serialize, Deserialize, ToJson)]
-    #[serde(rename_all = "camelCase")]
-    pub enum EmotingEvent {
-        Laugh(Emoted),
-    }
-
-    impl DomainEvent for EmotingEvent {}
+    pub use kernel::EmotingEvent;
 }
 
 pub mod actions {
-    use super::model::*;
     use crate::{library::actions::*, looking::model::Observe};
 
     #[action]

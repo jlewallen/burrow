@@ -198,3 +198,22 @@ pub struct SaveScriptAction {
     pub key: String,
     pub copy: WorkingCopy,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Emoted {
+    pub who: ObservedEntity,
+}
+
+impl Emoted {
+    pub fn new(who: ObservedEntity) -> Self {
+        Self { who }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, ToJson)]
+#[serde(rename_all = "camelCase")]
+pub enum EmotingEvent {
+    Laugh(Emoted),
+}
+
+impl DomainEvent for EmotingEvent {}
