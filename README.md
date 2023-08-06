@@ -5,13 +5,6 @@ place to start until I've got time for this README:
 
 https://github.com/jlewallen/dimsum/
 
-## Possibilities
-
-1. Need a way to to manage modifications/changes as part of the Perform/Action chain.
-2. Need serialize/deserialize or dynamically cast or whatever to "pick" things we're interested in.
-3. Add entity templates, allow for custom ones.
-4. Our tests should render more replies.
-
 ### Intermediate Grammar
 
 The idea with this is to allow plugins to supply grammars at a slightly higher
@@ -38,10 +31,6 @@ pub fn place_inside(Held(item), Held(item)) {
 ### Action Ideas
 
 ```
-look inside <X>
-put <X> inside of <Y>
-take <X> out of <Y>
-
 make item "A KEY"
 
 lock <X>```
