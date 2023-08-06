@@ -86,7 +86,8 @@ impl TryFrom<&Entry> for QuickEdit {
     }
 }
 
-const SEPARATOR: &str = "## Separator";
+const SEPARATOR: &str =
+    "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
 
 impl FromStr for QuickEdit {
     type Err = DomainError;

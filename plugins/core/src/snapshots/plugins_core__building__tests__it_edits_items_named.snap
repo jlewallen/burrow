@@ -5,7 +5,7 @@ expression: reply.to_debug_json()?
 {
   "editorReply": {
     "editing": {
-      "markdown": "Cool Broom\n\n## Separator\n\n"
+      "markdown": "Cool Broom\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n"
     },
     "key": "E-2"
   }
