@@ -69,7 +69,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
             .collect();
 
         let session = domain.open_session()?;
-        let _set_session = session.set_session()?;
+        let session = session.set_session()?;
 
         for key in keys.iter() {
             info!("processing {:?}", key);

@@ -200,7 +200,7 @@ where
 
     pub fn initialize(&mut self) -> Result<Vec<Query>> {
         let session = Rc::new(AgentSession::default());
-        let _set = SetSession::new(&(session.clone() as Rc<dyn ActiveSession>));
+        let _set = SetSession::new(session.clone());
 
         self.agent.initialize()?;
 
@@ -212,7 +212,7 @@ where
         TRecvFn: FnMut() -> Option<Payload>,
     {
         let session = Rc::new(AgentSession::default());
-        let _set = SetSession::new(&(session.clone() as Rc<dyn ActiveSession>));
+        let _set = SetSession::new(session.clone());
 
         let mut queries = Vec::new();
 

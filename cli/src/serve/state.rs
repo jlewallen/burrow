@@ -90,7 +90,7 @@ impl AppState {
 
     pub fn find_user_key(&self, name: &str) -> Result<Option<(EntityKey, Option<String>)>> {
         let session = self.domain.open_session().expect("Error opening session");
-        let _set_session = session.set_session()?;
+        let session = session.set_session()?;
 
         let world = session.world()?.expect("No world");
         let maybe_key = match world.find_name_key(name)? {
@@ -114,7 +114,7 @@ impl AppState {
 
     pub fn register_user(&self, user: &RegisterUser) -> Result<EntityKey> {
         let session = self.domain.open_session().expect("Error opening session");
-        let _set_session = session.set_session()?;
+        let session = session.set_session()?;
 
         let world = session.world()?.expect("No world");
         let existing_key = world

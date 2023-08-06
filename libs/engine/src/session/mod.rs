@@ -87,10 +87,8 @@ impl Session {
         Ok(session)
     }
 
-    pub fn set_session(&self) -> Result<SetSession> {
-        Ok(SetSession::new(
-            &self.weak.upgrade().ok_or(DomainError::NoSession)?,
-        ))
+    pub fn set_session(&self) -> Result<SetSession<Self>> {
+        Ok(SetSession::new(self.weak.upgrade().unwrap()))
     }
 
     pub fn evaluate_and_perform(&self, user_name: &str, text: &str) -> Result<Option<Effect>> {

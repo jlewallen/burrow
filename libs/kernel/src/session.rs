@@ -1,4 +1,5 @@
 use anyhow::Result;
+use std::ops::Deref;
 use std::{cell::RefCell, rc::Rc};
 
 use replies::ToJson;
@@ -75,29 +76,37 @@ pub fn get_my_session() -> Result<SessionRef> {
     })
 }
 
-pub struct SetSession {
-    _session: std::rc::Rc<dyn ActiveSession>,
+pub struct SetSession<T> {
+    session: std::rc::Rc<T>,
     previous: Option<std::rc::Weak<dyn ActiveSession>>,
 }
 
-impl SetSession {
-    pub fn new(session: &SessionRef) -> Self {
+impl<T> SetSession<T>
+where
+    T: ActiveSession + 'static,
+{
+    pub fn new(session: Rc<T>) -> Self {
         SESSION.with(|setting| {
             let mut setting = setting.borrow_mut();
             let previous = setting.take();
 
-            let weak = Rc::downgrade(session);
+            let weak = Rc::downgrade(&session);
             *setting = Some(weak.clone());
 
-            Self {
-                previous,
-                _session: session.clone(),
-            }
+            Self { previous, session }
         })
     }
 }
 
-impl Drop for SetSession {
+impl<T> Deref for SetSession<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.session
+    }
+}
+
+impl<T> Drop for SetSession<T> {
     fn drop(&mut self) {
         SESSION.with(|setting| {
             let mut setting = setting.borrow_mut();

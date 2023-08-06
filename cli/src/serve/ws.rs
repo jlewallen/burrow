@@ -157,7 +157,7 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
                                         action: PerformAction::Instance(action),
                                     };
                                     trace!("perform {:?}", &perform.enum_name());
-                                    let _session = session.set_session()?;
+                                    let session = session.set_session()?;
                                     let effect = session.perform(perform).expect("Perform failed");
                                     session.close(&notifier).expect("Error closing session");
                                     Ok(effect.to_tagged_json()?)

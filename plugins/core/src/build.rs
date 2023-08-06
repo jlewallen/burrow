@@ -133,7 +133,7 @@ pub struct BuildSurroundings {
     ground: Vec<QuickThing>,
     world: Entry,
     #[allow(dead_code)] // TODO Combine with Rc<Session>?
-    set: SetSession,
+    set: SetSession<Session>,
     session: Rc<Session>,
 }
 

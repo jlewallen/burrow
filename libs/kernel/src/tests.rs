@@ -31,12 +31,8 @@ struct KeysOnlySession {
 }
 
 impl KeysOnlySession {
-    pub fn new() -> Rc<dyn ActiveSession> {
-        Rc::new(Self::default())
-    }
-
-    pub fn open() -> SetSession {
-        SetSession::new(&KeysOnlySession::new())
+    pub fn open() -> SetSession<KeysOnlySession> {
+        SetSession::new(Rc::new(Self::default()))
     }
 }
 
