@@ -158,12 +158,12 @@ pub struct SaveScriptAction {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum CarryingEvent {
-    ItemHeld {
+    Held {
         living: ObservedEntity,
         item: ObservedEntity,
         area: ObservedEntity,
     },
-    ItemDropped {
+    Dropped {
         living: ObservedEntity,
         item: ObservedEntity,
         area: ObservedEntity,

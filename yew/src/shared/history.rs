@@ -162,14 +162,14 @@ fn thing(e: &ObservedEntity) -> Html {
 impl Render for CarryingEvent {
     fn render(&self, _myself: &Myself) -> Option<Html> {
         match self {
-            CarryingEvent::ItemHeld {
+            CarryingEvent::Held {
                 living,
                 item,
                 area: _,
             } => Some(
                 html! { <div class="entry"> { subject(living) } { " picked up " } { thing(item) }</div> },
             ),
-            CarryingEvent::ItemDropped {
+            CarryingEvent::Dropped {
                 living,
                 item,
                 area: _,
