@@ -61,13 +61,24 @@ pub struct EntityObservation {
 
 impl Reply for EntityObservation {}
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum WorkingCopy {
     Markdown(String),
     Json(serde_json::Value),
     Script(String),
     Placeholder,
+}
+
+impl std::fmt::Debug for WorkingCopy {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Markdown(_) => f.debug_tuple("Markdown").finish(),
+            Self::Json(_) => f.debug_tuple("Json").finish(),
+            Self::Script(_) => f.debug_tuple("Script").finish(),
+            Self::Placeholder => write!(f, "Placeholder"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToJson)]
@@ -247,30 +258,6 @@ pub enum TalkingEvent {
 
 impl DomainEvent for TalkingEvent {}
 
-#[derive(Debug, Serialize, Deserialize, ToJson)]
-pub struct SaveQuickEditAction {
-    pub key: String,
-    pub copy: WorkingCopy,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToJson)]
-pub struct SaveEntityJsonAction {
-    pub key: String,
-    pub copy: WorkingCopy,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToJson)]
-pub struct SaveScriptAction {
-    pub key: String,
-    pub copy: WorkingCopy,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToJson)]
-pub struct SaveHelpAction {
-    pub key: String,
-    pub copy: WorkingCopy,
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Emoted {
     pub who: ObservedEntity,
@@ -289,3 +276,35 @@ pub enum EmotingEvent {
 }
 
 impl DomainEvent for EmotingEvent {}
+
+pub mod messy {
+    use crate::ToJson;
+    use serde::{Deserialize, Serialize};
+    use std::fmt::Debug;
+
+    use crate::WorkingCopy;
+
+    #[derive(Debug, Serialize, Deserialize, ToJson)]
+    pub struct SaveQuickEditAction {
+        pub key: String,
+        pub copy: WorkingCopy,
+    }
+
+    #[derive(Debug, Serialize, Deserialize, ToJson)]
+    pub struct SaveEntityJsonAction {
+        pub key: String,
+        pub copy: WorkingCopy,
+    }
+
+    #[derive(Debug, Serialize, Deserialize, ToJson)]
+    pub struct SaveScriptAction {
+        pub key: String,
+        pub copy: WorkingCopy,
+    }
+
+    #[derive(Debug, Serialize, Deserialize, ToJson)]
+    pub struct SaveHelpAction {
+        pub key: String,
+        pub copy: WorkingCopy,
+    }
+}

@@ -407,59 +407,6 @@ pub mod actions {
             }
         }
     }
-
-    #[derive(Serialize, Deserialize, ToJson)]
-    pub struct SaveWorkingCopyAction {
-        pub key: EntityKey,
-        pub copy: WorkingCopy,
-    }
-
-    impl std::fmt::Debug for SaveWorkingCopyAction {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            f.debug_struct("SaveWorkingCopyAction")
-                .field("key", &self.key)
-                .finish()
-        }
-    }
-
-    impl Action for SaveWorkingCopyAction {
-        fn is_read_only() -> bool {
-            false
-        }
-
-        fn perform(&self, session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
-            info!("mutate:key {:?}", self.key);
-
-            match session.entry(&LookupBy::Key(&self.key))? {
-                Some(entry) => {
-                    let entity = entry.entity();
-                    info!("mutate:entity {:?}", entity);
-
-                    match &self.copy {
-                        WorkingCopy::Markdown(text) => {
-                            let quick = QuickEdit::from_str(text)?;
-                            let mut entity = entity.borrow_mut();
-                            if let Some(name) = quick.name {
-                                entity.set_name(&name)?;
-                            }
-                            if let Some(desc) = quick.desc {
-                                entity.set_desc(&desc)?;
-                            }
-                        }
-                        WorkingCopy::Json(value) => {
-                            info!("mutate:json");
-                            let replacing = Entity::from_value(value.clone())?;
-                            entity.replace(replacing);
-                        }
-                        _ => panic!(),
-                    }
-
-                    Ok(SimpleReply::Done.into())
-                }
-                None => Ok(SimpleReply::NotFound.into()),
-            }
-        }
-    }
 }
 
 pub mod parser {
@@ -572,9 +519,9 @@ pub mod parser {
 mod tests {
     use super::parser::*;
     use super::*;
+    use crate::building::actions::{SaveEntityJsonAction, SaveQuickEditAction};
     use crate::library::tests::*;
     use crate::{
-        building::actions::SaveWorkingCopyAction,
         {carrying::model::Containing, looking::model::new_area_observation, tools},
         {BuildSurroundings, QuickThing},
     };
@@ -832,7 +779,7 @@ mod tests {
         quick_edit.name = Some("NAME!".to_owned());
         quick_edit.desc = Some(description.to_owned());
 
-        let action = Box::new(SaveWorkingCopyAction {
+        let action = Box::new(SaveQuickEditAction {
             key: EntityKey::new("world"),
             copy: WorkingCopy::Markdown(quick_edit.to_string()),
         });
@@ -856,7 +803,7 @@ mod tests {
         let original = living.entity();
         let original = original.to_json_value()?;
 
-        let action = Box::new(SaveWorkingCopyAction {
+        let action = Box::new(SaveEntityJsonAction {
             key: area.key().clone(),
             copy: WorkingCopy::Json(original),
         });

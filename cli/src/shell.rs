@@ -1,6 +1,7 @@
 use anyhow::Result;
 use chrono::Utc;
 use clap::Args;
+use plugins_core::building::actions::{SaveEntityJsonAction, SaveQuickEditAction};
 use plugins_rune::RUNE_EXTENSION;
 use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
@@ -20,7 +21,6 @@ use kernel::{
 };
 use replies::EditorReply;
 
-use plugins_core::building::actions::SaveWorkingCopyAction;
 use plugins_rune::actions::SaveScriptAction;
 
 #[derive(Debug, Args)]
@@ -145,7 +145,7 @@ impl Middleware for InteractiveEditor {
                                                     MD_EXTENSION,
                                                 )?;
 
-                                                Rc::new(SaveWorkingCopyAction {
+                                                Rc::new(SaveQuickEditAction {
                                                     key: EntityKey::new(reply.key()),
                                                     copy: replies::WorkingCopy::Markdown(edited),
                                                 })
@@ -158,7 +158,7 @@ impl Middleware for InteractiveEditor {
                                                     JSON_EXTENSION,
                                                 )?;
 
-                                                Rc::new(SaveWorkingCopyAction {
+                                                Rc::new(SaveEntityJsonAction {
                                                     key: EntityKey::new(reply.key()),
                                                     copy: replies::WorkingCopy::Json(
                                                         serde_json::from_str(&edited)?,
