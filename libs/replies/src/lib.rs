@@ -67,6 +67,7 @@ pub enum WorkingCopy {
     Markdown(String),
     Json(serde_json::Value),
     Script(String),
+    Placeholder,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToJson)]
@@ -74,11 +75,36 @@ pub enum WorkingCopy {
 pub struct EditorReply {
     key: String,
     editing: WorkingCopy,
+    target: EditTarget,
+    save: Option<ActionTemplate>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum EditTarget {
+    EntityJson,
+    QuickEdit,
+    Script,
+    Help,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToJson)]
+#[serde(rename_all = "camelCase")]
+pub struct ActionTemplate(serde_json::Value);
+
 impl EditorReply {
-    pub fn new(key: String, editing: WorkingCopy) -> Self {
-        Self { key, editing }
+    pub fn new(
+        key: String,
+        editing: WorkingCopy,
+        target: EditTarget,
+        save: Option<ActionTemplate>,
+    ) -> Self {
+        Self {
+            key,
+            editing,
+            target,
+            save,
+        }
     }
 
     pub fn key(&self) -> &str {
@@ -87,6 +113,10 @@ impl EditorReply {
 
     pub fn editing(&self) -> &WorkingCopy {
         &self.editing
+    }
+
+    pub fn target(&self) -> &EditTarget {
+        &self.target
     }
 }
 
@@ -218,13 +248,25 @@ pub enum TalkingEvent {
 impl DomainEvent for TalkingEvent {}
 
 #[derive(Debug, Serialize, Deserialize, ToJson)]
-pub struct SaveWorkingCopyAction {
+pub struct SaveQuickEditAction {
+    pub key: String,
+    pub copy: WorkingCopy,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToJson)]
+pub struct SaveEntityJsonAction {
     pub key: String,
     pub copy: WorkingCopy,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToJson)]
 pub struct SaveScriptAction {
+    pub key: String,
+    pub copy: WorkingCopy,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToJson)]
+pub struct SaveHelpAction {
     pub key: String,
     pub copy: WorkingCopy,
 }

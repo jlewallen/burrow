@@ -120,6 +120,15 @@ fn simple_reply(reply: &SimpleReply) -> Html {
     }
 }
 
+fn markdown_reply(reply: &MarkdownReply) -> Html {
+    let value: String = reply.clone().into();
+    let after_markdown = markdown::to_html(&value);
+    let desc = Html::from_html_unchecked(AttrValue::from(after_markdown));
+    html! {
+        <div class="entry markdown">{ desc }</div>
+    }
+}
+
 trait Render {
     fn render(&self, myself: &Myself) -> Option<Html>;
 }
@@ -134,6 +143,7 @@ impl Render for AllKnownItems {
             Self::CarryingEvent(event) => event.render(myself),
             Self::MovingEvent(event) => event.render(myself),
             Self::TalkingEvent(event) => event.render(myself),
+            Self::MarkdownReply(value) => Some(markdown_reply(&value)),
             Self::EditorReply(_) => None,
             Self::JsonReply(_) => todo!(),
         }

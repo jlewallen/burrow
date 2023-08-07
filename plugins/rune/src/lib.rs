@@ -194,10 +194,13 @@ pub mod actions {
                         Some(script) => script,
                         None => "// Default script".to_owned(),
                     };
-                    Ok(
-                        EditorReply::new(editing.key().to_string(), WorkingCopy::Script(script))
-                            .into(),
+                    Ok(EditorReply::new(
+                        editing.key().to_string(),
+                        WorkingCopy::Script(script),
+                        EditTarget::Script,
+                        None,
                     )
+                    .into())
                 }
                 None => Ok(SimpleReply::NotFound.into()),
             }

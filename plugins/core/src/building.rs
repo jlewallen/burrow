@@ -146,6 +146,8 @@ pub mod actions {
                     Ok(EditorReply::new(
                         editing.key().to_string(),
                         WorkingCopy::Markdown(quick_edit.to_string()),
+                        EditTarget::QuickEdit,
+                        None,
                     )
                     .into())
                 }
@@ -174,6 +176,8 @@ pub mod actions {
                     Ok(EditorReply::new(
                         editing.key().to_string(),
                         WorkingCopy::Json(editing.to_json_value()?),
+                        EditTarget::EntityJson,
+                        None,
                     )
                     .into())
                 }
@@ -332,6 +336,78 @@ pub mod actions {
         }
     }
 
+    #[derive(Debug, Serialize, Deserialize, ToJson)]
+    pub struct SaveQuickEditAction {
+        pub key: EntityKey,
+        pub copy: WorkingCopy,
+    }
+
+    impl Action for SaveQuickEditAction {
+        fn is_read_only() -> bool {
+            false
+        }
+
+        fn perform(&self, session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
+            info!("save:quick-edit {:?}", self.key);
+
+            match session.entry(&LookupBy::Key(&self.key))? {
+                Some(entry) => {
+                    let entity = entry.entity();
+                    info!("save:quick-edit {:?}", entity);
+                    match &self.copy {
+                        WorkingCopy::Markdown(text) => {
+                            let quick = QuickEdit::from_str(text)?;
+                            let mut entity = entity.borrow_mut();
+                            if let Some(name) = quick.name {
+                                entity.set_name(&name)?;
+                            }
+                            if let Some(desc) = quick.desc {
+                                entity.set_desc(&desc)?;
+                            }
+
+                            Ok(SimpleReply::Done.into())
+                        }
+                        _ => Err(anyhow::anyhow!("Save expected JSON working copy")),
+                    }
+                }
+                None => Ok(SimpleReply::NotFound.into()),
+            }
+        }
+    }
+
+    #[derive(Debug, Serialize, Deserialize, ToJson)]
+    pub struct SaveEntityJsonAction {
+        pub key: EntityKey,
+        pub copy: WorkingCopy,
+    }
+
+    impl Action for SaveEntityJsonAction {
+        fn is_read_only() -> bool {
+            false
+        }
+
+        fn perform(&self, session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
+            info!("save:entity-json {:?}", self.key);
+
+            match session.entry(&LookupBy::Key(&self.key))? {
+                Some(entry) => {
+                    let entity = entry.entity();
+                    info!("save:entity-json {:?}", entity);
+                    match &self.copy {
+                        WorkingCopy::Json(value) => {
+                            let replacing = Entity::from_value(value.clone())?;
+                            entity.replace(replacing);
+
+                            Ok(SimpleReply::Done.into())
+                        }
+                        _ => Err(anyhow::anyhow!("Save expected JSON working copy")),
+                    }
+                }
+                None => Ok(SimpleReply::NotFound.into()),
+            }
+        }
+    }
+
     #[derive(Serialize, Deserialize, ToJson)]
     pub struct SaveWorkingCopyAction {
         pub key: EntityKey,
@@ -375,9 +451,7 @@ pub mod actions {
                             let replacing = Entity::from_value(value.clone())?;
                             entity.replace(replacing);
                         }
-                        WorkingCopy::Script(_) => unimplemented!(
-                            "Script implementations are expected to provide save functionality."
-                        ),
+                        _ => panic!(),
                     }
 
                     Ok(SimpleReply::Done.into())

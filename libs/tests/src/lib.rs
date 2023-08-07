@@ -129,10 +129,10 @@ where
     registered_plugins.register(EmotePluginFactory::default());
     registered_plugins.register(MovingPluginFactory::default());
     registered_plugins.register(CarryingPluginFactory::default());
-    registered_plugins.register(BuildingPluginFactory::default());
     registered_plugins.register(MemoryPluginFactory::default());
     registered_plugins.register(SecurityPluginFactory::default());
     registered_plugins.register(HelpingPluginFactory::default());
+    registered_plugins.register(BuildingPluginFactory::default());
     let finder = Arc::new(DefaultFinder::default());
     let keys = Arc::new(DeterministicKeys::new());
     let identities = Arc::new(DeterministicKeys::new());

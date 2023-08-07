@@ -1,0 +1,15 @@
+---
+source: plugins/core/src/building.rs
+assertion_line: 801
+expression: reply.to_debug_json()?
+---
+{
+  "editorReply": {
+    "editing": {
+      "markdown": "Welcome Area\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n"
+    },
+    "key": "E-2",
+    "save": null,
+    "target": "quickEdit"
+  }
+}

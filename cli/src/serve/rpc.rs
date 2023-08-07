@@ -1,24 +1,31 @@
 use anyhow::Result;
-use kernel::Action;
-use plugins_rune::actions::SaveScriptAction;
 use serde::Deserialize;
 use serde_json::Value as JsonValue;
-
-use plugins_core::building::actions::SaveWorkingCopyAction;
 use tracing::*;
+
+use kernel::Action;
+use plugins_core::{
+    building::actions::{SaveEntityJsonAction, SaveQuickEditAction},
+    helping::actions::SaveHelpAction,
+};
+use plugins_rune::actions::SaveScriptAction;
 
 // Duplicated
 #[derive(Deserialize)]
 pub enum AcceptableActions {
-    SaveWorkingCopyAction(SaveWorkingCopyAction),
+    SaveEntityJsonAction(SaveEntityJsonAction),
+    SaveQuickEditAction(SaveQuickEditAction),
     SaveScriptAction(SaveScriptAction),
+    SaveHelpAction(SaveHelpAction),
 }
 
 impl AcceptableActions {
     fn into_action(self) -> Box<dyn Action> {
         match self {
-            AcceptableActions::SaveWorkingCopyAction(action) => Box::new(action),
+            AcceptableActions::SaveEntityJsonAction(action) => Box::new(action),
+            AcceptableActions::SaveQuickEditAction(action) => Box::new(action),
             AcceptableActions::SaveScriptAction(action) => Box::new(action),
+            AcceptableActions::SaveHelpAction(action) => Box::new(action),
         }
     }
 }

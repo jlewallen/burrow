@@ -13,8 +13,10 @@ use crate::shared::CommandLine;
 use crate::shared::Evaluator;
 use crate::shared::LogoutButton;
 use crate::types::AllKnownItems;
+use crate::types::SaveEntityJsonAction;
+use crate::types::SaveHelpAction;
+use crate::types::SaveQuickEditAction;
 use crate::types::SaveScriptAction;
-use crate::types::SaveWorkingCopyAction;
 use crate::types::SessionHistory;
 
 #[function_component(Home)]
@@ -85,7 +87,9 @@ pub fn home() -> Html {
 // Duplicated
 #[derive(Serialize)]
 pub enum AcceptableActions {
-    SaveWorkingCopyAction(SaveWorkingCopyAction),
+    SaveEntityJsonAction(SaveEntityJsonAction),
+    SaveQuickEditAction(SaveQuickEditAction),
+    SaveHelpAction(SaveHelpAction),
     SaveScriptAction(SaveScriptAction),
 }
 
@@ -101,29 +105,36 @@ impl Editable for replies::EditorReply {
             replies::WorkingCopy::Markdown(value) => Ok(value.clone()),
             replies::WorkingCopy::Json(value) => serde_json::to_string_pretty(value),
             replies::WorkingCopy::Script(value) => Ok(value.clone()),
+            replies::WorkingCopy::Placeholder => panic!(),
         }
     }
 
     fn make_save_action(&self, value: String) -> Result<serde_json::Value, serde_json::Error> {
         let key = self.key().to_owned();
 
-        match self.editing() {
-            replies::WorkingCopy::Markdown(_) => serde_json::to_value(
-                AcceptableActions::SaveWorkingCopyAction(SaveWorkingCopyAction {
-                    key,
-                    copy: replies::WorkingCopy::Markdown(value),
-                }),
-            ),
-            replies::WorkingCopy::Json(_) => serde_json::to_value(
-                AcceptableActions::SaveWorkingCopyAction(SaveWorkingCopyAction {
+        match self.target() {
+            replies::EditTarget::EntityJson => serde_json::to_value(
+                AcceptableActions::SaveEntityJsonAction(SaveEntityJsonAction {
                     key,
                     copy: replies::WorkingCopy::Json(serde_json::from_str(&value)?),
                 }),
             ),
-            replies::WorkingCopy::Script(_) => {
+            replies::EditTarget::QuickEdit => serde_json::to_value(
+                AcceptableActions::SaveQuickEditAction(SaveQuickEditAction {
+                    key,
+                    copy: replies::WorkingCopy::Markdown(value),
+                }),
+            ),
+            replies::EditTarget::Script => {
                 serde_json::to_value(AcceptableActions::SaveScriptAction(SaveScriptAction {
                     key,
                     copy: replies::WorkingCopy::Script(value),
+                }))
+            }
+            replies::EditTarget::Help => {
+                serde_json::to_value(AcceptableActions::SaveHelpAction(SaveHelpAction {
+                    key,
+                    copy: replies::WorkingCopy::Markdown(value),
                 }))
             }
         }
@@ -134,6 +145,7 @@ impl Editable for replies::EditorReply {
             replies::WorkingCopy::Markdown(_) => "markdown",
             replies::WorkingCopy::Json(_) => "json",
             replies::WorkingCopy::Script(_) => "rust",
+            replies::WorkingCopy::Placeholder => panic!(),
         }
     }
 }

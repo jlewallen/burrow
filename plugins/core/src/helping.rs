@@ -170,7 +170,7 @@ pub mod actions {
                 &session,
                 &world,
                 self.page_name.as_ref().map(|s| s.as_str()),
-                true,
+                false,
             )?;
             let Some(page) = page else {
                 return Ok(Effect::Reply(EffectReply::Instance(Rc::new(SimpleReply::NotFound))));
@@ -183,11 +183,11 @@ pub mod actions {
     }
 
     #[action]
-    pub struct HelpWithAction {
-        pub page_name: String,
+    pub struct EditHelpAction {
+        pub page_name: Option<String>,
     }
 
-    impl Action for HelpWithAction {
+    impl Action for EditHelpAction {
         fn is_read_only() -> bool {
             true
         }
@@ -196,14 +196,24 @@ pub mod actions {
             info!("editing {:?}", self.page_name);
 
             let (world, _, _) = surroundings.unpack();
-            let page = lookup_page_name(&session, &world, Some(&self.page_name), true)?;
+            let page = lookup_page_name(
+                &session,
+                &world,
+                self.page_name.as_ref().map(|s| s.as_str()),
+                true,
+            )?;
             let Some(page) = page else {
                 return Ok(Effect::Reply(EffectReply::Instance(Rc::new(SimpleReply::NotFound))));
             };
 
             let wiki = page.scope::<Wiki>()?;
             let body: String = wiki.get_default().unwrap_or_else(|| "".to_owned()).into();
-            let reply = EditorReply::new(page.key().to_string(), WorkingCopy::Markdown(body));
+            let reply = EditorReply::new(
+                page.key().to_string(),
+                WorkingCopy::Markdown(body),
+                EditTarget::Help,
+                None,
+            );
             Ok(Effect::Reply(EffectReply::Instance(Rc::new(reply))))
         }
     }
@@ -250,10 +260,7 @@ pub mod parser {
     impl ParsesActions for ReadHelpParser {
         fn try_parse_action(&self, i: &str) -> EvaluationResult {
             let (_, action) = map(
-                pair(
-                    alt((tag("help"), tag("wtf"))),
-                    opt(preceded(spaces, text_to_end_of_line)),
-                ),
+                pair(tag("help"), opt(preceded(spaces, text_to_end_of_line))),
                 |(_, page_name)| {
                     Box::new(ReadHelpAction {
                         page_name: page_name.map(|n| n.to_owned()),
@@ -270,14 +277,13 @@ pub mod parser {
     impl ParsesActions for HelpWithParser {
         fn try_parse_action(&self, i: &str) -> EvaluationResult {
             let (_, action) = map(
-                separated_pair(
-                    separated_pair(tag("help"), spaces, tag("with")),
-                    spaces,
-                    text_to_end_of_line,
+                pair(
+                    tuple((tag("edit"), spaces, tag("help"))),
+                    opt(preceded(spaces, text_to_end_of_line)),
                 ),
                 |(_, page_name)| {
-                    Box::new(HelpWithAction {
-                        page_name: page_name.to_owned(),
+                    Box::new(EditHelpAction {
+                        page_name: page_name.map(|n| n.to_owned()),
                     }) as Box<dyn Action>
                 },
             )(i)?;
@@ -295,7 +301,7 @@ mod tests {
     use crate::library::tests::*;
 
     #[test]
-    fn it_reads_default_help_on_help() -> Result<()> {
+    fn it_reads_default_help() -> Result<()> {
         let (_surroundings, effect) = parse_and_perform(ReadHelpParser {}, "help")?;
 
         assert_json_snapshot!(effect.to_debug_json()?);
@@ -304,8 +310,8 @@ mod tests {
     }
 
     #[test]
-    fn it_reads_default_help_on_wtf() -> Result<()> {
-        let (_surroundings, effect) = parse_and_perform(ReadHelpParser {}, "wtf")?;
+    fn it_reads_help_by_name() -> Result<()> {
+        let (_surroundings, effect) = parse_and_perform(ReadHelpParser {}, "help Food")?;
 
         assert_json_snapshot!(effect.to_debug_json()?);
 
@@ -313,8 +319,17 @@ mod tests {
     }
 
     #[test]
-    fn it_allows_helping_with_help() -> Result<()> {
-        let (_surroundings, effect) = parse_and_perform(HelpWithParser {}, "help with Food")?;
+    fn it_allows_editing_default_help() -> Result<()> {
+        let (_surroundings, effect) = parse_and_perform(HelpWithParser {}, "edit help")?;
+
+        assert_json_snapshot!(effect.to_debug_json()?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn it_allows_editing_help_by_name() -> Result<()> {
+        let (_surroundings, effect) = parse_and_perform(HelpWithParser {}, "edit help Food")?;
 
         assert_json_snapshot!(effect.to_debug_json()?);
 

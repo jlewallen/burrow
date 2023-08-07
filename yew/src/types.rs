@@ -4,7 +4,7 @@ use yew::prelude::Reducible;
 
 use replies::*;
 
-pub use replies::{SaveScriptAction, SaveWorkingCopyAction};
+pub use replies::{SaveEntityJsonAction, SaveHelpAction, SaveQuickEditAction, SaveScriptAction};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase")]
@@ -54,6 +54,7 @@ pub enum AllKnownItems {
     InsideObservation(InsideObservation),
     EntityObservation(EntityObservation),
     EditorReply(EditorReply),
+    MarkdownReply(MarkdownReply),
     JsonReply(JsonReply),
     CarryingEvent(CarryingEvent),
     MovingEvent(MovingEvent),
