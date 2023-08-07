@@ -7,6 +7,6 @@ expression: reply.to_debug_json()?
     "editing": {
       "markdown": "Welcome Area\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n"
     },
-    "key": "E-1"
+    "key": "E-2"
   }
 }

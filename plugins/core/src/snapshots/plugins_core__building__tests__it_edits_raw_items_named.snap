@@ -11,10 +11,10 @@ expression: reply.to_debug_json()?
         },
         "creator": null,
         "identity": {
-          "private": "Private#3",
-          "public": "Public#3"
+          "private": "Private#4",
+          "public": "Public#4"
         },
-        "key": "E-2",
+        "key": "E-3",
         "klass": {
           "py/type": "scopes.ItemClass"
         },
@@ -23,16 +23,16 @@ expression: reply.to_debug_json()?
           "carryable": {
             "kind": {
               "identity": {
-                "private": "Private#4",
-                "public": "Public#4"
+                "private": "Private#5",
+                "public": "Public#5"
               }
             },
             "quantity": 1.0
           },
           "location": {
             "container": {
-              "gid": 2,
-              "key": "E-1",
+              "gid": 3,
+              "key": "E-2",
               "klass": "scopes.ItemClass",
               "name": "Welcome Area"
             }
@@ -41,7 +41,7 @@ expression: reply.to_debug_json()?
             "core": {
               "gid": {
                 "acls": null,
-                "value": 3
+                "value": 4
               },
               "name": {
                 "acls": null,
@@ -52,6 +52,6 @@ expression: reply.to_debug_json()?
         }
       }
     },
-    "key": "E-2"
+    "key": "E-3"
   }
 }

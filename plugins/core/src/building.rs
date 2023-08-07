@@ -595,7 +595,7 @@ mod tests {
             .ground(vec![QuickThing::Object("Cool Broom")])
             .build()?;
 
-        let action = try_parsing(EditActionParser {}, "edit #1")?;
+        let action = try_parsing(EditActionParser {}, "edit #2")?;
         let action = action.unwrap();
         let reply = action.perform(session, &surroundings)?;
 
@@ -704,7 +704,7 @@ mod tests {
 
         // Not the best way of finding the constructed area.
         let destination = session
-            .entry(&LookupBy::Gid(&EntityGid::new(3)))?
+            .entry(&LookupBy::Gid(&EntityGid::new(4)))?
             .ok_or(DomainError::EntityNotFound)?;
 
         let reply: AreaObservation = reply.json_as()?;

@@ -6,7 +6,7 @@ expression: reply.to_debug_json()?
   "areaObservation": {
     "area": {
       "desc": null,
-      "key": "E-1",
+      "key": "E-2",
       "name": "Welcome Area",
       "qualified": "Welcome Area"
     },
@@ -15,14 +15,14 @@ expression: reply.to_debug_json()?
     "living": [
       {
         "desc": null,
-        "key": "E-0",
+        "key": "E-1",
         "name": "Living",
         "qualified": "Living"
       }
     ],
     "person": {
       "desc": null,
-      "key": "E-0",
+      "key": "E-1",
       "name": "Living",
       "qualified": "Living"
     },

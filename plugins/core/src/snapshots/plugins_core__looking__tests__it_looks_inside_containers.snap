@@ -1,20 +1,20 @@
 ---
 source: plugins/core/src/looking.rs
-expression: reply.to_json()?
+expression: reply.to_debug_json()?
 ---
 {
   "insideObservation": {
     "items": [
       {
         "desc": null,
-        "key": "E-1",
+        "key": "E-2",
         "name": "Key",
         "qualified": "a Key"
       }
     ],
     "vessel": {
       "desc": null,
-      "key": "E-0",
+      "key": "E-1",
       "name": "Vessel",
       "qualified": "a Vessel"
     }

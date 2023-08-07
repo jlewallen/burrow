@@ -138,7 +138,7 @@ pub mod tests {
         line: &str,
     ) -> Result<(Surroundings, Effect)> {
         let mut build = BuildSurroundings::new()?;
-        let (session, surroundings) = build.plain().build()?;
+        let (session, surroundings) = build.plain().encyclopedia()?.build()?;
         let action = try_parsing(parser, line)?;
         let action = action.unwrap();
         let effect = action.perform(session.clone(), &surroundings)?;

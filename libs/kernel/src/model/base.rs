@@ -214,6 +214,10 @@ impl EntityClass {
     pub fn item() -> Self {
         Self::new("scopes.ItemClass")
     }
+
+    pub fn encyclopedia() -> Self {
+        Self::new("scopes.EncyclopediaClass")
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

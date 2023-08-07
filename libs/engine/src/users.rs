@@ -121,8 +121,12 @@ pub mod model {
             self.get(LIMBO)
         }
 
-        pub fn get(&self, key: &str) -> Option<&EntityKey> {
-            self.entities.get(key)
+        pub fn get(&self, name: &str) -> Option<&EntityKey> {
+            self.entities.get(name)
+        }
+
+        pub fn set(&mut self, name: &str, key: &EntityKey) {
+            self.entities.insert(name.to_owned(), key.clone());
         }
     }
 
@@ -151,13 +155,25 @@ pub mod model {
             self.get_well_known_by_name(ENCYCLOPEDIA)
         }
 
-        fn get_well_known_by_name(&self, pattern: &str) -> Result<Option<EntityKey>, DomainError>;
+        fn set_encyclopedia(&self, key: &EntityKey) -> Result<(), DomainError> {
+            self.set_well_known(ENCYCLOPEDIA, key)
+        }
+
+        fn get_well_known_by_name(&self, name: &str) -> Result<Option<EntityKey>, DomainError>;
+
+        fn set_well_known(&self, name: &str, key: &EntityKey) -> Result<(), DomainError>;
     }
 
     impl HasWellKnownEntities for Entry {
         fn get_well_known_by_name(&self, name: &str) -> Result<Option<EntityKey>, DomainError> {
             let well_known = self.scope::<WellKnown>()?;
             Ok(well_known.get(name).cloned())
+        }
+
+        fn set_well_known(&self, name: &str, key: &EntityKey) -> Result<(), DomainError> {
+            let mut well_known = self.scope_mut::<WellKnown>()?;
+            well_known.set(name, key);
+            well_known.save()
         }
     }
 }

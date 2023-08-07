@@ -120,6 +120,7 @@ pub mod actions {
         session: &SessionRef,
         world: &Entry,
         page_name: Option<&str>,
+        create: bool,
     ) -> Result<Option<Entry>, DomainError> {
         let Some(cyclo) = world.get_encyclopedia()? else {
                 return Ok(None);
@@ -133,7 +134,19 @@ pub mod actions {
             if let Some(found) = found {
                 Ok(session.entry(&LookupBy::Key(&found))?)
             } else {
-                todo!("Create new pages")
+                if create {
+                    let creating: Entity = build_entity()
+                        .class(EntityClass::encyclopedia())
+                        .name(page_name)
+                        .try_into()?;
+                    let creating = session.add_entity(&EntityPtr::new(creating))?;
+                    let mut wiki = creating.scope_mut::<Wiki>()?;
+                    wiki.set_default("# Hello, world!");
+                    wiki.save()?;
+                    Ok(Some(creating))
+                } else {
+                    Ok(None)
+                }
             }
         } else {
             Ok(Some(cyclo))
@@ -157,6 +170,7 @@ pub mod actions {
                 &session,
                 &world,
                 self.page_name.as_ref().map(|s| s.as_str()),
+                true,
             )?;
             let Some(page) = page else {
                 return Ok(Effect::Reply(EffectReply::Instance(Rc::new(SimpleReply::NotFound))));
@@ -182,7 +196,7 @@ pub mod actions {
             info!("editing {:?}", self.page_name);
 
             let (world, _, _) = surroundings.unpack();
-            let page = lookup_page_name(&session, &world, Some(&self.page_name))?;
+            let page = lookup_page_name(&session, &world, Some(&self.page_name), true)?;
             let Some(page) = page else {
                 return Ok(Effect::Reply(EffectReply::Instance(Rc::new(SimpleReply::NotFound))));
             };
@@ -235,9 +249,17 @@ pub mod parser {
 
     impl ParsesActions for ReadHelpParser {
         fn try_parse_action(&self, i: &str) -> EvaluationResult {
-            let (_, action) = map(alt((tag("help"), tag("wtf"))), |_s| {
-                Box::new(ReadHelpAction { page_name: None }) as Box<dyn Action>
-            })(i)?;
+            let (_, action) = map(
+                pair(
+                    alt((tag("help"), tag("wtf"))),
+                    opt(preceded(spaces, text_to_end_of_line)),
+                ),
+                |(_, page_name)| {
+                    Box::new(ReadHelpAction {
+                        page_name: page_name.map(|n| n.to_owned()),
+                    }) as Box<dyn Action>
+                },
+            )(i)?;
 
             Ok(Some(action))
         }
@@ -267,6 +289,8 @@ pub mod parser {
 
 #[cfg(test)]
 mod tests {
+    use insta::assert_json_snapshot;
+
     use super::parser::*;
     use crate::library::tests::*;
 
@@ -274,7 +298,7 @@ mod tests {
     fn it_reads_default_help_on_help() -> Result<()> {
         let (_surroundings, effect) = parse_and_perform(ReadHelpParser {}, "help")?;
 
-        assert!(matches!(effect, Effect::Ok));
+        assert_json_snapshot!(effect.to_debug_json()?);
 
         Ok(())
     }
@@ -283,7 +307,7 @@ mod tests {
     fn it_reads_default_help_on_wtf() -> Result<()> {
         let (_surroundings, effect) = parse_and_perform(ReadHelpParser {}, "wtf")?;
 
-        assert!(matches!(effect, Effect::Ok));
+        assert_json_snapshot!(effect.to_debug_json()?);
 
         Ok(())
     }
@@ -292,19 +316,8 @@ mod tests {
     fn it_allows_helping_with_help() -> Result<()> {
         let (_surroundings, effect) = parse_and_perform(HelpWithParser {}, "help with Food")?;
 
-        assert!(matches!(effect, Effect::Ok));
+        assert_json_snapshot!(effect.to_debug_json()?);
 
         Ok(())
     }
-
-    /*
-    #[test]
-    fn it_requires_help_with_page() -> Result<()> {
-        let err = parse_and_perform(HelpWithParser {}, "help with");
-
-        assert_eq!(err.unwrap_err(), EvaluationError::ParseFailed);
-
-        Ok(())
-    }
-    */
 }

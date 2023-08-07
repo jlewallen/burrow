@@ -3,14 +3,14 @@ use std::{rc::Rc, sync::Arc};
 
 use engine::{
     domain, sequences::DeterministicKeys, storage::InMemoryStorageFactory, DevNullNotifier,
-    HasUsernames, Session, SessionOpener,
+    HasUsernames, HasWellKnownEntities, Session, SessionOpener,
 };
 use kernel::{
     build_entity, CoreProps, EntityKey, EntityPtr, Entry, RegisteredPlugins, SessionRef,
     SetSession, Surroundings, WORLD_KEY,
 };
 
-use crate::{tools, DefaultFinder};
+use crate::{helping::model::Wiki, tools, DefaultFinder};
 
 pub struct Build {
     session: SessionRef,
@@ -46,6 +46,21 @@ impl Build {
             let mut entity = self.entity.borrow_mut();
             entity.set_name(name)?;
         }
+
+        Ok(self)
+    }
+
+    pub fn wiki(&mut self) -> Result<&mut Self> {
+        let entry = self.into_entry()?;
+        let mut wiki = entry.scope_mut::<Wiki>()?;
+        wiki.set_default("# Hello, world!");
+        wiki.save()?;
+
+        Ok(self)
+    }
+
+    pub fn encyclopedia(&mut self, entry: &Entry) -> Result<&mut Self> {
+        self.into_entry()?.set_encyclopedia(entry.key())?;
 
         Ok(self)
     }
@@ -151,6 +166,13 @@ impl BuildSurroundings {
         // TODO One problem at a time.
         let world = Build::new_world(&session)?.named("World")?.into_entry()?;
 
+        let encyclopedia = Build::new(&session)?
+            .named("Encyclopedia")?
+            .wiki()?
+            .into_entry()?;
+
+        world.set_encyclopedia(&encyclopedia.key())?;
+
         Ok(Self {
             hands: Vec::new(),
             ground: Vec::new(),
@@ -177,6 +199,10 @@ impl BuildSurroundings {
 
     pub fn plain(&mut self) -> &mut Self {
         self
+    }
+
+    pub fn encyclopedia(&mut self) -> Result<&mut Self> {
+        Ok(self)
     }
 
     pub fn entity(&mut self) -> Result<Build> {

@@ -6,14 +6,14 @@ expression: reply.to_debug_json()?
   "areaObservation": {
     "area": {
       "desc": null,
-      "key": "E-3",
+      "key": "E-4",
       "name": "Welcome Area",
       "qualified": "Welcome Area"
     },
     "carrying": [
       {
         "desc": null,
-        "key": "E-2",
+        "key": "E-3",
         "name": "Cool Rake",
         "qualified": "a Cool Rake"
       }
@@ -21,13 +21,13 @@ expression: reply.to_debug_json()?
     "items": [
       {
         "desc": null,
-        "key": "E-4",
+        "key": "E-5",
         "name": "Boring Shovel",
         "qualified": "a Boring Shovel"
       },
       {
         "desc": null,
-        "key": "E-5",
+        "key": "E-6",
         "name": "East Exit",
         "qualified": "East Exit"
       }
@@ -35,14 +35,14 @@ expression: reply.to_debug_json()?
     "living": [
       {
         "desc": null,
-        "key": "E-1",
+        "key": "E-2",
         "name": "Living",
         "qualified": "Living"
       }
     ],
     "person": {
       "desc": null,
-      "key": "E-1",
+      "key": "E-2",
       "name": "Living",
       "qualified": "Living"
     },
