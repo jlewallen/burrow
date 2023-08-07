@@ -10,7 +10,10 @@ use plugins_core::{
 };
 use plugins_rune::actions::SaveScriptAction;
 
-// Duplicated
+// Duplicated. It seems to me that the solution here is to involvve Plugins in
+// parsing JSON actions. It actually lines up pretty nicely as just another way
+// for plugins to provide ways to create them, the first being parsing more
+// natural like text.
 #[derive(Deserialize)]
 pub enum AcceptableActions {
     SaveEntityJsonAction(SaveEntityJsonAction),
