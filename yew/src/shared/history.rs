@@ -1,3 +1,4 @@
+use regex::Captures;
 use replies::*;
 use yew::prelude::*;
 
@@ -7,6 +8,16 @@ use crate::{
 };
 
 const NO_NAME: &str = "No Name";
+
+const WIKI_WORD: &str = "([A-Z]+[a-z]+([A-Z]+[a-z]+)+)";
+
+fn md_string(s: &str) -> Html {
+    let r = regex::Regex::new(WIKI_WORD).expect("Wiki word regex error");
+    let replacer = |caps: &Captures| -> String { caps[0].to_owned() };
+
+    let after_markdown = markdown::to_html(&r.replace_all(s, &replacer));
+    Html::from_html_unchecked(AttrValue::from(after_markdown))
+}
 
 fn simple_entities_list(entities: &Vec<ObservedEntity>) -> Html {
     let names = entities
@@ -28,8 +39,7 @@ fn entity_name_desc(entity: &ObservedEntity) -> (Html, Html) {
     };
 
     let desc: Html = if let Some(desc) = &entity.desc {
-        let after_markdown = markdown::to_html(desc);
-        let desc = Html::from_html_unchecked(AttrValue::from(after_markdown));
+        let desc = md_string(desc);
         html! {
             <div class="desc">{ desc }</div>
         }
@@ -122,8 +132,7 @@ fn simple_reply(reply: &SimpleReply) -> Html {
 
 fn markdown_reply(reply: &MarkdownReply) -> Html {
     let value: String = reply.clone().into();
-    let after_markdown = markdown::to_html(&value);
-    let desc = Html::from_html_unchecked(AttrValue::from(after_markdown));
+    let desc = md_string(&value);
     html! {
         <div class="entry markdown">{ desc }</div>
     }
