@@ -67,7 +67,6 @@ pub enum WorkingCopy {
     Markdown(String),
     Json(serde_json::Value),
     Script(String),
-    Placeholder,
 }
 
 impl std::fmt::Debug for WorkingCopy {
@@ -76,7 +75,6 @@ impl std::fmt::Debug for WorkingCopy {
             Self::Markdown(_) => f.debug_tuple("Markdown").finish(),
             Self::Json(_) => f.debug_tuple("Json").finish(),
             Self::Script(_) => f.debug_tuple("Script").finish(),
-            Self::Placeholder => write!(f, "Placeholder"),
         }
     }
 }

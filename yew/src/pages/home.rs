@@ -91,7 +91,6 @@ impl Editable for replies::EditorReply {
             replies::WorkingCopy::Markdown(value) => Ok(value.clone()),
             replies::WorkingCopy::Json(value) => serde_json::to_string_pretty(value),
             replies::WorkingCopy::Script(value) => Ok(value.clone()),
-            replies::WorkingCopy::Placeholder => panic!(),
         }
     }
 
@@ -100,7 +99,6 @@ impl Editable for replies::EditorReply {
             replies::WorkingCopy::Markdown(_) => serde_json::Value::String(value),
             replies::WorkingCopy::Json(_) => serde_json::from_str(&value)?,
             replies::WorkingCopy::Script(_) => serde_json::Value::String(value),
-            replies::WorkingCopy::Placeholder => panic!(),
         };
 
         return Ok(self.save().clone().instantiate(&value));
@@ -111,7 +109,6 @@ impl Editable for replies::EditorReply {
             replies::WorkingCopy::Markdown(_) => "markdown",
             replies::WorkingCopy::Json(_) => "json",
             replies::WorkingCopy::Script(_) => "rust",
-            replies::WorkingCopy::Placeholder => panic!(),
         }
     }
 }

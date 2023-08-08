@@ -176,7 +176,6 @@ impl Middleware for InteractiveEditor {
                                                     copy: replies::WorkingCopy::Script(edited),
                                                 })
                                             }
-                                            replies::WorkingCopy::Placeholder => panic!(),
                                         };
 
                                         let session = get_my_session()?;
