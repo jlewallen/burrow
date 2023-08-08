@@ -1,6 +1,7 @@
 use super::parser::*;
 use super::*;
 use crate::building::actions::{SaveEntityJsonAction, SaveQuickEditAction};
+use crate::building::model::QuickEdit;
 use crate::library::tests::*;
 use crate::{
     {carrying::model::Containing, looking::model::new_area_observation, tools},
