@@ -1,0 +1,7 @@
+---
+source: plugins/core/src/looking/tests.rs
+expression: reply.to_debug_json()?
+---
+{
+  "simpleReply": "impossible"
+}

@@ -1,0 +1,31 @@
+---
+source: plugins/core/src/looking/tests.rs
+expression: reply.to_debug_json()?
+---
+{
+  "areaObservation": {
+    "area": {
+      "desc": null,
+      "key": "E-2",
+      "name": "Welcome Area",
+      "qualified": "Welcome Area"
+    },
+    "carrying": [],
+    "items": [],
+    "living": [
+      {
+        "desc": null,
+        "key": "E-1",
+        "name": "Living",
+        "qualified": "Living"
+      }
+    ],
+    "person": {
+      "desc": null,
+      "key": "E-1",
+      "name": "Living",
+      "qualified": "Living"
+    },
+    "routes": []
+  }
+}

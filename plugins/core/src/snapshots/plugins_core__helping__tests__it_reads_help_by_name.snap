@@ -1,7 +1,0 @@
----
-source: plugins/core/src/helping.rs
-expression: effect.to_debug_json()?
----
-{
-  "simpleReply": "notFound"
-}

@@ -1,0 +1,22 @@
+---
+source: plugins/core/src/looking/tests.rs
+expression: reply.to_debug_json()?
+---
+{
+  "insideObservation": {
+    "items": [
+      {
+        "desc": null,
+        "key": "E-2",
+        "name": "Key",
+        "qualified": "a Key"
+      }
+    ],
+    "vessel": {
+      "desc": null,
+      "key": "E-1",
+      "name": "Vessel",
+      "qualified": "a Vessel"
+    }
+  }
+}

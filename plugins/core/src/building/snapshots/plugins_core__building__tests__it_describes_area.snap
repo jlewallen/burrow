@@ -1,0 +1,20 @@
+---
+source: plugins/core/src/building/tests.rs
+expression: reply.to_debug_json()?
+---
+{
+  "editorReply": {
+    "editing": {
+      "markdown": "Welcome Area\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n"
+    },
+    "key": "E-2",
+    "save": {
+      "saveQuickEditAction": {
+        "copy": {
+          "markdown": "!#$value"
+        },
+        "key": "E-2"
+      }
+    }
+  }
+}

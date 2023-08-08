@@ -1,0 +1,114 @@
+use super::parser::*;
+use super::*;
+use crate::library::tests::*;
+use crate::looking::model::new_area_observation;
+
+#[test]
+fn it_goes_ignores_bad_matches() -> Result<()> {
+    let mut build = BuildSurroundings::new()?;
+    let east = build.make(QuickThing::Place("East Place"))?;
+    let west = build.make(QuickThing::Place("West Place"))?;
+    let (session, surroundings) = build
+        .route("East", QuickThing::Actual(east))
+        .route("Wast", QuickThing::Actual(west))
+        .build()?;
+
+    let action = try_parsing(GoActionParser {}, "go north")?;
+    let action = action.unwrap();
+    let reply = action.perform(session, &surroundings)?;
+
+    let reply: SimpleReply = reply.json_as()?;
+    assert_eq!(reply, SimpleReply::NotFound);
+
+    build.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn it_goes_through_correct_route_when_two_nearby() -> Result<()> {
+    let mut build = BuildSurroundings::new()?;
+    let east = build.make(QuickThing::Place("East Place"))?;
+    let west = build.make(QuickThing::Place("West Place"))?;
+    let (session, surroundings) = build
+        .route("East", QuickThing::Actual(east.clone()))
+        .route("Wast", QuickThing::Actual(west))
+        .build()?;
+
+    let action = try_parsing(GoActionParser {}, "go east")?;
+    let action = action.unwrap();
+    let reply = action.perform(session.clone(), &surroundings)?;
+    let (_, living, area) = surroundings.unpack();
+
+    let reply: AreaObservation = reply.json_as()?;
+    assert_eq!(reply, new_area_observation(&living, &east)?);
+
+    assert_ne!(tools::area_of(&living)?.key(), *area.key());
+    assert_eq!(tools::area_of(&living)?.key(), *east.key());
+
+    build.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn it_goes_through_routes_when_one_nearby() -> Result<()> {
+    let mut build = BuildSurroundings::new()?;
+    let destination = build.make(QuickThing::Place("Place"))?;
+    let (session, surroundings) = build
+        .route("East", QuickThing::Actual(destination.clone()))
+        .build()?;
+
+    let action = try_parsing(GoActionParser {}, "go east")?;
+    let action = action.unwrap();
+    let reply = action.perform(session.clone(), &surroundings)?;
+    let (_, living, area) = surroundings.unpack();
+
+    let reply: AreaObservation = reply.json_as()?;
+    assert_eq!(reply, new_area_observation(&living, &destination)?);
+
+    assert_ne!(tools::area_of(&living)?.key(), *area.key());
+    assert_eq!(tools::area_of(&living)?.key(), *destination.key());
+
+    build.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn it_fails_to_go_unknown_items() -> Result<()> {
+    let mut build = BuildSurroundings::new()?;
+    let (session, surroundings) = build.plain().build()?;
+
+    let action = try_parsing(GoActionParser {}, "go rake")?;
+    let action = action.unwrap();
+    let reply = action.perform(session.clone(), &surroundings)?;
+    let (_, _person, _area) = surroundings.unpack();
+
+    let reply: SimpleReply = reply.json_as()?;
+    assert_eq!(reply, SimpleReply::NotFound);
+
+    build.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn it_fails_to_go_non_routes() -> Result<()> {
+    let mut build = BuildSurroundings::new()?;
+    let (session, surroundings) = build
+        .ground(vec![QuickThing::Object("Cool Rake")])
+        .build()?;
+
+    let action = try_parsing(GoActionParser {}, "go rake")?;
+    let action = action.unwrap();
+    let reply = action.perform(session.clone(), &surroundings)?;
+    let (_, _person, _area) = surroundings.unpack();
+
+    let reply: SimpleReply = reply.json_as()?;
+    assert_eq!(reply, SimpleReply::NotFound);
+
+    build.close()?;
+
+    Ok(())
+}

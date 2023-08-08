@@ -1,0 +1,20 @@
+---
+source: plugins/core/src/helping/tests.rs
+expression: effect.to_debug_json()?
+---
+{
+  "editorReply": {
+    "editing": {
+      "markdown": "# Hello, world!"
+    },
+    "key": "E-0",
+    "save": {
+      "saveHelpAction": {
+        "copy": {
+          "markdown": "!#$value"
+        },
+        "key": "E-0"
+      }
+    }
+  }
+}
