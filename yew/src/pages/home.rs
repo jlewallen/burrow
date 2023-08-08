@@ -14,6 +14,9 @@ use crate::shared::LogoutButton;
 use crate::types::AllKnownItems;
 use crate::types::SessionHistory;
 
+#[allow(dead_code)]
+const GIT_HASH: &str = env!("GIT_HASH");
+
 #[function_component(Home)]
 pub fn home() -> Html {
     let evaluator = use_context::<Evaluator>();
