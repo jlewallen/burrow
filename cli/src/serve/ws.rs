@@ -17,7 +17,10 @@ use kernel::{
 };
 use replies::ToJson;
 
-use crate::serve::{handlers::TokenClaims, rpc::try_parse_action, ClientSession};
+use crate::{
+    rpc::try_parse_action,
+    serve::{handlers::TokenClaims, ClientSession},
+};
 
 use super::AppState;
 

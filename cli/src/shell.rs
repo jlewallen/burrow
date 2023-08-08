@@ -1,7 +1,6 @@
 use anyhow::Result;
 use chrono::Utc;
 use clap::Args;
-use plugins_core::building::actions::{SaveEntityJsonAction, SaveQuickEditAction};
 use plugins_rune::RUNE_EXTENSION;
 use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
@@ -11,6 +10,7 @@ use tokio::task::JoinHandle;
 use tokio::time::sleep;
 use tracing::*;
 
+use crate::rpc::try_parse_action;
 use crate::terminal::Renderer;
 use crate::{terminal::default_external_editor, DomainBuilder};
 
@@ -20,8 +20,6 @@ use kernel::{
     Perform, PerformAction, SimpleReply,
 };
 use replies::EditorReply;
-
-use plugins_rune::actions::SaveScriptAction;
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -138,45 +136,34 @@ impl Middleware for InteractiveEditor {
                                     if key == "editorReply" {
                                         let reply: EditorReply =
                                             serde_json::from_value(value.clone())?;
-                                        let action: Rc<dyn kernel::Action> = match reply.editing() {
+                                        let value: serde_json::Value = match reply.editing() {
                                             replies::WorkingCopy::Markdown(original) => {
-                                                let edited = default_external_editor(
+                                                serde_json::Value::String(default_external_editor(
                                                     &original,
                                                     MD_EXTENSION,
-                                                )?;
-
-                                                Rc::new(SaveQuickEditAction {
-                                                    key: EntityKey::new(reply.key()),
-                                                    copy: replies::WorkingCopy::Markdown(edited),
-                                                })
+                                                )?)
                                             }
                                             replies::WorkingCopy::Json(original) => {
                                                 let serialized =
                                                     serde_json::to_string_pretty(&original)?;
-                                                let edited = default_external_editor(
+                                                serde_json::from_str(&default_external_editor(
                                                     &serialized,
                                                     JSON_EXTENSION,
-                                                )?;
-
-                                                Rc::new(SaveEntityJsonAction {
-                                                    key: EntityKey::new(reply.key()),
-                                                    copy: replies::WorkingCopy::Json(
-                                                        serde_json::from_str(&edited)?,
-                                                    ),
-                                                })
+                                                )?)?
                                             }
                                             replies::WorkingCopy::Script(original) => {
-                                                let edited = default_external_editor(
+                                                serde_json::Value::String(default_external_editor(
                                                     &original,
                                                     RUNE_EXTENSION,
-                                                )?;
-
-                                                Rc::new(SaveScriptAction {
-                                                    key: EntityKey::new(reply.key()),
-                                                    copy: replies::WorkingCopy::Script(edited),
-                                                })
+                                                )?)
                                             }
                                         };
+
+                                        let value = reply.save().clone().instantiate(&value);
+
+                                        let action: Rc<_> = try_parse_action(value)
+                                            .expect("try parse action failed")
+                                            .into();
 
                                         let session = get_my_session()?;
                                         match session.entry(&kernel::LookupBy::Key(&self.living))? {

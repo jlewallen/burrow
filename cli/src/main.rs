@@ -26,6 +26,7 @@ mod dump;
 mod eval;
 mod hacking;
 mod migrate;
+mod rpc;
 mod serve;
 mod shell;
 mod terminal;

@@ -12,7 +12,6 @@ use crate::DomainBuilder;
 mod handlers;
 mod jwt_auth;
 mod route;
-mod rpc;
 mod state;
 mod ws;
 
