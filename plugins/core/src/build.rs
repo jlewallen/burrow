@@ -10,7 +10,7 @@ use kernel::{
     SetSession, Surroundings, WORLD_KEY,
 };
 
-use crate::{helping::model::Wiki, tools, DefaultFinder};
+use crate::{fashion::model::Wearable, helping::model::Wiki, tools, DefaultFinder};
 
 pub struct Build {
     session: SessionRef,
@@ -71,6 +71,13 @@ impl Build {
         Ok(self)
     }
 
+    pub fn wearable(&mut self) -> Result<&mut Self> {
+        let entry = self.into_entry()?;
+        entry.scope_mut::<Wearable>()?.save()?;
+
+        Ok(self)
+    }
+
     pub fn of_quantity(&mut self, quantity: f32) -> Result<&mut Self> {
         tools::set_quantity(&self.into_entry()?, quantity)?;
 
@@ -91,6 +98,12 @@ impl Build {
 
     pub fn holding(&mut self, items: &Vec<Entry>) -> Result<&mut Self> {
         tools::set_container(&self.into_entry()?, items)?;
+
+        Ok(self)
+    }
+
+    pub fn wearing(&mut self, items: &Vec<Entry>) -> Result<&mut Self> {
+        tools::set_wearing(&self.into_entry()?, items)?;
 
         Ok(self)
     }
@@ -146,6 +159,7 @@ impl QuickThing {
 pub struct BuildSurroundings {
     hands: Vec<QuickThing>,
     ground: Vec<QuickThing>,
+    wearing: Vec<QuickThing>,
     world: Entry,
     #[allow(dead_code)] // TODO Combine with Rc<Session>?
     set: SetSession<Session>,
@@ -176,6 +190,7 @@ impl BuildSurroundings {
         Ok(Self {
             hands: Vec::new(),
             ground: Vec::new(),
+            wearing: Vec::new(),
             session,
             world,
             set,
@@ -191,6 +206,7 @@ impl BuildSurroundings {
         Ok(Self {
             hands: Vec::new(),
             ground: Vec::new(),
+            wearing: Vec::new(),
             session,
             world,
             set,
@@ -219,6 +235,12 @@ impl BuildSurroundings {
         self
     }
 
+    pub fn wearing(&mut self, items: Vec<QuickThing>) -> &mut Self {
+        self.wearing.extend(items);
+
+        self
+    }
+
     pub fn ground(&mut self, items: Vec<QuickThing>) -> &mut Self {
         self.ground.extend(items);
 
@@ -232,6 +254,13 @@ impl BuildSurroundings {
     pub fn build(&mut self) -> Result<(SessionRef, Surroundings)> {
         let person = Build::new(&self.session)?
             .named("Living")?
+            .wearing(
+                &self
+                    .wearing
+                    .iter()
+                    .map(|i| -> Result<_> { i.make(&self.session) })
+                    .collect::<Result<Vec<_>>>()?,
+            )?
             .holding(
                 &self
                     .hands

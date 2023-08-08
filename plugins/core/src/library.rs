@@ -57,12 +57,12 @@ pub mod parser {
         map(alt((tag("area"), tag("here"))), |_s: &str| Item::Area)(i)
     }
 
-    pub fn myself(i: &str) -> IResult<&str, Item> {
-        map(alt((tag("self"), tag("myself"))), |_s: &str| Item::Myself)(i)
-    }
-
     pub fn noun_or_specific(i: &str) -> IResult<&str, Item> {
         alt((surrounding_area, myself, noun, gid_reference))(i)
+    }
+
+    pub fn myself(i: &str) -> IResult<&str, Item> {
+        map(alt((tag("self"), tag("myself"))), |_s: &str| Item::Myself)(i)
     }
 
     pub fn named_place(i: &str) -> IResult<&str, Item> {

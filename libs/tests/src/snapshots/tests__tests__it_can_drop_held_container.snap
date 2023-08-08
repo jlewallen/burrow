@@ -197,6 +197,9 @@ expression: domain.snapshot().await?
             "value": "Living"
           }
         }
+      },
+      "wearing": {
+        "wearing": []
       }
     }
   },

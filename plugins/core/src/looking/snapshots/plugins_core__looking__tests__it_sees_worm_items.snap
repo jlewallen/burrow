@@ -1,0 +1,22 @@
+---
+source: plugins/core/src/looking/tests.rs
+expression: reply.to_debug_json()?
+---
+{
+  "entityObservation": {
+    "entity": {
+      "desc": null,
+      "key": "E-2",
+      "name": "Living",
+      "qualified": "Living"
+    },
+    "wearing": [
+      {
+        "desc": null,
+        "key": "E-1",
+        "name": "Jacket",
+        "qualified": "a Jacket"
+      }
+    ]
+  }
+}

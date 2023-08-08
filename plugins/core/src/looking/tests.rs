@@ -146,10 +146,33 @@ fn it_fails_to_look_at_not_found_entities() -> Result<()> {
 #[test]
 fn it_looks_at_entities() -> Result<()> {
     let mut build = BuildSurroundings::new()?;
-    let vessel = build.entity()?.named("Hammer")?.carryable()?.into_entry()?;
-    let (session, surroundings) = build.hands(vec![QuickThing::Actual(vessel)]).build()?;
+    let hammer = build.entity()?.named("Hammer")?.carryable()?.into_entry()?;
+    let (session, surroundings) = build.hands(vec![QuickThing::Actual(hammer)]).build()?;
 
     let action = try_parsing(LookActionParser {}, "look at hammer")?;
+    let action = action.unwrap();
+    let reply = action.perform(session.clone(), &surroundings)?;
+    let (_, _person, _area) = surroundings.unpack();
+
+    insta::assert_json_snapshot!(reply.to_debug_json()?);
+
+    build.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn it_sees_worm_items() -> Result<()> {
+    let mut build = BuildSurroundings::new()?;
+    let jacket = build
+        .entity()?
+        .named("Jacket")?
+        .wearable()?
+        .carryable()?
+        .into_entry()?;
+    let (session, surroundings) = build.wearing(vec![QuickThing::Actual(jacket)]).build()?;
+
+    let action = try_parsing(LookActionParser {}, "look at myself")?;
     let action = action.unwrap();
     let reply = action.perform(session.clone(), &surroundings)?;
     let (_, _person, _area) = surroundings.unpack();

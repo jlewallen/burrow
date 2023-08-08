@@ -83,9 +83,15 @@ pub mod model {
     }
 
     impl Article {
-        fn keys(&self) -> Vec<&EntityRef> {
+        pub fn keys(&self) -> Vec<&EntityRef> {
             match self {
                 Article::Just(e) => vec![e],
+            }
+        }
+
+        pub fn to_entry(&self) -> Result<Entry, DomainError> {
+            match self {
+                Article::Just(e) => Ok(e.to_entry()?),
             }
         }
     }

@@ -57,6 +57,7 @@ impl Reply for InsideObservation {}
 #[serde(rename_all = "camelCase")]
 pub struct EntityObservation {
     pub entity: ObservedEntity,
+    pub wearing: Option<Vec<ObservedEntity>>,
 }
 
 impl Reply for EntityObservation {}

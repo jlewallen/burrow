@@ -58,6 +58,7 @@ pub mod model {
     use thiserror::Error;
 
     use crate::library::model::*;
+    use crate::tools;
     use crate::{
         carrying::model::{Carryable, Containing},
         moving::model::{Movement, Occupyable},
@@ -93,6 +94,23 @@ pub mod model {
             user: &Entry,
             target: &Entry,
         ) -> Result<Option<T>>;
+    }
+
+    fn observe_all(
+        entries: Option<Vec<Entry>>,
+        user: &Entry,
+    ) -> Result<Option<Vec<ObservedEntity>>> {
+        let Some(observing) = entries else {
+            return Ok(None)
+        };
+
+        let mut observed = Vec::new();
+        for e in &observing {
+            if let Some(e) = e.observe(user)? {
+                observed.push(e);
+            }
+        }
+        Ok(Some(observed))
     }
 
     pub trait Observe<T> {
@@ -132,9 +150,10 @@ pub mod model {
         user: &Entry,
         entity: &Entry,
     ) -> Result<Option<EntityObservation>> {
+        let wearing = observe_all(tools::worn_by(entity)?, user)?;
         Ok(entity
             .observe(user)?
-            .map(|entity| EntityObservation { entity }))
+            .map(|entity| EntityObservation { entity, wearing }))
     }
 
     pub fn new_inside_observation(
@@ -302,7 +321,11 @@ pub mod parser {
             );
 
             let at = map(
-                separated_pair(separated_pair(tag("look"), spaces, tag("at")), spaces, noun),
+                separated_pair(
+                    separated_pair(tag("look"), spaces, tag("at")),
+                    spaces,
+                    noun_or_specific,
+                ),
                 |(_, nearby)| Box::new(LookAtAction { item: nearby }) as Box<dyn Action>,
             );
 

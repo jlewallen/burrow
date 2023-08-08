@@ -100,6 +100,15 @@ pub fn get_contained_keys(area: &Entry) -> Result<Vec<EntityKey>, DomainError> {
         .collect::<Vec<EntityKey>>())
 }
 
+pub fn set_wearing(container: &Entry, items: &Vec<Entry>) -> Result<(), DomainError> {
+    let mut wearing = container.scope_mut::<Wearing>()?;
+    for item in items {
+        wearing.start_wearing(item)?;
+        Location::set(item, container.try_into()?)?;
+    }
+    wearing.save()
+}
+
 pub fn set_container(container: &Entry, items: &Vec<Entry>) -> Result<(), DomainError> {
     let mut containing = container.scope_mut::<Containing>()?;
     for item in items {
@@ -249,4 +258,16 @@ pub fn get_adjacent_keys(entry: &Entry) -> Result<Vec<EntityKey>> {
         .into_iter()
         .flat_map(|v| v.into_iter())
         .collect::<Vec<_>>())
+}
+
+pub fn worn_by(wearer: &Entry) -> Result<Option<Vec<Entry>>, DomainError> {
+    let Ok(wearing) = wearer.scope::<Wearing>() else {
+        return Ok(None);
+    };
+
+    let mut entities: Vec<Entry> = vec![];
+    for entity in &wearing.wearing {
+        entities.push(entity.to_entry()?);
+    }
+    Ok(Some(entities))
 }
