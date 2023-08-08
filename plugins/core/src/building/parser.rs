@@ -30,7 +30,7 @@ impl ParsesActions for MakeItemParser {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
         let (_, action) = map(
             tuple((preceded(
-                pair(separated_pair(tag("make"), spaces, tag("item")), spaces),
+                pair(separated_pair(tag("@make"), spaces, tag("item")), spaces),
                 string_literal,
             ),)),
             |name| MakeItemAction {
@@ -47,7 +47,7 @@ pub struct DuplicateActionParser {}
 impl ParsesActions for DuplicateActionParser {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
         let (_, action) = map(
-            preceded(pair(tag("duplicate"), spaces), noun_or_specific),
+            preceded(pair(tag("@duplicate"), spaces), noun_or_specific),
             |item| DuplicateAction { item },
         )(i)?;
 
@@ -60,7 +60,7 @@ pub struct ObliterateActionParser {}
 impl ParsesActions for ObliterateActionParser {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
         let (_, action) = map(
-            preceded(pair(tag("obliterate"), spaces), noun_or_specific),
+            preceded(pair(tag("@obliterate"), spaces), noun_or_specific),
             |item| ObliterateAction { item },
         )(i)?;
 
@@ -74,7 +74,7 @@ impl ParsesActions for BidirectionalDigActionParser {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
         let (_, action) = map(
             tuple((
-                preceded(pair(tag("dig"), spaces), string_literal),
+                preceded(pair(tag("@dig"), spaces), string_literal),
                 preceded(pair(spaces, pair(tag("to"), spaces)), string_literal),
                 preceded(pair(spaces, pair(tag("for"), spaces)), string_literal),
             )),

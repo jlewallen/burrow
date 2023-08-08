@@ -114,7 +114,7 @@ fn it_fails_to_duplicate_unknown_items() -> Result<()> {
         .ground(vec![QuickThing::Object("Cool Broom")])
         .build()?;
 
-    let action = try_parsing(DuplicateActionParser {}, "duplicate rake")?;
+    let action = try_parsing(DuplicateActionParser {}, "@duplicate rake")?;
     let action = action.unwrap();
     let reply = action.perform(session, &surroundings)?;
 
@@ -131,7 +131,7 @@ fn it_duplicates_items_named() -> Result<()> {
         .hands(vec![QuickThing::Object("Cool Broom")])
         .build()?;
 
-    let action = try_parsing(DuplicateActionParser {}, "duplicate broom")?;
+    let action = try_parsing(DuplicateActionParser {}, "@duplicate broom")?;
     let action = action.unwrap();
     let reply = action.perform(session.clone(), &surroundings)?;
     let (_world, person, _area) = surroundings.unpack();
@@ -158,7 +158,7 @@ fn it_fails_to_obliterate_unknown_items() -> Result<()> {
         .hands(vec![QuickThing::Object("Cool Broom")])
         .build()?;
 
-    let action = try_parsing(ObliterateActionParser {}, "obliterate rake")?;
+    let action = try_parsing(ObliterateActionParser {}, "@obliterate rake")?;
     let action = action.unwrap();
     let reply = action.perform(session, &surroundings)?;
 
@@ -175,7 +175,7 @@ fn it_obliterates_items_named() -> Result<()> {
         .hands(vec![QuickThing::Object("Cool Broom")])
         .build()?;
 
-    let action = try_parsing(ObliterateActionParser {}, "obliterate broom")?;
+    let action = try_parsing(ObliterateActionParser {}, "@obliterate broom")?;
     let action = action.unwrap();
     let reply = action.perform(session.clone(), &surroundings)?;
     let (_world, person, area) = surroundings.unpack();
@@ -199,7 +199,7 @@ fn it_digs_bidirectionally() -> Result<()> {
 
     let action = try_parsing(
         BidirectionalDigActionParser {},
-        r#"dig "North Exit" to "South Exit" for "New Area""#,
+        r#"@dig "North Exit" to "South Exit" for "New Area""#,
     )?;
     let action = action.unwrap();
     let reply = action.perform(session.clone(), &surroundings)?;
@@ -221,7 +221,7 @@ fn it_makes_items() -> Result<()> {
     let mut build = BuildSurroundings::new()?;
     let (session, surroundings) = build.plain().build()?;
 
-    let action = try_parsing(MakeItemParser {}, r#"make item "Blue Rake""#)?;
+    let action = try_parsing(MakeItemParser {}, r#"@make item "Blue Rake""#)?;
     let action = action.unwrap();
     let reply = action.perform(session.clone(), &surroundings)?;
     let (_, living, _area) = surroundings.unpack();

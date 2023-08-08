@@ -109,6 +109,31 @@ impl Action for ObliterateAction {
 }
 
 #[action]
+pub struct MakeItemAction {
+    pub name: String,
+}
+
+impl Action for MakeItemAction {
+    fn is_read_only() -> bool {
+        false
+    }
+
+    fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+        info!("make-item {:?}", self.name);
+
+        let (_, user, _area) = surroundings.unpack();
+
+        let new_item = EntityPtr::new_named(EntityClass::item(), &self.name, &self.name)?;
+
+        session.add_entities(&[&new_item])?;
+
+        tools::set_container(&user, &vec![new_item.try_into()?])?;
+
+        Ok(SimpleReply::Done.into())
+    }
+}
+
+#[action]
 pub struct BidirectionalDigAction {
     pub outgoing: String,
     pub returning: String,
@@ -163,31 +188,6 @@ impl Action for BidirectionalDigAction {
             }),
             DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
         }
-    }
-}
-
-#[action]
-pub struct MakeItemAction {
-    pub name: String,
-}
-
-impl Action for MakeItemAction {
-    fn is_read_only() -> bool {
-        false
-    }
-
-    fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
-        info!("make-item {:?}", self.name);
-
-        let (_, user, _area) = surroundings.unpack();
-
-        let new_item = EntityPtr::new_named(EntityClass::item(), &self.name, &self.name)?;
-
-        session.add_entities(&[&new_item])?;
-
-        tools::set_container(&user, &vec![new_item.try_into()?])?;
-
-        Ok(SimpleReply::Done.into())
     }
 }
 
