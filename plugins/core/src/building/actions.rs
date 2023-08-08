@@ -61,25 +61,6 @@ impl Action for EditRawAction {
 }
 
 #[action]
-pub struct DescribeAction {
-    pub item: Item,
-}
-
-impl Action for DescribeAction {
-    fn is_read_only() -> bool {
-        true
-    }
-
-    fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
-        let (_, living, _) = surroundings.unpack();
-        let action = PerformAction::Instance(Rc::new(EditAction {
-            item: self.item.clone(),
-        }));
-        session.perform(Perform::Living { living, action })
-    }
-}
-
-#[action]
 pub struct DuplicateAction {
     pub item: Item,
 }

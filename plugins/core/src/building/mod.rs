@@ -54,7 +54,6 @@ impl Plugin for BuildingPlugin {
 impl ParsesActions for BuildingPlugin {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
         try_parsing(parser::EditActionParser {}, i)
-            .or_else(|_| try_parsing(parser::DescribeActionParser {}, i))
             .or_else(|_| try_parsing(parser::DuplicateActionParser {}, i))
             .or_else(|_| try_parsing(parser::BidirectionalDigActionParser {}, i))
             .or_else(|_| try_parsing(parser::ObliterateActionParser {}, i))

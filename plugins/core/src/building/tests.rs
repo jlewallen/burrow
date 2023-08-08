@@ -217,22 +217,6 @@ fn it_digs_bidirectionally() -> Result<()> {
 }
 
 #[test]
-fn it_describes_area() -> Result<()> {
-    let mut build = BuildSurroundings::new()?;
-    let (session, surroundings) = build
-        .ground(vec![QuickThing::Object("Cool Broom")])
-        .build()?;
-
-    let action = try_parsing(DescribeActionParser {}, "describe area")?;
-    let action = action.unwrap();
-    let reply = action.perform(session, &surroundings)?;
-
-    insta::assert_json_snapshot!(reply.to_debug_json()?);
-
-    Ok(())
-}
-
-#[test]
 fn it_makes_items() -> Result<()> {
     let mut build = BuildSurroundings::new()?;
     let (session, surroundings) = build.plain().build()?;
