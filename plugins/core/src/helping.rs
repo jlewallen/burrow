@@ -211,8 +211,7 @@ pub mod actions {
             let reply = EditorReply::new(
                 page.key().to_string(),
                 WorkingCopy::Markdown(body),
-                EditTarget::Help,
-                None,
+                SaveHelpAction::new_template(page.key().clone())?,
             );
             Ok(Effect::Reply(EffectReply::Instance(Rc::new(reply))))
         }
@@ -222,6 +221,19 @@ pub mod actions {
     pub struct SaveHelpAction {
         pub key: EntityKey,
         pub copy: WorkingCopy,
+    }
+
+    impl SaveHelpAction {
+        pub fn new(key: EntityKey, copy: WorkingCopy) -> Self {
+            Self { key, copy }
+        }
+
+        pub fn new_template(key: EntityKey) -> Result<JsonTemplate, serde_json::Error> {
+            let copy = WorkingCopy::Markdown(JSON_TEMPLATE_VALUE_SENTINEL.to_owned());
+            let template = Self { key, copy };
+
+            Ok(template.to_tagged_json()?.into())
+        }
     }
 
     impl Action for SaveHelpAction {

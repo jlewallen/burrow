@@ -146,8 +146,7 @@ pub mod actions {
                     Ok(EditorReply::new(
                         editing.key().to_string(),
                         WorkingCopy::Markdown(quick_edit.to_string()),
-                        EditTarget::QuickEdit,
-                        None,
+                        SaveQuickEditAction::new_template(editing.key().clone())?,
                     )
                     .into())
                 }
@@ -176,8 +175,7 @@ pub mod actions {
                     Ok(EditorReply::new(
                         editing.key().to_string(),
                         WorkingCopy::Json(editing.to_json_value()?),
-                        EditTarget::EntityJson,
-                        None,
+                        SaveEntityJsonAction::new_template(editing.key().clone())?,
                     )
                     .into())
                 }
@@ -342,6 +340,19 @@ pub mod actions {
         pub copy: WorkingCopy,
     }
 
+    impl SaveQuickEditAction {
+        pub fn new(key: EntityKey, copy: WorkingCopy) -> Self {
+            Self { key, copy }
+        }
+
+        pub fn new_template(key: EntityKey) -> Result<JsonTemplate, serde_json::Error> {
+            let copy = WorkingCopy::Markdown(JSON_TEMPLATE_VALUE_SENTINEL.to_owned());
+            let template = Self { key, copy };
+
+            Ok(template.to_tagged_json()?.into())
+        }
+    }
+
     impl Action for SaveQuickEditAction {
         fn is_read_only() -> bool {
             false
@@ -379,6 +390,21 @@ pub mod actions {
     pub struct SaveEntityJsonAction {
         pub key: EntityKey,
         pub copy: WorkingCopy,
+    }
+
+    impl SaveEntityJsonAction {
+        pub fn new(key: EntityKey, copy: WorkingCopy) -> Self {
+            Self { key, copy }
+        }
+
+        pub fn new_template(key: EntityKey) -> Result<JsonTemplate, serde_json::Error> {
+            let copy = WorkingCopy::Json(serde_json::Value::String(
+                JSON_TEMPLATE_VALUE_SENTINEL.to_owned(),
+            ));
+            let template = Self { key, copy };
+
+            Ok(template.to_tagged_json()?.into())
+        }
     }
 
     impl Action for SaveEntityJsonAction {

@@ -15,6 +15,7 @@ use plugins_rune::actions::SaveScriptAction;
 // for plugins to provide ways to create them, the first being parsing more
 // natural like text.
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum AcceptableActions {
     SaveEntityJsonAction(SaveEntityJsonAction),
     SaveQuickEditAction(SaveQuickEditAction),

@@ -197,8 +197,7 @@ pub mod actions {
                     Ok(EditorReply::new(
                         editing.key().to_string(),
                         WorkingCopy::Script(script),
-                        EditTarget::Script,
-                        None,
+                        SaveScriptAction::new_template(editing.key().clone())?,
                     )
                     .into())
                 }
@@ -211,6 +210,19 @@ pub mod actions {
     pub struct SaveScriptAction {
         pub key: EntityKey,
         pub copy: WorkingCopy,
+    }
+
+    impl SaveScriptAction {
+        pub fn new(key: EntityKey, copy: WorkingCopy) -> Self {
+            Self { key, copy }
+        }
+
+        pub fn new_template(key: EntityKey) -> Result<JsonTemplate, serde_json::Error> {
+            let copy = WorkingCopy::Script(JSON_TEMPLATE_VALUE_SENTINEL.to_owned());
+            let template = Self { key, copy };
+
+            Ok(template.to_tagged_json()?.into())
+        }
     }
 
     impl Action for SaveScriptAction {

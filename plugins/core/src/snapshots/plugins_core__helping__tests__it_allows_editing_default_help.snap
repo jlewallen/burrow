@@ -8,7 +8,13 @@ expression: effect.to_debug_json()?
       "markdown": "# Hello, world!"
     },
     "key": "E-0",
-    "save": null,
-    "target": "help"
+    "save": {
+      "saveHelpAction": {
+        "copy": {
+          "markdown": "!#$value"
+        },
+        "key": "E-0"
+      }
+    }
   }
 }

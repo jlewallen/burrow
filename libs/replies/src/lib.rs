@@ -83,39 +83,52 @@ impl std::fmt::Debug for WorkingCopy {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToJson)]
 #[serde(rename_all = "camelCase")]
-pub struct EditorReply {
-    key: String,
-    editing: WorkingCopy,
-    target: EditTarget,
-    save: Option<ActionTemplate>,
+pub struct JsonTemplate(serde_json::Value);
+
+pub const JSON_TEMPLATE_VALUE_SENTINEL: &str = "!#$value";
+
+impl JsonTemplate {
+    pub fn instantiate(self, value: &serde_json::Value) -> serde_json::Value {
+        match self.0 {
+            Value::Null | Value::Bool(_) | Value::Number(_) => self.0,
+            Value::String(s) => {
+                if s == JSON_TEMPLATE_VALUE_SENTINEL {
+                    value.clone()
+                } else {
+                    Value::String(s)
+                }
+            }
+            Value::Array(v) => Value::Array(
+                v.into_iter()
+                    .map(|c| JsonTemplate(c).instantiate(value))
+                    .collect(),
+            ),
+            Value::Object(v) => Value::Object(
+                v.into_iter()
+                    .map(|(k, v)| (k, JsonTemplate(v).instantiate(value)))
+                    .collect(),
+            ),
+        }
+    }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum EditTarget {
-    EntityJson,
-    QuickEdit,
-    Script,
-    Help,
+impl From<serde_json::Value> for JsonTemplate {
+    fn from(value: serde_json::Value) -> Self {
+        Self(value)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToJson)]
 #[serde(rename_all = "camelCase")]
-pub struct ActionTemplate(serde_json::Value);
+pub struct EditorReply {
+    key: String,
+    editing: WorkingCopy,
+    save: JsonTemplate,
+}
 
 impl EditorReply {
-    pub fn new(
-        key: String,
-        editing: WorkingCopy,
-        target: EditTarget,
-        save: Option<ActionTemplate>,
-    ) -> Self {
-        Self {
-            key,
-            editing,
-            target,
-            save,
-        }
+    pub fn new(key: String, editing: WorkingCopy, save: JsonTemplate) -> Self {
+        Self { key, editing, save }
     }
 
     pub fn key(&self) -> &str {
@@ -126,8 +139,8 @@ impl EditorReply {
         &self.editing
     }
 
-    pub fn target(&self) -> &EditTarget {
-        &self.target
+    pub fn save(&self) -> &JsonTemplate {
+        &self.save
     }
 }
 
@@ -276,35 +289,3 @@ pub enum EmotingEvent {
 }
 
 impl DomainEvent for EmotingEvent {}
-
-pub mod messy {
-    use crate::ToJson;
-    use serde::{Deserialize, Serialize};
-    use std::fmt::Debug;
-
-    use crate::WorkingCopy;
-
-    #[derive(Debug, Serialize, Deserialize, ToJson)]
-    pub struct SaveQuickEditAction {
-        pub key: String,
-        pub copy: WorkingCopy,
-    }
-
-    #[derive(Debug, Serialize, Deserialize, ToJson)]
-    pub struct SaveEntityJsonAction {
-        pub key: String,
-        pub copy: WorkingCopy,
-    }
-
-    #[derive(Debug, Serialize, Deserialize, ToJson)]
-    pub struct SaveScriptAction {
-        pub key: String,
-        pub copy: WorkingCopy,
-    }
-
-    #[derive(Debug, Serialize, Deserialize, ToJson)]
-    pub struct SaveHelpAction {
-        pub key: String,
-        pub copy: WorkingCopy,
-    }
-}

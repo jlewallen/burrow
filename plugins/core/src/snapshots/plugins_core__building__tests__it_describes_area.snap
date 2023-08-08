@@ -8,7 +8,13 @@ expression: reply.to_debug_json()?
       "markdown": "Welcome Area\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n"
     },
     "key": "E-2",
-    "save": null,
-    "target": "quickEdit"
+    "save": {
+      "saveQuickEditAction": {
+        "copy": {
+          "markdown": "!#$value"
+        },
+        "key": "E-2"
+      }
+    }
   }
 }
