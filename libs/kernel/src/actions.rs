@@ -119,12 +119,20 @@ pub enum RevertReason {
 #[derive(Clone, Debug)]
 pub enum EffectReply {
     Instance(Rc<dyn Reply>),
+    TaggedJson(TaggedJson),
+}
+
+impl From<TaggedJson> for EffectReply {
+    fn from(value: TaggedJson) -> Self {
+        Self::TaggedJson(value)
+    }
 }
 
 impl ToJson for EffectReply {
     fn to_tagged_json(&self) -> std::result::Result<TaggedJson, TaggedJsonError> {
         match self {
             EffectReply::Instance(reply) => reply.to_tagged_json(),
+            EffectReply::TaggedJson(tagged_json) => Ok(tagged_json.clone()),
         }
     }
 }
@@ -139,6 +147,9 @@ impl PartialEq for EffectReply {
                 l0.to_tagged_json().expect("tagged json error")
                     == r0.to_tagged_json().expect("tagged json error")
             }
+            (EffectReply::Instance(_), EffectReply::TaggedJson(_)) => todo!(),
+            (EffectReply::TaggedJson(_), EffectReply::Instance(_)) => todo!(),
+            (EffectReply::TaggedJson(_), EffectReply::TaggedJson(_)) => todo!(),
         }
     }
 }

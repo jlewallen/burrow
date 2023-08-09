@@ -49,6 +49,7 @@ fn evaluate_commands(domain: Domain, cmd: Command) -> Result<()> {
                         let text = renderer.render_reply(&reply)?;
                         println!("{}", text);
                     }
+                    kernel::EffectReply::TaggedJson(_) => todo!(),
                 },
                 _ => todo!(),
             }

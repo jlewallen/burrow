@@ -183,6 +183,7 @@ impl Middleware for InteractiveEditor {
                             _ => Ok(Effect::Reply(EffectReply::Instance(reply))),
                         }
                     }
+                    EffectReply::TaggedJson(_) => todo!(),
                 }
             }
             effect => Ok(effect),
@@ -218,6 +219,7 @@ fn evaluate_commands(
     let rendered = match effect {
         Effect::Reply(reply) => match reply {
             EffectReply::Instance(reply) => Some(renderer.render_reply(&reply)?),
+            EffectReply::TaggedJson(_) => todo!(),
         },
         Effect::Ok => None,
         _ => todo!(),
