@@ -34,5 +34,5 @@ jobs:
       - run: cp .env.default .env
       - run: cargo build --verbose
       - run: trunk build
-        working-directory: yew
+        working-directory: web
       - run: cargo test --workspace --verbose
