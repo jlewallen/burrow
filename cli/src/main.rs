@@ -12,9 +12,9 @@ use engine::{sequences::Sequence, storage::StorageFactory, Domain};
 use kernel::{EntityKey, Identity, RegisteredPlugins};
 use plugins_core::{
     building::BuildingPluginFactory, carrying::CarryingPluginFactory, chat::ChatPluginFactory,
-    emote::EmotePluginFactory, helping::HelpingPluginFactory, looking::LookingPluginFactory,
-    memory::MemoryPluginFactory, moving::MovingPluginFactory, security::SecurityPluginFactory,
-    DefaultFinder,
+    emote::EmotePluginFactory, fashion::FashionPluginFactory, helping::HelpingPluginFactory,
+    looking::LookingPluginFactory, memory::MemoryPluginFactory, moving::MovingPluginFactory,
+    security::SecurityPluginFactory, DefaultFinder,
 };
 use plugins_dynlib::DynamicPluginFactory;
 use plugins_rpc::RpcPluginFactory;
@@ -173,6 +173,7 @@ impl DomainBuilder {
         registered_plugins.register(EmotePluginFactory::default());
         registered_plugins.register(MovingPluginFactory::default());
         registered_plugins.register(CarryingPluginFactory::default());
+        registered_plugins.register(FashionPluginFactory::default());
         registered_plugins.register(MemoryPluginFactory::default());
         registered_plugins.register(SecurityPluginFactory::default());
         registered_plugins.register(HelpingPluginFactory::default());

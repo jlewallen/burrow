@@ -1,6 +1,7 @@
 use anyhow::Result;
 use plugins_core::chat::ChatPluginFactory;
 use plugins_core::emote::EmotePluginFactory;
+use plugins_core::fashion::FashionPluginFactory;
 use plugins_core::helping::HelpingPluginFactory;
 use plugins_core::memory::MemoryPluginFactory;
 use plugins_core::security::SecurityPluginFactory;
@@ -129,6 +130,7 @@ where
     registered_plugins.register(EmotePluginFactory::default());
     registered_plugins.register(MovingPluginFactory::default());
     registered_plugins.register(CarryingPluginFactory::default());
+    registered_plugins.register(FashionPluginFactory::default());
     registered_plugins.register(MemoryPluginFactory::default());
     registered_plugins.register(SecurityPluginFactory::default());
     registered_plugins.register(HelpingPluginFactory::default());
