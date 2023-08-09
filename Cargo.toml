@@ -19,7 +19,7 @@ members = [
     "examples/wasm",
     "libs/tests",
     "cli",
-    "yew",
+    "web",
 ]
 default-members = [ "cli" ]
 

@@ -1,25 +1,35 @@
-FROM rust:1.70-bullseye AS builder
-RUN rustup target add wasm32-unknown-unknown
-RUN cargo install -f trunk
+FROM rust:1.70-bullseye AS base
+WORKDIR /app
 
+FROM base AS chef
+RUN cargo install -f cargo-chef 
+
+FROM chef AS chef_and_trunk
+RUN cargo install -f trunk
 # This is failing right now due to GLIBC.
 # RUN wget -qO- https://github.com/thedodd/trunk/releases/download/v0.17.3/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
 # RUN chmod +x trunk
 # RUN cp trunk /usr/local/bin
 
-WORKDIR /app/build
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef_and_trunk AS builder
+RUN rustup target add wasm32-unknown-unknown
+COPY --from=planner /app/recipe.json recipe.json
+RUN cargo chef cook --recipe-path recipe.json
 COPY . .
 RUN cargo build -p cli
 RUN cargo build -p plugin-example-shared
 RUN cp .env.prod .env
-RUN cd yew && trunk build
+RUN cd web && trunk build
 
-FROM debian:bullseye-slim
+FROM base
 RUN apt-get update && apt-get install -y libsqlite3-dev && rm -rf /var/lib/apt/lists/*
-WORKDIR /app
-COPY --from=builder /app/build/target/debug/*.so /app
-COPY --from=builder /app/build/target/debug/cli /app
-COPY --from=builder /app/build/yew/dist /app/assets
+COPY --from=builder /app/target/debug/*.so /app
+COPY --from=builder /app/target/debug/cli /app
+COPY --from=builder /app/web/dist /app/assets
 RUN ls -alhR /app
 
 EXPOSE 3000
