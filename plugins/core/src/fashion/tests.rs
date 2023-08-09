@@ -8,12 +8,12 @@ use crate::library::tests::*;
 fn it_wears_unworn_items() -> Result<()> {
     let mut build = BuildSurroundings::new()?;
     let (session, surroundings) = build
-        .ground(vec![QuickThing::Object("Cool Jacket")])
+        .hands(vec![QuickThing::Wearable("Cool Jacket")])
         .build()?;
 
-    let (_, person, area) = surroundings.unpack();
+    let (_, person, _area) = surroundings.unpack();
     assert_eq!(person.scope::<Wearing>()?.wearing.len(), 0);
-    assert_eq!(area.scope::<Containing>()?.holding.len(), 1);
+    assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
 
     let action = try_parsing(WearActionParser {}, "wear jacket")?;
     let action = action.unwrap();
@@ -22,8 +22,8 @@ fn it_wears_unworn_items() -> Result<()> {
     let reply: SimpleReply = reply.json_as()?;
     assert_eq!(reply, SimpleReply::Done);
 
-    assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
-    assert_eq!(area.scope::<Containing>()?.holding.len(), 0);
+    assert_eq!(person.scope::<Wearing>()?.wearing.len(), 1);
+    assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
 
     build.close()?;
 
@@ -34,19 +34,19 @@ fn it_wears_unworn_items() -> Result<()> {
 fn it_removes_worn_items() -> Result<()> {
     let mut build = BuildSurroundings::new()?;
     let (session, surroundings) = build
-        .hands(vec![QuickThing::Object("Cool Jacket")])
+        .wearing(vec![QuickThing::Wearable("Cool Jacket")])
         .build()?;
 
     let action = try_parsing(RemoveActionParser {}, "remove jacket")?;
     let action = action.unwrap();
     let reply = action.perform(session.clone(), &surroundings)?;
-    let (_, person, area) = surroundings.unpack();
+    let (_, person, _area) = surroundings.unpack();
 
     let reply: SimpleReply = reply.json_as()?;
     assert_eq!(reply, SimpleReply::Done);
 
-    assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
-    assert_eq!(area.scope::<Containing>()?.holding.len(), 1);
+    assert_eq!(person.scope::<Wearing>()?.wearing.len(), 0);
+    assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
 
     build.close()?;
 

@@ -236,7 +236,7 @@ pub mod model {
 
 pub mod actions {
     use super::model::*;
-    use crate::{library::actions::*, looking::model::Observe};
+    use crate::{library::actions::*, location::Location, looking::model::Observe};
 
     #[action]
     pub struct WearAction {
@@ -254,18 +254,21 @@ pub mod actions {
             let (_, user, area) = surroundings.unpack();
 
             match session.find_item(surroundings, &self.item)? {
-                Some(wearing) => match tools::wear_article(&area, &user, &wearing)? {
-                    DomainOutcome::Ok => Ok(reply_done(
-                        Audience::Area(area.key().clone()),
-                        FashionEvent::Worn {
-                            living: user.entity_ref(),
-                            item: (&wearing).observe(&user)?.expect("No observed entity"),
-                            area: area.entity_ref(),
-                        },
-                    )?
-                    .into()),
-                    DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
-                },
+                Some(wearing) => {
+                    let location = Location::get(&wearing)?.expect("No location").to_entry()?;
+                    match tools::wear_article(&location, &user, &wearing)? {
+                        DomainOutcome::Ok => Ok(reply_done(
+                            Audience::Area(area.key().clone()),
+                            FashionEvent::Worn {
+                                living: user.entity_ref(),
+                                item: (&wearing).observe(&user)?.expect("No observed entity"),
+                                area: area.entity_ref(),
+                            },
+                        )?
+                        .into()),
+                        DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
+                    }
+                }
                 None => Ok(SimpleReply::NotFound.into()),
             }
         }
@@ -288,18 +291,23 @@ pub mod actions {
 
             match &self.maybe_item {
                 Some(item) => match session.find_item(surroundings, item)? {
-                    Some(removing) => match tools::remove_article(&user, &area, &removing)? {
-                        DomainOutcome::Ok => Ok(reply_done(
-                            Audience::Area(area.key().clone()),
-                            FashionEvent::Removed {
-                                living: user.entity_ref(),
-                                item: (&removing).observe(&user)?.expect("No observed entity"),
-                                area: area.entity_ref(),
-                            },
-                        )?
-                        .into()),
-                        DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
-                    },
+                    Some(removing) => {
+                        /*
+                        let location = Location::get(&removing)?.expect("No location").to_entry()?;
+                        */
+                        match tools::remove_article(&user, &user, &removing)? {
+                            DomainOutcome::Ok => Ok(reply_done(
+                                Audience::Area(area.key().clone()),
+                                FashionEvent::Removed {
+                                    living: user.entity_ref(),
+                                    item: (&removing).observe(&user)?.expect("No observed entity"),
+                                    area: area.entity_ref(),
+                                },
+                            )?
+                            .into()),
+                            DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
+                        }
+                    }
                     None => Ok(SimpleReply::NotFound.into()),
                 },
                 None => Ok(SimpleReply::NotFound.into()),

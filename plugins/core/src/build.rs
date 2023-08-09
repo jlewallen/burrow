@@ -125,6 +125,7 @@ impl Build {
 
 pub enum QuickThing {
     Object(&'static str),
+    Wearable(&'static str),
     Multiple(&'static str, f32),
     Place(&'static str),
     Route(&'static str, Box<QuickThing>),
@@ -137,6 +138,11 @@ impl QuickThing {
             QuickThing::Object(name) => Ok(Build::new(session)?
                 .named(name)?
                 .carryable()?
+                .into_entry()?),
+            QuickThing::Wearable(name) => Ok(Build::new(session)?
+                .named(name)?
+                .carryable()?
+                .wearable()?
                 .into_entry()?),
             QuickThing::Multiple(name, quantity) => Ok(Build::new(session)?
                 .named(name)?
