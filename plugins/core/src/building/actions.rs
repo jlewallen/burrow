@@ -3,6 +3,36 @@ use std::str::FromStr;
 use crate::{building::model::QuickEdit, library::actions::*, looking::actions::LookAction};
 
 #[action]
+pub struct AddScopeAction {
+    pub scope_key: String,
+}
+
+impl Action for AddScopeAction {
+    fn is_read_only() -> bool {
+        false
+    }
+
+    fn perform(&self, _session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+        // TODO Security wise we would probably need a global list of who could
+        // manipulate which scopes eventually.
+        // TODO Right now this requires scopes to be functionable if all their
+        // fields are ommitted. Look into `#[serde(default)]` to make this work
+        // w/o a bunch of Option's?
+        let Some(item) = tools::holding_one_item(surroundings.living())? else {
+            return Ok(SimpleReply::NotFound.into());
+        };
+
+        debug!(item = ?item, scope_key = %self.scope_key, "add-scope");
+
+        let mut item = item.entity().borrow_mut();
+
+        item.scopes_mut().add_scope_by_key(&self.scope_key)?;
+
+        return Ok(SimpleReply::Done.into());
+    }
+}
+
+#[action]
 pub struct EditAction {
     pub item: Item,
 }

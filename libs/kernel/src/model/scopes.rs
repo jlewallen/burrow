@@ -164,6 +164,16 @@ impl<'e> ScopesMut<'e> {
 
         Ok(())
     }
+
+    pub fn add_scope_by_key(&mut self, scope_key: &str) -> Result<(), DomainError> {
+        if !self.map.contains_key(scope_key) {
+            self.map.insert(
+                scope_key.to_owned(),
+                ScopeValue::Original(JsonValue(serde_json::Value::Object(Default::default()))),
+            );
+        }
+        Ok(())
+    }
 }
 
 pub trait HasScopes {

@@ -1,8 +1,8 @@
 use crate::library::parser::*;
 
 use super::actions::{
-    BidirectionalDigAction, DuplicateAction, EditAction, EditRawAction, MakeItemAction,
-    ObliterateAction,
+    AddScopeAction, BidirectionalDigAction, DuplicateAction, EditAction, EditRawAction,
+    MakeItemAction, ObliterateAction,
 };
 
 pub struct EditActionParser {}
@@ -82,6 +82,21 @@ impl ParsesActions for BidirectionalDigActionParser {
                 outgoing: outgoing.into(),
                 returning: returning.into(),
                 new_area: new_area.into(),
+            },
+        )(i)?;
+
+        Ok(Some(Box::new(action)))
+    }
+}
+
+pub struct ScopeActionParser {}
+
+impl ParsesActions for ScopeActionParser {
+    fn try_parse_action(&self, i: &str) -> EvaluationResult {
+        let (_, action) = map(
+            preceded(pair(tag("@scope"), spaces), camel_case_word),
+            |scope_key| AddScopeAction {
+                scope_key: scope_key.to_owned(),
             },
         )(i)?;
 

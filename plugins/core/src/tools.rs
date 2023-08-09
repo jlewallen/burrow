@@ -271,3 +271,12 @@ pub fn worn_by(wearer: &Entry) -> Result<Option<Vec<Entry>>, DomainError> {
     }
     Ok(Some(entities))
 }
+
+pub fn holding_one_item(container: &Entry) -> Result<Option<Entry>, DomainError> {
+    let holding = contained_by(container)?;
+    if holding.len() == 1 {
+        Ok(holding.into_iter().next())
+    } else {
+        Ok(None)
+    }
+}

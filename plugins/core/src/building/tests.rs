@@ -2,6 +2,7 @@ use super::parser::*;
 use super::*;
 use crate::building::actions::{SaveEntityJsonAction, SaveQuickEditAction};
 use crate::building::model::QuickEdit;
+use crate::fashion::model::Wearable;
 use crate::library::tests::*;
 use crate::{
     {carrying::model::Containing, looking::model::new_area_observation, tools},
@@ -281,6 +282,32 @@ fn it_saves_changes_to_whole_entities() -> Result<()> {
 
     // TODO Would be really nice to have some assurances here, even though
     // I'm wondering how often this will actually get used.
+
+    Ok(())
+}
+
+#[test]
+fn it_adds_scopes_to_solo_held_items() -> Result<()> {
+    let mut build = BuildSurroundings::new()?;
+    let jacket = build.entity()?.named("Jacket")?.carryable()?.into_entry()?;
+
+    assert!(!jacket.has_scope::<Wearable>()?);
+
+    let (session, surroundings) = build
+        .plain()
+        .hands(vec![QuickThing::Actual(jacket.clone())])
+        .build()?;
+
+    let action = try_parsing(ScopeActionParser {}, r#"@scope wearable"#)?.unwrap();
+    let reply = action.perform(session.clone(), &surroundings)?;
+    let (_, living, _area) = surroundings.unpack();
+
+    let reply: SimpleReply = reply.json_as()?;
+    assert_eq!(reply, SimpleReply::Done);
+
+    assert_eq!(living.scope::<Containing>()?.holding.len(), 1);
+
+    assert!(jacket.has_scope::<Wearable>()?);
 
     Ok(())
 }

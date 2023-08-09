@@ -43,6 +43,10 @@ pub mod parser {
         take_while(|c: char| c.is_alphabetic() || c.is_whitespace())(i)
     }
 
+    pub fn camel_case_word(i: &str) -> IResult<&str, &str> {
+        word(i) // TODO
+    }
+
     pub fn unsigned_number(i: &str) -> IResult<&str, u64> {
         map_res(recognize(digit1), str::parse)(i)
     }

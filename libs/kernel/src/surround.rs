@@ -19,4 +19,14 @@ impl Surroundings {
             } => (world.clone(), living.clone(), area.clone()),
         }
     }
+
+    pub fn living(&self) -> &Entry {
+        match self {
+            Surroundings::Living {
+                world: _,
+                living,
+                area: _,
+            } => living,
+        }
+    }
 }
