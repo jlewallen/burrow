@@ -29,13 +29,11 @@ pub struct MakeItemParser {}
 impl ParsesActions for MakeItemParser {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
         let (_, action) = map(
-            tuple((preceded(
-                pair(separated_pair(tag("@make"), spaces, tag("item")), spaces),
+            preceded(
+                tuple((tag("@make"), spaces, tag("item"), spaces)),
                 string_literal,
-            ),)),
-            |name| MakeItemAction {
-                name: name.0.into(),
-            },
+            ),
+            |name| MakeItemAction { name: name.into() },
         )(i)?;
 
         Ok(Some(Box::new(action)))

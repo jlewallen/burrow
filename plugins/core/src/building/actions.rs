@@ -151,13 +151,17 @@ impl Action for MakeItemAction {
     fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
         info!("make-item {:?}", self.name);
 
-        let (_, user, _area) = surroundings.unpack();
+        let creator = surroundings.living();
 
-        let new_item = EntityPtr::new_named(EntityClass::item(), &self.name, &self.name)?;
+        let new_item: Entity = build_entity()
+            .creator(creator.entity_ref())
+            .name(&self.name)
+            .try_into()?;
 
-        session.add_entities(&[&new_item])?;
+        let new_item = session.add_entity(&new_item.into())?;
 
-        tools::set_container(&user, &vec![new_item.try_into()?])?;
+        tools::set_quantity(&new_item, 1f32)?;
+        tools::set_container(&creator, &vec![new_item.try_into()?])?;
 
         Ok(SimpleReply::Done.into())
     }
