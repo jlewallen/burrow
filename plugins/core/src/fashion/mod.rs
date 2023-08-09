@@ -254,12 +254,12 @@ pub mod actions {
             let (_, user, area) = surroundings.unpack();
 
             match session.find_item(surroundings, &self.item)? {
-                Some(holding) => match tools::move_between(&area, &user, &holding)? {
+                Some(wearing) => match tools::wear_article(&area, &user, &wearing)? {
                     DomainOutcome::Ok => Ok(reply_done(
                         Audience::Area(area.key().clone()),
                         FashionEvent::Worn {
                             living: user.entity_ref(),
-                            item: (&holding).observe(&user)?.expect("No observed entity"),
+                            item: (&wearing).observe(&user)?.expect("No observed entity"),
                             area: area.entity_ref(),
                         },
                     )?
@@ -288,12 +288,12 @@ pub mod actions {
 
             match &self.maybe_item {
                 Some(item) => match session.find_item(surroundings, item)? {
-                    Some(dropping) => match tools::move_between(&user, &area, &dropping)? {
+                    Some(removing) => match tools::remove_article(&user, &area, &removing)? {
                         DomainOutcome::Ok => Ok(reply_done(
                             Audience::Area(area.key().clone()),
                             FashionEvent::Removed {
                                 living: user.entity_ref(),
-                                item: (&dropping).observe(&user)?.expect("No observed entity"),
+                                item: (&removing).observe(&user)?.expect("No observed entity"),
                                 area: area.entity_ref(),
                             },
                         )?
