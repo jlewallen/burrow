@@ -130,23 +130,40 @@ impl ToJson for EffectReply {
     }
 }
 
+impl PartialEq for EffectReply {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Instance(l0), Self::Instance(r0)) => {
+                // TODO It may be time to just get rid of the Box here all
+                // together and return JSON, we don't do anything else with this
+                // boxed value.
+                l0.to_tagged_json().expect("tagged json error")
+                    == r0.to_tagged_json().expect("tagged json error")
+            }
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum Effect {
     Ok,
     Prevented,
-    Nothing,
-    // Revert(RevertReason),
     Reply(EffectReply),
     Pong(TracePath),
-    // This is tempting. Right now we recursively call the performer. I'm not
-    // sure this gives us in benefit, but it could come in really handy when we
-    // start to dynamically alter behavior in chained actions. Leaving this as
-    // it stands until I have a stronger opinion.
-    // Chain(PerformAction),
 }
 
-#[derive(Clone, Default)]
+impl PartialEq for Effect {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Reply(l0), Self::Reply(r0)) => l0 == r0,
+            (Self::Pong(l0), Self::Pong(r0)) => l0 == r0,
+            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
+        }
+    }
+}
+
+#[derive(Clone, Default, PartialEq)]
 pub struct TracePath(Vec<String>);
 
 impl TracePath {

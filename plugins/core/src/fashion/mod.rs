@@ -258,7 +258,7 @@ pub mod actions {
                 Some(wearing) => {
                     let location = Location::get(&wearing)?.expect("No location").to_entry()?;
                     match tools::wear_article(&location, &user, &wearing)? {
-                        DomainOutcome::Ok => Ok(reply_done(
+                        DomainOutcome::Ok => Ok(reply_ok(
                             Audience::Area(area.key().clone()),
                             FashionEvent::Worn {
                                 living: user.entity_ref(),
@@ -292,23 +292,18 @@ pub mod actions {
 
             match &self.maybe_item {
                 Some(item) => match session.find_item(surroundings, item)? {
-                    Some(removing) => {
-                        /*
-                        let location = Location::get(&removing)?.expect("No location").to_entry()?;
-                        */
-                        match tools::remove_article(&user, &user, &removing)? {
-                            DomainOutcome::Ok => Ok(reply_done(
-                                Audience::Area(area.key().clone()),
-                                FashionEvent::Removed {
-                                    living: user.entity_ref(),
-                                    item: (&removing).observe(&user)?.expect("No observed entity"),
-                                    area: area.entity_ref(),
-                                },
-                            )?
-                            .into()),
-                            DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
-                        }
-                    }
+                    Some(removing) => match tools::remove_article(&user, &user, &removing)? {
+                        DomainOutcome::Ok => Ok(reply_ok(
+                            Audience::Area(area.key().clone()),
+                            FashionEvent::Removed {
+                                living: user.entity_ref(),
+                                item: (&removing).observe(&user)?.expect("No observed entity"),
+                                area: area.entity_ref(),
+                            },
+                        )?
+                        .into()),
+                        DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
+                    },
                     None => Ok(SimpleReply::NotFound.into()),
                 },
                 None => Ok(SimpleReply::NotFound.into()),

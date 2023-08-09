@@ -102,6 +102,12 @@ pub mod actions {
     pub use serde::{Deserialize, Serialize};
     pub use tracing::*;
 
+    pub fn reply_ok<T: DomainEvent + 'static>(audience: Audience, raise: T) -> Result<Effect> {
+        get_my_session()?.raise(audience, Box::new(raise))?;
+
+        Ok(Effect::Ok)
+    }
+
     pub fn reply_done<T: DomainEvent + 'static>(
         audience: Audience,
         raise: T,

@@ -17,10 +17,9 @@ fn it_holds_unheld_items() -> Result<()> {
 
     let action = try_parsing(HoldActionParser {}, "hold rake")?;
     let action = action.unwrap();
-    let reply = action.perform(session.clone(), &surroundings)?;
+    let effect = action.perform(session.clone(), &surroundings)?;
 
-    let reply: SimpleReply = reply.json_as()?;
-    assert_eq!(reply, SimpleReply::Done);
+    assert_eq!(effect, Effect::Ok);
 
     assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
     assert_eq!(area.scope::<Containing>()?.holding.len(), 0);
@@ -43,10 +42,9 @@ fn it_separates_multiple_ground_items_when_held() -> Result<()> {
 
     let action = try_parsing(HoldActionParser {}, "hold rake")?;
     let action = action.unwrap();
-    let reply = action.perform(session.clone(), &surroundings)?;
+    let effect = action.perform(session.clone(), &surroundings)?;
 
-    let reply: SimpleReply = reply.json_as()?;
-    assert_eq!(reply, SimpleReply::Done);
+    assert_eq!(effect, Effect::Ok);
 
     let held = &person.scope::<Containing>()?.holding;
     let ground = &area.scope::<Containing>()?.holding;
@@ -80,10 +78,9 @@ fn it_combines_multiple_items_when_together_on_ground() -> Result<()> {
 
     let action = try_parsing(HoldActionParser {}, "hold rake")?;
     let action = action.unwrap();
-    let reply = action.perform(session.clone(), &surroundings)?;
+    let effect = action.perform(session.clone(), &surroundings)?;
 
-    let reply: SimpleReply = reply.json_as()?;
-    assert_eq!(reply, SimpleReply::Done);
+    assert_eq!(effect, Effect::Ok);
 
     assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
     assert_eq!(area.scope::<Containing>()?.holding.len(), 0);
@@ -123,11 +120,11 @@ fn it_drops_held_items() -> Result<()> {
 
     let action = try_parsing(DropActionParser {}, "drop rake")?;
     let action = action.unwrap();
-    let reply = action.perform(session.clone(), &surroundings)?;
-    let (_, person, area) = surroundings.unpack();
+    let effect = action.perform(session.clone(), &surroundings)?;
 
-    let reply: SimpleReply = reply.json_as()?;
-    assert_eq!(reply, SimpleReply::Done);
+    assert_eq!(effect, Effect::Ok);
+
+    let (_, person, area) = surroundings.unpack();
 
     assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
     assert_eq!(area.scope::<Containing>()?.holding.len(), 1);

@@ -125,7 +125,6 @@ impl Session {
                     action: PerformAction::Instance(action.into()),
                 };
                 match self.perform(perform) {
-                    Ok(Effect::Nothing) => Ok(None),
                     Ok(i) => Ok(Some(i)),
                     Err(original_err) => {
                         warn!("error: {:?}", original_err);

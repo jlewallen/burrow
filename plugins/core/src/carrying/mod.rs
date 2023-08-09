@@ -265,15 +265,14 @@ pub mod actions {
 
             match session.find_item(surroundings, &self.item)? {
                 Some(holding) => match tools::move_between(&area, &user, &holding)? {
-                    DomainOutcome::Ok => Ok(reply_done(
+                    DomainOutcome::Ok => Ok(reply_ok(
                         Audience::Area(area.key().clone()),
                         CarryingEvent::Held {
                             living: (&user).observe(&user)?.expect("No observed entity"),
                             item: (&holding).observe(&user)?.expect("No observed entity"),
                             area: (&area).observe(&user)?.expect("No observed entity"),
                         },
-                    )?
-                    .into()),
+                    )?),
                     DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
                 },
                 None => Ok(SimpleReply::NotFound.into()),
@@ -299,15 +298,14 @@ pub mod actions {
             match &self.maybe_item {
                 Some(item) => match session.find_item(surroundings, item)? {
                     Some(dropping) => match tools::move_between(&user, &area, &dropping)? {
-                        DomainOutcome::Ok => Ok(reply_done(
+                        DomainOutcome::Ok => Ok(reply_ok(
                             Audience::Area(area.key().clone()),
                             CarryingEvent::Dropped {
                                 living: (&user).observe(&user)?.expect("No observed entity"),
                                 item: (&dropping).observe(&user)?.expect("No observed entity"),
                                 area: (&area).observe(&user)?.expect("No observed entity"),
                             },
-                        )?
-                        .into()),
+                        )?),
                         DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
                     },
                     None => Ok(SimpleReply::NotFound.into()),

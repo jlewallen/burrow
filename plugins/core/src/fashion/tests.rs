@@ -17,10 +17,8 @@ fn it_wears_unworn_items() -> Result<()> {
 
     let action = try_parsing(WearActionParser {}, "wear jacket")?;
     let action = action.unwrap();
-    let reply = action.perform(session.clone(), &surroundings)?;
-
-    let reply: SimpleReply = reply.json_as()?;
-    assert_eq!(reply, SimpleReply::Done);
+    let effect = action.perform(session.clone(), &surroundings)?;
+    assert_eq!(effect, Effect::Ok);
 
     assert_eq!(person.scope::<Wearing>()?.wearing.len(), 1);
     assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
@@ -39,12 +37,10 @@ fn it_removes_worn_items() -> Result<()> {
 
     let action = try_parsing(RemoveActionParser {}, "remove jacket")?;
     let action = action.unwrap();
-    let reply = action.perform(session.clone(), &surroundings)?;
+    let effect = action.perform(session.clone(), &surroundings)?;
+    assert_eq!(effect, Effect::Ok);
+
     let (_, person, _area) = surroundings.unpack();
-
-    let reply: SimpleReply = reply.json_as()?;
-    assert_eq!(reply, SimpleReply::Done);
-
     assert_eq!(person.scope::<Wearing>()?.wearing.len(), 0);
     assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
 
