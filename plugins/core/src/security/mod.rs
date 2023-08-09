@@ -73,9 +73,7 @@ pub mod actions {
             credentials.set(self.password.to_owned());
             credentials.save()?;
 
-            Ok(Effect::Reply(EffectReply::Instance(Rc::new(
-                SimpleReply::Done,
-            ))))
+            Ok(SimpleReply::Done.into())
         }
     }
 }

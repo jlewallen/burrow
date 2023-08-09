@@ -1,5 +1,5 @@
 use anyhow::Result;
-use serde::de::DeserializeOwned;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{fmt::Debug, rc::Rc};
 
 use crate::{Audience, DomainEvent, When};
@@ -116,9 +116,9 @@ pub enum RevertReason {
     Deliberate(String),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub enum EffectReply {
-    Instance(Rc<dyn Reply>),
     TaggedJson(TaggedJson),
 }
 
@@ -131,30 +131,13 @@ impl From<TaggedJson> for EffectReply {
 impl ToJson for EffectReply {
     fn to_tagged_json(&self) -> std::result::Result<TaggedJson, TaggedJsonError> {
         match self {
-            EffectReply::Instance(reply) => reply.to_tagged_json(),
             EffectReply::TaggedJson(tagged_json) => Ok(tagged_json.clone()),
         }
     }
 }
 
-impl PartialEq for EffectReply {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::Instance(l0), Self::Instance(r0)) => {
-                // TODO It may be time to just get rid of the Box here all
-                // together and return JSON, we don't do anything else with this
-                // boxed value.
-                l0.to_tagged_json().expect("tagged json error")
-                    == r0.to_tagged_json().expect("tagged json error")
-            }
-            (EffectReply::Instance(_), EffectReply::TaggedJson(_)) => todo!(),
-            (EffectReply::TaggedJson(_), EffectReply::Instance(_)) => todo!(),
-            (EffectReply::TaggedJson(_), EffectReply::TaggedJson(_)) => todo!(),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+#[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub enum Effect {
     Ok,
@@ -163,17 +146,13 @@ pub enum Effect {
     Pong(TracePath),
 }
 
-impl PartialEq for Effect {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::Reply(l0), Self::Reply(r0)) => l0 == r0,
-            (Self::Pong(l0), Self::Pong(r0)) => l0 == r0,
-            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
-        }
+impl From<EffectReply> for Effect {
+    fn from(value: EffectReply) -> Self {
+        Effect::Reply(value)
     }
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct TracePath(Vec<String>);
 
 impl TracePath {
@@ -182,7 +161,7 @@ impl TracePath {
     }
 }
 
-impl Debug for TracePath {
+impl std::fmt::Debug for TracePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let value: String = self.clone().into();
         f.write_str(&value)
@@ -195,19 +174,39 @@ impl From<TracePath> for String {
     }
 }
 
-impl ToJson for Effect {
-    fn to_tagged_json(&self) -> std::result::Result<TaggedJson, TaggedJsonError> {
-        // TODO I'll need to work on this, if not to make tests scale.
-        match self {
-            Effect::Reply(reply) => reply.to_tagged_json(),
-            _ => todo!(),
-        }
+impl From<EntityObservation> for Effect {
+    fn from(value: EntityObservation) -> Self {
+        Self::Reply(value.to_tagged_json().expect("TODO").into())
     }
 }
 
-impl<T: Reply + 'static> From<T> for Effect {
-    fn from(value: T) -> Self {
-        Self::Reply(EffectReply::Instance(Rc::new(value)))
+impl From<InsideObservation> for Effect {
+    fn from(value: InsideObservation) -> Self {
+        Self::Reply(value.to_tagged_json().expect("TODO").into())
+    }
+}
+
+impl From<AreaObservation> for Effect {
+    fn from(value: AreaObservation) -> Self {
+        Self::Reply(value.to_tagged_json().expect("TODO").into())
+    }
+}
+
+impl From<MarkdownReply> for Effect {
+    fn from(value: MarkdownReply) -> Self {
+        Self::Reply(value.to_tagged_json().expect("TODO").into())
+    }
+}
+
+impl From<EditorReply> for Effect {
+    fn from(value: EditorReply) -> Self {
+        Self::Reply(value.to_tagged_json().expect("TODO").into())
+    }
+}
+
+impl From<SimpleReply> for Effect {
+    fn from(value: SimpleReply) -> Self {
+        Self::Reply(value.to_tagged_json().expect("TODO").into())
     }
 }
 

@@ -1,8 +1,8 @@
 use anyhow::Result;
 use bincode::{Decode, Encode};
-use kernel::{EffectReply, Incoming, JsonReply, TaggedJson, TaggedJsonError, ToJson};
+use kernel::{EffectReply, Incoming, TaggedJson, TaggedJsonError, ToJson};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, rc::Rc};
+use std::collections::HashMap;
 use tracing::*;
 
 pub trait Inbox<T, R> {
@@ -281,9 +281,10 @@ impl TryFrom<kernel::Effect> for Effect {
 impl From<Effect> for kernel::Effect {
     fn from(value: Effect) -> Self {
         match value {
-            Effect::Reply(value) => Self::Reply(EffectReply::Instance(Rc::new(JsonReply::from(
-                <Json as Into<serde_json::Value>>::into(value),
-            )))),
+            Effect::Reply(value) => Self::Reply(EffectReply::TaggedJson(
+                TaggedJson::new_from(<Json as Into<serde_json::Value>>::into(value))
+                    .expect("Malformed tagged JSON"),
+            )),
         }
     }
 }

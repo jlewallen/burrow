@@ -3,7 +3,10 @@ source: plugins/core/src/memory.rs
 expression: reply.to_debug_json()?
 ---
 {
-  "recallReply": {
-    "memories": []
+  "reply": {
+    "taggedJson": [
+      "memories",
+      []
+    ]
   }
 }

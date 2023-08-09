@@ -176,12 +176,12 @@ pub mod actions {
                 false,
             )?;
             let Some(page) = page else {
-                return Ok(Effect::Reply(EffectReply::Instance(Rc::new(SimpleReply::NotFound))));
+                return Ok(SimpleReply::NotFound.into())
             };
 
             let wiki = page.scope::<Wiki>()?;
             let reply: MarkdownReply = wiki.get_default().unwrap_or_else(|| "".to_owned()).into();
-            Ok(Effect::Reply(EffectReply::Instance(Rc::new(reply))))
+            Ok(reply.into())
         }
     }
 
@@ -206,7 +206,7 @@ pub mod actions {
                 true,
             )?;
             let Some(page) = page else {
-                return Ok(Effect::Reply(EffectReply::Instance(Rc::new(SimpleReply::NotFound))));
+                return Ok(SimpleReply::NotFound.into());
             };
 
             let wiki = page.scope::<Wiki>()?;
@@ -216,7 +216,7 @@ pub mod actions {
                 WorkingCopy::Markdown(body),
                 SaveHelpAction::new_template(page.key().clone())?,
             );
-            Ok(Effect::Reply(EffectReply::Instance(Rc::new(reply))))
+            Ok(reply.into())
         }
     }
 

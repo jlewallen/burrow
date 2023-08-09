@@ -126,9 +126,9 @@ impl Middleware for InteractiveEditor {
     ) -> Result<Effect, anyhow::Error> {
         match next.handle(value)? {
             Effect::Reply(reply) => {
-                match reply {
-                    kernel::EffectReply::Instance(reply) => {
-                        let value = reply.to_tagged_json()?.into_tagged();
+                match reply.clone() {
+                    kernel::EffectReply::TaggedJson(tagged) => {
+                        let value = tagged.into_tagged();
                         match &value {
                             serde_json::Value::Object(object) => {
                                 for (key, value) in object {
@@ -178,12 +178,11 @@ impl Middleware for InteractiveEditor {
                                     }
                                 }
 
-                                Ok(Effect::Reply(EffectReply::Instance(reply)))
+                                Ok(Effect::Reply(reply))
                             }
-                            _ => Ok(Effect::Reply(EffectReply::Instance(reply))),
+                            _ => Ok(Effect::Reply(reply)),
                         }
                     }
-                    EffectReply::TaggedJson(_) => todo!(),
                 }
             }
             effect => Ok(effect),
@@ -218,8 +217,7 @@ fn evaluate_commands(
 
     let rendered = match effect {
         Effect::Reply(reply) => match reply {
-            EffectReply::Instance(reply) => Some(renderer.render_reply(&reply)?),
-            EffectReply::TaggedJson(_) => todo!(),
+            EffectReply::TaggedJson(tagged) => Some(renderer.render_value(&tagged.into_tagged())?),
         },
         Effect::Ok => None,
         _ => todo!(),

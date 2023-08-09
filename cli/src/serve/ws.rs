@@ -15,7 +15,6 @@ use engine::{EvaluateAs, Notifier, Session, SessionOpener};
 use kernel::{
     Effect, EntityKey, EntryResolver, LookupBy, Perform, PerformAction, Performer, SimpleReply,
 };
-use replies::ToJson;
 
 use crate::{
     rpc::try_parse_action,
@@ -163,7 +162,7 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
                                     let session = session.set_session()?;
                                     let effect = session.perform(perform).expect("Perform failed");
                                     session.close(&notifier).expect("Error closing session");
-                                    Ok(effect.to_tagged_json()?.into_tagged())
+                                    Ok(serde_json::to_value(effect)?)
                                 }
                             });
 
@@ -194,7 +193,7 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
                                         EvaluateAs::Key(&EntityKey::new(&our_key)),
                                         &text,
                                     )?;
-                                    Ok(effect.to_tagged_json()?.into_tagged())
+                                    Ok(serde_json::to_value(effect)?)
                                 }
                             });
 

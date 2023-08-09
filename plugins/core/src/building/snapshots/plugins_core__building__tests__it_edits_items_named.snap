@@ -3,18 +3,23 @@ source: plugins/core/src/building/tests.rs
 expression: reply.to_debug_json()?
 ---
 {
-  "editorReply": {
-    "editing": {
-      "markdown": "Cool Broom\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n"
-    },
-    "key": "E-3",
-    "save": {
-      "saveQuickEditAction": {
-        "copy": {
-          "markdown": "!#$value"
+  "reply": {
+    "taggedJson": [
+      "editorReply",
+      {
+        "editing": {
+          "markdown": "Cool Broom\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n"
         },
-        "key": "E-3"
+        "key": "E-3",
+        "save": {
+          "saveQuickEditAction": {
+            "copy": {
+              "markdown": "!#$value"
+            },
+            "key": "E-3"
+          }
+        }
       }
-    }
+    ]
   }
 }

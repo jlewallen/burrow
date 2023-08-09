@@ -3,14 +3,17 @@ source: plugins/core/src/memory.rs
 expression: reply.to_debug_json()?
 ---
 {
-  "recallReply": {
-    "memories": [
-      {
-        "gid": 3,
-        "key": "E-3",
-        "name": "Doesn't actually exist",
-        "time": "1982-04-23T00:00:00Z"
-      }
+  "reply": {
+    "taggedJson": [
+      "memories",
+      [
+        {
+          "gid": 3,
+          "key": "E-3",
+          "name": "Doesn't actually exist",
+          "time": "1982-04-23T00:00:00Z"
+        }
+      ]
     ]
   }
 }

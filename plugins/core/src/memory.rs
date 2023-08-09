@@ -87,6 +87,14 @@ pub mod model {
 
     impl Reply for RecallReply {}
 
+    impl Into<Effect> for RecallReply {
+        fn into(self) -> Effect {
+            Effect::Reply(EffectReply::TaggedJson(
+                TaggedJson::new_from(serde_json::to_value(self).expect("TODO")).expect("TODO"),
+            ))
+        }
+    }
+
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct ItemEvent {
         pub(crate) key: EntityKey,
@@ -166,9 +174,10 @@ pub mod actions {
         fn perform(&self, _session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             let (_world, living, _area) = surroundings.unpack();
             let memories = memories_of(&living)?;
-            Ok(Effect::Reply(EffectReply::Instance(Rc::new(RecallReply {
+            Ok(RecallReply {
                 memories: memories.into_iter().map(|m| m.into()).collect(),
-            }))))
+            }
+            .into())
         }
     }
 }

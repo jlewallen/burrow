@@ -3,7 +3,12 @@ source: plugins/core/src/helping/tests.rs
 expression: effect.to_debug_json()?
 ---
 {
-  "markdownReply": {
-    "value": "# Hello, world!"
+  "reply": {
+    "taggedJson": [
+      "markdownReply",
+      {
+        "value": "# Hello, world!"
+      }
+    ]
   }
 }

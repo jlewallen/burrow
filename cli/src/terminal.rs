@@ -4,7 +4,6 @@ use anyhow::{anyhow, Result};
 use tracing::info;
 
 use engine::Session;
-use replies::Reply;
 
 pub struct Renderer {
     target: crate::text::Renderer,
@@ -17,8 +16,7 @@ impl Renderer {
         Ok(Self { target, session })
     }
 
-    pub fn render_reply(&self, reply: &Rc<dyn Reply>) -> Result<String> {
-        let value = reply.to_tagged_json()?.into_tagged();
+    pub fn render_value(&self, value: &serde_json::Value) -> Result<String> {
         self.target.render_value(&value)
     }
 }

@@ -3,5 +3,10 @@ source: plugins/core/src/carrying/tests.rs
 expression: reply.to_debug_json()?
 ---
 {
-  "simpleReply": "done"
+  "reply": {
+    "taggedJson": [
+      "simpleReply",
+      "done"
+    ]
+  }
 }

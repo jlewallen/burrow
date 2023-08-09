@@ -134,12 +134,12 @@ pub mod tests {
     pub use super::plugin::try_parsing;
 
     pub trait ToDebugJson {
-        fn to_debug_json(&self) -> Result<serde_json::Value, TaggedJsonError>;
+        fn to_debug_json(&self) -> Result<serde_json::Value, serde_json::Error>;
     }
 
-    impl<S: ToJson> ToDebugJson for S {
-        fn to_debug_json(&self) -> Result<serde_json::Value, TaggedJsonError> {
-            Ok(self.to_tagged_json()?.into())
+    impl ToDebugJson for Effect {
+        fn to_debug_json(&self) -> Result<serde_json::Value, serde_json::Error> {
+            serde_json::to_value(self)
         }
     }
 

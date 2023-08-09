@@ -1,9 +1,7 @@
 use anyhow::Result;
-use std::{rc::Rc, time::Instant};
+use std::time::Instant;
 use tera::{Context, Tera};
 use tracing::info;
-
-use replies::Reply;
 
 #[derive(Clone)]
 pub struct Renderer {
@@ -79,9 +77,5 @@ impl Renderer {
         all.push('\n');
 
         Ok(all)
-    }
-
-    pub fn render_reply(&self, reply: &Rc<dyn Reply>) -> Result<String> {
-        self.render_value(&reply.to_tagged_json()?.into_tagged())
     }
 }

@@ -3,13 +3,18 @@ source: plugins/core/src/looking/tests.rs
 expression: reply.to_debug_json()?
 ---
 {
-  "entityObservation": {
-    "entity": {
-      "desc": null,
-      "key": "E-1",
-      "name": "Hammer",
-      "qualified": "a Hammer"
-    },
-    "wearing": []
+  "reply": {
+    "taggedJson": [
+      "entityObservation",
+      {
+        "entity": {
+          "desc": null,
+          "key": "E-1",
+          "name": "Hammer",
+          "qualified": "a Hammer"
+        },
+        "wearing": []
+      }
+    ]
   }
 }

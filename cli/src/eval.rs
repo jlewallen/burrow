@@ -45,11 +45,10 @@ fn evaluate_commands(domain: Domain, cmd: Command) -> Result<()> {
         {
             match effect {
                 Effect::Reply(reply) => match reply {
-                    kernel::EffectReply::Instance(reply) => {
-                        let text = renderer.render_reply(&reply)?;
+                    kernel::EffectReply::TaggedJson(tagged) => {
+                        let text = renderer.render_value(&tagged.into_tagged())?;
                         println!("{}", text);
                     }
-                    kernel::EffectReply::TaggedJson(_) => todo!(),
                 },
                 _ => todo!(),
             }
