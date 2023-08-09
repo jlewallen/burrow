@@ -9,6 +9,8 @@ use tracing::*;
 
 pub use replies::*;
 
+use crate::get_my_session;
+
 pub static WORLD_KEY: &str = "world";
 
 pub static NAME_PROPERTY: &str = "name";
@@ -172,6 +174,12 @@ impl Kind {
     pub fn new(identity: Identity) -> Self {
         Self { identity }
     }
+
+    pub fn new_from_session() -> Self {
+        Self {
+            identity: get_my_session().expect("No session").new_identity(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -261,7 +269,8 @@ pub enum DomainError {
 
 impl From<serde_json::Error> for DomainError {
     fn from(source: serde_json::Error) -> Self {
-        DomainError::ParseFailed(source)
+        panic!("{:?}", source);
+        // DomainError::ParseFailed(source)
     }
 }
 

@@ -91,7 +91,7 @@ pub mod model {
 
         pub fn to_entry(&self) -> Result<Entry, DomainError> {
             match self {
-                Article::Just(e) => Ok(e.to_entry()?),
+                Article::Just(e) => e.to_entry(),
             }
         }
     }
@@ -191,6 +191,7 @@ pub mod model {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Wearable {
+        #[serde(default = "Kind::new_from_session")]
         kind: Kind,
     }
 
