@@ -13,8 +13,8 @@ pub use tracing::*;
 #[derive(Debug, Clone, PartialEq)]
 pub enum English {
     Literal(String),
-    Phrase(Box<Vec<English>>),
-    OneOf(Box<Vec<English>>),
+    Phrase(Vec<English>),
+    OneOf(Vec<English>),
     Optional(Box<English>),
     Unheld,
     Held,
@@ -59,16 +59,11 @@ fn phrase(i: &str) -> IResult<&str, English> {
         |optionals| {
             if optionals.len() == 1 {
                 match optionals.get(0) {
-                    Some(v) => English::Phrase(Box::new(v.to_vec())),
+                    Some(v) => English::Phrase(v.to_vec()),
                     None => todo!(),
                 }
             } else {
-                English::OneOf(Box::new(
-                    optionals
-                        .into_iter()
-                        .map(|e| English::Phrase(Box::new(e)))
-                        .collect(),
-                ))
+                English::OneOf(optionals.into_iter().map(|e| English::Phrase(e)).collect())
             }
         },
     )(i)
@@ -147,35 +142,35 @@ mod tests {
                 vec![
                     English::Literal("PUT".into()),
                     English::Held,
-                    English::OneOf(Box::new(vec![
-                        English::Phrase(Box::new(vec![
+                    English::OneOf(vec![
+                        English::Phrase(vec![
                             English::Literal("INSIDE".into()),
                             English::Literal("OF".into()),
-                        ])),
-                        English::Phrase(Box::new(vec![English::Literal("IN".into())])),
-                    ])),
-                    English::Optional(Box::new(English::OneOf(Box::new(vec![
-                        English::Phrase(Box::new(vec![English::Held])),
-                        English::Phrase(Box::new(vec![English::Unheld])),
-                    ])))),
+                        ]),
+                        English::Phrase(vec![English::Literal("IN".into())]),
+                    ]),
+                    English::Optional(Box::new(English::OneOf(vec![
+                        English::Phrase(vec![English::Held]),
+                        English::Phrase(vec![English::Unheld]),
+                    ]))),
                 ],
             ),
             Fixture::new(
                 r#"TAKE (OUT)? #contained (OUT OF (#held|#unheld))?"#,
                 vec![
                     English::Literal("TAKE".into()),
-                    English::Optional(Box::new(English::Phrase(Box::new(vec![English::Literal(
+                    English::Optional(Box::new(English::Phrase(vec![English::Literal(
                         "OUT".into(),
-                    )])))),
+                    )]))),
                     English::Contained,
-                    English::Optional(Box::new(English::Phrase(Box::new(vec![
+                    English::Optional(Box::new(English::Phrase(vec![
                         English::Literal("OUT".into()),
                         English::Literal("OF".into()),
-                        English::OneOf(Box::new(vec![
-                            English::Phrase(Box::new(vec![English::Held])),
-                            English::Phrase(Box::new(vec![English::Unheld])),
-                        ])),
-                    ])))),
+                        English::OneOf(vec![
+                            English::Phrase(vec![English::Held]),
+                            English::Phrase(vec![English::Unheld]),
+                        ]),
+                    ]))),
                 ],
             ),
             Fixture::new(
@@ -186,7 +181,7 @@ mod tests {
                 r#"DROP (#held)?"#,
                 vec![
                     English::Literal("DROP".into()),
-                    English::Optional(Box::new(English::Phrase(Box::new(vec![English::Held])))),
+                    English::Optional(Box::new(English::Phrase(vec![English::Held]))),
                 ],
             ),
             Fixture::new(
