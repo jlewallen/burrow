@@ -5,7 +5,10 @@ use engine::HasWellKnownEntities;
 use kernel::build_entity;
 use kernel::ActiveSession;
 use kernel::EntityPtr;
+use plugins_core::carrying::model::Containing;
+use plugins_core::fashion::model::Wearing;
 use plugins_core::tools;
+use plugins_rune::Behaviors;
 use std::rc::Rc;
 use tokio::sync::broadcast;
 use tokio::sync::Mutex;
@@ -146,6 +149,9 @@ impl AppState {
         let creating = build_entity()
             .creator(world.entity_ref())
             .living()
+            .default_scope::<Wearing>()?
+            .default_scope::<Containing>()?
+            .default_scope::<Behaviors>()?
             .name(&user.name)
             .try_into()?;
 

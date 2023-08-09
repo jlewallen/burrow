@@ -6,6 +6,7 @@ use std::str::FromStr;
 use std::{collections::HashMap, fmt::Display};
 
 use super::base::*;
+use crate::Scope;
 use crate::{
     get_my_session, model::Needs, CoreProps, HasScopes, Properties, ScopeValue, Scopes, ScopesMut,
     SessionRef,
@@ -372,6 +373,20 @@ impl EntityBuilder {
 
     pub fn living(self) -> Self {
         self.class(EntityClass::living())
+    }
+
+    pub fn default_scope<T>(mut self) -> Result<Self>
+    where
+        T: Scope + Default,
+    {
+        if self.scopes.is_none() {
+            self.scopes = Some(ScopeMap::default());
+        }
+        let scopes = self.scopes.as_mut().unwrap();
+        let mut scopes = scopes.scopes_mut();
+        scopes.replace_scope(&T::default())?;
+
+        Ok(self)
     }
 }
 
