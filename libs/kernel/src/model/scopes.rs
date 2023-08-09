@@ -5,15 +5,7 @@ use std::collections::HashMap;
 use tracing::{debug, span, Level};
 
 use crate::{get_my_session, DomainError, SessionRef};
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct JsonValue(serde_json::Value);
-
-impl From<serde_json::Value> for JsonValue {
-    fn from(value: serde_json::Value) -> Self {
-        Self(value)
-    }
-}
+use replies::Json;
 
 /// TODO Consider giving this Trait and the combination of another the ability to
 /// extract itself, potentially cleaning up Entity.
@@ -34,11 +26,8 @@ pub trait Needs<T> {
 #[serde(untagged)]
 #[non_exhaustive]
 pub enum ScopeValue {
-    Original(JsonValue),
-    Intermediate {
-        value: JsonValue,
-        previous: Option<JsonValue>,
-    },
+    Original(Json),
+    Intermediate { value: Json, previous: Option<Json> },
 }
 
 impl Serialize for ScopeValue {
@@ -66,8 +55,8 @@ pub struct Scopes<'e> {
 #[allow(dead_code)]
 pub struct ModifiedScope {
     scope: String,
-    value: JsonValue,
-    previous: Option<JsonValue>,
+    value: Json,
+    previous: Option<Json>,
 }
 
 impl<'e> Scopes<'e> {
@@ -96,7 +85,7 @@ impl<'e> Scopes<'e> {
             | ScopeValue::Intermediate {
                 value: v,
                 previous: _,
-            } => serde_json::from_value(v.0)?,
+            } => serde_json::from_value(v.into())?,
         };
 
         match get_my_session() {
@@ -134,7 +123,7 @@ impl<'e> ScopesMut<'e> {
 
         let _span = span!(Level::TRACE, "scope", scope = scope_key).entered();
 
-        let value = JsonValue(scope.serialize()?);
+        let value: Json = scope.serialize()?.into();
 
         debug!("scope-replace");
 
@@ -169,7 +158,7 @@ impl<'e> ScopesMut<'e> {
         if !self.map.contains_key(scope_key) {
             self.map.insert(
                 scope_key.to_owned(),
-                ScopeValue::Original(JsonValue(serde_json::Value::Object(Default::default()))),
+                ScopeValue::Original(serde_json::Value::Object(Default::default()).into()),
             );
         }
         Ok(())

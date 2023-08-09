@@ -14,6 +14,7 @@ path = "../../libs/macros"
 anyhow = "1.0.72"
 serde = { version = "1.0.180", features = ["derive"] }
 serde_json = "1.0.104"
+thiserror = "1.0.44"
 
 [dev-dependencies]
 insta = { version = "1.31.0", features = ["json"] }

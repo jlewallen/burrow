@@ -1,10 +1,71 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::fmt::Debug;
 
 use macros::ToJson;
 
-pub trait ToJson: Debug {
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Json(serde_json::Value);
+
+impl From<serde_json::Value> for Json {
+    fn from(value: serde_json::Value) -> Self {
+        Self(value)
+    }
+}
+
+impl Into<serde_json::Value> for Json {
+    fn into(self) -> serde_json::Value {
+        self.0
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct TaggedJson(String, serde_json::Value);
+
+impl TaggedJson {
+    pub fn tag(&self) -> &str {
+        &self.0
+    }
+
+    pub fn value(&self) -> &serde_json::Value {
+        &self.1
+    }
+}
+
+impl TryFrom<serde_json::Value> for TaggedJson {
+    type Error = TaggedJsonError;
+
+    fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Object(o) => {
+                let mut iter = o.into_iter();
+                if let Some(solo) = iter.next() {
+                    if iter.next().is_some() {
+                        Err(TaggedJsonError::Malformed)
+                    } else {
+                        Ok(Self(solo.0, solo.1))
+                    }
+                } else {
+                    Err(TaggedJsonError::Malformed)
+                }
+            }
+            _ => Err(TaggedJsonError::Malformed),
+        }
+    }
+}
+
+impl Into<serde_json::Value> for TaggedJson {
+    fn into(self) -> serde_json::Value {
+        serde_json::Value::Object([(self.0, self.1)].into_iter().collect())
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum TaggedJsonError {
+    #[error("Malformed tagged JSON")]
+    Malformed,
+}
+
+pub trait ToJson: std::fmt::Debug {
     fn to_tagged_json(&self) -> Result<Value, serde_json::Error>;
 }
 
@@ -212,7 +273,7 @@ mod tests {
     }
 }
 
-pub trait DomainEvent: ToJson + Debug {}
+pub trait DomainEvent: ToJson {}
 
 #[derive(Debug, Serialize, Deserialize, ToJson)]
 #[serde(rename_all = "camelCase")]
