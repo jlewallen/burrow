@@ -273,9 +273,9 @@ pub mod actions {
                             area: (&area).observe(&user)?.expect("No observed entity"),
                         },
                     )?),
-                    DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
+                    DomainOutcome::Nope => Ok(SimpleReply::NotFound.try_into()?),
                 },
-                None => Ok(SimpleReply::NotFound.into()),
+                None => Ok(SimpleReply::NotFound.try_into()?),
             }
         }
     }
@@ -306,11 +306,11 @@ pub mod actions {
                                 area: (&area).observe(&user)?.expect("No observed entity"),
                             },
                         )?),
-                        DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
+                        DomainOutcome::Nope => Ok(SimpleReply::NotFound.try_into()?),
                     },
-                    None => Ok(SimpleReply::NotFound.into()),
+                    None => Ok(SimpleReply::NotFound.try_into()?),
                 },
-                None => Ok(SimpleReply::NotFound.into()),
+                None => Ok(SimpleReply::NotFound.try_into()?),
             }
         }
     }
@@ -337,16 +337,16 @@ pub mod actions {
                         if tools::is_container(&vessel)? {
                             let from = tools::container_of(&item)?;
                             match tools::move_between(&from.try_into()?, &vessel, &item)? {
-                                DomainOutcome::Ok => Ok(SimpleReply::Done.into()),
-                                DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
+                                DomainOutcome::Ok => Ok(SimpleReply::Done.try_into()?),
+                                DomainOutcome::Nope => Ok(SimpleReply::NotFound.try_into()?),
                             }
                         } else {
-                            Ok(SimpleReply::Impossible.into())
+                            Ok(SimpleReply::Impossible.try_into()?)
                         }
                     }
-                    None => Ok(SimpleReply::NotFound.into()),
+                    None => Ok(SimpleReply::NotFound.try_into()?),
                 },
-                None => Ok(SimpleReply::NotFound.into()),
+                None => Ok(SimpleReply::NotFound.try_into()?),
             }
         }
     }
@@ -372,16 +372,16 @@ pub mod actions {
                     if tools::is_container(&vessel)? {
                         match session.find_item(surroundings, &self.item)? {
                             Some(item) => match tools::move_between(&vessel, &user, &item)? {
-                                DomainOutcome::Ok => Ok(SimpleReply::Done.into()),
-                                DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
+                                DomainOutcome::Ok => Ok(SimpleReply::Done.try_into()?),
+                                DomainOutcome::Nope => Ok(SimpleReply::NotFound.try_into()?),
                             },
-                            None => Ok(SimpleReply::NotFound.into()),
+                            None => Ok(SimpleReply::NotFound.try_into()?),
                         }
                     } else {
-                        Ok(SimpleReply::Impossible.into())
+                        Ok(SimpleReply::Impossible.try_into()?)
                     }
                 }
-                None => Ok(SimpleReply::NotFound.into()),
+                None => Ok(SimpleReply::NotFound.try_into()?),
             }
         }
     }

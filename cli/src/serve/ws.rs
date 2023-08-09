@@ -248,7 +248,7 @@ where
     {
         effect
     } else {
-        SimpleReply::What.into()
+        SimpleReply::What.try_into()?
     };
 
     session.close(notifier).expect("Error closing session");

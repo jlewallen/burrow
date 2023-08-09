@@ -87,11 +87,13 @@ pub mod model {
 
     impl Reply for RecallReply {}
 
-    impl Into<Effect> for RecallReply {
-        fn into(self) -> Effect {
-            Effect::Reply(EffectReply::TaggedJson(
-                TaggedJson::new_from(serde_json::to_value(self).expect("TODO")).expect("TODO"),
-            ))
+    impl TryInto<Effect> for RecallReply {
+        type Error = TaggedJsonError;
+
+        fn try_into(self) -> std::result::Result<Effect, Self::Error> {
+            Ok(Effect::Reply(EffectReply::TaggedJson(
+                TaggedJson::new_from(serde_json::to_value(self)?)?,
+            )))
         }
     }
 
@@ -177,7 +179,7 @@ pub mod actions {
             Ok(RecallReply {
                 memories: memories.into_iter().map(|m| m.into()).collect(),
             }
-            .into())
+            .try_into()?)
         }
     }
 }

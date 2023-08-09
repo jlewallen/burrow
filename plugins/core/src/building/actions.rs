@@ -19,7 +19,7 @@ impl Action for AddScopeAction {
         // fields are ommitted. Look into `#[serde(default)]` to make this work
         // w/o a bunch of Option's?
         let Some(item) = tools::holding_one_item(surroundings.living())? else {
-            return Ok(SimpleReply::NotFound.into());
+            return Ok(SimpleReply::NotFound.try_into()?);
         };
 
         debug!(item = ?item, scope_key = %self.scope_key, "add-scope");
@@ -28,7 +28,7 @@ impl Action for AddScopeAction {
 
         item.scopes_mut().add_scope_by_key(&self.scope_key)?;
 
-        return Ok(SimpleReply::Done.into());
+        return Ok(SimpleReply::Done.try_into()?);
     }
 }
 
@@ -54,9 +54,9 @@ impl Action for EditAction {
                     WorkingCopy::Markdown(quick_edit.to_string()),
                     SaveQuickEditAction::new_template(editing.key().clone())?,
                 )
-                .into())
+                .try_into()?)
             }
-            None => Ok(SimpleReply::NotFound.into()),
+            None => Ok(SimpleReply::NotFound.try_into()?),
         }
     }
 }
@@ -83,9 +83,9 @@ impl Action for EditRawAction {
                     WorkingCopy::Json(editing.to_json_value()?),
                     SaveEntityJsonAction::new_template(editing.key().clone())?,
                 )
-                .into())
+                .try_into()?)
             }
-            None => Ok(SimpleReply::NotFound.into()),
+            None => Ok(SimpleReply::NotFound.try_into()?),
         }
     }
 }
@@ -107,9 +107,9 @@ impl Action for DuplicateAction {
             Some(duplicating) => {
                 info!("duplicating {:?}", duplicating);
                 _ = tools::duplicate(&duplicating)?;
-                Ok(SimpleReply::Done.into())
+                Ok(SimpleReply::Done.try_into()?)
             }
-            None => Ok(SimpleReply::NotFound.into()),
+            None => Ok(SimpleReply::NotFound.try_into()?),
         }
     }
 }
@@ -131,9 +131,9 @@ impl Action for ObliterateAction {
             Some(obliterating) => {
                 info!("obliterate {:?}", obliterating);
                 tools::obliterate(&obliterating)?;
-                Ok(SimpleReply::Done.into())
+                Ok(SimpleReply::Done.try_into()?)
             }
-            None => Ok(SimpleReply::NotFound.into()),
+            None => Ok(SimpleReply::NotFound.try_into()?),
         }
     }
 }
@@ -163,7 +163,7 @@ impl Action for MakeItemAction {
         tools::set_quantity(&new_item, 1f32)?;
         tools::set_container(&creator, &vec![new_item.try_into()?])?;
 
-        Ok(SimpleReply::Done.into())
+        Ok(SimpleReply::Done.try_into()?)
     }
 }
 
@@ -220,7 +220,7 @@ impl Action for BidirectionalDigAction {
                 living,
                 action: PerformAction::Instance(Rc::new(LookAction {})),
             }),
-            DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
+            DomainOutcome::Nope => Ok(SimpleReply::NotFound.try_into()?),
         }
     }
 }
@@ -267,12 +267,12 @@ impl Action for SaveQuickEditAction {
                             entity.set_desc(&desc)?;
                         }
 
-                        Ok(SimpleReply::Done.into())
+                        Ok(SimpleReply::Done.try_into()?)
                     }
                     _ => Err(anyhow::anyhow!("Save expected JSON working copy")),
                 }
             }
-            None => Ok(SimpleReply::NotFound.into()),
+            None => Ok(SimpleReply::NotFound.try_into()?),
         }
     }
 }
@@ -315,12 +315,12 @@ impl Action for SaveEntityJsonAction {
                         let replacing = Entity::from_value(value.clone())?;
                         entity.replace(replacing);
 
-                        Ok(SimpleReply::Done.into())
+                        Ok(SimpleReply::Done.try_into()?)
                     }
                     _ => Err(anyhow::anyhow!("Save expected JSON working copy")),
                 }
             }
-            None => Ok(SimpleReply::NotFound.into()),
+            None => Ok(SimpleReply::NotFound.try_into()?),
         }
     }
 }

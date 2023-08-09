@@ -267,10 +267,10 @@ pub mod actions {
                             },
                         )?
                         .into()),
-                        DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
+                        DomainOutcome::Nope => Ok(SimpleReply::NotFound.try_into()?),
                     }
                 }
-                None => Ok(SimpleReply::NotFound.into()),
+                None => Ok(SimpleReply::NotFound.try_into()?),
             }
         }
     }
@@ -302,11 +302,11 @@ pub mod actions {
                             },
                         )?
                         .into()),
-                        DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
+                        DomainOutcome::Nope => Ok(SimpleReply::NotFound.try_into()?),
                     },
-                    None => Ok(SimpleReply::NotFound.into()),
+                    None => Ok(SimpleReply::NotFound.try_into()?),
                 },
-                None => Ok(SimpleReply::NotFound.into()),
+                None => Ok(SimpleReply::NotFound.try_into()?),
             }
         }
     }

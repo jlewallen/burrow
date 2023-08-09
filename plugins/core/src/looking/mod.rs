@@ -245,7 +245,7 @@ pub mod actions {
 
             Ok(new_area_observation(&user, &area)
                 .with_context(|| "Observing area")?
-                .into())
+                .try_into()?)
         }
     }
 
@@ -266,14 +266,14 @@ pub mod actions {
                 Some(target) => {
                     if tools::is_container(&target)? {
                         match new_inside_observation(&user, &target)? {
-                            Some(observation) => Ok(observation.into()),
-                            None => Ok(SimpleReply::NotFound.into()),
+                            Some(observation) => Ok(observation.try_into()?),
+                            None => Ok(SimpleReply::NotFound.try_into()?),
                         }
                     } else {
-                        Ok(SimpleReply::Impossible.into())
+                        Ok(SimpleReply::Impossible.try_into()?)
                     }
                 }
-                None => Ok(SimpleReply::NotFound.into()),
+                None => Ok(SimpleReply::NotFound.try_into()?),
             }
         }
     }
@@ -293,10 +293,10 @@ pub mod actions {
 
             match session.find_item(surroundings, &self.item)? {
                 Some(target) => match new_entity_observation(&user, &target)? {
-                    Some(observation) => Ok(observation.into()),
-                    None => Ok(SimpleReply::NotFound.into()),
+                    Some(observation) => Ok(observation.try_into()?),
+                    None => Ok(SimpleReply::NotFound.try_into()?),
                 },
-                None => Ok(SimpleReply::NotFound.into()),
+                None => Ok(SimpleReply::NotFound.try_into()?),
             }
         }
     }

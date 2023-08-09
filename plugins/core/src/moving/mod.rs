@@ -308,13 +308,13 @@ pub mod actions {
                                         action: PerformAction::Instance(Rc::new(LookAction {})),
                                     })
                                 }
-                                DomainOutcome::Nope => Ok(SimpleReply::NotFound.into()),
+                                DomainOutcome::Nope => Ok(SimpleReply::NotFound.try_into()?),
                             }
                         }
-                        CanMove::Prevent => Ok(SimpleReply::Prevented.into()),
+                        CanMove::Prevent => Ok(SimpleReply::Prevented.try_into()?),
                     }
                 }
-                None => Ok(SimpleReply::NotFound.into()),
+                None => Ok(SimpleReply::NotFound.try_into()?),
             }
         }
     }

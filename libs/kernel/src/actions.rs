@@ -116,7 +116,7 @@ pub enum RevertReason {
     Deliberate(String),
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum EffectReply {
     TaggedJson(TaggedJson),
@@ -174,39 +174,51 @@ impl From<TracePath> for String {
     }
 }
 
-impl From<EntityObservation> for Effect {
-    fn from(value: EntityObservation) -> Self {
-        Self::Reply(value.to_tagged_json().expect("TODO").into())
+impl TryFrom<EntityObservation> for Effect {
+    type Error = TaggedJsonError;
+
+    fn try_from(value: EntityObservation) -> std::result::Result<Self, Self::Error> {
+        Ok(Self::Reply(value.to_tagged_json()?.into()))
     }
 }
 
-impl From<InsideObservation> for Effect {
-    fn from(value: InsideObservation) -> Self {
-        Self::Reply(value.to_tagged_json().expect("TODO").into())
+impl TryFrom<InsideObservation> for Effect {
+    type Error = TaggedJsonError;
+
+    fn try_from(value: InsideObservation) -> std::result::Result<Self, Self::Error> {
+        Ok(Self::Reply(value.to_tagged_json()?.into()))
     }
 }
 
-impl From<AreaObservation> for Effect {
-    fn from(value: AreaObservation) -> Self {
-        Self::Reply(value.to_tagged_json().expect("TODO").into())
+impl TryFrom<AreaObservation> for Effect {
+    type Error = TaggedJsonError;
+
+    fn try_from(value: AreaObservation) -> std::result::Result<Self, Self::Error> {
+        Ok(Self::Reply(value.to_tagged_json()?.into()))
     }
 }
 
-impl From<MarkdownReply> for Effect {
-    fn from(value: MarkdownReply) -> Self {
-        Self::Reply(value.to_tagged_json().expect("TODO").into())
+impl TryFrom<MarkdownReply> for Effect {
+    type Error = TaggedJsonError;
+
+    fn try_from(value: MarkdownReply) -> std::result::Result<Self, Self::Error> {
+        Ok(Self::Reply(value.to_tagged_json()?.into()))
     }
 }
 
-impl From<EditorReply> for Effect {
-    fn from(value: EditorReply) -> Self {
-        Self::Reply(value.to_tagged_json().expect("TODO").into())
+impl TryFrom<EditorReply> for Effect {
+    type Error = TaggedJsonError;
+
+    fn try_from(value: EditorReply) -> std::result::Result<Self, Self::Error> {
+        Ok(Self::Reply(value.to_tagged_json()?.into()))
     }
 }
 
-impl From<SimpleReply> for Effect {
-    fn from(value: SimpleReply) -> Self {
-        Self::Reply(value.to_tagged_json().expect("TODO").into())
+impl TryFrom<SimpleReply> for Effect {
+    type Error = TaggedJsonError;
+
+    fn try_from(value: SimpleReply) -> std::result::Result<Self, Self::Error> {
+        Ok(Self::Reply(value.to_tagged_json()?.into()))
     }
 }
 

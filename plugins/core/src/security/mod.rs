@@ -73,7 +73,7 @@ pub mod actions {
             credentials.set(self.password.to_owned());
             credentials.save()?;
 
-            Ok(SimpleReply::Done.into())
+            Ok(SimpleReply::Done.try_into()?)
         }
     }
 }

@@ -176,12 +176,12 @@ pub mod actions {
                 false,
             )?;
             let Some(page) = page else {
-                return Ok(SimpleReply::NotFound.into())
+                return Ok(SimpleReply::NotFound.try_into()?)
             };
 
             let wiki = page.scope::<Wiki>()?;
             let reply: MarkdownReply = wiki.get_default().unwrap_or_else(|| "".to_owned()).into();
-            Ok(reply.into())
+            Ok(reply.try_into()?)
         }
     }
 
@@ -206,7 +206,7 @@ pub mod actions {
                 true,
             )?;
             let Some(page) = page else {
-                return Ok(SimpleReply::NotFound.into());
+                return Ok(SimpleReply::NotFound.try_into()?);
             };
 
             let wiki = page.scope::<Wiki>()?;
@@ -216,7 +216,7 @@ pub mod actions {
                 WorkingCopy::Markdown(body),
                 SaveHelpAction::new_template(page.key().clone())?,
             );
-            Ok(reply.into())
+            Ok(reply.try_into()?)
         }
     }
 
@@ -258,9 +258,9 @@ pub mod actions {
                         _ => unimplemented!(),
                     }
 
-                    Ok(SimpleReply::Done.into())
+                    Ok(SimpleReply::Done.try_into()?)
                 }
-                None => Ok(SimpleReply::NotFound.into()),
+                None => Ok(SimpleReply::NotFound.try_into()?),
             }
         }
     }

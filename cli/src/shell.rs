@@ -206,7 +206,7 @@ fn evaluate_commands(
     let effect: Effect = if let Some(effect) = session.evaluate_and_perform(&username, &line)? {
         effect
     } else {
-        SimpleReply::What.into()
+        SimpleReply::What.try_into()?
     };
 
     let notifier = QueuedNotifier::default();

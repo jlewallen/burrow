@@ -199,9 +199,9 @@ pub mod actions {
                         WorkingCopy::Script(script),
                         SaveScriptAction::new_template(editing.key().clone())?,
                     )
-                    .into())
+                    .try_into()?)
                 }
-                None => Ok(SimpleReply::NotFound.into()),
+                None => Ok(SimpleReply::NotFound.try_into()?),
             }
         }
     }
@@ -245,9 +245,9 @@ pub mod actions {
                         _ => unimplemented!(),
                     }
 
-                    Ok(SimpleReply::Done.into())
+                    Ok(SimpleReply::Done.try_into()?)
                 }
-                None => Ok(SimpleReply::NotFound.into()),
+                None => Ok(SimpleReply::NotFound.try_into()?),
             }
         }
     }
