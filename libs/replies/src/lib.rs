@@ -22,19 +22,11 @@ impl Into<serde_json::Value> for Json {
 pub struct TaggedJson(String, serde_json::Value);
 
 impl TaggedJson {
-    pub fn tag(&self) -> &str {
-        &self.0
+    pub fn new(tag: String, value: serde_json::Value) -> Self {
+        Self(tag, value)
     }
 
-    pub fn value(&self) -> &serde_json::Value {
-        &self.1
-    }
-}
-
-impl TryFrom<serde_json::Value> for TaggedJson {
-    type Error = TaggedJsonError;
-
-    fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
+    pub fn new_from(value: serde_json::Value) -> Result<Self, TaggedJsonError> {
         match value {
             Value::Object(o) => {
                 let mut iter = o.into_iter();
@@ -51,6 +43,30 @@ impl TryFrom<serde_json::Value> for TaggedJson {
             _ => Err(TaggedJsonError::Malformed),
         }
     }
+
+    pub fn tag(&self) -> &str {
+        &self.0
+    }
+
+    pub fn value(&self) -> &serde_json::Value {
+        &self.1
+    }
+
+    pub fn into_untagged(self) -> serde_json::Value {
+        self.1
+    }
+
+    pub fn into_tagged(self) -> serde_json::Value {
+        self.into()
+    }
+}
+
+impl TryFrom<serde_json::Value> for TaggedJson {
+    type Error = TaggedJsonError;
+
+    fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
+        TaggedJson::new_from(value)
+    }
 }
 
 impl Into<serde_json::Value> for TaggedJson {
@@ -63,10 +79,18 @@ impl Into<serde_json::Value> for TaggedJson {
 pub enum TaggedJsonError {
     #[error("Malformed tagged JSON")]
     Malformed,
+    #[error("JSON Error")]
+    OtherJson(#[source] serde_json::Error),
+}
+
+impl From<serde_json::Error> for TaggedJsonError {
+    fn from(value: serde_json::Error) -> Self {
+        Self::OtherJson(value)
+    }
 }
 
 pub trait ToJson: std::fmt::Debug {
-    fn to_tagged_json(&self) -> Result<Value, serde_json::Error>;
+    fn to_tagged_json(&self) -> Result<TaggedJson, TaggedJsonError>;
 }
 
 pub trait Reply: ToJson {}
@@ -178,6 +202,12 @@ impl From<serde_json::Value> for JsonTemplate {
     }
 }
 
+impl From<TaggedJson> for JsonTemplate {
+    fn from(value: TaggedJson) -> Self {
+        Self(value.into_tagged())
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToJson)]
 #[serde(rename_all = "camelCase")]
 pub struct EditorReply {
@@ -268,7 +298,7 @@ mod tests {
             HelloWorld::Message("Hey!".to_owned())
                 .to_tagged_json()
                 .expect("ToJson failed"),
-            json!({ "helloWorld": { "message": "Hey!" } })
+            TaggedJson::new("helloWorld".to_owned(), json!({ "message": "Hey!"}))
         );
     }
 }

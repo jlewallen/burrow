@@ -9,7 +9,7 @@ pub fn json_derive_to_json(input: TokenStream) -> TokenStream {
 
     let done = quote! {
         impl ToJson for #name {
-            fn to_tagged_json(&self) -> std::result::Result<serde_json::Value, serde_json::Error> {
+            fn to_tagged_json(&self) -> std::result::Result<TaggedJson, TaggedJsonError> {
                 let value = serde_json::to_value(self)?;
                 let key = stringify!(#name);
                 let mut c = key.chars();
@@ -17,7 +17,7 @@ pub fn json_derive_to_json(input: TokenStream) -> TokenStream {
                     None => String::new(),
                     Some(f) => f.to_lowercase().collect::<String>() + c.as_str(),
                 };
-                Ok(serde_json::json!({ key: value }))
+                Ok(TaggedJson::new(key, value))
             }
         }
     };

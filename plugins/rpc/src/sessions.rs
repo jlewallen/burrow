@@ -8,8 +8,8 @@ use std::{
 use tracing::*;
 
 use kernel::{
-    get_my_session, Audience, DomainError, DomainEvent, Effect, Entity, EntityGid, Entry, ToJson,
-    When,
+    get_my_session, Audience, DomainError, DomainEvent, Effect, Entity, EntityGid, Entry,
+    TaggedJson, TaggedJsonError, ToJson, When,
 };
 use macros::*;
 use plugins_core::tools;

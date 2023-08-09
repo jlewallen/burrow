@@ -48,7 +48,7 @@ impl Notifier for SenderNotifier {
     fn notify(&self, audience: &EntityKey, observed: &Rc<dyn DomainEvent>) -> Result<()> {
         debug!("notify {:?} -> {:?}", audience, observed);
 
-        let serialized = observed.to_tagged_json()?;
+        let serialized = observed.to_tagged_json()?.into_tagged();
         let outgoing = ServerMessage::Notify(audience.to_string(), serialized);
         self.tx.send(outgoing)?;
 

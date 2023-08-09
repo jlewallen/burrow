@@ -1,6 +1,6 @@
 use anyhow::Result;
 use bincode::{Decode, Encode};
-use kernel::{EffectReply, Incoming, JsonReply, ToJson};
+use kernel::{EffectReply, Incoming, JsonReply, TaggedJson, TaggedJsonError, ToJson};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, rc::Rc};
 use tracing::*;
@@ -158,8 +158,9 @@ impl From<serde_json::Value> for Json {
 }
 
 impl ToJson for Json {
-    fn to_tagged_json(&self) -> std::result::Result<serde_json::Value, serde_json::Error> {
-        Ok(self.0.clone().into())
+    fn to_tagged_json(&self) -> std::result::Result<TaggedJson, TaggedJsonError> {
+        let value: serde_json::Value = self.0.clone().into();
+        Ok(TaggedJson::new_from(value)?)
     }
 }
 
@@ -269,7 +270,9 @@ impl TryFrom<kernel::Effect> for Effect {
 
     fn try_from(value: kernel::Effect) -> std::result::Result<Self, Self::Error> {
         match value {
-            kernel::Effect::Reply(reply) => Ok(Self::Reply(reply.to_tagged_json()?.try_into()?)),
+            kernel::Effect::Reply(reply) => Ok(Self::Reply(
+                reply.to_tagged_json()?.into_tagged().try_into()?,
+            )),
             _ => todo!(),
         }
     }

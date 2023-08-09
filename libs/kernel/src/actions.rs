@@ -1,6 +1,5 @@
 use anyhow::Result;
 use serde::de::DeserializeOwned;
-use serde_json::Value;
 use std::{fmt::Debug, rc::Rc};
 
 use crate::{Audience, DomainEvent, When};
@@ -123,7 +122,7 @@ pub enum EffectReply {
 }
 
 impl ToJson for EffectReply {
-    fn to_tagged_json(&self) -> std::result::Result<Value, serde_json::Error> {
+    fn to_tagged_json(&self) -> std::result::Result<TaggedJson, TaggedJsonError> {
         match self {
             EffectReply::Instance(reply) => reply.to_tagged_json(),
         }
@@ -186,11 +185,10 @@ impl From<TracePath> for String {
 }
 
 impl ToJson for Effect {
-    fn to_tagged_json(&self) -> std::result::Result<Value, serde_json::Error> {
+    fn to_tagged_json(&self) -> std::result::Result<TaggedJson, TaggedJsonError> {
         // TODO I'll need to work on this, if not to make tests scale.
         match self {
             Effect::Reply(reply) => reply.to_tagged_json(),
-            Effect::Ok => serde_json::to_value(()),
             _ => todo!(),
         }
     }
@@ -203,11 +201,11 @@ impl<T: Reply + 'static> From<T> for Effect {
 }
 
 pub trait JsonAs<D> {
-    fn json_as(&self) -> Result<D, serde_json::Error>;
+    fn json_as(&self) -> Result<D, TaggedJsonError>;
 }
 
 impl<T: Action> JsonAs<T> for Perform {
-    fn json_as(&self) -> Result<T, serde_json::Error> {
+    fn json_as(&self) -> Result<T, TaggedJsonError> {
         match self {
             Perform::Living {
                 living: _,
@@ -222,27 +220,12 @@ impl<T: Action> JsonAs<T> for Perform {
     }
 }
 
-fn drop_object_tag(value: serde_json::Value) -> serde_json::Value {
-    match value {
-        serde_json::Value::Object(o) => {
-            let mut iter = o.into_iter();
-            if let Some((_key, value)) = iter.next() {
-                assert!(iter.next().is_none());
-                value
-            } else {
-                panic!("Expected tagged JSON");
-            }
-        }
-        _ => panic!("Expected tagged JSON"),
-    }
-}
-
 impl<T: Reply + DeserializeOwned> JsonAs<T> for Effect {
-    fn json_as(&self) -> Result<T, serde_json::Error> {
+    fn json_as(&self) -> Result<T, TaggedJsonError> {
         match self {
-            Effect::Reply(reply) => {
-                serde_json::from_value(drop_object_tag(reply.to_tagged_json()?))
-            }
+            Effect::Reply(reply) => Ok(serde_json::from_value(
+                reply.to_tagged_json()?.into_untagged(),
+            )?),
             _ => todo!(),
         }
     }

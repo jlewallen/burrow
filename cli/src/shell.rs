@@ -81,7 +81,7 @@ impl StandardOutNotifier {
 impl Notifier for StandardOutNotifier {
     fn notify(&self, audience: &EntityKey, observed: &Rc<dyn DomainEvent>) -> Result<()> {
         if *audience == self.key {
-            let value = observed.to_tagged_json()?;
+            let value = observed.to_tagged_json()?.into_tagged();
             let rendererd = self.renderer.render_value(&value)?;
             println!("{}", rendererd);
         }
@@ -128,7 +128,7 @@ impl Middleware for InteractiveEditor {
             Effect::Reply(reply) => {
                 match reply {
                     kernel::EffectReply::Instance(reply) => {
-                        let value = reply.to_tagged_json()?;
+                        let value = reply.to_tagged_json()?.into_tagged();
                         match &value {
                             serde_json::Value::Object(object) => {
                                 for (key, value) in object {

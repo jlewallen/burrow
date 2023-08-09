@@ -231,7 +231,7 @@ pub mod actions {
             Self { key, copy }
         }
 
-        pub fn new_template(key: EntityKey) -> Result<JsonTemplate, serde_json::Error> {
+        pub fn new_template(key: EntityKey) -> Result<JsonTemplate, TaggedJsonError> {
             let copy = WorkingCopy::Markdown(JSON_TEMPLATE_VALUE_SENTINEL.to_owned());
             let template = Self { key, copy };
 
