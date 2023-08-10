@@ -149,12 +149,14 @@ impl Render for AllKnownItems {
             Self::InsideObservation(reply) => Some(inside_observation(&reply)),
             Self::SimpleReply(reply) => Some(simple_reply(&reply)),
             Self::EntityObservation(entity) => Some(entity_observation(&entity.entity)),
+            Self::MarkdownReply(value) => Some(markdown_reply(&value)),
+
+            Self::EditorReply(_) => None,
+            Self::JsonReply(_) => todo!(),
+
             Self::CarryingEvent(event) => event.render(myself),
             Self::MovingEvent(event) => event.render(myself),
             Self::TalkingEvent(event) => event.render(myself),
-            Self::MarkdownReply(value) => Some(markdown_reply(&value)),
-            Self::EditorReply(_) => None,
-            Self::JsonReply(_) => todo!(),
         }
     }
 }
@@ -173,6 +175,7 @@ pub fn history_entry_item(props: &Props) -> Html {
     };
 
     let value = &props.entry.value;
+    log::info!("{:?}", value);
     if let Ok(item) = serde_json::from_value::<AllKnownItems>(value.clone()) {
         match item.render(&myself) {
             Some(html) => html,

@@ -60,9 +60,25 @@ mod manage_connection {
                                                     .expect("welcome: try send failed");
                                             }
                                             WebSocketMessage::Reply(value) => {
-                                                log::debug!("notify:");
+                                                use replies::{JsonValue, TaggedJson};
 
-                                                append.dispatch(value);
+                                                fn find_reply(
+                                                    value: JsonValue,
+                                                ) -> Option<JsonValue>
+                                                {
+                                                    TaggedJson::new_from(value)
+                                                        .ok()
+                                                        .map(|j| {
+                                                            TaggedJson::new_from(j.into_untagged())
+                                                                .ok()
+                                                                .map(|j| j.into_untagged())
+                                                        })
+                                                        .flatten()
+                                                }
+
+                                                if let Some(value) = find_reply(value) {
+                                                    append.dispatch(value);
+                                                }
                                             }
                                             WebSocketMessage::Notify((key, value)) => {
                                                 log::debug!("notify: key={:?}", key);
