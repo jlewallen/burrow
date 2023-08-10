@@ -145,7 +145,7 @@ impl TryFrom<&Entry> for EntityRef {
     type Error = DomainError;
 
     fn try_from(entry: &Entry) -> Result<Self, Self::Error> {
-        Ok(EntityRef::new_from_raw(&entry.entity().entity))
+        Ok(EntityRef::new_from_raw(&entry.entity().0))
     }
 }
 

@@ -35,28 +35,19 @@ pub trait LoadsEntities {
 }
 
 #[derive(Clone)]
-pub struct EntityPtr {
-    entity: Rc<RefCell<Entity>>,
-    lazy: RefCell<EntityRef>,
-}
+pub struct EntityPtr(Rc<RefCell<Entity>>);
 
 impl EntityPtr {
     pub fn new(e: Entity) -> Self {
-        let brand_new = Rc::new(RefCell::new(e));
-        let lazy = EntityRef::new_from_raw(&brand_new);
-
-        Self {
-            entity: brand_new,
-            lazy: lazy.into(),
-        }
+        Self(Rc::new(RefCell::new(e)))
     }
 
     pub fn key(&self) -> EntityKey {
-        self.lazy.borrow().key().clone()
+        self.0.borrow().key().clone()
     }
 
     pub fn entity_ref(&self) -> EntityRef {
-        self.lazy.borrow().clone()
+        self.0.borrow().entity_ref()
     }
 }
 
@@ -66,14 +57,14 @@ impl Deref for EntityPtr {
     type Target = RefCell<Entity>;
 
     fn deref(&self) -> &Self::Target {
-        self.entity.as_ref()
+        self.0.as_ref()
     }
 }
 
 impl Debug for EntityPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let lazy = self.lazy.borrow();
-        write!(f, "{:?}", lazy)
+        let entity = self.0.borrow();
+        write!(f, "{:?}", entity.key())
     }
 }
 
