@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use macros::ToJson;
+use macros::ToTaggedJson;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Json(serde_json::Value);
@@ -89,13 +89,13 @@ impl From<serde_json::Error> for TaggedJsonError {
     }
 }
 
-pub trait ToJson: std::fmt::Debug {
+pub trait ToTaggedJson: std::fmt::Debug {
     fn to_tagged_json(&self) -> Result<TaggedJson, TaggedJsonError>;
 }
 
 pub trait Reply {}
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToJson)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToTaggedJson)]
 #[serde(rename_all = "camelCase")]
 pub enum SimpleReply {
     Done,
@@ -116,7 +116,7 @@ pub struct ObservedEntity {
     pub desc: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToJson)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToTaggedJson)]
 #[serde(rename_all = "camelCase")]
 pub struct AreaObservation {
     pub area: ObservedEntity,
@@ -129,7 +129,7 @@ pub struct AreaObservation {
 
 impl Reply for AreaObservation {}
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToJson)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToTaggedJson)]
 #[serde(rename_all = "camelCase")]
 pub struct InsideObservation {
     pub vessel: ObservedEntity,
@@ -138,7 +138,7 @@ pub struct InsideObservation {
 
 impl Reply for InsideObservation {}
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToJson)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToTaggedJson)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityObservation {
     pub entity: ObservedEntity,
@@ -165,7 +165,7 @@ impl std::fmt::Debug for WorkingCopy {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToJson)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToTaggedJson)]
 #[serde(rename_all = "camelCase")]
 pub struct JsonTemplate(serde_json::Value);
 
@@ -208,7 +208,7 @@ impl From<TaggedJson> for JsonTemplate {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToJson)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToTaggedJson)]
 #[serde(rename_all = "camelCase")]
 pub struct EditorReply {
     key: String,
@@ -236,7 +236,7 @@ impl EditorReply {
 
 impl Reply for EditorReply {}
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToJson)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToTaggedJson)]
 #[serde(rename_all = "camelCase")]
 pub struct JsonReply {
     value: serde_json::Value,
@@ -250,7 +250,7 @@ impl From<serde_json::Value> for JsonReply {
 
 impl Reply for JsonReply {}
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToJson)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToTaggedJson)]
 #[serde(rename_all = "camelCase")]
 pub struct MarkdownReply {
     value: String,
@@ -286,7 +286,7 @@ mod tests {
 
     use super::*;
 
-    #[derive(Debug, Serialize, ToJson)]
+    #[derive(Debug, Serialize, ToTaggedJson)]
     #[serde(rename_all = "camelCase")]
     pub enum HelloWorld {
         Message(String),
@@ -297,7 +297,7 @@ mod tests {
         assert_eq!(
             HelloWorld::Message("Hey!".to_owned())
                 .to_tagged_json()
-                .expect("ToJson failed"),
+                .expect("ToTaggedJson failed"),
             TaggedJson::new("helloWorld".to_owned(), json!({ "message": "Hey!"}))
         );
     }
@@ -305,7 +305,7 @@ mod tests {
 
 pub trait DomainEvent {}
 
-#[derive(Debug, Serialize, Deserialize, ToJson)]
+#[derive(Debug, Serialize, Deserialize, ToTaggedJson)]
 #[serde(rename_all = "camelCase")]
 pub enum CarryingEvent {
     Held {
@@ -322,7 +322,7 @@ pub enum CarryingEvent {
 
 impl DomainEvent for CarryingEvent {}
 
-#[derive(Debug, Serialize, Deserialize, ToJson)]
+#[derive(Debug, Serialize, Deserialize, ToTaggedJson)]
 #[serde(rename_all = "camelCase")]
 pub enum MovingEvent {
     Left {
@@ -352,7 +352,7 @@ impl Spoken {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, ToJson)]
+#[derive(Debug, Serialize, Deserialize, ToTaggedJson)]
 #[serde(rename_all = "camelCase")]
 pub enum TalkingEvent {
     Conversation(Spoken),
@@ -372,7 +372,7 @@ impl Emoted {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, ToJson)]
+#[derive(Debug, Serialize, Deserialize, ToTaggedJson)]
 #[serde(rename_all = "camelCase")]
 pub enum EmotingEvent {
     Laugh(Emoted),

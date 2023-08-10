@@ -166,7 +166,12 @@ impl ActiveSession for AgentSession {
         unimplemented!("AgentSession:hooks")
     }
 
-    fn schedule(&self, key: &str, time: kernel::When, message: &dyn kernel::ToJson) -> Result<()> {
+    fn schedule(
+        &self,
+        key: &str,
+        time: kernel::When,
+        message: &dyn kernel::ToTaggedJson,
+    ) -> Result<()> {
         let mut futures = self.futures.borrow_mut();
         futures.push(ScheduledFuture {
             key: key.to_owned(),

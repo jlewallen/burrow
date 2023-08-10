@@ -2,13 +2,13 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput};
 
-#[proc_macro_derive(ToJson)]
-pub fn json_derive_to_json(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(ToTaggedJson)]
+pub fn json_derive_to_tagged_json(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = input.ident;
 
     let done = quote! {
-        impl ToJson for #name {
+        impl ToTaggedJson for #name {
             fn to_tagged_json(&self) -> std::result::Result<TaggedJson, TaggedJsonError> {
                 let value = serde_json::to_value(self)?;
                 let key = stringify!(#name);
@@ -29,7 +29,7 @@ pub fn json_derive_to_json(input: TokenStream) -> TokenStream {
 pub fn action(_metadata: TokenStream, item: TokenStream) -> TokenStream {
     let item = parse_macro_input!(item as DeriveInput);
     let done = quote! {
-        #[derive(Debug, Serialize, Deserialize, ToJson)]
+        #[derive(Debug, Serialize, Deserialize, ToTaggedJson)]
         #item
     };
 

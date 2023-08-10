@@ -2,7 +2,7 @@ use crate::library::model::*;
 
 use std::str::FromStr;
 
-#[derive(Debug, Serialize, ToJson)]
+#[derive(Debug, Serialize, ToTaggedJson)]
 #[serde(rename_all = "camelCase")]
 struct EditorReply {}
 

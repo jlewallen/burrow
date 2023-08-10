@@ -6,7 +6,7 @@ use dynlib_sys::prelude::*;
 use macros::*;
 use plugins_core::library::model::*;
 
-#[derive(Debug, Serialize, Deserialize, ToJson)]
+#[derive(Debug, Serialize, Deserialize, ToTaggedJson)]
 enum ExampleFuture {
     Wakeup,
 }
@@ -49,7 +49,7 @@ impl Agent for ExampleAgent {
     }
 }
 
-#[derive(Debug, Serialize, ToJson)]
+#[derive(Debug, Serialize, ToTaggedJson)]
 struct ExampleReply {}
 
 impl Reply for ExampleReply {}

@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::ops::Deref;
 use std::{cell::RefCell, rc::Rc};
 
-use replies::{TaggedJson, ToJson};
+use replies::{TaggedJson, ToTaggedJson};
 
 use super::actions::Performer;
 use super::model::{
@@ -71,7 +71,7 @@ pub trait ActiveSession: Performer + EntryResolver {
     fn hooks(&self) -> &ManagedHooks;
 
     // We may want to just make `when` be something that can be Into'd a DateTime<Utc>?
-    fn schedule(&self, key: &str, when: When, message: &dyn ToJson) -> Result<()>;
+    fn schedule(&self, key: &str, when: When, message: &dyn ToTaggedJson) -> Result<()>;
 }
 
 thread_local! {

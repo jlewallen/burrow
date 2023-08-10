@@ -216,7 +216,7 @@ impl Services for SessionServices {
     }
 }
 
-#[derive(Debug, Serialize, ToJson)]
+#[derive(Debug, Serialize, ToTaggedJson)]
 pub struct RpcDomainEvent {
     value: serde_json::Value,
 }

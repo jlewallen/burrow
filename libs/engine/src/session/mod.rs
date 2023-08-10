@@ -332,7 +332,7 @@ impl ActiveSession for Session {
         self.perform(perform).map(|_| ())
     }
 
-    fn schedule(&self, key: &str, when: When, message: &dyn ToJson) -> Result<()> {
+    fn schedule(&self, key: &str, when: When, message: &dyn ToTaggedJson) -> Result<()> {
         let key = key.to_owned();
         let message = message.to_tagged_json()?;
         let scheduling = Scheduling {

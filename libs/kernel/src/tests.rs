@@ -84,7 +84,7 @@ impl ActiveSession for KeysOnlySession {
         todo!()
     }
 
-    fn schedule(&self, _key: &str, _when: When, _message: &dyn ToJson) -> Result<()> {
+    fn schedule(&self, _key: &str, _when: When, _message: &dyn ToTaggedJson) -> Result<()> {
         todo!()
     }
 }

@@ -413,7 +413,7 @@ impl Subscriber for PluginSubscriber {
 pub mod model {
     use plugins_core::library::model::*;
 
-    #[derive(Debug, Serialize, ToJson)]
+    #[derive(Debug, Serialize, ToTaggedJson)]
     #[serde(rename_all = "camelCase")]
     struct DynamicReply {}
 

@@ -54,7 +54,7 @@ impl ParsesActions for MemoryPlugin {
 pub mod model {
     use crate::library::model::*;
 
-    #[derive(Debug, Serialize, ToJson)]
+    #[derive(Debug, Serialize, ToTaggedJson)]
     #[serde(rename_all = "camelCase")]
     pub struct RecalledMemory {
         pub time: DateTime<Utc>,
@@ -79,7 +79,7 @@ pub mod model {
         }
     }
 
-    #[derive(Debug, Serialize, ToJson)]
+    #[derive(Debug, Serialize, ToTaggedJson)]
     #[serde(rename_all = "camelCase")]
     pub struct RecallReply {
         pub memories: Vec<RecalledMemory>,

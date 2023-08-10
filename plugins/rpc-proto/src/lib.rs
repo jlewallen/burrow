@@ -1,6 +1,6 @@
 use anyhow::Result;
 use bincode::{Decode, Encode};
-use kernel::{EffectReply, Incoming, TaggedJson, TaggedJsonError, ToJson};
+use kernel::{EffectReply, Incoming, TaggedJson, TaggedJsonError, ToTaggedJson};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::*;
@@ -163,7 +163,7 @@ impl From<serde_json::Value> for Json {
     }
 }
 
-impl ToJson for Json {
+impl ToTaggedJson for Json {
     fn to_tagged_json(&self) -> std::result::Result<TaggedJson, TaggedJsonError> {
         let value: serde_json::Value = self.0.clone().into();
         Ok(TaggedJson::new_from(value)?)

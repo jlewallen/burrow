@@ -8,7 +8,7 @@ pub use replies::*;
 
 pub type ReplyResult = anyhow::Result<Effect>;
 
-pub trait Action: ToJson + Debug {
+pub trait Action: ToTaggedJson + Debug {
     fn is_read_only() -> bool
     where
         Self: Sized;
@@ -126,7 +126,7 @@ impl From<TaggedJson> for EffectReply {
     }
 }
 
-impl ToJson for EffectReply {
+impl ToTaggedJson for EffectReply {
     fn to_tagged_json(&self) -> std::result::Result<TaggedJson, TaggedJsonError> {
         match self {
             EffectReply::TaggedJson(tagged_json) => Ok(tagged_json.clone()),

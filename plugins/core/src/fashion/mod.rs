@@ -60,7 +60,7 @@ pub mod model {
 
     pub type CarryingResult = Result<DomainOutcome>;
 
-    #[derive(Debug, Serialize, ToJson)]
+    #[derive(Debug, Serialize, ToTaggedJson)]
     #[serde(rename_all = "camelCase")]
     pub enum FashionEvent {
         Worn {
