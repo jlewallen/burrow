@@ -6,7 +6,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use kernel::{EntityGid, EntityKey, JsonValue, LookupBy};
+use kernel::prelude::*;
 
 pub trait EntityStorage: FutureStorage {
     fn load(&self, lookup: &LookupBy) -> Result<Option<PersistedEntity>>;

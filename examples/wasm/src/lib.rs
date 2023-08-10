@@ -1,4 +1,4 @@
-use kernel::{Incoming, Surroundings};
+use kernel::prelude::{Incoming, Surroundings};
 use wasm_sys::prelude::*;
 
 #[derive(Default)]

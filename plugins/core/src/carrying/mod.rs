@@ -60,7 +60,7 @@ impl ParsesActions for CarryingPlugin {
 pub mod model {
     use crate::{library::model::*, tools};
 
-    pub use kernel::CarryingEvent;
+    pub use kernel::common::CarryingEvent;
 
     pub type CarryingResult = Result<DomainOutcome>;
 

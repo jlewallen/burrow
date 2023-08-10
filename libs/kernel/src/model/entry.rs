@@ -2,9 +2,9 @@ use anyhow::Result;
 use serde::{ser::SerializeStruct, Serialize};
 use tracing::trace;
 
-use crate::{
-    get_my_session, model::Scope, CoreProps, DomainError, EntityKey, EntityPtr, EntityRef,
-    HasScopes, JsonValue, LookupBy, WORLD_KEY,
+use super::{
+    get_my_session, CoreProps, DomainError, EntityKey, EntityPtr, EntityRef, HasScopes, JsonValue,
+    LookupBy, Scope, WORLD_KEY,
 };
 
 pub trait EntryResolver {

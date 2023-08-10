@@ -189,9 +189,13 @@ pub mod model {
         }
     }
 
+    fn new_kind_from_session() -> Kind {
+        Kind::new(get_my_session().expect("No session").new_identity())
+    }
+
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Wearable {
-        #[serde(default = "Kind::new_from_session")]
+        #[serde(default = "new_kind_from_session")]
         kind: Kind,
     }
 

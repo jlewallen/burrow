@@ -51,12 +51,12 @@ impl Querying {
 }
 
 pub fn have_surroundings(
-    surroundings: &kernel::Surroundings,
+    surroundings: &kernel::prelude::Surroundings,
     services: &dyn Services,
 ) -> Result<Vec<Payload>> {
     let mut messages: Vec<Payload> = Vec::new();
     let keys = match &surroundings {
-        kernel::Surroundings::Living {
+        kernel::prelude::Surroundings::Living {
             world,
             living,
             area,

@@ -1,22 +1,19 @@
-use crate::Acls;
-use crate::JsonValue;
-
 #[cfg(test)]
 mod tests {
+    use replies::JsonValue;
     use serde_json::json;
 
     use crate::{
+        model::Acls,
         perms::{find_acls, AclProtection},
-        Acls,
     };
 
     #[test]
     pub fn it_should_return_none_json_primitives() {
-        use super::JsonValue as V;
-        assert!(find_acls(&V::Null).is_none());
-        assert!(find_acls(&V::Bool(true)).is_none());
-        assert!(find_acls(&V::Number(31337.into())).is_none());
-        assert!(find_acls(&V::String("Hello".to_owned())).is_none());
+        assert!(find_acls(&JsonValue::Null).is_none());
+        assert!(find_acls(&JsonValue::Bool(true)).is_none());
+        assert!(find_acls(&JsonValue::Number(31337.into())).is_none());
+        assert!(find_acls(&JsonValue::String("Hello".to_owned())).is_none());
     }
 
     #[test]
@@ -87,6 +84,10 @@ mod tests {
         );
     }
 }
+
+pub use replies::JsonValue;
+
+use crate::model::Acls;
 
 #[allow(dead_code)]
 #[derive(Debug, PartialEq)]

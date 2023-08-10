@@ -2,9 +2,14 @@ use anyhow::Result;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{fmt::Debug, rc::Rc};
 
-use super::{session::SessionRef, Entry, Surroundings};
-use crate::{Audience, When};
-pub use replies::*;
+use crate::{
+    model::{Audience, Entry, When},
+    surround::Surroundings,
+};
+
+use super::session::SessionRef;
+
+pub use replies::{JsonValue, TaggedJson, TaggedJsonError, ToTaggedJson};
 
 pub type ReplyResult = anyhow::Result<Effect>;
 
@@ -171,6 +176,11 @@ impl From<TracePath> for String {
         value.0.join("")
     }
 }
+
+use replies::{
+    AreaObservation, EditorReply, EntityObservation, InsideObservation, MarkdownReply, Reply,
+    SimpleReply,
+};
 
 impl TryFrom<EntityObservation> for Effect {
     type Error = TaggedJsonError;

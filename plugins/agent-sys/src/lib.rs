@@ -3,14 +3,11 @@ use chrono::{DateTime, Utc};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use tracing::*;
 
-use kernel::{
-    any_entity_changes, ActiveSession, AnyChanges, Audience, DomainError, EntityPtr, Entry,
-    EntryResolver, JsonValue, Original, Performer, Raising, SetSession,
-};
-
 pub use rpc_proto::{EntityUpdate, IncomingMessage, LookupBy, Payload, Query};
 
-pub use kernel::{Effect, Perform};
+use kernel::prelude::*;
+
+pub use kernel::prelude::{Effect, Perform};
 
 struct WorkingEntity {
     original: JsonValue,
@@ -19,7 +16,7 @@ struct WorkingEntity {
 
 #[derive(Default)]
 pub struct WorkingEntities {
-    entities: HashMap<kernel::EntityKey, WorkingEntity>,
+    entities: HashMap<kernel::prelude::EntityKey, WorkingEntity>,
 }
 
 impl WorkingEntities {
@@ -27,7 +24,7 @@ impl WorkingEntities {
         Rc::new(RefCell::new(Self::default()))
     }
 
-    pub fn insert(&mut self, key: &kernel::EntityKey, value: (JsonValue, Entry)) {
+    pub fn insert(&mut self, key: &kernel::prelude::EntityKey, value: (JsonValue, Entry)) {
         self.entities.insert(
             key.clone(),
             WorkingEntity {
@@ -37,7 +34,7 @@ impl WorkingEntities {
         );
     }
 
-    pub fn get(&self, key: &kernel::EntityKey) -> Result<Option<Entry>, DomainError> {
+    pub fn get(&self, key: &kernel::prelude::EntityKey) -> Result<Option<Entry>, DomainError> {
         Ok(self.entities.get(key).map(|r| r.entry.clone()))
     }
 
@@ -102,11 +99,11 @@ impl Performer for AgentSession {
 }
 
 impl EntryResolver for AgentSession {
-    fn entry(&self, lookup: &kernel::LookupBy) -> Result<Option<Entry>, DomainError> {
+    fn entry(&self, lookup: &kernel::prelude::LookupBy) -> Result<Option<Entry>, DomainError> {
         let entities = self.entities.borrow();
         match lookup {
-            kernel::LookupBy::Key(key) => Ok(entities.get(key)?),
-            kernel::LookupBy::Gid(_) => unimplemented!("Entry by Gid"),
+            kernel::prelude::LookupBy::Key(key) => Ok(entities.get(key)?),
+            kernel::prelude::LookupBy::Gid(_) => unimplemented!("Entry by Gid"),
         }
     }
 }
@@ -114,26 +111,28 @@ impl EntryResolver for AgentSession {
 impl ActiveSession for AgentSession {
     fn find_item(
         &self,
-        _surroundings: &kernel::Surroundings,
-        _item: &kernel::Item,
+        _surroundings: &kernel::prelude::Surroundings,
+        _item: &kernel::prelude::Item,
     ) -> Result<Option<Entry>> {
         unimplemented!("AgentSession:find-item")
     }
 
     fn ensure_entity(
         &self,
-        entity_ref: &kernel::EntityRef,
-    ) -> Result<kernel::EntityRef, DomainError> {
+        entity_ref: &kernel::prelude::EntityRef,
+    ) -> Result<kernel::prelude::EntityRef, DomainError> {
         if entity_ref.has_entity() {
             Ok(entity_ref.clone())
-        } else if let Some(entity) = &self.entry(&kernel::LookupBy::Key(entity_ref.key()))? {
+        } else if let Some(entity) =
+            &self.entry(&kernel::prelude::LookupBy::Key(entity_ref.key()))?
+        {
             Ok(entity.entity().into())
         } else {
             Err(DomainError::EntityNotFound)
         }
     }
 
-    fn add_entity(&self, entity: &kernel::EntityPtr) -> Result<Entry> {
+    fn add_entity(&self, entity: &kernel::prelude::EntityPtr) -> Result<Entry> {
         let key = entity.key();
         let json_value = entity.to_json_value()?;
         let entry = Entry::new(&key, entity.clone());
@@ -146,11 +145,11 @@ impl ActiveSession for AgentSession {
         unimplemented!("AgentSession:obliterate")
     }
 
-    fn new_key(&self) -> kernel::EntityKey {
+    fn new_key(&self) -> kernel::prelude::EntityKey {
         unimplemented!("AgentSession:new-key")
     }
 
-    fn new_identity(&self) -> kernel::Identity {
+    fn new_identity(&self) -> kernel::prelude::Identity {
         unimplemented!("AgentSession:new-identity")
     }
 
@@ -162,15 +161,15 @@ impl ActiveSession for AgentSession {
         Ok(())
     }
 
-    fn hooks(&self) -> &kernel::ManagedHooks {
+    fn hooks(&self) -> &kernel::prelude::ManagedHooks {
         unimplemented!("AgentSession:hooks")
     }
 
     fn schedule(
         &self,
         key: &str,
-        time: kernel::When,
-        message: &dyn kernel::ToTaggedJson,
+        time: kernel::prelude::When,
+        message: &dyn kernel::prelude::ToTaggedJson,
     ) -> Result<()> {
         let mut futures = self.futures.borrow_mut();
         futures.push(ScheduledFuture {
@@ -184,8 +183,8 @@ impl ActiveSession for AgentSession {
 
 pub trait Agent {
     fn initialize(&mut self) -> Result<()>;
-    fn have_surroundings(&mut self, surroundings: kernel::Surroundings) -> Result<()>;
-    fn deliver(&mut self, incoming: kernel::Incoming) -> Result<()>;
+    fn have_surroundings(&mut self, surroundings: kernel::prelude::Surroundings) -> Result<()>;
+    fn deliver(&mut self, incoming: kernel::prelude::Incoming) -> Result<()>;
 }
 
 pub struct AgentBridge<T>
@@ -303,27 +302,27 @@ where
 
     fn get(
         &self,
-        key: impl Into<kernel::EntityKey>,
-    ) -> std::result::Result<kernel::Entry, DomainError> {
+        key: impl Into<kernel::prelude::EntityKey>,
+    ) -> std::result::Result<kernel::prelude::Entry, DomainError> {
         self.session
-            .entry(&kernel::LookupBy::Key(&key.into()))?
+            .entry(&kernel::prelude::LookupBy::Key(&key.into()))?
             .ok_or(DomainError::EntityNotFound)
     }
 }
 
-impl<S> TryInto<kernel::Surroundings> for WithEntities<rpc_proto::Surroundings, S>
+impl<S> TryInto<kernel::prelude::Surroundings> for WithEntities<rpc_proto::Surroundings, S>
 where
     S: ActiveSession,
 {
     type Error = DomainError;
 
-    fn try_into(self) -> std::result::Result<kernel::Surroundings, Self::Error> {
+    fn try_into(self) -> std::result::Result<kernel::prelude::Surroundings, Self::Error> {
         match &self.value {
             rpc_proto::Surroundings::Living {
                 world,
                 living,
                 area,
-            } => Ok(kernel::Surroundings::Living {
+            } => Ok(kernel::prelude::Surroundings::Living {
                 world: self.get(world)?,
                 living: self.get(living)?,
                 area: self.get(area)?,
@@ -335,7 +334,7 @@ where
 struct AgentPerformer {}
 
 impl Performer for AgentPerformer {
-    fn perform(&self, _perform: kernel::Perform) -> Result<Effect> {
+    fn perform(&self, _perform: kernel::prelude::Perform) -> Result<Effect> {
         todo!()
     }
 }

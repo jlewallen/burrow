@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use crate::*;
 
 use anyhow::Result;
+use prelude::*;
 
 #[test]
 fn it_creates_expected_json_for_new_named() -> Result<()> {

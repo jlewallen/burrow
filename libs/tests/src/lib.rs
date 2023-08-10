@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 use engine::storage::{InMemoryStorageFactory, StorageFactory};
 use engine::{sequences::DeterministicKeys, DevNullNotifier, Domain, Session, SessionOpener};
-use kernel::{Effect, RegisteredPlugins};
+use kernel::prelude::{Effect, RegisteredPlugins};
 use plugins_core::building::BuildingPluginFactory;
 use plugins_core::carrying::CarryingPluginFactory;
 use plugins_core::looking::LookingPluginFactory;

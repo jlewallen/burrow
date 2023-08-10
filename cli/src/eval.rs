@@ -6,7 +6,7 @@ use tracing::info;
 
 use crate::{text::Renderer, DomainBuilder};
 use engine::{AfterTick, DevNullNotifier, Domain, Session, SessionOpener};
-use kernel::Effect;
+use kernel::prelude::Effect;
 
 #[derive(Debug, Args, Clone)]
 pub struct Command {
@@ -45,7 +45,7 @@ fn evaluate_commands(domain: Domain, cmd: Command) -> Result<()> {
         {
             match effect {
                 Effect::Reply(reply) => match reply {
-                    kernel::EffectReply::TaggedJson(tagged) => {
+                    kernel::prelude::EffectReply::TaggedJson(tagged) => {
                         let text = renderer.render_value(&tagged.into_tagged())?;
                         println!("{}", text);
                     }

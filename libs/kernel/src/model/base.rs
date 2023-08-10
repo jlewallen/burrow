@@ -7,9 +7,7 @@ use std::{
 use thiserror::Error;
 use tracing::*;
 
-pub use replies::*;
-
-use crate::get_my_session;
+pub use replies::JsonValue;
 
 pub static WORLD_KEY: &str = "world";
 
@@ -174,12 +172,6 @@ impl Kind {
     pub fn new(identity: Identity) -> Self {
         Self { identity }
     }
-
-    pub fn new_from_session() -> Self {
-        Self {
-            identity: get_my_session().expect("No session").new_identity(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -269,8 +261,7 @@ pub enum DomainError {
 
 impl From<serde_json::Error> for DomainError {
     fn from(source: serde_json::Error) -> Self {
-        panic!("{:?}", source);
-        // DomainError::ParseFailed(source)
+        DomainError::ParseFailed(source) // TODO Backtrace?
     }
 }
 
@@ -284,8 +275,8 @@ impl From<anyhow::Error> for DomainError {
 pub enum EvaluationError {
     #[error("Parse failed")]
     ParseFailed,
-    #[error("Anyhow error")]
-    Anyhow(#[source] anyhow::Error),
+    #[error("Other error")]
+    Other(#[source] anyhow::Error),
 }
 
 impl From<nom::Err<nom::error::Error<&str>>> for EvaluationError {
@@ -300,6 +291,6 @@ impl From<nom::Err<nom::error::Error<&str>>> for EvaluationError {
 
 impl From<anyhow::Error> for EvaluationError {
     fn from(source: anyhow::Error) -> Self {
-        EvaluationError::Anyhow(source)
+        EvaluationError::Other(source)
     }
 }

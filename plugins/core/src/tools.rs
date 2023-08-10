@@ -7,7 +7,7 @@ use super::{
     location::{change_location, Location},
     moving::model::{Exit, Occupyable, Occupying},
 };
-use kernel::{get_my_session, model::*, DomainOutcome, EntityPtr};
+use kernel::prelude::*;
 
 pub use super::location::container_of;
 
@@ -245,7 +245,7 @@ pub fn get_adjacent_keys(entry: &Entry) -> Result<Vec<EntityKey>> {
         .holding
         .iter()
         .map(|e| e.to_entry())
-        .collect::<Result<Vec<Entry>, kernel::DomainError>>()?
+        .collect::<Result<Vec<Entry>, kernel::prelude::DomainError>>()?
         .into_iter()
         .map(|e| {
             if let Some(exit) = e.maybe_scope::<Exit>()? {

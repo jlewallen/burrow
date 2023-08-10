@@ -9,22 +9,22 @@ use std::{
 use JsonValue;
 
 mod base;
-pub use base::*;
-
-pub mod scopes;
-pub use scopes::*;
-
-mod entity;
-pub use entity::*;
-
-mod entry;
-pub use entry::*;
-
-pub mod props;
-pub use props::*;
-
+mod builder;
 pub mod compare;
+mod entity;
+mod entity_ref;
+mod entry;
+pub mod props;
+pub mod scopes;
+
+pub use base::*;
+pub use builder::*;
 pub use compare::{AnyChanges, CompareChanges, CompareError, Modified, Original};
+pub use entity::*;
+pub use entity_ref::*;
+pub use entry::*;
+pub use props::*;
+pub use scopes::*;
 
 use super::session::*;
 

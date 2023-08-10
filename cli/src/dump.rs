@@ -6,7 +6,7 @@ use std::{
 use anyhow::Result;
 use clap::Args;
 use engine::storage::PersistedEntity;
-use kernel::{CoreProps, Entity, EntityKey, JsonValue, LookupBy};
+use kernel::prelude::{CoreProps, Entity, EntityKey, JsonValue, LookupBy};
 
 use crate::DomainBuilder;
 

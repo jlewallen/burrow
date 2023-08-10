@@ -6,21 +6,39 @@ pub mod plugins;
 pub mod session;
 pub mod surround;
 
-pub use actions::*;
-pub use hooks::*;
-pub use model::*;
-pub use plugins::*;
-pub use session::*;
-pub use surround::*;
+pub mod common {
+    pub use replies::*;
+}
 
-pub trait Finder: Send + Sync {
-    fn find_world(&self) -> anyhow::Result<Entry>;
+pub mod prelude {
+    pub use replies::DomainEvent;
 
-    fn find_location(&self, entry: &Entry) -> anyhow::Result<Entry>;
+    pub use crate::actions::*;
+    pub use crate::finder::*;
+    pub use crate::hooks::*;
+    pub use crate::model::*;
+    pub use crate::plugins::*;
+    pub use crate::session::*;
+    pub use crate::surround::*;
+}
 
-    fn find_item(&self, surroundings: &Surroundings, item: &Item) -> anyhow::Result<Option<Entry>>;
+mod finder {
+    use crate::model::{Audience, EntityKey, Entry, Item};
+    use crate::surround::Surroundings;
 
-    fn find_audience(&self, audience: &Audience) -> anyhow::Result<Vec<EntityKey>>;
+    pub trait Finder: Send + Sync {
+        fn find_world(&self) -> anyhow::Result<Entry>;
+
+        fn find_location(&self, entry: &Entry) -> anyhow::Result<Entry>;
+
+        fn find_item(
+            &self,
+            surroundings: &Surroundings,
+            item: &Item,
+        ) -> anyhow::Result<Option<Entry>>;
+
+        fn find_audience(&self, audience: &Audience) -> anyhow::Result<Vec<EntityKey>>;
+    }
 }
 
 #[macro_export]

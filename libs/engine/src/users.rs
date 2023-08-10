@@ -1,8 +1,9 @@
 pub mod model {
     use anyhow::Result;
-    use kernel::*;
     use serde::{Deserialize, Serialize};
     use std::collections::HashMap;
+
+    use kernel::prelude::*;
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Usernames {

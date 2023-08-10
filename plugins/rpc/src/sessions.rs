@@ -7,7 +7,7 @@ use std::{
 };
 use tracing::*;
 
-use kernel::*;
+use kernel::prelude::*;
 use macros::*;
 use plugins_core::tools;
 use rpc_proto::{EntityKey, EntityUpdate, Json, LookupBy};
@@ -75,8 +75,10 @@ impl SessionServices {
     fn lookup_one(&self, lookup: &LookupBy) -> Result<(LookupBy, Option<(Entry, Json)>)> {
         let session = get_my_session().with_context(|| "SessionServer::lookup_one")?;
         let entry = match lookup {
-            LookupBy::Key(key) => session.entry(&kernel::LookupBy::Key(&key.into()))?,
-            LookupBy::Gid(gid) => session.entry(&kernel::LookupBy::Gid(&EntityGid::new(*gid)))?,
+            LookupBy::Key(key) => session.entry(&kernel::prelude::LookupBy::Key(&key.into()))?,
+            LookupBy::Gid(gid) => {
+                session.entry(&kernel::prelude::LookupBy::Gid(&EntityGid::new(*gid)))?
+            }
         };
 
         match entry {
@@ -106,7 +108,7 @@ impl FoldToDepth {
     {
         debug!(queue = self.queue.len(), "discovering");
 
-        let have: HashSet<&kernel::EntityKey> = self
+        let have: HashSet<&kernel::prelude::EntityKey> = self
             .entities
             .iter()
             .filter_map(|(_lookup, maybe)| maybe.as_ref().map(|m| m.0.key()))
@@ -129,7 +131,7 @@ impl FoldToDepth {
             .collect::<Result<Vec<_>>>()?
             .into_iter()
             .flat_map(|v| v.into_iter())
-            .collect::<HashSet<kernel::EntityKey>>()
+            .collect::<HashSet<kernel::prelude::EntityKey>>()
             .into_iter()
             .filter_map(|key| have.get(&key).map_or(Some(key), |_| None))
             .map(|key| LookupBy::Key(EntityKey::new(key.to_string())))
@@ -166,7 +168,7 @@ impl Services for SessionServices {
     fn apply_update(&self, update: EntityUpdate) -> Result<()> {
         let session = get_my_session().with_context(|| "SessionServer::apply_update")?;
 
-        if let Some(entry) = session.entry(&kernel::LookupBy::Key(&update.key.into()))? {
+        if let Some(entry) = session.entry(&kernel::prelude::LookupBy::Key(&update.key.into()))? {
             let value: JsonValue = update.entity.into();
             let replacing = Entity::from_value(value)?;
             let entity = entry.entity();

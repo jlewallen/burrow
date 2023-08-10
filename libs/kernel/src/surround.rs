@@ -1,4 +1,4 @@
-use super::Entry;
+use crate::model::Entry;
 
 #[derive(Debug, Clone)]
 pub enum Surroundings {

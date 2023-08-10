@@ -12,7 +12,7 @@ use tracing::{debug, info};
 
 use crate::DomainBuilder;
 use engine::{storage::StorageFactory, DevNullNotifier, SessionOpener};
-use kernel::{
+use kernel::prelude::{
     DomainError, EntityKey, Entry, HasScopes, LoadsEntities, LookupBy, Properties, Scope,
 };
 

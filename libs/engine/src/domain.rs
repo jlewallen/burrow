@@ -9,7 +9,7 @@ use crate::{
     storage::{PendingFutures, StorageFactory},
     Notifier,
 };
-use kernel::{EntityKey, Finder, Identity, Incoming, LookupBy, Middleware, RegisteredPlugins};
+use kernel::prelude::*;
 
 pub trait SessionOpener: Send + Sync + Clone {
     fn open_session(&self) -> Result<Rc<Session>>;

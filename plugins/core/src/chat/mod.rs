@@ -55,7 +55,7 @@ impl ParsesActions for ChatPlugin {
 }
 
 pub mod model {
-    pub use kernel::TalkingEvent;
+    pub use kernel::common::TalkingEvent;
 }
 
 pub mod actions {

@@ -2,9 +2,6 @@ use anyhow::Context;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use engine::HasWellKnownEntities;
-use kernel::build_entity;
-use kernel::ActiveSession;
-use kernel::EntityPtr;
 use plugins_core::carrying::model::Containing;
 use plugins_core::fashion::model::Wearing;
 use plugins_core::tools;
@@ -17,7 +14,10 @@ use tracing::*;
 use engine::{
     AfterTick, Credentials, DevNullNotifier, Domain, HasUsernames, Notifier, SessionOpener,
 };
-use kernel::{EntityKey, EntryResolver};
+use kernel::prelude::build_entity;
+use kernel::prelude::ActiveSession;
+use kernel::prelude::EntityPtr;
+use kernel::prelude::{EntityKey, EntryResolver};
 
 use super::handlers::RegisterUser;
 use super::ServerMessage;
@@ -98,7 +98,7 @@ impl AppState {
         let world = session.world()?.expect("No world");
         let maybe_key = match world.find_name_key(name)? {
             Some(key) => {
-                let user = session.entry(&kernel::LookupBy::Key(&key))?;
+                let user = session.entry(&kernel::prelude::LookupBy::Key(&key))?;
                 let user = user.unwrap();
                 let hash = user
                     .maybe_scope::<Credentials>()?
@@ -143,7 +143,7 @@ impl AppState {
 
         let welcome_area_key = world.get_welcome_area()?.expect("no welcome area");
         let welcome_area = session
-            .entry(&kernel::LookupBy::Key(&welcome_area_key))?
+            .entry(&kernel::prelude::LookupBy::Key(&welcome_area_key))?
             .expect("no welcome area");
 
         let creating = build_entity()

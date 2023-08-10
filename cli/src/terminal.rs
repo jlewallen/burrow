@@ -4,7 +4,7 @@ use anyhow::{anyhow, Result};
 use tracing::info;
 
 use engine::Session;
-use kernel::JsonValue;
+use kernel::prelude::JsonValue;
 
 pub struct Renderer {
     target: crate::text::Renderer,

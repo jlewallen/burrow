@@ -3,7 +3,7 @@ use std::{cell::RefCell, collections::HashMap, fmt::Debug, rc::Rc, str::FromStr}
 use tracing::*;
 
 use crate::storage::PersistedEntity;
-use kernel::*;
+use kernel::prelude::*;
 
 pub struct LoadedEntity {
     pub key: EntityKey,

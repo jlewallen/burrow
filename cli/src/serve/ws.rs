@@ -12,9 +12,9 @@ use tokio::task::JoinHandle;
 use tracing::{info, trace, warn};
 
 use engine::{EvaluateAs, Notifier, Session, SessionOpener};
-use kernel::{
+use kernel::common::SimpleReply;
+use kernel::prelude::{
     Effect, EntityKey, EntryResolver, JsonValue, LookupBy, Perform, PerformAction, Performer,
-    SimpleReply,
 };
 
 use crate::{

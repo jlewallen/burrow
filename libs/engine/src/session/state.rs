@@ -7,7 +7,7 @@ use crate::{
     storage::{PersistedEntity, PersistedFuture, Storage},
     Notifier,
 };
-use kernel::*;
+use kernel::prelude::*;
 
 #[derive(Default)]
 pub struct State {
@@ -170,7 +170,7 @@ pub struct SavesEntities<'a> {
 
 impl<'a> SavesEntities<'a> {
     fn check_for_changes(&self, l: &mut LoadedEntity) -> Result<Option<ModifiedEntity>> {
-        use kernel::compare::*;
+        use kernel::model::compare::*;
 
         let _span = span!(Level::INFO, "flushing", key = l.key.to_string()).entered();
 
@@ -178,7 +178,7 @@ impl<'a> SavesEntities<'a> {
             before: l.serialized.as_ref().map(Original::String),
             after: l.entity.clone(),
         })? {
-            if let Some(acls) = perms::find_acls(&modified.before) {
+            if let Some(acls) = kernel::perms::find_acls(&modified.before) {
                 for acl in acls {
                     trace!("{:?}", &acl.path);
                 }

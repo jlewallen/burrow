@@ -2,7 +2,9 @@ use anyhow::{anyhow, Result};
 use tracing::{debug, info};
 
 use crate::{moving::model::Occupying, tools};
-use kernel::{get_my_session, Audience, DomainError, Entry, Finder, IntoEntry, Item, Surroundings};
+use kernel::prelude::{
+    get_my_session, Audience, DomainError, Entry, Finder, IntoEntry, Item, Surroundings,
+};
 
 /// Determines if an entity matches a user's description of that entity, given
 /// no other context at all.
@@ -253,7 +255,10 @@ impl Finder for DefaultFinder {
         haystack.find_item(item)
     }
 
-    fn find_audience(&self, audience: &kernel::Audience) -> Result<Vec<kernel::EntityKey>> {
+    fn find_audience(
+        &self,
+        audience: &kernel::prelude::Audience,
+    ) -> Result<Vec<kernel::prelude::EntityKey>> {
         match audience {
             Audience::Nobody => Ok(Vec::new()),
             Audience::Everybody => todo![],
@@ -263,7 +268,7 @@ impl Finder for DefaultFinder {
                 // lookup when the event is raised rather than in here.
                 let session = get_my_session()?;
                 let area = session
-                    .entry(&kernel::LookupBy::Key(area))?
+                    .entry(&kernel::prelude::LookupBy::Key(area))?
                     .ok_or(DomainError::EntityNotFound)?;
                 tools::get_occupant_keys(&area)
             }

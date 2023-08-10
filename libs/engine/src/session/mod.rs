@@ -17,7 +17,7 @@ use super::sequences::Sequence;
 use super::Notifier;
 use crate::storage::Storage;
 use crate::{identifiers, HasUsernames};
-use kernel::*;
+use kernel::prelude::*;
 use state::State;
 
 pub struct Session {

@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::*;
 
-use kernel::JsonValue as HostJsonValue;
-use kernel::{EffectReply, Incoming, TaggedJson, TaggedJsonError, ToTaggedJson};
+use kernel::prelude::JsonValue as HostJsonValue;
+use kernel::prelude::{EffectReply, Incoming, TaggedJson, TaggedJsonError, ToTaggedJson};
 
 pub trait Inbox<T, R> {
     fn deliver(&mut self, message: &T, replies: &mut Sender<R>) -> anyhow::Result<()>;
@@ -20,25 +20,25 @@ impl EntityKey {
     }
 }
 
-impl From<&kernel::EntityKey> for EntityKey {
-    fn from(value: &kernel::EntityKey) -> Self {
+impl From<&kernel::prelude::EntityKey> for EntityKey {
+    fn from(value: &kernel::prelude::EntityKey) -> Self {
         Self(value.to_string())
     }
 }
 
-impl From<&EntityKey> for kernel::EntityKey {
+impl From<&EntityKey> for kernel::prelude::EntityKey {
     fn from(value: &EntityKey) -> Self {
-        kernel::EntityKey::new(&value.0)
+        kernel::prelude::EntityKey::new(&value.0)
     }
 }
 
-impl From<kernel::EntityKey> for EntityKey {
-    fn from(value: kernel::EntityKey) -> Self {
+impl From<kernel::prelude::EntityKey> for EntityKey {
+    fn from(value: kernel::prelude::EntityKey) -> Self {
         EntityKey(value.into())
     }
 }
 
-impl From<EntityKey> for kernel::EntityKey {
+impl From<EntityKey> for kernel::prelude::EntityKey {
     fn from(value: EntityKey) -> Self {
         Self::from_string(value.0)
     }
@@ -175,17 +175,17 @@ impl ToTaggedJson for Json {
 #[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Clone)]
 pub struct WireTaggedJson(String, JsonValue);
 
-impl From<kernel::TaggedJson> for WireTaggedJson {
-    fn from(value: kernel::TaggedJson) -> Self {
+impl From<kernel::prelude::TaggedJson> for WireTaggedJson {
+    fn from(value: kernel::prelude::TaggedJson) -> Self {
         let json: HostJsonValue = value.value().clone().into();
         Self(value.tag().to_owned(), json.into())
     }
 }
 
-impl From<WireTaggedJson> for kernel::TaggedJson {
+impl From<WireTaggedJson> for kernel::prelude::TaggedJson {
     fn from(value: WireTaggedJson) -> Self {
         let json: JsonValue = value.1.into();
-        let json: kernel::JsonValue = json.into();
+        let json: kernel::prelude::JsonValue = json.into();
         Self::new(value.0, json.into())
     }
 }
@@ -252,7 +252,7 @@ pub enum Query {
     // Lookup(u32, Vec<LookupBy>),
 }
 
-impl From<Audience> for kernel::Audience {
+impl From<Audience> for kernel::prelude::Audience {
     fn from(value: Audience) -> Self {
         match value {
             Audience::Nobody => Self::Nobody,
@@ -265,15 +265,15 @@ impl From<Audience> for kernel::Audience {
     }
 }
 
-impl From<kernel::Audience> for Audience {
-    fn from(value: kernel::Audience) -> Self {
+impl From<kernel::prelude::Audience> for Audience {
+    fn from(value: kernel::prelude::Audience) -> Self {
         match value {
-            kernel::Audience::Nobody => Audience::Nobody,
-            kernel::Audience::Everybody => Audience::Everybody,
-            kernel::Audience::Individuals(keys) => {
+            kernel::prelude::Audience::Nobody => Audience::Nobody,
+            kernel::prelude::Audience::Everybody => Audience::Everybody,
+            kernel::prelude::Audience::Individuals(keys) => {
                 Audience::Individuals(keys.into_iter().map(|k| k.into()).collect())
             }
-            kernel::Audience::Area(area) => Audience::Area(area.into()),
+            kernel::prelude::Audience::Area(area) => Audience::Area(area.into()),
         }
     }
 }
@@ -291,12 +291,12 @@ pub enum Effect {
     Reply(Json),
 }
 
-impl TryFrom<kernel::Effect> for Effect {
+impl TryFrom<kernel::prelude::Effect> for Effect {
     type Error = anyhow::Error;
 
-    fn try_from(value: kernel::Effect) -> std::result::Result<Self, Self::Error> {
+    fn try_from(value: kernel::prelude::Effect) -> std::result::Result<Self, Self::Error> {
         match value {
-            kernel::Effect::Reply(reply) => Ok(Self::Reply(
+            kernel::prelude::Effect::Reply(reply) => Ok(Self::Reply(
                 reply.to_tagged_json()?.into_tagged().try_into()?,
             )),
             _ => todo!(),
@@ -304,7 +304,7 @@ impl TryFrom<kernel::Effect> for Effect {
     }
 }
 
-impl From<Effect> for kernel::Effect {
+impl From<Effect> for kernel::prelude::Effect {
     fn from(value: Effect) -> Self {
         match value {
             Effect::Reply(value) => Self::Reply(EffectReply::TaggedJson(
@@ -324,21 +324,21 @@ pub enum Surroundings {
     },
 }
 
-impl TryFrom<&kernel::Entry> for Json {
+impl TryFrom<&kernel::prelude::Entry> for Json {
     type Error = anyhow::Error;
 
-    fn try_from(value: &kernel::Entry) -> Result<Self, Self::Error> {
+    fn try_from(value: &kernel::prelude::Entry) -> Result<Self, Self::Error> {
         let entity = value.entity();
         Ok(Self(entity.to_json_value()?.into()))
     }
 }
 
-impl TryFrom<&kernel::Surroundings> for Surroundings {
+impl TryFrom<&kernel::prelude::Surroundings> for Surroundings {
     type Error = anyhow::Error;
 
-    fn try_from(value: &kernel::Surroundings) -> Result<Self, Self::Error> {
+    fn try_from(value: &kernel::prelude::Surroundings) -> Result<Self, Self::Error> {
         match value {
-            kernel::Surroundings::Living {
+            kernel::prelude::Surroundings::Living {
                 world,
                 living,
                 area,

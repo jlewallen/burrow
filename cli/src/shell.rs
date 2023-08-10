@@ -15,9 +15,10 @@ use crate::terminal::Renderer;
 use crate::{terminal::default_external_editor, DomainBuilder};
 
 use engine::{self, DevNullNotifier, Domain, HasUsernames, Notifier, SessionOpener};
-use kernel::{
+use kernel::common::SimpleReply;
+use kernel::prelude::{
     get_my_session, Effect, EffectReply, EntityKey, EntryResolver, JsonValue, Middleware, Perform,
-    PerformAction, SimpleReply,
+    PerformAction,
 };
 use replies::{EditorReply, TaggedJson};
 
@@ -122,12 +123,12 @@ impl Middleware for InteractiveEditor {
     fn handle(
         &self,
         value: Perform,
-        next: kernel::MiddlewareNext,
+        next: kernel::prelude::MiddlewareNext,
     ) -> Result<Effect, anyhow::Error> {
         match next.handle(value)? {
             Effect::Reply(reply) => {
                 match reply.clone() {
-                    kernel::EffectReply::TaggedJson(tagged) => {
+                    kernel::prelude::EffectReply::TaggedJson(tagged) => {
                         let value = tagged.into_tagged();
                         match &value {
                             JsonValue::Object(object) => {
@@ -166,7 +167,9 @@ impl Middleware for InteractiveEditor {
                                             .into();
 
                                         let session = get_my_session()?;
-                                        match session.entry(&kernel::LookupBy::Key(&self.living))? {
+                                        match session
+                                            .entry(&kernel::prelude::LookupBy::Key(&self.living))?
+                                        {
                                             Some(living) => {
                                                 return session.perform(Perform::Living {
                                                     living,

@@ -7,7 +7,7 @@ use rune::{
 use std::{collections::HashSet, sync::Arc, time::Instant};
 use tracing::*;
 
-use kernel::Surroundings;
+use kernel::prelude::Surroundings;
 
 use crate::sources::*;
 
@@ -30,7 +30,7 @@ impl Thing {
 }
 
 #[derive(rune::Any, Debug)]
-struct Perform(kernel::Perform);
+struct Perform(kernel::prelude::Perform);
 
 impl Perform {
     #[inline]
@@ -41,7 +41,7 @@ impl Perform {
 }
 
 #[derive(rune::Any, Debug)]
-struct Effect(kernel::Effect);
+struct Effect(kernel::prelude::Effect);
 
 impl Effect {
     #[inline]
@@ -52,7 +52,7 @@ impl Effect {
 }
 
 #[derive(rune::Any, Debug)]
-struct Incoming(kernel::Incoming);
+struct Incoming(kernel::prelude::Incoming);
 
 impl Incoming {
     fn key(&self) -> &str {
@@ -170,19 +170,22 @@ impl RuneRunner {
         Ok(())
     }
 
-    pub fn deliver(&mut self, incoming: &kernel::Incoming) -> Result<()> {
+    pub fn deliver(&mut self, incoming: &kernel::prelude::Incoming) -> Result<()> {
         self.evaluate_optional_function("deliver", (Incoming(incoming.clone()),))?;
 
         Ok(())
     }
 
-    pub fn before(&mut self, perform: kernel::Perform) -> Result<Option<kernel::Perform>> {
+    pub fn before(
+        &mut self,
+        perform: kernel::prelude::Perform,
+    ) -> Result<Option<kernel::prelude::Perform>> {
         self.evaluate_optional_function("before", (Perform(perform.clone()),))?;
 
         Ok(Some(perform))
     }
 
-    pub fn after(&mut self, effect: kernel::Effect) -> Result<kernel::Effect> {
+    pub fn after(&mut self, effect: kernel::prelude::Effect) -> Result<kernel::prelude::Effect> {
         self.evaluate_optional_function("after", (Effect(effect.clone()),))?;
 
         Ok(effect)

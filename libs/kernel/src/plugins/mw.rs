@@ -2,8 +2,9 @@
 
 use std::rc::Rc;
 
-use crate::{Effect, Perform};
 use anyhow::Result;
+
+use crate::actions::{Effect, Perform};
 
 pub trait Middleware: 'static {
     fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error>;
@@ -61,10 +62,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::TracePath;
+    use anyhow::Result;
 
     use super::*;
-    use anyhow::Result;
+    use crate::actions::TracePath;
 
     pub struct Middle {
         token: String,

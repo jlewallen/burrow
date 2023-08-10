@@ -3,7 +3,7 @@ use anyhow::Result;
 use crate::DomainBuilder;
 
 use engine::{DevNullNotifier, HasUsernames, SessionOpener};
-use kernel::{DomainError, Entry, EntryResolver, LookupBy};
+use kernel::prelude::{DomainError, Entry, EntryResolver, LookupBy};
 use plugins_core::moving::model::Occupying;
 
 #[tokio::main]

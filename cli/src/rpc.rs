@@ -2,7 +2,7 @@ use anyhow::Result;
 use serde::Deserialize;
 use tracing::*;
 
-use kernel::{Action, JsonValue};
+use kernel::prelude::{Action, JsonValue};
 use plugins_core::{
     building::actions::{SaveEntityJsonAction, SaveQuickEditAction},
     helping::actions::SaveHelpAction,

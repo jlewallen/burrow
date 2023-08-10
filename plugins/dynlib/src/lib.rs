@@ -4,7 +4,7 @@ use std::{cell::RefCell, collections::VecDeque, rc::Rc, sync::Arc};
 use tracing::{dispatcher::get_default, info, span, trace, warn, Level, Subscriber};
 
 use dynlib_sys::{prelude::*, DynamicNext};
-use kernel::{Plugin, PluginFactory};
+use kernel::prelude::{Plugin, PluginFactory};
 use plugins_core::library::plugin::*;
 use plugins_rpc::{have_surroundings, Querying, SessionServices};
 

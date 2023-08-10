@@ -254,7 +254,7 @@ pub mod actions {
 }
 
 mod parser {
-    use kernel::*;
+    use kernel::prelude::*;
     use plugins_core::library::parser::*;
 
     use super::actions::EditAction;

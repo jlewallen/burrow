@@ -110,7 +110,7 @@ impl WasmRunner {
         self.call_agent(&AgentCall::Initialize)
     }
 
-    fn have_surroundings(&mut self, surroundings: &kernel::Surroundings) -> Result<()> {
+    fn have_surroundings(&mut self, surroundings: &kernel::prelude::Surroundings) -> Result<()> {
         let services = SessionServices::new_for_my_session(None)?;
         let messages: Vec<Vec<u8>> = have_surroundings(surroundings, &services)?
             .into_iter()

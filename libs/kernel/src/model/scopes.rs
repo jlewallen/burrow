@@ -4,7 +4,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::{debug, span, Level};
 
-use crate::{get_my_session, here, DomainError, SessionRef};
+use crate::here;
+
+use super::{get_my_session, DomainError, SessionRef};
 use replies::{Json, JsonValue};
 
 /// TODO Consider giving this Trait and the combination of another the ability to
@@ -169,4 +171,31 @@ pub trait HasScopes {
     fn scopes(&self) -> Scopes;
 
     fn scopes_mut(&mut self) -> ScopesMut;
+}
+
+#[derive(Clone, Serialize, Deserialize, Default)]
+pub struct ScopeMap(HashMap<String, ScopeValue>);
+
+impl ScopeMap {}
+
+impl From<HashMap<String, ScopeValue>> for ScopeMap {
+    fn from(value: HashMap<String, ScopeValue>) -> Self {
+        Self(value)
+    }
+}
+
+impl Into<HashMap<String, ScopeValue>> for ScopeMap {
+    fn into(self) -> HashMap<String, ScopeValue> {
+        self.0
+    }
+}
+
+impl HasScopes for ScopeMap {
+    fn scopes(&self) -> Scopes {
+        Scopes { map: &self.0 }
+    }
+
+    fn scopes_mut(&mut self) -> ScopesMut {
+        ScopesMut { map: &mut self.0 }
+    }
 }

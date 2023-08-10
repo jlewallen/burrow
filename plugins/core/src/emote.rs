@@ -52,7 +52,7 @@ impl ParsesActions for EmotePlugin {
 }
 
 pub mod model {
-    pub use kernel::EmotingEvent;
+    pub use kernel::common::EmotingEvent;
 }
 
 pub mod actions {

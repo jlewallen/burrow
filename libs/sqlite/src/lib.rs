@@ -2,16 +2,16 @@ use anyhow::{anyhow, Context, Result};
 use chrono::{DateTime, Utc};
 use r2d2::PooledConnection;
 use r2d2_sqlite::SqliteConnectionManager;
+use rusqlite::{Connection, OpenFlags};
 use std::{rc::Rc, sync::Mutex};
+use tracing::*;
 
 use engine::{
     storage::EntityStorage,
     storage::{FutureStorage, PendingFutures, Storage, StorageFactory},
     storage::{PersistedEntity, PersistedFuture},
 };
-use kernel::{EntityGid, EntityKey, LookupBy};
-use rusqlite::{Connection, OpenFlags};
-use tracing::*;
+use kernel::prelude::{EntityGid, EntityKey, LookupBy};
 
 pub const MEMORY_SPECIAL: &str = ":memory:";
 
