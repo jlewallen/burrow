@@ -23,5 +23,12 @@ pub trait Finder: Send + Sync {
     fn find_audience(&self, audience: &Audience) -> anyhow::Result<Vec<EntityKey>>;
 }
 
+#[macro_export]
+macro_rules! here {
+    () => {{
+        format!("{}:{}", file!(), line!())
+    }};
+}
+
 #[cfg(test)]
 mod tests;

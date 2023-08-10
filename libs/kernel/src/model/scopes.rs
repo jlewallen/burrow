@@ -1,10 +1,10 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::{debug, span, Level};
 
-use crate::{get_my_session, DomainError, SessionRef};
+use crate::{get_my_session, here, DomainError, SessionRef};
 use replies::{Json, JsonValue};
 
 /// TODO Consider giving this Trait and the combination of another the ability to
@@ -85,7 +85,7 @@ impl<'e> Scopes<'e> {
             | ScopeValue::Intermediate {
                 value: v,
                 previous: _,
-            } => serde_json::from_value(v.into())?,
+            } => serde_json::from_value(v.into()).context(here!())?,
         };
 
         match get_my_session() {
