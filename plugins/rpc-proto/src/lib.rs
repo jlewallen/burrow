@@ -1,9 +1,11 @@
 use anyhow::Result;
 use bincode::{Decode, Encode};
-use kernel::{EffectReply, Incoming, TaggedJson, TaggedJsonError, ToTaggedJson};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::*;
+
+use kernel::JsonValue as HostJsonValue;
+use kernel::{EffectReply, Incoming, TaggedJson, TaggedJsonError, ToTaggedJson};
 
 pub trait Inbox<T, R> {
     fn deliver(&mut self, message: &T, replies: &mut Sender<R>) -> anyhow::Result<()>;
@@ -42,7 +44,7 @@ impl From<EntityKey> for kernel::EntityKey {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Clone)]
 pub enum JsonValue {
     Null,
     Bool(bool),
@@ -51,8 +53,6 @@ pub enum JsonValue {
     Array(Vec<JsonValue>),
     Object(HashMap<String, JsonValue>),
 }
-
-use kernel::JsonValue as HostJsonValue;
 
 impl From<HostJsonValue> for JsonValue {
     fn from(value: HostJsonValue) -> Self {
@@ -138,7 +138,7 @@ impl From<JsonNumber> for serde_json::Number {
     }
 }
 
-#[derive(Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Encode, Decode, PartialEq, Clone)]
 pub struct Json(JsonValue);
 
 impl std::fmt::Debug for Json {
@@ -172,7 +172,25 @@ impl ToTaggedJson for Json {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Clone)]
+pub struct WireTaggedJson(String, JsonValue);
+
+impl From<kernel::TaggedJson> for WireTaggedJson {
+    fn from(value: kernel::TaggedJson) -> Self {
+        let json: HostJsonValue = value.value().clone().into();
+        Self(value.tag().to_owned(), json.into())
+    }
+}
+
+impl From<WireTaggedJson> for kernel::TaggedJson {
+    fn from(value: WireTaggedJson) -> Self {
+        let json: JsonValue = value.1.into();
+        let json: kernel::JsonValue = json.into();
+        Self::new(value.0, json.into())
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Clone)]
 pub struct EntityUpdate {
     pub key: EntityKey,
     pub entity: Json,
@@ -184,29 +202,29 @@ impl EntityUpdate {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Clone)]
 pub enum Reply {
     Done,
     NotFound,
     Impossible,
 }
 
-#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Clone)]
 pub enum Find {}
 
-#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Clone)]
 pub enum Try {
     CanMove,
     Moved,
 }
 
-#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Clone)]
 pub enum Permission {}
 
-#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Clone)]
 pub enum Hook {}
 
-#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Clone)]
 pub enum LookupBy {
     Key(EntityKey),
     Gid(u64),
@@ -223,7 +241,7 @@ impl<'a> Into<kernel::LookupBy<'a>> for &LookupBy {
 }
 */
 
-#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Clone)]
 pub enum Query {
     Bootstrap,
     Update(EntityUpdate),
@@ -260,7 +278,7 @@ impl From<kernel::Audience> for Audience {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Clone)]
 pub enum Audience {
     Nobody,
     Everybody,
@@ -268,7 +286,7 @@ pub enum Audience {
     Area(EntityKey),
 }
 
-#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Clone)]
 pub enum Effect {
     Reply(Json),
 }
@@ -297,7 +315,7 @@ impl From<Effect> for kernel::Effect {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Clone)]
 pub enum Surroundings {
     Living {
         world: EntityKey,
@@ -333,10 +351,10 @@ impl TryFrom<&kernel::Surroundings> for Surroundings {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Clone)]
 pub struct IncomingMessage {
     pub key: String,
-    pub value: JsonValue,
+    pub value: WireTaggedJson,
 }
 
 impl IncomingMessage {
@@ -357,7 +375,7 @@ impl From<IncomingMessage> for Incoming {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Clone)]
 pub enum Payload {
     Initialize, /* Complete */
     Resolved(Vec<(LookupBy, Option<Json>)>),

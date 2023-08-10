@@ -60,7 +60,7 @@ impl Incoming {
     }
 
     fn value(&self) -> Result<Value> {
-        Ok(serde_json::from_value(self.0.value.clone())?)
+        Ok(serde_json::from_value(self.0.value.clone().into())?)
     }
 
     #[inline]

@@ -15,7 +15,7 @@ impl TryInto<ExampleFuture> for Incoming {
     type Error = anyhow::Error;
 
     fn try_into(self) -> std::result::Result<ExampleFuture, Self::Error> {
-        Ok(serde_json::from_value(self.value)?)
+        Ok(serde_json::from_value(self.value.into_tagged())?)
     }
 }
 

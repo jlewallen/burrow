@@ -40,11 +40,11 @@ impl Raised {
 #[derive(Debug, Clone)]
 pub struct Incoming {
     pub key: String,
-    pub value: JsonValue,
+    pub value: TaggedJson,
 }
 
 impl Incoming {
-    pub fn new(key: String, value: JsonValue) -> Self {
+    pub fn new(key: String, value: TaggedJson) -> Self {
         Self { key, value }
     }
 
@@ -57,7 +57,7 @@ impl Incoming {
 pub struct Scheduling {
     pub key: String,
     pub when: When,
-    pub message: JsonValue,
+    pub message: TaggedJson,
 }
 
 #[derive(Clone, Debug)]
@@ -224,6 +224,7 @@ pub trait JsonAs<D> {
     fn json_as(&self) -> Result<D, TaggedJsonError>;
 }
 
+/*
 impl<T: Action> JsonAs<T> for Perform {
     fn json_as(&self) -> Result<T, TaggedJsonError> {
         match self {
@@ -239,6 +240,7 @@ impl<T: Action> JsonAs<T> for Perform {
         }
     }
 }
+*/
 
 impl<T: Reply + DeserializeOwned> JsonAs<T> for Effect {
     fn json_as(&self) -> Result<T, TaggedJsonError> {

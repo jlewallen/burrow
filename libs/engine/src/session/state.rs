@@ -100,7 +100,7 @@ impl State {
             storage.queue(PersistedFuture {
                 key: future.key.clone(),
                 time: future.when.to_utc_time()?,
-                serialized: future.message.to_string(),
+                serialized: future.message.clone().into_tagged().to_string(),
             })?;
         }
 
