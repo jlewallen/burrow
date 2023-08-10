@@ -111,6 +111,10 @@ impl Entry {
     pub fn debug(&self) -> Option<&String> {
         self.debug.as_ref()
     }
+
+    pub fn to_json_value(&self) -> Result<JsonValue, DomainError> {
+        self.entity.borrow().to_json_value()
+    }
 }
 
 impl Serialize for Entry {

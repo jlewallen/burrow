@@ -328,8 +328,7 @@ impl TryFrom<&kernel::prelude::Entry> for Json {
     type Error = anyhow::Error;
 
     fn try_from(value: &kernel::prelude::Entry) -> Result<Self, Self::Error> {
-        let entity = value.entity();
-        Ok(Self(entity.to_json_value()?.into()))
+        Ok(Self(value.to_json_value()?.into()))
     }
 }
 

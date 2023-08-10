@@ -77,10 +77,11 @@ impl Action for EditRawAction {
         match session.find_item(surroundings, &self.item)? {
             Some(editing) => {
                 info!("editing {:?}", editing);
+                let json = editing.to_json_value()?;
                 let editing = editing.entity();
                 Ok(EditorReply::new(
                     editing.key().to_string(),
-                    WorkingCopy::Json(editing.to_json_value()?),
+                    WorkingCopy::Json(json),
                     SaveEntityJsonAction::new_template(editing.key().clone())?,
                 )
                 .try_into()?)

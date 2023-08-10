@@ -51,11 +51,6 @@ impl EntityPtr {
         }
     }
 
-    // TODO Into/From
-    pub fn to_json_value(&self) -> Result<JsonValue, DomainError> {
-        self.entity.borrow().to_json_value()
-    }
-
     pub fn key(&self) -> EntityKey {
         self.lazy.borrow().key().clone()
     }
