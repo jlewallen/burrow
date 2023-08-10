@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 use engine::storage::{InMemoryStorageFactory, StorageFactory};
 use engine::{sequences::DeterministicKeys, DevNullNotifier, Domain, Session, SessionOpener};
-use kernel::RegisteredPlugins;
+use kernel::{Effect, RegisteredPlugins};
 use plugins_core::building::BuildingPluginFactory;
 use plugins_core::carrying::CarryingPluginFactory;
 use plugins_core::looking::LookingPluginFactory;
@@ -21,7 +21,6 @@ use plugins_core::{BuildSurroundings, QuickThing};
 use plugins_dynlib::DynamicPluginFactory;
 use plugins_rune::RunePluginFactory;
 use plugins_wasm::WasmPluginFactory;
-use replies::Reply;
 
 pub const USERNAME: &str = "burrow";
 
@@ -67,7 +66,7 @@ fn evaluate_fixture<W, S>(
     domain: &S,
     username: &str,
     text: &'static [&'static str],
-) -> Result<Option<Box<dyn Reply>>>
+) -> Result<Option<Effect>>
 where
     W: WorldFixture + Default,
     S: SessionOpener,

@@ -93,7 +93,7 @@ pub trait ToJson: std::fmt::Debug {
     fn to_tagged_json(&self) -> Result<TaggedJson, TaggedJsonError>;
 }
 
-pub trait Reply: ToJson {}
+pub trait Reply {}
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToJson)]
 #[serde(rename_all = "camelCase")]
