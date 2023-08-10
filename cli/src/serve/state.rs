@@ -11,7 +11,6 @@ use engine::prelude::{
 };
 use kernel::prelude::build_entity;
 use kernel::prelude::ActiveSession;
-use kernel::prelude::EntityPtr;
 use kernel::prelude::{EntityKey, EntryResolver};
 use plugins_core::carrying::model::Containing;
 use plugins_core::fashion::model::Wearing;
@@ -155,7 +154,7 @@ impl AppState {
             .name(&user.name)
             .try_into()?;
 
-        let creating = session.add_entity(&EntityPtr::new(creating))?;
+        let creating = session.add_entity(creating)?;
         tools::set_occupying(&welcome_area, &vec![creating.clone()])?;
         let mut credentials = creating.scope_mut::<Credentials>()?;
         credentials.set(hashed_password);

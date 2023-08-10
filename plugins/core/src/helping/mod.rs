@@ -142,7 +142,7 @@ pub mod actions {
                         .class(EntityClass::encyclopedia())
                         .name(page_name)
                         .try_into()?;
-                    let creating = session.add_entity(&EntityPtr::new(creating))?;
+                    let creating = session.add_entity(creating)?;
                     let mut wiki = creating.scope_mut::<Wiki>()?;
                     wiki.set_default("# Hello, world!");
                     wiki.save()?;

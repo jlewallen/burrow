@@ -125,15 +125,14 @@ impl EntityMap {
 }
 
 pub trait AssignEntityId {
-    fn assign(&self, entity: &EntityPtr) -> Result<(EntityKey, EntityGid)>;
+    fn assign(&self, entity: &mut Entity) -> Result<(EntityKey, EntityGid)>;
 }
 
 impl AssignEntityId for EntityGid {
-    fn assign(&self, entity: &EntityPtr) -> Result<(EntityKey, EntityGid)> {
+    fn assign(&self, entity: &mut Entity) -> Result<(EntityKey, EntityGid)> {
         let key = entity.key().clone();
         let gid = self.clone();
         info!(%key, %gid, "assigning gid");
-        let mut entity = entity.borrow_mut();
         entity.set_gid(gid.clone())?;
         Ok((key, gid))
     }
@@ -145,12 +144,11 @@ pub struct Entities {
 }
 
 impl Entities {
-    pub fn add_entity(&self, gid: EntityGid, entity: &EntityPtr) -> Result<()> {
-        let clone = entity.clone();
-        let (key, gid) = gid.assign(entity)?;
+    pub fn add_entity(&self, gid: EntityGid, mut entity: Entity) -> Result<()> {
+        let (key, gid) = gid.assign(&mut entity)?;
         self.entities.add_entity(LoadedEntity {
             key,
-            entity: clone,
+            entity: EntityPtr::new(entity),
             serialized: None,
             version: 1,
             gid: Some(gid),

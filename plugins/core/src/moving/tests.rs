@@ -43,8 +43,8 @@ fn it_goes_through_correct_route_when_two_nearby() -> Result<()> {
     let reply: AreaObservation = reply.json_as()?;
     assert_eq!(reply, new_area_observation(&living, &east)?);
 
-    assert_ne!(tools::area_of(&living)?.key(), *area.key());
-    assert_eq!(tools::area_of(&living)?.key(), *east.key());
+    assert_ne!(tools::area_of(&living)?.key(), area.key());
+    assert_eq!(tools::area_of(&living)?.key(), east.key());
 
     build.close()?;
 
@@ -67,8 +67,8 @@ fn it_goes_through_routes_when_one_nearby() -> Result<()> {
     let reply: AreaObservation = reply.json_as()?;
     assert_eq!(reply, new_area_observation(&living, &destination)?);
 
-    assert_ne!(tools::area_of(&living)?.key(), *area.key());
-    assert_eq!(tools::area_of(&living)?.key(), *destination.key());
+    assert_ne!(tools::area_of(&living)?.key(), area.key());
+    assert_eq!(tools::area_of(&living)?.key(), destination.key());
 
     build.close()?;
 

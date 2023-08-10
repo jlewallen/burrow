@@ -84,10 +84,10 @@ pub fn navigate_between(
     }
 }
 
-pub fn area_of(living: &Entry) -> Result<EntityPtr, DomainError> {
+pub fn area_of(living: &Entry) -> Result<Entry, DomainError> {
     let occupying = living.scope::<Occupying>()?;
 
-    occupying.area.to_entity()
+    occupying.area.to_entry()
 }
 
 pub fn get_contained_keys(area: &Entry) -> Result<Vec<EntityKey>, DomainError> {
@@ -175,7 +175,7 @@ pub fn new_entity_from_template_ptr(template_entry: &Entry) -> Result<Entry> {
         .with_key(key)
         .copying(&template.borrow())?
         .try_into()?;
-    get_my_session()?.add_entity(&EntityPtr::new(entity))
+    get_my_session()?.add_entity(entity)
 }
 
 pub fn quantity(entity: &Entry) -> Result<f32> {

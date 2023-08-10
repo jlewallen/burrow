@@ -52,7 +52,7 @@ impl State {
         self.entities.add_persisted(persisted)
     }
 
-    pub fn add_entity(&self, gid: EntityGid, entity: &EntityPtr) -> Result<()> {
+    pub fn add_entity(&self, gid: EntityGid, entity: Entity) -> Result<()> {
         self.entities.add_entity(gid, entity)
     }
 

@@ -58,7 +58,7 @@ impl ActiveSession for KeysOnlySession {
         todo!()
     }
 
-    fn add_entity(&self, _entity: &EntityPtr) -> Result<Entry> {
+    fn add_entity(&self, _entity: Entity) -> Result<Entry> {
         todo!()
     }
 

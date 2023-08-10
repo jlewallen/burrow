@@ -297,8 +297,8 @@ impl ActiveSession for Session {
         }
     }
 
-    fn add_entity(&self, entity: &EntityPtr) -> Result<Entry> {
-        if let Some(gid) = entity.borrow().gid() {
+    fn add_entity(&self, entity: Entity) -> Result<Entry> {
+        if let Some(gid) = entity.gid() {
             let key = &entity.key();
             warn!(key = ?key, gid = ?gid, "unnecessary add-entity");
             return Ok(self
@@ -311,15 +311,17 @@ impl ActiveSession for Session {
             Some(world) => identifiers::model::fetch_add_one(&world)?,
             None => {
                 // Otherwise we keep assigning 0 until the world gets created!
-                assert_eq!(&entity.key(), &EntityKey::new(WORLD_KEY));
+                assert_eq!(entity.key(), &EntityKey::new(WORLD_KEY));
                 EntityGid::new(0)
             }
         };
 
+        let key = entity.key().clone();
+
         self.state.add_entity(gid, entity)?;
 
         Ok(self
-            .entry(&LookupBy::Key(&entity.key()))?
+            .entry(&LookupBy::Key(&key))?
             .expect("Bug: Newly added entity has no Entry"))
     }
 

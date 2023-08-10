@@ -2,9 +2,12 @@ use anyhow::Result;
 use std::{rc::Rc, sync::Arc};
 
 use engine::{domain, prelude::*, sequences::DeterministicKeys, storage::InMemoryStorageFactory};
-use kernel::prelude::{
-    build_entity, CoreProps, EntityKey, EntityPtr, Entry, RegisteredPlugins, SessionRef,
-    SetSession, Surroundings, WORLD_KEY,
+use kernel::{
+    prelude::{
+        build_entity, CoreProps, Entity, EntityKey, Entry, RegisteredPlugins, SessionRef,
+        SetSession, Surroundings, WORLD_KEY,
+    },
+    session::ActiveSession,
 };
 
 use crate::{fashion::model::Wearable, helping::model::Wiki, tools, DefaultFinder};
@@ -12,36 +15,34 @@ use crate::{fashion::model::Wearable, helping::model::Wiki, tools, DefaultFinder
 pub struct Build {
     session: SessionRef,
     entry: Option<Entry>,
-    entity: EntityPtr,
+    entity: Option<Entity>,
 }
 
 impl Build {
     pub fn new(session: &Rc<Session>) -> Result<Self> {
-        let entity = EntityPtr::new_blank()?;
+        let entity = build_entity().with_key(session.new_key()).try_into()?;
 
-        Self::from_entity_ptr(session, entity)
+        Self::from_entity(session, entity)
     }
 
-    pub fn from_entity_ptr(session: &Rc<Session>, entity: EntityPtr) -> Result<Self> {
+    pub fn from_entity(session: &Rc<Session>, entity: Entity) -> Result<Self> {
         Ok(Self {
             session: session.clone(),
-            entity,
+            entity: Some(entity),
             entry: None,
         })
     }
 
     pub fn new_world(session: &Rc<Session>) -> Result<Self> {
         let entity = build_entity().with_key(WORLD_KEY.into()).try_into()?;
-        let entity = EntityPtr::new(entity);
 
-        Self::from_entity_ptr(session, entity)
+        Self::from_entity(session, entity)
     }
 
     pub fn named(&mut self, name: &str) -> Result<&mut Self> {
         {
             assert!(self.entry.is_none());
-            let mut entity = self.entity.borrow_mut();
-            entity.set_name(name)?;
+            self.entity.as_mut().unwrap().set_name(name)?;
         }
 
         Ok(self)
@@ -115,7 +116,12 @@ impl Build {
     pub fn into_entry(&mut self) -> Result<Entry> {
         match &self.entry {
             Some(entry) => Ok(entry.clone()),
-            None => Ok(self.session.add_entity(&self.entity)?),
+            None => {
+                let entry = self.session.add_entity(self.entity.take().unwrap())?;
+                assert!(entry.entity().borrow().gid().is_some());
+                self.entry = Some(entry.clone());
+                Ok(entry)
+            }
         }
     }
 }

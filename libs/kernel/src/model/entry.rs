@@ -3,8 +3,8 @@ use serde::{ser::SerializeStruct, Serialize};
 use tracing::trace;
 
 use super::{
-    get_my_session, CoreProps, DomainError, EntityKey, EntityPtr, EntityRef, HasScopes, JsonValue,
-    LookupBy, Scope, WORLD_KEY,
+    get_my_session, CoreProps, DomainError, Entity, EntityKey, EntityPtr, EntityRef, HasScopes,
+    JsonValue, LookupBy, Scope, WORLD_KEY,
 };
 
 pub trait EntryResolver {
@@ -31,6 +31,14 @@ impl Entry {
             entity,
             debug,
         }
+    }
+
+    pub fn new_from_entity(entity: Entity) -> Result<Self, DomainError> {
+        Ok(Self {
+            key: entity.key().clone(),
+            entity: EntityPtr::new(entity),
+            debug: None,
+        })
     }
 
     pub fn new_from_json(key: EntityKey, value: JsonValue) -> Result<Self, DomainError> {

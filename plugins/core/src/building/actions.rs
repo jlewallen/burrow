@@ -158,7 +158,7 @@ impl Action for MakeItemAction {
             .name(&self.name)
             .try_into()?;
 
-        let new_item = session.add_entity(&new_item.into())?;
+        let new_item = session.add_entity(new_item)?;
 
         tools::set_quantity(&new_item, 1f32)?;
         tools::set_container(&creator, &vec![new_item.try_into()?])?;
@@ -192,21 +192,21 @@ impl Action for BidirectionalDigAction {
             .name(&self.new_area)
             .desc(&self.new_area)
             .try_into()?;
-        let new_area = session.add_entity(&EntityPtr::new(new_area))?;
+        let new_area = session.add_entity(new_area)?;
 
         let returning: Entity = build_entity()
             .exit()
             .name(&self.returning)
             .desc(&self.returning)
             .try_into()?;
-        let returning = session.add_entity(&EntityPtr::new(returning))?;
+        let returning = session.add_entity(returning)?;
 
         let outgoing: Entity = build_entity()
             .exit()
             .name(&self.outgoing)
             .desc(&self.outgoing)
             .try_into()?;
-        let outgoing = session.add_entity(&EntityPtr::new(outgoing))?;
+        let outgoing = session.add_entity(outgoing)?;
 
         tools::leads_to(&returning, &area)?;
         tools::set_container(&new_area, &vec![returning])?;

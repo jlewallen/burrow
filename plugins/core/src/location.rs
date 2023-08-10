@@ -68,8 +68,8 @@ where
     }
 }
 
-pub fn container_of(item: &Entry) -> Result<EntityPtr, DomainError> {
+pub fn container_of(item: &Entry) -> Result<Entry, DomainError> {
     Ok(Location::get(item)?
         .ok_or(DomainError::ContainerRequired)?
-        .to_entity()?)
+        .to_entry()?)
 }

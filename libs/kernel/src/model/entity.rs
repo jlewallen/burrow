@@ -86,6 +86,14 @@ impl Needs<SessionRef> for Entity {
     }
 }
 
+impl TryFrom<JsonValue> for Entity {
+    type Error = DomainError;
+
+    fn try_from(value: JsonValue) -> std::result::Result<Self, Self::Error> {
+        Self::from_value(value)
+    }
+}
+
 impl FromStr for Entity {
     type Err = DomainError;
 

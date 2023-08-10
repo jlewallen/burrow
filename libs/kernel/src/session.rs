@@ -5,12 +5,12 @@ use std::{cell::RefCell, rc::Rc};
 use replies::{TaggedJson, ToTaggedJson};
 
 use crate::hooks::ManagedHooks;
+use crate::model::Entity;
 use crate::surround::Surroundings;
 
 use super::actions::Performer;
 use super::model::{
-    Audience, DomainError, EntityKey, EntityPtr, EntityRef, Entry, EntryResolver, Identity, Item,
-    When,
+    Audience, DomainError, EntityKey, EntityRef, Entry, EntryResolver, Identity, Item, When,
 };
 
 pub type SessionRef = Rc<dyn ActiveSession>;
@@ -56,11 +56,7 @@ pub trait ActiveSession: Performer + EntryResolver {
         }
     }
 
-    fn add_entity(&self, entity: &EntityPtr) -> Result<Entry>;
-
-    fn add_entities(&self, entities: &[&EntityPtr]) -> Result<Vec<Entry>> {
-        entities.iter().map(|e| self.add_entity(e)).collect()
-    }
+    fn add_entity(&self, entity: Entity) -> Result<Entry>;
 
     fn obliterate(&self, entity: &Entry) -> Result<()>;
 

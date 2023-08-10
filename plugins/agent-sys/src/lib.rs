@@ -132,10 +132,10 @@ impl ActiveSession for AgentSession {
         }
     }
 
-    fn add_entity(&self, entity: &kernel::prelude::EntityPtr) -> Result<Entry> {
-        let key = entity.key();
+    fn add_entity(&self, entity: kernel::prelude::Entity) -> Result<Entry> {
+        let key = entity.key().clone();
         let json_value = entity.to_json_value()?;
-        let entry = Entry::new(&key, entity.clone());
+        let entry = Entry::new_from_entity(entity)?;
         let mut entities = self.entities.borrow_mut();
         entities.insert(&key, (json_value, entry.clone()));
         Ok(entry)
@@ -228,8 +228,9 @@ where
                     for resolved in resolved {
                         match resolved {
                             (LookupBy::Key(_key), Some(entity)) => {
-                                let value = entity.try_into()?;
-                                session.add_entity(&EntityPtr::from_value(value)?)?;
+                                let json: JsonValue = entity.into();
+                                let value: Entity = json.try_into()?;
+                                session.add_entity(value)?;
                             }
                             (LookupBy::Key(_key), None) => todo!(),
                             _ => {}
