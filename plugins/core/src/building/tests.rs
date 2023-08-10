@@ -141,11 +141,7 @@ fn it_duplicates_items_named() -> Result<()> {
     assert_eq!(reply, SimpleReply::Done);
     assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
     assert_eq!(
-        tools::quantity(
-            &person.scope::<Containing>()?.holding[0]
-                .clone()
-                .try_into()?
-        )?,
+        tools::quantity(&person.scope::<Containing>()?.holding[0].to_entry()?)?,
         2.0
     );
 

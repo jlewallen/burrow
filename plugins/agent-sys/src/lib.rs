@@ -126,7 +126,7 @@ impl ActiveSession for AgentSession {
         } else if let Some(entity) =
             &self.entry(&kernel::prelude::LookupBy::Key(entity_ref.key()))?
         {
-            Ok(entity.entity().into())
+            Ok(entity.entity_ref())
         } else {
             Err(DomainError::EntityNotFound)
         }

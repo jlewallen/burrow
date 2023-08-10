@@ -44,7 +44,7 @@ impl Entry {
     pub fn new_from_json(key: EntityKey, value: JsonValue) -> Result<Self, DomainError> {
         Ok(Self {
             key,
-            entity: EntityPtr::from_value(value)?,
+            entity: EntityPtr::new(Entity::from_value(value)?),
             debug: None,
         })
     }

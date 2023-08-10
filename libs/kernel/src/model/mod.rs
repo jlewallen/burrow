@@ -41,14 +41,6 @@ pub struct EntityPtr {
 }
 
 impl EntityPtr {
-    pub fn new_blank() -> Result<Self> {
-        Ok(Self::new(
-            build_entity()
-                .with_key(get_my_session()?.new_key())
-                .try_into()?,
-        ))
-    }
-
     pub fn new(e: Entity) -> Self {
         let brand_new = Rc::new(RefCell::new(e));
         let lazy = EntityRef::new_from_raw(&brand_new);
@@ -59,21 +51,6 @@ impl EntityPtr {
         }
     }
 
-    pub fn new_named(class: EntityClass, name: &str, desc: &str) -> Result<Self, DomainError> {
-        Ok(Self::new(
-            build_entity()
-                .class(class)
-                .name(name)
-                .desc(desc)
-                .try_into()?,
-        ))
-    }
-
-    // TODO Into/From
-    pub fn from_value(value: JsonValue) -> Result<Self, DomainError> {
-        Ok(Self::new(Entity::from_value(value)?))
-    }
-
     // TODO Into/From
     pub fn to_json_value(&self) -> Result<JsonValue, DomainError> {
         self.entity.borrow().to_json_value()
@@ -82,28 +59,9 @@ impl EntityPtr {
     pub fn key(&self) -> EntityKey {
         self.lazy.borrow().key().clone()
     }
-}
 
-impl From<Rc<RefCell<Entity>>> for EntityPtr {
-    fn from(ep: Rc<RefCell<Entity>>) -> Self {
-        let lazy = EntityRef::new_from_raw(&ep);
-
-        Self {
-            entity: Rc::clone(&ep),
-            lazy: RefCell::new(lazy),
-        }
-    }
-}
-
-impl From<Entity> for EntityPtr {
-    fn from(entity: Entity) -> Self {
-        Rc::new(RefCell::new(entity)).into()
-    }
-}
-
-impl From<&EntityPtr> for EntityRef {
-    fn from(value: &EntityPtr) -> Self {
-        value.lazy.borrow().clone()
+    pub fn entity_ref(&self) -> EntityRef {
+        self.lazy.borrow().clone()
     }
 }
 
@@ -128,19 +86,6 @@ pub trait IntoEntry {
     fn to_entry(&self) -> Result<Entry, DomainError>;
 }
 
-pub trait IntoEntity {
-    fn to_entity(&self) -> Result<EntityPtr, DomainError>;
-}
-
-impl IntoEntity for EntityRef {
-    fn to_entity(&self) -> Result<EntityPtr, DomainError> {
-        match self.entity() {
-            Ok(e) => Ok(e.into()),
-            Err(e) => Err(e),
-        }
-    }
-}
-
 impl IntoEntry for EntityRef {
     fn to_entry(&self) -> Result<Entry, DomainError> {
         if !self.key().valid() {
@@ -148,24 +93,6 @@ impl IntoEntry for EntityRef {
         }
         get_my_session()?
             .entry(&LookupBy::Key(self.key()))?
-            .ok_or(DomainError::DanglingEntity)
-    }
-}
-
-impl TryInto<EntityPtr> for &EntityRef {
-    type Error = DomainError;
-
-    fn try_into(self) -> std::result::Result<EntityPtr, Self::Error> {
-        self.to_entity()
-    }
-}
-
-impl TryFrom<EntityRef> for Entry {
-    type Error = DomainError;
-
-    fn try_from(value: EntityRef) -> Result<Self, Self::Error> {
-        get_my_session()?
-            .entry(&LookupBy::Key(value.key()))?
             .ok_or(DomainError::DanglingEntity)
     }
 }

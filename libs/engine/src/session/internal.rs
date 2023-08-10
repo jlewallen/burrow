@@ -169,7 +169,7 @@ impl Entities {
         );
 
         // Wrap entity in memory management gizmos.
-        let cell: EntityPtr = loaded.into();
+        let cell = EntityPtr::new(loaded);
 
         self.entities.add_entity(LoadedEntity {
             key: EntityKey::new(&persisted.key),
