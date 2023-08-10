@@ -11,7 +11,7 @@ use plugins_rune::Behaviors;
 use tracing::{debug, info};
 
 use crate::DomainBuilder;
-use engine::{storage::StorageFactory, DevNullNotifier, SessionOpener};
+use engine::{prelude::DevNullNotifier, prelude::SessionOpener, storage::StorageFactory};
 use kernel::prelude::{
     DomainError, EntityKey, Entry, HasScopes, LoadsEntities, LookupBy, Properties, Scope,
 };

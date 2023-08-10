@@ -114,7 +114,7 @@ pub mod model {
 }
 
 pub mod actions {
-    use engine::HasWellKnownEntities;
+    use engine::prelude::HasWellKnownEntities;
 
     use super::model::*;
     use crate::library::actions::*;

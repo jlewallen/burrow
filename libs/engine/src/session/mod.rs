@@ -13,10 +13,11 @@ use tracing::{debug, info, span, trace, warn, Level};
 mod internal;
 mod state;
 
-use super::sequences::Sequence;
-use super::Notifier;
+use crate::identifiers;
+use crate::notifications::Notifier;
+use crate::sequences::Sequence;
 use crate::storage::Storage;
-use crate::{identifiers, HasUsernames};
+use crate::users::model::HasUsernames;
 use kernel::prelude::*;
 use state::State;
 

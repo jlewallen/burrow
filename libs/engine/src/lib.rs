@@ -7,10 +7,12 @@ pub mod sequences;
 pub mod session;
 pub mod storage;
 
-pub use domain::*;
-pub use notifications::*;
-pub use session::*;
+pub mod prelude {
+    pub use crate::domain::*;
+    pub use crate::notifications::*;
+    pub use crate::session::*;
 
-pub use users::model::Credentials;
-pub use users::model::HasUsernames;
-pub use users::model::HasWellKnownEntities;
+    pub use crate::users::model::Credentials;
+    pub use crate::users::model::HasUsernames;
+    pub use crate::users::model::HasWellKnownEntities;
+}

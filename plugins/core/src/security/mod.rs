@@ -55,7 +55,7 @@ pub mod model {}
 
 pub mod actions {
     use crate::library::actions::*;
-    use engine::Credentials;
+    use engine::prelude::Credentials;
 
     #[action]
     pub struct ChangePasswordAction {

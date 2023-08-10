@@ -12,7 +12,7 @@ use serde_json::json;
 use std::{collections::HashMap, ops::Sub, sync::Arc};
 use tracing::info;
 
-use engine::AfterTick;
+use engine::prelude::AfterTick;
 use kernel::prelude::{EntityKey, JsonValue};
 
 use super::AppState;

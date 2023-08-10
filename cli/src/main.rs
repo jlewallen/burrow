@@ -8,7 +8,7 @@ use std::{error::Error, path::PathBuf, sync::Arc};
 use tracing::*;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use engine::{sequences::Sequence, storage::StorageFactory, Domain};
+use engine::{prelude::Domain, sequences::Sequence, storage::StorageFactory};
 use kernel::prelude::{EntityKey, Identity, RegisteredPlugins};
 use plugins_core::{
     building::BuildingPluginFactory, carrying::CarryingPluginFactory, chat::ChatPluginFactory,

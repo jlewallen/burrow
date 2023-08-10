@@ -10,7 +10,10 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use engine::storage::{InMemoryStorageFactory, StorageFactory};
-use engine::{sequences::DeterministicKeys, DevNullNotifier, Domain, Session, SessionOpener};
+use engine::{
+    prelude::{DevNullNotifier, Domain, Session, SessionOpener},
+    sequences::DeterministicKeys,
+};
 use kernel::prelude::{Effect, RegisteredPlugins};
 use plugins_core::building::BuildingPluginFactory;
 use plugins_core::carrying::CarryingPluginFactory;

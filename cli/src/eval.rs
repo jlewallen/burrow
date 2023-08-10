@@ -5,7 +5,7 @@ use std::{ops::Sub, rc::Rc};
 use tracing::info;
 
 use crate::{text::Renderer, DomainBuilder};
-use engine::{AfterTick, DevNullNotifier, Domain, Session, SessionOpener};
+use engine::prelude::{AfterTick, DevNullNotifier, Domain, Session, SessionOpener};
 use kernel::prelude::Effect;
 
 #[derive(Debug, Args, Clone)]

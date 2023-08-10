@@ -1,7 +1,6 @@
 use anyhow::Result;
 use chrono::Utc;
 use clap::Args;
-use plugins_rune::RUNE_EXTENSION;
 use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
 use std::cell::RefCell;
@@ -14,13 +13,15 @@ use crate::rpc::try_parse_action;
 use crate::terminal::Renderer;
 use crate::{terminal::default_external_editor, DomainBuilder};
 
-use engine::{self, DevNullNotifier, Domain, HasUsernames, Notifier, SessionOpener};
+use engine::prelude::{DevNullNotifier, Domain, HasUsernames, Notifier, SessionOpener};
 use kernel::common::SimpleReply;
 use kernel::prelude::{
     get_my_session, Effect, EffectReply, EntityKey, EntryResolver, JsonValue, Middleware, Perform,
     PerformAction,
 };
 use replies::{EditorReply, TaggedJson};
+
+use plugins_rune::RUNE_EXTENSION;
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -196,7 +197,7 @@ impl Middleware for InteractiveEditor {
 impl InteractiveEditor {}
 
 fn evaluate_commands(
-    domain: engine::Domain,
+    domain: engine::prelude::Domain,
     self_key: EntityKey,
     username: String,
     line: String,

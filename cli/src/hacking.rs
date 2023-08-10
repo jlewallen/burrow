@@ -1,10 +1,10 @@
 use anyhow::Result;
 
-use crate::DomainBuilder;
-
-use engine::{DevNullNotifier, HasUsernames, SessionOpener};
+use engine::prelude::{DevNullNotifier, HasUsernames, SessionOpener};
 use kernel::prelude::{DomainError, Entry, EntryResolver, LookupBy};
 use plugins_core::moving::model::Occupying;
+
+use crate::DomainBuilder;
 
 #[tokio::main]
 pub async fn execute_command() -> Result<()> {

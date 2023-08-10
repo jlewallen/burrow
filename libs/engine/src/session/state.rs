@@ -4,8 +4,8 @@ use tracing::*;
 
 use super::internal::{Entities, LoadedEntity};
 use crate::{
+    notifications::Notifier,
     storage::{PersistedEntity, PersistedFuture, Storage},
-    Notifier,
 };
 use kernel::prelude::*;
 

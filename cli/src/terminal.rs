@@ -3,7 +3,7 @@ use std::{fs::File, io::Read, path::Path, rc::Rc};
 use anyhow::{anyhow, Result};
 use tracing::info;
 
-use engine::Session;
+use engine::prelude::Session;
 use kernel::prelude::JsonValue;
 
 pub struct Renderer {
