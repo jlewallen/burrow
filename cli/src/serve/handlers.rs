@@ -7,12 +7,13 @@ use axum::{
 };
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use chrono::{DateTime, Utc};
-use engine::AfterTick;
-use kernel::EntityKey;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{collections::HashMap, ops::Sub, sync::Arc};
 use tracing::info;
+
+use engine::AfterTick;
+use kernel::{EntityKey, JsonValue};
 
 use super::AppState;
 
@@ -32,7 +33,7 @@ pub(crate) struct LoginUserWrapper {
 async fn send_user_token(
     key: EntityKey,
     jwt_secret: &String,
-) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<impl IntoResponse, (StatusCode, Json<JsonValue>)> {
     let now = chrono::Utc::now();
     let iat = now.timestamp() as usize;
     let exp = (now + chrono::Duration::hours(72)).timestamp() as usize;
@@ -67,7 +68,7 @@ async fn send_user_token(
 pub(crate) async fn login_handler(
     Extension(state): Extension<Arc<AppState>>,
     Json(payload): Json<LoginUserWrapper>,
-) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<impl IntoResponse, (StatusCode, Json<JsonValue>)> {
     info!("login");
 
     let user_key = state.find_user_key(&payload.user.email).map_err(|e| {
@@ -128,7 +129,7 @@ pub(crate) struct RegisterUserWrapper {
 pub(crate) async fn register_handler(
     Extension(state): Extension<Arc<AppState>>,
     Json(payload): Json<RegisterUserWrapper>,
-) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<impl IntoResponse, (StatusCode, Json<JsonValue>)> {
     info!("register");
 
     let key = state.register_user(&payload.user).map_err(|e| {
@@ -145,7 +146,7 @@ pub(crate) async fn register_handler(
 pub(crate) async fn user_handler(
     Extension(_state): Extension<Arc<AppState>>,
     Extension(user): Extension<User>,
-) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<impl IntoResponse, (StatusCode, Json<JsonValue>)> {
     Ok(Response::new(
         json!({ "user" : { "token": user.token, "key": user.key } }).to_string(),
     ))

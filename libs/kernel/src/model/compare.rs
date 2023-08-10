@@ -2,6 +2,8 @@ use anyhow::Result;
 use thiserror::Error;
 use tracing::*;
 
+use super::JsonValue;
+
 pub struct AnyChanges<B, A> {
     pub before: B,
     pub after: A,
@@ -9,13 +11,13 @@ pub struct AnyChanges<B, A> {
 
 pub enum Original<'a> {
     String(&'a String),
-    Json(&'a serde_json::Value),
+    Json(&'a JsonValue),
 }
 
 #[derive(Clone, Debug)]
 pub struct Modified {
-    pub before: serde_json::Value,
-    pub after: serde_json::Value,
+    pub before: JsonValue,
+    pub after: JsonValue,
 }
 
 #[derive(Error, Debug)]
@@ -36,10 +38,10 @@ pub trait CompareChanges<L, R> {
 
 pub struct TreeDiff {}
 
-impl CompareChanges<serde_json::Value, serde_json::Value> for TreeDiff {
+impl CompareChanges<JsonValue, JsonValue> for TreeDiff {
     fn any_changes(
         &self,
-        pair: AnyChanges<serde_json::Value, serde_json::Value>,
+        pair: AnyChanges<JsonValue, JsonValue>,
     ) -> Result<Option<Modified>, CompareError> {
         use treediff::{
             diff,

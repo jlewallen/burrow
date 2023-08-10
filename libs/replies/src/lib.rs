@@ -1,40 +1,41 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 use macros::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct Json(serde_json::Value);
+pub use serde_json::Value as JsonValue;
 
-impl From<serde_json::Value> for Json {
-    fn from(value: serde_json::Value) -> Self {
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Json(JsonValue);
+
+impl From<JsonValue> for Json {
+    fn from(value: JsonValue) -> Self {
         Self(value)
     }
 }
 
-impl Into<serde_json::Value> for Json {
-    fn into(self) -> serde_json::Value {
+impl Into<JsonValue> for Json {
+    fn into(self) -> JsonValue {
         self.0
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct TaggedJson(String, serde_json::Value);
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct TaggedJson(String, Json);
 
 impl TaggedJson {
-    pub fn new(tag: String, value: serde_json::Value) -> Self {
+    pub fn new(tag: String, value: Json) -> Self {
         Self(tag, value)
     }
 
-    pub fn new_from(value: serde_json::Value) -> Result<Self, TaggedJsonError> {
+    pub fn new_from(value: JsonValue) -> Result<Self, TaggedJsonError> {
         match value {
-            Value::Object(o) => {
+            JsonValue::Object(o) => {
                 let mut iter = o.into_iter();
                 if let Some(solo) = iter.next() {
                     if iter.next().is_some() {
                         Err(TaggedJsonError::Malformed)
                     } else {
-                        Ok(Self(solo.0, solo.1))
+                        Ok(Self(solo.0, solo.1.into()))
                     }
                 } else {
                     Err(TaggedJsonError::Malformed)
@@ -48,30 +49,30 @@ impl TaggedJson {
         &self.0
     }
 
-    pub fn value(&self) -> &serde_json::Value {
+    pub fn value(&self) -> &Json {
         &self.1
     }
 
-    pub fn into_untagged(self) -> serde_json::Value {
-        self.1
+    pub fn into_untagged(self) -> JsonValue {
+        self.1.into()
     }
 
-    pub fn into_tagged(self) -> serde_json::Value {
+    pub fn into_tagged(self) -> JsonValue {
         self.into()
     }
 }
 
-impl TryFrom<serde_json::Value> for TaggedJson {
+impl TryFrom<JsonValue> for TaggedJson {
     type Error = TaggedJsonError;
 
-    fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
+    fn try_from(value: JsonValue) -> Result<Self, Self::Error> {
         TaggedJson::new_from(value)
     }
 }
 
-impl Into<serde_json::Value> for TaggedJson {
-    fn into(self) -> serde_json::Value {
-        serde_json::Value::Object([(self.0, self.1)].into_iter().collect())
+impl Into<JsonValue> for TaggedJson {
+    fn into(self) -> JsonValue {
+        JsonValue::Object([(self.0, self.1.into())].into_iter().collect())
     }
 }
 
@@ -95,7 +96,7 @@ pub trait ToTaggedJson {
 
 pub trait Reply {}
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToTaggedJson, Reply)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, ToTaggedJson, Reply, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum SimpleReply {
     Done,
@@ -105,7 +106,7 @@ pub enum SimpleReply {
     Prevented,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct ObservedEntity {
     pub key: String,
@@ -114,7 +115,7 @@ pub struct ObservedEntity {
     pub desc: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToTaggedJson)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, ToTaggedJson, Reply, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct AreaObservation {
     pub area: ObservedEntity,
@@ -125,31 +126,25 @@ pub struct AreaObservation {
     pub routes: Vec<ObservedEntity>,
 }
 
-impl Reply for AreaObservation {}
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToTaggedJson)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, ToTaggedJson, Reply, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct InsideObservation {
     pub vessel: ObservedEntity,
     pub items: Vec<ObservedEntity>,
 }
 
-impl Reply for InsideObservation {}
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToTaggedJson)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, ToTaggedJson, Reply, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityObservation {
     pub entity: ObservedEntity,
     pub wearing: Option<Vec<ObservedEntity>>,
 }
 
-impl Reply for EntityObservation {}
-
-#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub enum WorkingCopy {
     Markdown(String),
-    Json(serde_json::Value),
+    Json(JsonValue),
     Script(String),
 }
 
@@ -163,29 +158,29 @@ impl std::fmt::Debug for WorkingCopy {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToTaggedJson)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, ToTaggedJson, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct JsonTemplate(serde_json::Value);
+pub struct JsonTemplate(JsonValue);
 
 pub const JSON_TEMPLATE_VALUE_SENTINEL: &str = "!#$value";
 
 impl JsonTemplate {
-    pub fn instantiate(self, value: &serde_json::Value) -> serde_json::Value {
+    pub fn instantiate(self, value: &JsonValue) -> JsonValue {
         match self.0 {
-            Value::Null | Value::Bool(_) | Value::Number(_) => self.0,
-            Value::String(s) => {
+            JsonValue::Null | JsonValue::Bool(_) | JsonValue::Number(_) => self.0,
+            JsonValue::String(s) => {
                 if s == JSON_TEMPLATE_VALUE_SENTINEL {
                     value.clone()
                 } else {
-                    Value::String(s)
+                    JsonValue::String(s)
                 }
             }
-            Value::Array(v) => Value::Array(
+            JsonValue::Array(v) => JsonValue::Array(
                 v.into_iter()
                     .map(|c| JsonTemplate(c).instantiate(value))
                     .collect(),
             ),
-            Value::Object(v) => Value::Object(
+            JsonValue::Object(v) => JsonValue::Object(
                 v.into_iter()
                     .map(|(k, v)| (k, JsonTemplate(v).instantiate(value)))
                     .collect(),
@@ -194,8 +189,8 @@ impl JsonTemplate {
     }
 }
 
-impl From<serde_json::Value> for JsonTemplate {
-    fn from(value: serde_json::Value) -> Self {
+impl From<JsonValue> for JsonTemplate {
+    fn from(value: JsonValue) -> Self {
         Self(value)
     }
 }
@@ -206,7 +201,7 @@ impl From<TaggedJson> for JsonTemplate {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToTaggedJson)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, ToTaggedJson, Reply, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct EditorReply {
     key: String,
@@ -232,23 +227,19 @@ impl EditorReply {
     }
 }
 
-impl Reply for EditorReply {}
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToTaggedJson)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, ToTaggedJson, Reply, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct JsonReply {
-    value: serde_json::Value,
+    value: JsonValue,
 }
 
-impl From<serde_json::Value> for JsonReply {
-    fn from(value: serde_json::Value) -> Self {
+impl From<JsonValue> for JsonReply {
+    fn from(value: JsonValue) -> Self {
         Self { value }
     }
 }
 
-impl Reply for JsonReply {}
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToTaggedJson)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, ToTaggedJson, Reply, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct MarkdownReply {
     value: String,
@@ -276,8 +267,6 @@ impl std::str::FromStr for MarkdownReply {
     }
 }
 
-impl Reply for MarkdownReply {}
-
 #[cfg(test)]
 mod tests {
     use serde_json::json;
@@ -296,14 +285,14 @@ mod tests {
             HelloWorld::Message("Hey!".to_owned())
                 .to_tagged_json()
                 .expect("ToTaggedJson failed"),
-            TaggedJson::new("helloWorld".to_owned(), json!({ "message": "Hey!"}))
+            TaggedJson::new("helloWorld".to_owned(), json!({ "message": "Hey!"}).into())
         );
     }
 }
 
 pub trait DomainEvent {}
 
-#[derive(Debug, Serialize, Deserialize, ToTaggedJson)]
+#[derive(Serialize, Deserialize, ToTaggedJson, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum CarryingEvent {
     Held {
@@ -320,7 +309,7 @@ pub enum CarryingEvent {
 
 impl DomainEvent for CarryingEvent {}
 
-#[derive(Debug, Serialize, Deserialize, ToTaggedJson)]
+#[derive(Serialize, Deserialize, ToTaggedJson, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum MovingEvent {
     Left {
@@ -335,7 +324,7 @@ pub enum MovingEvent {
 
 impl DomainEvent for MovingEvent {}
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Spoken {
     pub who: ObservedEntity,
     pub message: String,
@@ -350,7 +339,7 @@ impl Spoken {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, ToTaggedJson)]
+#[derive(Serialize, Deserialize, ToTaggedJson, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum TalkingEvent {
     Conversation(Spoken),
@@ -359,7 +348,7 @@ pub enum TalkingEvent {
 
 impl DomainEvent for TalkingEvent {}
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Emoted {
     pub who: ObservedEntity,
 }
@@ -370,7 +359,7 @@ impl Emoted {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, ToTaggedJson)]
+#[derive(Serialize, Deserialize, ToTaggedJson, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum EmotingEvent {
     Laugh(Emoted),

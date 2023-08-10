@@ -87,7 +87,7 @@ pub mod model {
     pub use kernel::*;
     pub use macros::*;
     pub use serde::{Deserialize, Serialize};
-    pub use serde_json::{json, Value};
+    pub use serde_json::json;
     pub use std::rc::Rc;
     pub use std::{collections::HashMap, ops::Deref};
     pub use tracing::*;
@@ -134,11 +134,11 @@ pub mod tests {
     pub use super::plugin::try_parsing;
 
     pub trait ToDebugJson {
-        fn to_debug_json(&self) -> Result<serde_json::Value, serde_json::Error>;
+        fn to_debug_json(&self) -> Result<JsonValue, serde_json::Error>;
     }
 
     impl ToDebugJson for Effect {
-        fn to_debug_json(&self) -> Result<serde_json::Value, serde_json::Error> {
+        fn to_debug_json(&self) -> Result<JsonValue, serde_json::Error> {
             serde_json::to_value(self)
         }
     }

@@ -16,7 +16,7 @@ use crate::{terminal::default_external_editor, DomainBuilder};
 
 use engine::{self, DevNullNotifier, Domain, HasUsernames, Notifier, SessionOpener};
 use kernel::{
-    get_my_session, Effect, EffectReply, EntityKey, EntryResolver, Middleware, Perform,
+    get_my_session, Effect, EffectReply, EntityKey, EntryResolver, JsonValue, Middleware, Perform,
     PerformAction, SimpleReply,
 };
 use replies::{EditorReply, TaggedJson};
@@ -130,15 +130,15 @@ impl Middleware for InteractiveEditor {
                     kernel::EffectReply::TaggedJson(tagged) => {
                         let value = tagged.into_tagged();
                         match &value {
-                            serde_json::Value::Object(object) => {
+                            JsonValue::Object(object) => {
                                 for (key, value) in object {
                                     // TODO This is annoying.
                                     if key == "editorReply" {
                                         let reply: EditorReply =
                                             serde_json::from_value(value.clone())?;
-                                        let value: serde_json::Value = match reply.editing() {
+                                        let value: JsonValue = match reply.editing() {
                                             replies::WorkingCopy::Markdown(original) => {
-                                                serde_json::Value::String(default_external_editor(
+                                                JsonValue::String(default_external_editor(
                                                     &original,
                                                     MD_EXTENSION,
                                                 )?)
@@ -152,7 +152,7 @@ impl Middleware for InteractiveEditor {
                                                 )?)?
                                             }
                                             replies::WorkingCopy::Script(original) => {
-                                                serde_json::Value::String(default_external_editor(
+                                                JsonValue::String(default_external_editor(
                                                     &original,
                                                     RUNE_EXTENSION,
                                                 )?)

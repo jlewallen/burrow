@@ -5,7 +5,7 @@ use tracing::*;
 
 use kernel::{
     any_entity_changes, ActiveSession, AnyChanges, Audience, DomainError, EntityPtr, Entry,
-    EntryResolver, Original, Performer, Raising, SetSession,
+    EntryResolver, JsonValue, Original, Performer, Raising, SetSession,
 };
 
 pub use rpc_proto::{EntityUpdate, IncomingMessage, LookupBy, Payload, Query};
@@ -13,7 +13,7 @@ pub use rpc_proto::{EntityUpdate, IncomingMessage, LookupBy, Payload, Query};
 pub use kernel::{Effect, Perform};
 
 struct WorkingEntity {
-    original: serde_json::Value,
+    original: JsonValue,
     entry: Entry,
 }
 
@@ -27,7 +27,7 @@ impl WorkingEntities {
         Rc::new(RefCell::new(Self::default()))
     }
 
-    pub fn insert(&mut self, key: &kernel::EntityKey, value: (serde_json::Value, Entry)) {
+    pub fn insert(&mut self, key: &kernel::EntityKey, value: (JsonValue, Entry)) {
         self.entities.insert(
             key.clone(),
             WorkingEntity {
@@ -75,7 +75,7 @@ struct RaisedEvent {
 pub struct ScheduledFuture {
     pub key: String,
     pub time: DateTime<Utc>,
-    pub serialized: serde_json::Value,
+    pub serialized: JsonValue,
 }
 
 #[derive(Default)]

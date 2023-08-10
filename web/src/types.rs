@@ -61,7 +61,7 @@ pub enum AllKnownItems {
 
 #[derive(Debug, Serialize, Clone, Eq, PartialEq)]
 pub struct HistoryEntry {
-    pub value: serde_json::Value,
+    pub value: JsonValue,
 }
 
 impl Into<Option<AllKnownItems>> for HistoryEntry {
@@ -74,20 +74,20 @@ impl Into<Option<AllKnownItems>> for HistoryEntry {
     }
 }
 
-impl From<serde_json::Value> for HistoryEntry {
-    fn from(value: serde_json::Value) -> Self {
+impl From<JsonValue> for HistoryEntry {
+    fn from(value: JsonValue) -> Self {
         Self::new(value)
     }
 }
 
-impl Into<serde_json::Value> for HistoryEntry {
-    fn into(self) -> serde_json::Value {
+impl Into<JsonValue> for HistoryEntry {
+    fn into(self) -> JsonValue {
         self.value
     }
 }
 
 impl HistoryEntry {
-    pub fn new(value: serde_json::Value) -> Self {
+    pub fn new(value: JsonValue) -> Self {
         Self { value }
     }
 }
@@ -98,7 +98,7 @@ pub struct SessionHistory {
 }
 
 impl Reducible for SessionHistory {
-    type Action = serde_json::Value;
+    type Action = JsonValue;
 
     fn reduce(self: Rc<Self>, action: Self::Action) -> Rc<Self> {
         Rc::new(self.append(action))
@@ -106,7 +106,7 @@ impl Reducible for SessionHistory {
 }
 
 impl SessionHistory {
-    pub fn append(&self, value: serde_json::Value) -> Self {
+    pub fn append(&self, value: JsonValue) -> Self {
         let entries = if !value.is_null() {
             self.entries
                 .clone()

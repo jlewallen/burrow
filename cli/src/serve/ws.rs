@@ -13,7 +13,8 @@ use tracing::{info, trace, warn};
 
 use engine::{EvaluateAs, Notifier, Session, SessionOpener};
 use kernel::{
-    Effect, EntityKey, EntryResolver, LookupBy, Perform, PerformAction, Performer, SimpleReply,
+    Effect, EntityKey, EntryResolver, JsonValue, LookupBy, Perform, PerformAction, Performer,
+    SimpleReply,
 };
 
 use crate::{
@@ -28,7 +29,7 @@ use super::AppState;
 pub enum ClientMessage {
     Token { token: String },
     Evaluate(String),
-    Perform(serde_json::Value),
+    Perform(JsonValue),
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -37,8 +38,8 @@ pub enum ClientMessage {
 pub enum ServerMessage {
     Error(String),
     Welcome { self_key: String },
-    Reply(serde_json::Value),
-    Notify(String, serde_json::Value),
+    Reply(JsonValue),
+    Notify(String, JsonValue),
 }
 
 pub async fn ws_handler(
@@ -137,34 +138,32 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
                     ClientMessage::Perform(value) => {
                         let app_state: &AppState = state.borrow();
 
-                        let handle: JoinHandle<Result<serde_json::Value>> =
-                            tokio::task::spawn_blocking({
-                                let domain = app_state.domain.clone();
-                                let notifier = app_state.notifier();
-                                let our_key = our_key.clone();
+                        let handle: JoinHandle<Result<JsonValue>> = tokio::task::spawn_blocking({
+                            let domain = app_state.domain.clone();
+                            let notifier = app_state.notifier();
+                            let our_key = our_key.clone();
 
-                                move || {
-                                    let session =
-                                        domain.open_session().expect("Error opening session");
-                                    // TODO This could be a PerformAction
-                                    let action: Rc<_> = try_parse_action(value)
-                                        .expect("try parse action failed")
-                                        .into();
-                                    let living = session
-                                        .entry(&LookupBy::Key(&EntityKey::new(&our_key)))
-                                        .expect("Living lookup failed")
-                                        .expect("Living not found");
-                                    let perform = Perform::Living {
-                                        living,
-                                        action: PerformAction::Instance(action),
-                                    };
-                                    trace!("perform {:?}", &perform.enum_name());
-                                    let session = session.set_session()?;
-                                    let effect = session.perform(perform).expect("Perform failed");
-                                    session.close(&notifier).expect("Error closing session");
-                                    Ok(serde_json::to_value(effect)?)
-                                }
-                            });
+                            move || {
+                                let session = domain.open_session().expect("Error opening session");
+                                // TODO This could be a PerformAction
+                                let action: Rc<_> = try_parse_action(value)
+                                    .expect("try parse action failed")
+                                    .into();
+                                let living = session
+                                    .entry(&LookupBy::Key(&EntityKey::new(&our_key)))
+                                    .expect("Living lookup failed")
+                                    .expect("Living not found");
+                                let perform = Perform::Living {
+                                    living,
+                                    action: PerformAction::Instance(action),
+                                };
+                                trace!("perform {:?}", &perform.enum_name());
+                                let session = session.set_session()?;
+                                let effect = session.perform(perform).expect("Perform failed");
+                                session.close(&notifier).expect("Error closing session");
+                                Ok(serde_json::to_value(effect)?)
+                            }
+                        });
 
                         match handle.await {
                             Ok(Ok(reply)) => session_tx
@@ -177,25 +176,23 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
                     ClientMessage::Evaluate(text) => {
                         let app_state: &AppState = state.borrow();
 
-                        let handle: JoinHandle<Result<serde_json::Value>> =
-                            tokio::task::spawn_blocking({
-                                let domain = app_state.domain.clone();
-                                let notifier = app_state.notifier();
-                                let text = text.clone();
-                                let our_key = our_key.clone();
+                        let handle: JoinHandle<Result<JsonValue>> = tokio::task::spawn_blocking({
+                            let domain = app_state.domain.clone();
+                            let notifier = app_state.notifier();
+                            let text = text.clone();
+                            let our_key = our_key.clone();
 
-                                move || {
-                                    let session =
-                                        domain.open_session().expect("Error opening session");
-                                    let effect = evaluate_commands(
-                                        session,
-                                        &notifier,
-                                        EvaluateAs::Key(&EntityKey::new(&our_key)),
-                                        &text,
-                                    )?;
-                                    Ok(serde_json::to_value(effect)?)
-                                }
-                            });
+                            move || {
+                                let session = domain.open_session().expect("Error opening session");
+                                let effect = evaluate_commands(
+                                    session,
+                                    &notifier,
+                                    EvaluateAs::Key(&EntityKey::new(&our_key)),
+                                    &text,
+                                )?;
+                                Ok(serde_json::to_value(effect)?)
+                            }
+                        });
 
                         match handle.await {
                             Ok(Ok(reply)) => {

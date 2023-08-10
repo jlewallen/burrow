@@ -289,9 +289,7 @@ impl SaveEntityJsonAction {
     }
 
     pub fn new_template(key: EntityKey) -> Result<JsonTemplate, TaggedJsonError> {
-        let copy = WorkingCopy::Json(serde_json::Value::String(
-            JSON_TEMPLATE_VALUE_SENTINEL.to_owned(),
-        ));
+        let copy = WorkingCopy::Json(JsonValue::String(JSON_TEMPLATE_VALUE_SENTINEL.to_owned()));
         let template = Self { key, copy };
 
         Ok(template.to_tagged_json()?.into())

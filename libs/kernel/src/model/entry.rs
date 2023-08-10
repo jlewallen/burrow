@@ -4,7 +4,7 @@ use tracing::trace;
 
 use crate::{
     get_my_session, model::Scope, CoreProps, DomainError, EntityKey, EntityPtr, EntityRef,
-    HasScopes, LookupBy, WORLD_KEY,
+    HasScopes, JsonValue, LookupBy, WORLD_KEY,
 };
 
 pub trait EntryResolver {
@@ -33,7 +33,7 @@ impl Entry {
         }
     }
 
-    pub fn new_from_json(key: EntityKey, value: serde_json::Value) -> Result<Self, DomainError> {
+    pub fn new_from_json(key: EntityKey, value: JsonValue) -> Result<Self, DomainError> {
         Ok(Self {
             key,
             entity: EntityPtr::from_value(value)?,

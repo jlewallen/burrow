@@ -1,9 +1,8 @@
 use anyhow::Result;
 use serde::Deserialize;
-use serde_json::Value as JsonValue;
 use tracing::*;
 
-use kernel::Action;
+use kernel::{Action, JsonValue};
 use plugins_core::{
     building::actions::{SaveEntityJsonAction, SaveQuickEditAction},
     helping::actions::SaveHelpAction,

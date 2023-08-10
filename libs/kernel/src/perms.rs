@@ -1,4 +1,5 @@
 use crate::Acls;
+use crate::JsonValue;
 
 #[cfg(test)]
 mod tests {
@@ -11,7 +12,7 @@ mod tests {
 
     #[test]
     pub fn it_should_return_none_json_primitives() {
-        use serde_json::Value as V;
+        use super::JsonValue as V;
         assert!(find_acls(&V::Null).is_none());
         assert!(find_acls(&V::Bool(true)).is_none());
         assert!(find_acls(&V::Number(31337.into())).is_none());
@@ -107,13 +108,13 @@ impl AclProtection {
     }
 }
 
-pub fn find_acls(value: &serde_json::Value) -> Option<Vec<AclProtection>> {
+pub fn find_acls(value: &JsonValue) -> Option<Vec<AclProtection>> {
     match value {
-        serde_json::Value::Null => None,
-        serde_json::Value::Bool(_) => None,
-        serde_json::Value::Number(_) => None,
-        serde_json::Value::String(_) => None,
-        serde_json::Value::Array(array) => Some(
+        JsonValue::Null => None,
+        JsonValue::Bool(_) => None,
+        JsonValue::Number(_) => None,
+        JsonValue::String(_) => None,
+        JsonValue::Array(array) => Some(
             array
                 .iter()
                 .map(|e| find_acls(e))
@@ -121,7 +122,7 @@ pub fn find_acls(value: &serde_json::Value) -> Option<Vec<AclProtection>> {
                 .flatten()
                 .collect(),
         ),
-        serde_json::Value::Object(o) => {
+        JsonValue::Object(o) => {
             let acls = serde_json::from_value::<Acls>(value.clone());
             match acls {
                 Ok(acls) => Some(vec![AclProtection {
@@ -140,6 +141,6 @@ pub fn find_acls(value: &serde_json::Value) -> Option<Vec<AclProtection>> {
     }
 }
 
-pub fn apply_read_acls(value: serde_json::Value) -> serde_json::Value {
+pub fn apply_read_acls(value: JsonValue) -> JsonValue {
     value
 }

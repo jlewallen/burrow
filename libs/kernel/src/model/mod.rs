@@ -6,6 +6,7 @@ use std::{
     ops::{Deref, Index},
     rc::Rc,
 };
+use JsonValue;
 
 mod base;
 pub use base::*;
@@ -67,12 +68,12 @@ impl EntityPtr {
     }
 
     // TODO Into/From
-    pub fn from_value(value: serde_json::Value) -> Result<Self, DomainError> {
+    pub fn from_value(value: JsonValue) -> Result<Self, DomainError> {
         Ok(Self::new(Entity::from_value(value)?))
     }
 
     // TODO Into/From
-    pub fn to_json_value(&self) -> Result<serde_json::Value, DomainError> {
+    pub fn to_json_value(&self) -> Result<JsonValue, DomainError> {
         self.entity.borrow().to_json_value()
     }
 
@@ -178,13 +179,13 @@ pub fn any_entity_changes(
         serde_json::to_value(&*entity)?
     };
 
-    let value_before: serde_json::Value = if let Some(original) = &l.before {
+    let value_before: JsonValue = if let Some(original) = &l.before {
         match original {
             Original::String(s) => s.parse()?,
             Original::Json(v) => (*v).clone(),
         }
     } else {
-        serde_json::Value::Null
+        JsonValue::Null
     };
 
     let diff = TreeDiff {};

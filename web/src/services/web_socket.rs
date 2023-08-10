@@ -5,6 +5,7 @@ use futures::{
 };
 use futures_util::future::{select, Either};
 use gloo_timers::future::TimeoutFuture;
+use replies::JsonValue;
 use reqwasm::websocket::{futures::WebSocket, Message};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -23,9 +24,9 @@ pub enum WebSocketMessage {
     Token { token: String },
     Welcome { self_key: String },
     Evaluate(String),
-    Perform(serde_json::Value),
-    Reply(serde_json::Value),
-    Notify((String, serde_json::Value)),
+    Perform(JsonValue),
+    Reply(JsonValue),
+    Notify((String, JsonValue)),
     Error(String),
 }
 

@@ -6,7 +6,7 @@ use std::{
 use anyhow::Result;
 use clap::Args;
 use engine::storage::PersistedEntity;
-use kernel::{CoreProps, Entity, EntityKey, LookupBy};
+use kernel::{CoreProps, Entity, EntityKey, JsonValue, LookupBy};
 
 use crate::DomainBuilder;
 
@@ -111,7 +111,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
             .into_iter()
             .map(|p| p.to_json_value())
             .collect::<Result<Vec<_>>>()?;
-        let array = serde_json::Value::Array(entities);
+        let array = JsonValue::Array(entities);
         io::stdout().write_all(&serde_json::to_vec(&array)?)?;
     }
 

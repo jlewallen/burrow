@@ -1,4 +1,4 @@
-use replies::EditorReply;
+use replies::{EditorReply, JsonValue};
 use wasm_bindgen::JsCast;
 use web_sys::HtmlElement;
 use yew::html::RenderError;
@@ -84,7 +84,7 @@ pub fn home() -> Html {
 
 trait Editable {
     fn editor_text(&self) -> Result<String, serde_json::Error>;
-    fn make_save_action(&self, value: String) -> Result<serde_json::Value, serde_json::Error>;
+    fn make_save_action(&self, value: String) -> Result<JsonValue, serde_json::Error>;
     fn language(&self) -> &str;
 }
 
@@ -97,11 +97,11 @@ impl Editable for replies::EditorReply {
         }
     }
 
-    fn make_save_action(&self, value: String) -> Result<serde_json::Value, serde_json::Error> {
+    fn make_save_action(&self, value: String) -> Result<JsonValue, serde_json::Error> {
         let value = match self.editing() {
-            replies::WorkingCopy::Markdown(_) => serde_json::Value::String(value),
+            replies::WorkingCopy::Markdown(_) => JsonValue::String(value),
             replies::WorkingCopy::Json(_) => serde_json::from_str(&value)?,
-            replies::WorkingCopy::Script(_) => serde_json::Value::String(value),
+            replies::WorkingCopy::Script(_) => JsonValue::String(value),
         };
 
         return Ok(self.save().clone().instantiate(&value));

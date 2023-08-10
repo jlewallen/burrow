@@ -4,6 +4,7 @@ use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 use std::str::FromStr;
 use std::{collections::HashMap, fmt::Display};
+use JsonValue;
 
 use super::base::*;
 use crate::Scope;
@@ -84,7 +85,7 @@ impl FromStr for Entity {
 }
 
 impl Entity {
-    pub fn from_value(value: serde_json::Value) -> Result<Entity, DomainError> {
+    pub fn from_value(value: JsonValue) -> Result<Entity, DomainError> {
         Ok(serde_json::from_value(value)?)
     }
 
@@ -115,7 +116,7 @@ impl Entity {
         &self.class.py_type
     }
 
-    pub fn to_json_value(&self) -> Result<serde_json::Value, DomainError> {
+    pub fn to_json_value(&self) -> Result<JsonValue, DomainError> {
         Ok(serde_json::to_value(self)?)
     }
 
@@ -169,13 +170,13 @@ impl PotentialRef {
     }
 }
 
-pub fn find_entity_refs(value: &serde_json::Value) -> Option<Vec<EntityRef>> {
+pub fn find_entity_refs(value: &JsonValue) -> Option<Vec<EntityRef>> {
     match value {
-        serde_json::Value::Null => None,
-        serde_json::Value::Bool(_) => None,
-        serde_json::Value::Number(_) => None,
-        serde_json::Value::String(_) => None,
-        serde_json::Value::Array(array) => Some(
+        JsonValue::Null => None,
+        JsonValue::Bool(_) => None,
+        JsonValue::Number(_) => None,
+        JsonValue::String(_) => None,
+        JsonValue::Array(array) => Some(
             array
                 .iter()
                 .map(|e| find_entity_refs(e))
@@ -183,7 +184,7 @@ pub fn find_entity_refs(value: &serde_json::Value) -> Option<Vec<EntityRef>> {
                 .flatten()
                 .collect(),
         ),
-        serde_json::Value::Object(o) => {
+        JsonValue::Object(o) => {
             let potential = serde_json::from_value::<PotentialRef>(value.clone());
 
             // If this object is an EntityRef, we can stop looking, otherwise we

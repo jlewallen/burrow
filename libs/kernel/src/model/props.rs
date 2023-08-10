@@ -4,11 +4,11 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Property {
     acls: Option<Acls>,
-    value: serde_json::Value,
+    value: JsonValue,
 }
 
 impl Property {
-    pub fn new(value: serde_json::Value) -> Self {
+    pub fn new(value: JsonValue) -> Self {
         Self {
             acls: Default::default(),
             value,
@@ -30,7 +30,7 @@ impl Props {
     fn string_property(&self, name: &str) -> Option<String> {
         if let Some(property) = self.property_named(name) {
             match &property.value {
-                serde_json::Value::String(v) => Some(v.to_string()),
+                JsonValue::String(v) => Some(v.to_string()),
                 _ => None,
             }
         } else {
@@ -42,7 +42,7 @@ impl Props {
     fn u64_property(&self, name: &str) -> Option<u64> {
         if let Some(property) = self.property_named(name) {
             match &property.value {
-                serde_json::Value::Number(v) => v.as_u64(),
+                JsonValue::Number(v) => v.as_u64(),
                 _ => None,
             }
         } else {
@@ -50,7 +50,7 @@ impl Props {
         }
     }
 
-    fn set_property(&mut self, name: &str, value: serde_json::Value) {
+    fn set_property(&mut self, name: &str, value: JsonValue) {
         self.0.insert(name.to_string(), Property::new(value));
     }
 
@@ -183,7 +183,7 @@ impl CoreProps for Properties {
     }
 
     fn set_name(&mut self, value: &str) -> Result<(), DomainError> {
-        let value: serde_json::Value = value.into();
+        let value: JsonValue = value.into();
         self.core
             .as_mut()
             .unwrap()
@@ -212,7 +212,7 @@ impl CoreProps for Properties {
     }
 
     fn set_desc(&mut self, value: &str) -> Result<(), DomainError> {
-        let value: serde_json::Value = value.into();
+        let value: JsonValue = value.into();
         self.core
             .as_mut()
             .unwrap()
@@ -222,7 +222,7 @@ impl CoreProps for Properties {
     }
 
     fn destroy(&mut self) -> Result<(), DomainError> {
-        let value: serde_json::Value = true.into();
+        let value: JsonValue = true.into();
         self.core
             .as_mut()
             .unwrap()
@@ -239,7 +239,7 @@ impl Needs<SessionRef> for Properties {
 }
 
 impl Scope for Properties {
-    fn serialize(&self) -> Result<serde_json::Value> {
+    fn serialize(&self) -> Result<JsonValue> {
         Ok(serde_json::to_value(self)?)
     }
 

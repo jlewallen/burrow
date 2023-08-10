@@ -130,7 +130,7 @@ pub mod model {
     }
 
     impl Scope for Memory {
-        fn serialize(&self) -> Result<serde_json::Value> {
+        fn serialize(&self) -> Result<JsonValue> {
             Ok(serde_json::to_value(self)?)
         }
 

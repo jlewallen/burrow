@@ -52,22 +52,24 @@ pub enum JsonValue {
     Object(HashMap<String, JsonValue>),
 }
 
-impl From<serde_json::Value> for JsonValue {
-    fn from(value: serde_json::Value) -> Self {
+use kernel::JsonValue as HostJsonValue;
+
+impl From<HostJsonValue> for JsonValue {
+    fn from(value: HostJsonValue) -> Self {
         match value {
-            serde_json::Value::Null => Self::Null,
-            serde_json::Value::Bool(b) => Self::Bool(b),
-            serde_json::Value::Number(n) => Self::Number(n.into()),
-            serde_json::Value::String(s) => Self::String(s),
-            serde_json::Value::Array(a) => Self::Array(a.into_iter().map(|i| i.into()).collect()),
-            serde_json::Value::Object(o) => {
+            HostJsonValue::Null => Self::Null,
+            HostJsonValue::Bool(b) => Self::Bool(b),
+            HostJsonValue::Number(n) => Self::Number(n.into()),
+            HostJsonValue::String(s) => Self::String(s),
+            HostJsonValue::Array(a) => Self::Array(a.into_iter().map(|i| i.into()).collect()),
+            HostJsonValue::Object(o) => {
                 Self::Object(o.into_iter().map(|(k, v)| (k, v.into())).collect())
             }
         }
     }
 }
 
-impl From<JsonValue> for serde_json::Value {
+impl From<JsonValue> for HostJsonValue {
     fn from(value: JsonValue) -> Self {
         match value {
             JsonValue::Null => Self::Null,
@@ -151,21 +153,21 @@ impl From<TaggedJson> for Json {
     }
 }
 
-impl From<Json> for serde_json::Value {
+impl From<Json> for HostJsonValue {
     fn from(value: Json) -> Self {
         value.0.into()
     }
 }
 
-impl From<serde_json::Value> for Json {
-    fn from(value: serde_json::Value) -> Self {
+impl From<HostJsonValue> for Json {
+    fn from(value: HostJsonValue) -> Self {
         Self(value.into())
     }
 }
 
 impl ToTaggedJson for Json {
     fn to_tagged_json(&self) -> std::result::Result<TaggedJson, TaggedJsonError> {
-        let value: serde_json::Value = self.0.clone().into();
+        let value: HostJsonValue = self.0.clone().into();
         Ok(TaggedJson::new_from(value)?)
     }
 }
@@ -288,7 +290,7 @@ impl From<Effect> for kernel::Effect {
     fn from(value: Effect) -> Self {
         match value {
             Effect::Reply(value) => Self::Reply(EffectReply::TaggedJson(
-                TaggedJson::new_from(<Json as Into<serde_json::Value>>::into(value))
+                TaggedJson::new_from(<Json as Into<HostJsonValue>>::into(value))
                     .expect("Malformed tagged JSON"),
             )),
         }

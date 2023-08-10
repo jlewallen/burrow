@@ -6,7 +6,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use kernel::{EntityGid, EntityKey, LookupBy};
+use kernel::{EntityGid, EntityKey, JsonValue, LookupBy};
 
 pub trait EntityStorage: FutureStorage {
     fn load(&self, lookup: &LookupBy) -> Result<Option<PersistedEntity>>;
@@ -63,7 +63,7 @@ pub struct PersistedEntity {
 }
 
 impl PersistedEntity {
-    pub fn to_json_value(&self) -> Result<serde_json::Value> {
+    pub fn to_json_value(&self) -> Result<JsonValue> {
         Ok(serde_json::from_str(&self.serialized)?)
     }
 }

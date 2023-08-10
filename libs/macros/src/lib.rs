@@ -29,7 +29,7 @@ pub fn json_derive_to_tagged_json(input: TokenStream) -> TokenStream {
                     Some(f) => f.to_lowercase().collect::<String>() + c.as_str(),
                     None => panic!("Empty key in tagged JSON."),
                 };
-                Ok(TaggedJson::new(key, value))
+                Ok(TaggedJson::new(key, value.into()))
             }
         }
     };

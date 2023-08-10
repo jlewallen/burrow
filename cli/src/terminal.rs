@@ -4,6 +4,7 @@ use anyhow::{anyhow, Result};
 use tracing::info;
 
 use engine::Session;
+use kernel::JsonValue;
 
 pub struct Renderer {
     target: crate::text::Renderer,
@@ -16,7 +17,7 @@ impl Renderer {
         Ok(Self { target, session })
     }
 
-    pub fn render_value(&self, value: &serde_json::Value) -> Result<String> {
+    pub fn render_value(&self, value: &JsonValue) -> Result<String> {
         self.target.render_value(&value)
     }
 }

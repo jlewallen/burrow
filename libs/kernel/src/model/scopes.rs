@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use tracing::{debug, span, Level};
 
 use crate::{get_my_session, DomainError, SessionRef};
-use replies::Json;
+use replies::{Json, JsonValue};
 
 /// TODO Consider giving this Trait and the combination of another the ability to
 /// extract itself, potentially cleaning up Entity.
@@ -14,7 +14,7 @@ pub trait Scope: Needs<SessionRef> + DeserializeOwned + Default + std::fmt::Debu
     where
         Self: Sized;
 
-    fn serialize(&self) -> Result<serde_json::Value>;
+    fn serialize(&self) -> Result<JsonValue>;
 }
 
 /// TODO I would love to deprecate this but I don't know if I'll need it.
@@ -158,7 +158,7 @@ impl<'e> ScopesMut<'e> {
         if !self.map.contains_key(scope_key) {
             self.map.insert(
                 scope_key.to_owned(),
-                ScopeValue::Original(serde_json::Value::Object(Default::default()).into()),
+                ScopeValue::Original(JsonValue::Object(Default::default()).into()),
             );
         }
         Ok(())

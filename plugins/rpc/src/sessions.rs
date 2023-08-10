@@ -17,7 +17,7 @@ pub trait Services {
 
     fn apply_update(&self, update: EntityUpdate) -> Result<()>;
 
-    fn raise(&self, audience: Audience, raised: serde_json::Value) -> Result<()>;
+    fn raise(&self, audience: Audience, raised: JsonValue) -> Result<()>;
 
     fn schedule(&self, key: &str, millis: i64, serialized: Json) -> Result<()>;
 
@@ -37,7 +37,7 @@ impl Services for AlwaysErrorsServices {
         Err(anyhow!("This server always errors (apply_update)"))
     }
 
-    fn raise(&self, _audience: Audience, _raised: serde_json::Value) -> Result<()> {
+    fn raise(&self, _audience: Audience, _raised: JsonValue) -> Result<()> {
         warn!("AlwaysErrorsServices::raise");
         Err(anyhow!("This server always errors (raise)"))
     }
@@ -167,7 +167,7 @@ impl Services for SessionServices {
         let session = get_my_session().with_context(|| "SessionServer::apply_update")?;
 
         if let Some(entry) = session.entry(&kernel::LookupBy::Key(&update.key.into()))? {
-            let value: serde_json::Value = update.entity.into();
+            let value: JsonValue = update.entity.into();
             let replacing = Entity::from_value(value)?;
             let entity = entry.entity();
             entity.replace(replacing);
@@ -177,7 +177,7 @@ impl Services for SessionServices {
         }
     }
 
-    fn raise(&self, audience: Audience, raised: serde_json::Value) -> Result<()> {
+    fn raise(&self, audience: Audience, raised: JsonValue) -> Result<()> {
         let session = get_my_session().with_context(|| "SessionServer::raise")?;
         session.raise(
             audience,
@@ -218,7 +218,7 @@ impl Services for SessionServices {
 
 #[derive(Debug, Serialize, ToTaggedJson)]
 pub struct RpcDomainEvent {
-    value: serde_json::Value,
+    value: JsonValue,
 }
 
 impl DomainEvent for RpcDomainEvent {}

@@ -1,4 +1,5 @@
 use anyhow::Result;
+use replies::JsonValue;
 use std::time::Instant;
 use tera::{Context, Tera};
 use tracing::info;
@@ -49,7 +50,7 @@ impl Renderer {
     }
 
     #[must_use]
-    pub fn render_value(&self, value: &serde_json::Value) -> Result<String> {
+    pub fn render_value(&self, value: &JsonValue) -> Result<String> {
         let mut all = "".to_string();
 
         all.push('\n');
@@ -61,14 +62,14 @@ impl Renderer {
         };
 
         match value {
-            serde_json::Value::Object(object) => {
+            JsonValue::Object(object) => {
                 for (key, value) in object {
                     let mut context = Context::new();
                     context.insert(key, &value);
                     all.push_str(&render(context, key)?);
                 }
             }
-            serde_json::Value::String(name) => {
+            JsonValue::String(name) => {
                 all.push_str(&render(Context::new(), name)?);
             }
             _ => todo!(),

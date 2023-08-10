@@ -40,11 +40,11 @@ impl Raised {
 #[derive(Debug, Clone)]
 pub struct Incoming {
     pub key: String,
-    pub value: serde_json::Value,
+    pub value: JsonValue,
 }
 
 impl Incoming {
-    pub fn new(key: String, value: serde_json::Value) -> Self {
+    pub fn new(key: String, value: JsonValue) -> Self {
         Self { key, value }
     }
 
@@ -57,7 +57,7 @@ impl Incoming {
 pub struct Scheduling {
     pub key: String,
     pub when: When,
-    pub message: serde_json::Value,
+    pub message: JsonValue,
 }
 
 #[derive(Clone, Debug)]

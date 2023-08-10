@@ -2,6 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 use yew::prelude::*;
 
 use crate::services::WebSocketMessage;
+use replies::JsonValue;
 
 mod manage_connection {
     use futures::channel::mpsc::Sender;
@@ -115,7 +116,7 @@ impl Evaluator {
         }
     }
 
-    pub fn perform(&self, action: serde_json::Value) -> () {
+    pub fn perform(&self, action: JsonValue) -> () {
         let message = WebSocketMessage::Perform(action);
         let callback = self.callback.borrow();
         match callback.as_ref() {

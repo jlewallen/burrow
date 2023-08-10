@@ -4,6 +4,7 @@ use tokio::task::JoinHandle;
 use crate::{evaluate_fixture, test_domain_with, HoldingKeyInVessel, Noop, WorldFixture, USERNAME};
 use engine::storage::{PersistedEntity, StorageFactory};
 use engine::{Domain, Session, SessionOpener};
+use kernel::JsonValue;
 
 async fn test_domain() -> Result<AsyncFriendlyDomain> {
     let storage_factory = sqlite::Factory::new(sqlite::MEMORY_SPECIAL)?;
@@ -106,15 +107,15 @@ impl AsyncFriendlyDomain {
     }
 
     #[cfg(test)]
-    pub async fn snapshot(&self) -> Result<serde_json::Value> {
-        let json: Vec<serde_json::Value> = self
+    pub async fn snapshot(&self) -> Result<JsonValue> {
+        let json: Vec<JsonValue> = self
             .query_all()
             .await?
             .into_iter()
             .map(|p| p.to_json_value())
             .collect::<Result<_>>()?;
 
-        Ok(serde_json::Value::Array(json))
+        Ok(JsonValue::Array(json))
     }
 
     pub async fn evaluate<W>(&self, text: &'static [&'static str]) -> Result<()>
