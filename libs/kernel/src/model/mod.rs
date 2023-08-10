@@ -10,16 +10,18 @@ use JsonValue;
 
 mod base;
 mod builder;
-pub mod compare;
 mod entity;
 mod entity_ref;
 mod entry;
+
+pub mod compare;
 pub mod props;
 pub mod scopes;
 
+use compare::{AnyChanges, CompareChanges, CompareError, Modified, Original};
+
 pub use base::*;
 pub use builder::*;
-pub use compare::{AnyChanges, CompareChanges, CompareError, Modified, Original};
 pub use entity::*;
 pub use entity_ref::*;
 pub use entry::*;

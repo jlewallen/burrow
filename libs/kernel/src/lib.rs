@@ -16,6 +16,7 @@ pub mod prelude {
     pub use crate::actions::*;
     pub use crate::finder::*;
     pub use crate::hooks::*;
+    pub use crate::model::compare::*;
     pub use crate::model::*;
     pub use crate::plugins::*;
     pub use crate::session::*;
