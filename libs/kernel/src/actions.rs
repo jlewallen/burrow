@@ -221,12 +221,16 @@ impl TryFrom<SimpleReply> for Effect {
 }
 
 pub trait JsonAs<D> {
-    fn json_as(&self) -> Result<D, TaggedJsonError>;
+    type Error;
+
+    fn json_as(&self) -> Result<D, Self::Error>;
 }
 
 /*
 impl<T: Action> JsonAs<T> for Perform {
-    fn json_as(&self) -> Result<T, TaggedJsonError> {
+    type Error = TaggedJsonError;
+
+    fn json_as(&self) -> Result<T, Self::Error> {
         match self {
             Perform::Living {
                 living: _,
@@ -243,7 +247,9 @@ impl<T: Action> JsonAs<T> for Perform {
 */
 
 impl<T: Reply + DeserializeOwned> JsonAs<T> for Effect {
-    fn json_as(&self) -> Result<T, TaggedJsonError> {
+    type Error = TaggedJsonError;
+
+    fn json_as(&self) -> Result<T, Self::Error> {
         match self {
             Effect::Reply(reply) => Ok(serde_json::from_value(
                 reply.to_tagged_json()?.into_untagged(),
