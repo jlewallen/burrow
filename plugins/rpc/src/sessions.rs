@@ -7,10 +7,7 @@ use std::{
 };
 use tracing::*;
 
-use kernel::{
-    get_my_session, Audience, DomainError, DomainEvent, Effect, Entity, EntityGid, Entry,
-    TaggedJson, TaggedJsonError, ToJson, When,
-};
+use kernel::*;
 use macros::*;
 use plugins_core::tools;
 use rpc_proto::{EntityKey, EntityUpdate, Json, LookupBy};
@@ -182,7 +179,10 @@ impl Services for SessionServices {
 
     fn raise(&self, audience: Audience, raised: serde_json::Value) -> Result<()> {
         let session = get_my_session().with_context(|| "SessionServer::raise")?;
-        session.raise(audience, Box::new(RpcDomainEvent { value: raised }))
+        session.raise(
+            audience,
+            Raising::TaggedJson(RpcDomainEvent { value: raised }.to_tagged_json()?),
+        )
     }
 
     fn schedule(&self, key: &str, millis: i64, serialized: Json) -> Result<()> {

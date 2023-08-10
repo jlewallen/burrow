@@ -326,8 +326,8 @@ impl ActiveSession for Session {
         self.state.obliterate(entry)
     }
 
-    fn raise(&self, audience: Audience, event: Box<dyn DomainEvent>) -> Result<()> {
-        let perform = Perform::Raised(Raised::new(audience.clone(), "".to_owned(), event.into()));
+    fn raise(&self, audience: Audience, raising: Raising) -> Result<()> {
+        let perform = Perform::Raised(Raised::new(audience.clone(), "".to_owned(), raising.into()));
 
         self.perform(perform).map(|_| ())
     }

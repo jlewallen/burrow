@@ -282,25 +282,31 @@ pub mod actions {
 
                                     session.raise(
                                         Audience::Area(area.key().clone()),
-                                        Box::new(MovingEvent::Left {
-                                            living: (&living)
-                                                .observe(&living)?
-                                                .expect("No observed entity"),
-                                            area: (&area)
-                                                .observe(&living)?
-                                                .expect("No observed entity"),
-                                        }),
+                                        Raising::TaggedJson(
+                                            MovingEvent::Left {
+                                                living: (&living)
+                                                    .observe(&living)?
+                                                    .expect("No observed entity"),
+                                                area: (&area)
+                                                    .observe(&living)?
+                                                    .expect("No observed entity"),
+                                            }
+                                            .to_tagged_json()?,
+                                        ),
                                     )?;
                                     session.raise(
                                         Audience::Area(to_area.key().clone()),
-                                        Box::new(MovingEvent::Arrived {
-                                            living: (&living)
-                                                .observe(&living)?
-                                                .expect("No observed entity"),
-                                            area: (&to_area)
-                                                .observe(&living)?
-                                                .expect("No observed entity"),
-                                        }),
+                                        Raising::TaggedJson(
+                                            MovingEvent::Arrived {
+                                                living: (&living)
+                                                    .observe(&living)?
+                                                    .expect("No observed entity"),
+                                                area: (&to_area)
+                                                    .observe(&living)?
+                                                    .expect("No observed entity"),
+                                            }
+                                            .to_tagged_json()?,
+                                        ),
                                     )?;
 
                                     session.perform(Perform::Living {

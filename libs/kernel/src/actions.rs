@@ -2,10 +2,8 @@ use anyhow::Result;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{fmt::Debug, rc::Rc};
 
-use crate::{Audience, DomainEvent, When};
-
 use super::{session::SessionRef, Entry, Surroundings};
-
+use crate::{Audience, When};
 pub use replies::*;
 
 pub type ReplyResult = anyhow::Result<Effect>;
@@ -22,11 +20,11 @@ pub trait Action: ToJson + Debug {
 pub struct Raised {
     pub key: String,
     pub audience: Audience,
-    pub event: Rc<dyn DomainEvent>,
+    pub event: TaggedJson,
 }
 
 impl Raised {
-    pub fn new(audience: Audience, key: String, event: Rc<dyn DomainEvent>) -> Self {
+    pub fn new(audience: Audience, key: String, event: TaggedJson) -> Self {
         Self {
             key,
             audience,

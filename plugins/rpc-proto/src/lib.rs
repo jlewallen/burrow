@@ -145,6 +145,12 @@ impl std::fmt::Debug for Json {
     }
 }
 
+impl From<TaggedJson> for Json {
+    fn from(value: TaggedJson) -> Self {
+        Self(value.into_tagged().into())
+    }
+}
+
 impl From<Json> for serde_json::Value {
     fn from(value: Json) -> Self {
         value.0.into()

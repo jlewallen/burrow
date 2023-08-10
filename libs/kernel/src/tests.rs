@@ -76,7 +76,7 @@ impl ActiveSession for KeysOnlySession {
         Identity::default()
     }
 
-    fn raise(&self, _audience: Audience, _event: Box<dyn DomainEvent>) -> Result<()> {
+    fn raise(&self, _audience: Audience, _raising: Raising) -> Result<()> {
         todo!()
     }
 

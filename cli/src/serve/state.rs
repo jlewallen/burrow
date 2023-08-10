@@ -9,7 +9,7 @@ use plugins_core::carrying::model::Containing;
 use plugins_core::fashion::model::Wearing;
 use plugins_core::tools;
 use plugins_rune::Behaviors;
-use std::rc::Rc;
+use replies::TaggedJson;
 use tokio::sync::broadcast;
 use tokio::sync::Mutex;
 use tracing::*;
@@ -17,7 +17,7 @@ use tracing::*;
 use engine::{
     AfterTick, Credentials, DevNullNotifier, Domain, HasUsernames, Notifier, SessionOpener,
 };
-use kernel::{DomainEvent, EntityKey, EntryResolver};
+use kernel::{EntityKey, EntryResolver};
 
 use super::handlers::RegisterUser;
 use super::ServerMessage;
@@ -45,10 +45,10 @@ pub struct SenderNotifier {
 }
 
 impl Notifier for SenderNotifier {
-    fn notify(&self, audience: &EntityKey, observed: &Rc<dyn DomainEvent>) -> Result<()> {
+    fn notify(&self, audience: &EntityKey, observed: &TaggedJson) -> Result<()> {
         debug!("notify {:?} -> {:?}", audience, observed);
 
-        let serialized = observed.to_tagged_json()?.into_tagged();
+        let serialized = observed.clone().into_tagged();
         let outgoing = ServerMessage::Notify(audience.to_string(), serialized);
         self.tx.send(outgoing)?;
 

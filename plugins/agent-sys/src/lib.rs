@@ -4,8 +4,8 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use tracing::*;
 
 use kernel::{
-    any_entity_changes, ActiveSession, AnyChanges, Audience, DomainError, DomainEvent, EntityPtr,
-    Entry, EntryResolver, Original, Performer, SetSession,
+    any_entity_changes, ActiveSession, AnyChanges, Audience, DomainError, EntityPtr, Entry,
+    EntryResolver, Original, Performer, Raising, SetSession,
 };
 
 pub use rpc_proto::{EntityUpdate, IncomingMessage, LookupBy, Payload, Query};
@@ -69,7 +69,7 @@ impl WorkingEntities {
 
 struct RaisedEvent {
     audience: Audience,
-    event: Box<dyn DomainEvent>,
+    raising: Raising,
 }
 
 pub struct ScheduledFuture {
@@ -154,10 +154,10 @@ impl ActiveSession for AgentSession {
         unimplemented!("AgentSession:new-identity")
     }
 
-    fn raise(&self, audience: Audience, event: Box<dyn kernel::DomainEvent>) -> Result<()> {
+    fn raise(&self, audience: Audience, raising: Raising) -> Result<()> {
         self.raised
             .borrow_mut()
-            .push(RaisedEvent { audience, event });
+            .push(RaisedEvent { audience, raising });
 
         Ok(())
     }
@@ -261,7 +261,9 @@ where
         for raised in raised.iter() {
             queries.push(Query::Raise(
                 raised.audience.clone().into(),
-                raised.event.to_tagged_json()?.into_tagged().into(),
+                match &raised.raising {
+                    Raising::TaggedJson(tagged) => tagged.clone().into(),
+                },
             ));
         }
 

@@ -303,7 +303,7 @@ mod tests {
     }
 }
 
-pub trait DomainEvent: ToJson {}
+pub trait DomainEvent {}
 
 #[derive(Debug, Serialize, Deserialize, ToJson)]
 #[serde(rename_all = "camelCase")]

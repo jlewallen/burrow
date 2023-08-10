@@ -16,10 +16,10 @@ use crate::{terminal::default_external_editor, DomainBuilder};
 
 use engine::{self, DevNullNotifier, Domain, HasUsernames, Notifier, SessionOpener};
 use kernel::{
-    get_my_session, DomainEvent, Effect, EffectReply, EntityKey, EntryResolver, Middleware,
-    Perform, PerformAction, SimpleReply,
+    get_my_session, Effect, EffectReply, EntityKey, EntryResolver, Middleware, Perform,
+    PerformAction, SimpleReply,
 };
-use replies::EditorReply;
+use replies::{EditorReply, TaggedJson};
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -37,7 +37,7 @@ impl Command {
 
 #[derive(Default)]
 pub struct QueuedNotifier {
-    queue: RefCell<Vec<(EntityKey, Rc<dyn DomainEvent>)>>,
+    queue: RefCell<Vec<(EntityKey, TaggedJson)>>,
 }
 
 impl QueuedNotifier {
@@ -55,7 +55,7 @@ impl QueuedNotifier {
 }
 
 impl Notifier for QueuedNotifier {
-    fn notify(&self, audience: &EntityKey, observed: &Rc<dyn DomainEvent>) -> Result<()> {
+    fn notify(&self, audience: &EntityKey, observed: &TaggedJson) -> Result<()> {
         self.queue
             .borrow_mut()
             .push((audience.clone(), observed.clone()));
@@ -79,9 +79,9 @@ impl StandardOutNotifier {
 }
 
 impl Notifier for StandardOutNotifier {
-    fn notify(&self, audience: &EntityKey, observed: &Rc<dyn DomainEvent>) -> Result<()> {
+    fn notify(&self, audience: &EntityKey, observed: &TaggedJson) -> Result<()> {
         if *audience == self.key {
-            let value = observed.to_tagged_json()?.into_tagged();
+            let value = observed.clone().into_tagged();
             let rendererd = self.renderer.render_value(&value)?;
             println!("{}", rendererd);
         }

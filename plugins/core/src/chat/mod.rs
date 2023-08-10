@@ -78,10 +78,13 @@ pub mod actions {
             if let Some(message) = &self.here {
                 session.raise(
                     Audience::Area(area.key().clone()),
-                    Box::new(TalkingEvent::Conversation(Spoken::new(
-                        (&living).observe(&living)?.expect("No observed entity"),
-                        message,
-                    ))),
+                    Raising::TaggedJson(
+                        TalkingEvent::Conversation(Spoken::new(
+                            (&living).observe(&living)?.expect("No observed entity"),
+                            message,
+                        ))
+                        .to_tagged_json()?,
+                    ),
                 )?;
             }
 

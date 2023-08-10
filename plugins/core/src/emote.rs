@@ -71,9 +71,12 @@ pub mod actions {
 
             session.raise(
                 Audience::Area(area.key().clone()),
-                Box::new(EmotingEvent::Laugh(Emoted::new(
-                    (&living).observe(&living)?.expect("No observed entity"),
-                ))),
+                Raising::TaggedJson(
+                    EmotingEvent::Laugh(Emoted::new(
+                        (&living).observe(&living)?.expect("No observed entity"),
+                    ))
+                    .to_tagged_json()?,
+                ),
             )?;
 
             Ok(Effect::Ok)

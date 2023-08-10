@@ -2,16 +2,28 @@ use anyhow::Result;
 use std::ops::Deref;
 use std::{cell::RefCell, rc::Rc};
 
-use replies::ToJson;
+use replies::{TaggedJson, ToJson};
 
 use super::actions::Performer;
 use super::model::{
-    Audience, DomainError, DomainEvent, EntityKey, EntityPtr, EntityRef, Entry, EntryResolver,
-    Identity, Item, When,
+    Audience, DomainError, EntityKey, EntityPtr, EntityRef, Entry, EntryResolver, Identity, Item,
+    When,
 };
 use super::{ManagedHooks, Surroundings};
 
 pub type SessionRef = Rc<dyn ActiveSession>;
+
+pub enum Raising {
+    TaggedJson(TaggedJson),
+}
+
+impl Into<TaggedJson> for Raising {
+    fn into(self) -> TaggedJson {
+        match self {
+            Raising::TaggedJson(tagged) => tagged,
+        }
+    }
+}
 
 pub trait ActiveSession: Performer + EntryResolver {
     /// I think this will eventually need to return or take a construct that's
@@ -54,7 +66,7 @@ pub trait ActiveSession: Performer + EntryResolver {
 
     fn new_identity(&self) -> Identity;
 
-    fn raise(&self, audience: Audience, event: Box<dyn DomainEvent>) -> Result<()>;
+    fn raise(&self, audience: Audience, raising: Raising) -> Result<()>;
 
     fn hooks(&self) -> &ManagedHooks;
 

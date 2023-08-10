@@ -102,17 +102,14 @@ pub mod actions {
     pub use serde::{Deserialize, Serialize};
     pub use tracing::*;
 
-    pub fn reply_ok<T: DomainEvent + 'static>(audience: Audience, raise: T) -> Result<Effect> {
-        get_my_session()?.raise(audience, Box::new(raise))?;
+    pub fn reply_ok<T: ToJson + 'static>(audience: Audience, raise: T) -> Result<Effect> {
+        get_my_session()?.raise(audience, Raising::TaggedJson(raise.to_tagged_json()?))?;
 
         Ok(Effect::Ok)
     }
 
-    pub fn reply_done<T: DomainEvent + 'static>(
-        audience: Audience,
-        raise: T,
-    ) -> Result<SimpleReply> {
-        get_my_session()?.raise(audience, Box::new(raise))?;
+    pub fn reply_done<T: ToJson + 'static>(audience: Audience, raise: T) -> Result<SimpleReply> {
+        get_my_session()?.raise(audience, Raising::TaggedJson(raise.to_tagged_json()?))?;
 
         Ok(SimpleReply::Done)
     }
