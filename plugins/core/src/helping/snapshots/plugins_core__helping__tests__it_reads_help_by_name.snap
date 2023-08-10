@@ -4,9 +4,8 @@ expression: effect.to_debug_json()?
 ---
 {
   "reply": {
-    "taggedJson": [
-      "simpleReply",
-      "notFound"
-    ]
+    "taggedJson": {
+      "simpleReply": "notFound"
+    }
   }
 }

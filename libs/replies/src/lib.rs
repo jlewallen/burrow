@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{ser::SerializeMap, Deserialize, Serialize};
 
 use macros::*;
 
@@ -19,7 +19,7 @@ impl Into<JsonValue> for Json {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct TaggedJson(String, Json);
 
 impl TaggedJson {
@@ -59,6 +59,29 @@ impl TaggedJson {
 
     pub fn into_tagged(self) -> JsonValue {
         self.into()
+    }
+}
+
+impl Serialize for TaggedJson {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(1))?;
+        map.serialize_entry(&self.0, &self.1)?;
+        map.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for TaggedJson {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = JsonValue::deserialize(deserializer)?;
+
+        Ok(TaggedJson::new_from(value)
+            .map_err(|_| serde::de::Error::custom("Malformed tagged JSON"))?)
     }
 }
 
@@ -267,29 +290,6 @@ impl std::str::FromStr for MarkdownReply {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use serde_json::json;
-
-    use super::*;
-
-    #[derive(Debug, Serialize, ToTaggedJson)]
-    #[serde(rename_all = "camelCase")]
-    pub enum HelloWorld {
-        Message(String),
-    }
-
-    #[test]
-    pub fn test_to_json_tags_enum() {
-        assert_eq!(
-            HelloWorld::Message("Hey!".to_owned())
-                .to_tagged_json()
-                .expect("ToTaggedJson failed"),
-            TaggedJson::new("helloWorld".to_owned(), json!({ "message": "Hey!"}).into())
-        );
-    }
-}
-
 pub trait DomainEvent {}
 
 #[derive(Serialize, Deserialize, ToTaggedJson, Debug)]
@@ -366,3 +366,42 @@ pub enum EmotingEvent {
 }
 
 impl DomainEvent for EmotingEvent {}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::*;
+
+    #[derive(Debug, Serialize, ToTaggedJson)]
+    #[serde(rename_all = "camelCase")]
+    pub enum HelloWorld {
+        Message(String),
+    }
+
+    #[test]
+    pub fn test_to_json_tags_enum() {
+        assert_eq!(
+            HelloWorld::Message("Hey!".to_owned())
+                .to_tagged_json()
+                .expect("ToTaggedJson failed"),
+            TaggedJson::new("helloWorld".to_owned(), json!({ "message": "Hey!"}).into())
+        );
+    }
+
+    #[test]
+    pub fn test_serialize_tagged_json() {
+        let tagged = TaggedJson::new(
+            "thing".to_owned(),
+            Json(JsonValue::String("value".to_owned())),
+        );
+        assert_eq!(
+            serde_json::to_value(&tagged).unwrap(),
+            json!({ "thing": "value" })
+        );
+        assert_eq!(
+            serde_json::from_value::<TaggedJson>(json!({ "thing": "value" })).unwrap(),
+            tagged
+        );
+    }
+}

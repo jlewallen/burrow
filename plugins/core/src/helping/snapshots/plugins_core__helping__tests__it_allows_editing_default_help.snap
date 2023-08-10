@@ -4,9 +4,8 @@ expression: effect.to_debug_json()?
 ---
 {
   "reply": {
-    "taggedJson": [
-      "editorReply",
-      {
+    "taggedJson": {
+      "editorReply": {
         "editing": {
           "markdown": "# Hello, world!"
         },
@@ -20,6 +19,6 @@ expression: effect.to_debug_json()?
           }
         }
       }
-    ]
+    }
   }
 }

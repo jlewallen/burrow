@@ -4,9 +4,8 @@ expression: reply.to_debug_json()?
 ---
 {
   "reply": {
-    "taggedJson": [
-      "editorReply",
-      {
+    "taggedJson": {
+      "editorReply": {
         "editing": {
           "markdown": "Living\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n"
         },
@@ -20,6 +19,6 @@ expression: reply.to_debug_json()?
           }
         }
       }
-    ]
+    }
   }
 }

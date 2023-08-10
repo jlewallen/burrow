@@ -4,11 +4,10 @@ expression: effect.to_debug_json()?
 ---
 {
   "reply": {
-    "taggedJson": [
-      "markdownReply",
-      {
+    "taggedJson": {
+      "markdownReply": {
         "value": "# Hello, world!"
       }
-    ]
+    }
   }
 }

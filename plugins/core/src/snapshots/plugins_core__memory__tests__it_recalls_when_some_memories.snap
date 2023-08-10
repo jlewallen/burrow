@@ -4,9 +4,8 @@ expression: reply.to_debug_json()?
 ---
 {
   "reply": {
-    "taggedJson": [
-      "memories",
-      [
+    "taggedJson": {
+      "memories": [
         {
           "gid": 3,
           "key": "E-3",
@@ -14,6 +13,6 @@ expression: reply.to_debug_json()?
           "time": "1982-04-23T00:00:00Z"
         }
       ]
-    ]
+    }
   }
 }

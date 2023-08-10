@@ -4,9 +4,8 @@ expression: reply.to_debug_json()?
 ---
 {
   "reply": {
-    "taggedJson": [
-      "simpleReply",
-      "done"
-    ]
+    "taggedJson": {
+      "simpleReply": "done"
+    }
   }
 }

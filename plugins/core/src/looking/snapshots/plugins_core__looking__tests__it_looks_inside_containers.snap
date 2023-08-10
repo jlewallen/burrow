@@ -4,9 +4,8 @@ expression: reply.to_debug_json()?
 ---
 {
   "reply": {
-    "taggedJson": [
-      "insideObservation",
-      {
+    "taggedJson": {
+      "insideObservation": {
         "items": [
           {
             "desc": null,
@@ -22,6 +21,6 @@ expression: reply.to_debug_json()?
           "qualified": "a Vessel"
         }
       }
-    ]
+    }
   }
 }

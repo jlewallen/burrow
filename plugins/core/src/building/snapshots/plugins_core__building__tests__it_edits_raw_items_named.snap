@@ -4,9 +4,8 @@ expression: reply.to_debug_json()?
 ---
 {
   "reply": {
-    "taggedJson": [
-      "editorReply",
-      {
+    "taggedJson": {
+      "editorReply": {
         "editing": {
           "json": {
             "acls": {
@@ -65,6 +64,6 @@ expression: reply.to_debug_json()?
           }
         }
       }
-    ]
+    }
   }
 }

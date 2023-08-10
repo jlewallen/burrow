@@ -4,9 +4,8 @@ expression: reply.to_debug_json()?
 ---
 {
   "reply": {
-    "taggedJson": [
-      "areaObservation",
-      {
+    "taggedJson": {
+      "areaObservation": {
         "area": {
           "desc": null,
           "key": "E-2",
@@ -31,6 +30,6 @@ expression: reply.to_debug_json()?
         },
         "routes": []
       }
-    ]
+    }
   }
 }

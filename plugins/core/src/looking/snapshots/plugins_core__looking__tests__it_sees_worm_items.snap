@@ -4,9 +4,8 @@ expression: reply.to_debug_json()?
 ---
 {
   "reply": {
-    "taggedJson": [
-      "entityObservation",
-      {
+    "taggedJson": {
+      "entityObservation": {
         "entity": {
           "desc": null,
           "key": "E-2",
@@ -22,6 +21,6 @@ expression: reply.to_debug_json()?
           }
         ]
       }
-    ]
+    }
   }
 }
