@@ -230,11 +230,11 @@ impl EditorReply {
 #[derive(Clone, Serialize, Deserialize, PartialEq, ToTaggedJson, Reply, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct JsonReply {
-    value: JsonValue,
+    value: TaggedJson,
 }
 
-impl From<JsonValue> for JsonReply {
-    fn from(value: JsonValue) -> Self {
+impl From<TaggedJson> for JsonReply {
+    fn from(value: TaggedJson) -> Self {
         Self { value }
     }
 }
