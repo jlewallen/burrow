@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use macros::ToTaggedJson;
+use macros::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Json(serde_json::Value);
@@ -80,22 +80,22 @@ pub enum TaggedJsonError {
     #[error("Malformed tagged JSON")]
     Malformed,
     #[error("JSON Error")]
-    OtherJson(#[source] serde_json::Error),
+    Json(#[source] serde_json::Error),
 }
 
 impl From<serde_json::Error> for TaggedJsonError {
     fn from(value: serde_json::Error) -> Self {
-        Self::OtherJson(value)
+        Self::Json(value)
     }
 }
 
-pub trait ToTaggedJson: std::fmt::Debug {
+pub trait ToTaggedJson {
     fn to_tagged_json(&self) -> Result<TaggedJson, TaggedJsonError>;
 }
 
 pub trait Reply {}
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToTaggedJson)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, ToTaggedJson, Reply)]
 #[serde(rename_all = "camelCase")]
 pub enum SimpleReply {
     Done,
@@ -104,8 +104,6 @@ pub enum SimpleReply {
     Impossible,
     Prevented,
 }
-
-impl Reply for SimpleReply {}
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]

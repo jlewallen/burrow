@@ -2,6 +2,18 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput};
 
+#[proc_macro_derive(Reply)]
+pub fn json_derive_reply(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let name = input.ident;
+
+    let done = quote! {
+        impl Reply for #name {}
+    };
+
+    done.into()
+}
+
 #[proc_macro_derive(ToTaggedJson)]
 pub fn json_derive_to_tagged_json(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -14,8 +26,8 @@ pub fn json_derive_to_tagged_json(input: TokenStream) -> TokenStream {
                 let key = stringify!(#name);
                 let mut c = key.chars();
                 let key = match c.next() {
-                    None => String::new(),
                     Some(f) => f.to_lowercase().collect::<String>() + c.as_str(),
+                    None => panic!("Empty key in tagged JSON."),
                 };
                 Ok(TaggedJson::new(key, value))
             }
