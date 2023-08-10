@@ -8,7 +8,7 @@ use plugins_core::{
     moving::model::{Exit, Movement, Occupyable, Occupying},
 };
 use plugins_rune::Behaviors;
-use tracing::{debug, info};
+use tracing::info;
 
 use crate::DomainBuilder;
 use engine::{prelude::DevNullNotifier, prelude::SessionOpener, storage::StorageFactory};
@@ -76,8 +76,6 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
 
             let entity = session.load_entity(&LookupBy::Key(key))?;
             if let Some(entity) = entity {
-                debug!("{:?}", entity.key());
-
                 if let Some(key) = &cmd.scope {
                     let mut entity = entity.borrow_mut();
                     let mut scopes = entity.scopes_mut();

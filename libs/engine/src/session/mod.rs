@@ -291,7 +291,7 @@ impl ActiveSession for Session {
         if entity_ref.has_entity() {
             Ok(entity_ref.clone())
         } else if let Some(entity) = self.load_entity(&LookupBy::Key(entity_ref.key()))? {
-            Ok(entity.entity_ref())
+            Ok(entity.borrow().entity_ref())
         } else {
             Err(DomainError::EntityNotFound)
         }

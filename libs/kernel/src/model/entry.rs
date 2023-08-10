@@ -22,23 +22,26 @@ pub struct Entry {
     debug: Option<String>,
 }
 
-fn make_debug_string(entity: &EntityPtr) -> String {
-    let entity = entity.borrow();
+fn make_debug_string(entity: &Entity) -> String {
     let name = entity.name();
     let gid = entity.gid();
 
     match (name, gid) {
         (Some(name), Some(gid)) => format!("\"{}#{}\"", name, gid),
-        (None, None) => panic!("Entity missing name and gid"),
+        (None, None) => panic!("Entity missing name and GID"),
         (None, Some(_)) => panic!("Entity missing name"),
-        (Some(_), None) => panic!("Entity missing gid"),
+        (Some(_), None) => panic!("Entity missing GID"),
     }
 }
 
 impl Entry {
     pub fn new(entity: EntityPtr) -> Self {
-        let key = entity.key();
-        let debug = Some(make_debug_string(&entity));
+        let (key, debug) = {
+            let entity = entity.borrow();
+            let key = entity.key().clone();
+            let debug = Some(make_debug_string(&entity));
+            (key, debug)
+        };
 
         Self { key, entity, debug }
     }

@@ -53,7 +53,7 @@ impl Maps {
     }
 
     fn add_entity(&mut self, loaded: LoadedEntity) -> Result<()> {
-        debug!("adding {:?}", loaded);
+        debug!("adding");
 
         self.by_gid.insert(
             loaded

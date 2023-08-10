@@ -41,14 +41,6 @@ impl EntityPtr {
     pub fn new(e: Entity) -> Self {
         Self(Rc::new(RefCell::new(e)))
     }
-
-    pub fn key(&self) -> EntityKey {
-        self.0.borrow().key().clone()
-    }
-
-    pub fn entity_ref(&self) -> EntityRef {
-        self.0.borrow().entity_ref()
-    }
 }
 
 impl Deref for EntityPtr {

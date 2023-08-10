@@ -78,11 +78,11 @@ impl Action for EditRawAction {
             Some(editing) => {
                 info!("editing {:?}", editing);
                 let json = editing.to_json_value()?;
-                let editing = editing.entity();
+                let key = editing.key().clone();
                 Ok(EditorReply::new(
-                    editing.key().to_string(),
+                    key.to_string(),
                     WorkingCopy::Json(json),
-                    SaveEntityJsonAction::new_template(editing.key().clone())?,
+                    SaveEntityJsonAction::new_template(key)?,
                 )
                 .try_into()?)
             }
