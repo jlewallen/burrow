@@ -256,7 +256,6 @@ impl Action for SaveQuickEditAction {
         match session.entry(&LookupBy::Key(&self.key))? {
             Some(entry) => {
                 let entity = entry.entity();
-                info!("save:quick-edit {:?}", entity);
                 match &self.copy {
                     WorkingCopy::Markdown(text) => {
                         let quick = QuickEdit::from_str(text)?;
@@ -308,7 +307,6 @@ impl Action for SaveEntityJsonAction {
         match session.entry(&LookupBy::Key(&self.key))? {
             Some(entry) => {
                 let entity = entry.entity();
-                info!("save:entity-json {:?}", entity);
                 match &self.copy {
                     WorkingCopy::Json(value) => {
                         let replacing = Entity::from_value(value.clone())?;

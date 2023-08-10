@@ -51,20 +51,11 @@ impl EntityPtr {
     }
 }
 
-// This seems cleaner than implementing borrow/borrow_mut ourselves and things
-// were gnarly when I tried implementing Borrow<T> myself.
 impl Deref for EntityPtr {
     type Target = RefCell<Entity>;
 
     fn deref(&self) -> &Self::Target {
         self.0.as_ref()
-    }
-}
-
-impl Debug for EntityPtr {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let entity = self.0.borrow();
-        write!(f, "{:?}", entity.key())
     }
 }
 

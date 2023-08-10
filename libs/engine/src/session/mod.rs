@@ -261,7 +261,7 @@ impl LoadsEntities for Session {
 impl EntryResolver for Session {
     fn entry(&self, lookup: &LookupBy) -> Result<Option<Entry>, DomainError> {
         match self.load_entity(lookup)? {
-            Some(entity) => Ok(Some(Entry::new(&entity.key(), entity))),
+            Some(entity) => Ok(Some(Entry::new(entity))),
             None => Ok(None),
         }
     }

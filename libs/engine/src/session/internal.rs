@@ -16,7 +16,7 @@ pub struct LoadedEntity {
 impl Debug for LoadedEntity {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("LoadedEntity")
-            .field("entity", &self.entity)
+            .field("key", &self.key)
             .finish()
     }
 }

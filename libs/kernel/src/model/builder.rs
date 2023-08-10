@@ -67,15 +67,11 @@ impl EntityBuilder {
     }
 
     pub fn copying(mut self, template: &Entity) -> Result<Self> {
-        let mut scopes: ScopeMap = template.scopes.clone().into();
+        let scopes: ScopeMap = template.scopes.clone().into();
         let properties = scopes.scopes().load_scope::<Properties>()?;
         let mut props = properties.props();
         props.remove_property(GID_PROPERTY);
-        // TODO How can we avoid passing tthis generic argument?
-        scopes
-            .scopes_mut()
-            .replace_scope::<Properties>(&properties)?;
-
+        self.properties = props.into();
         self.class = template.class.clone();
         self.creator = template.creator.clone();
         self.parent = template.parent.clone();

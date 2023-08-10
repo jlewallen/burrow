@@ -22,15 +22,25 @@ pub struct Entry {
     debug: Option<String>,
 }
 
-impl Entry {
-    pub fn new(key: &EntityKey, entity: EntityPtr) -> Self {
-        let debug = Some(format!("{:?}", entity));
+fn make_debug_string(entity: &EntityPtr) -> String {
+    let entity = entity.borrow();
+    let name = entity.name();
+    let gid = entity.gid();
 
-        Self {
-            key: key.clone(),
-            entity,
-            debug,
-        }
+    match (name, gid) {
+        (Some(name), Some(gid)) => format!("\"{}#{}\"", name, gid),
+        (None, None) => panic!("Entity missing name and gid"),
+        (None, Some(_)) => panic!("Entity missing name"),
+        (Some(_), None) => panic!("Entity missing gid"),
+    }
+}
+
+impl Entry {
+    pub fn new(entity: EntityPtr) -> Self {
+        let key = entity.key();
+        let debug = Some(make_debug_string(&entity));
+
+        Self { key, entity, debug }
     }
 
     pub fn new_from_entity(entity: Entity) -> Result<Self, DomainError> {
@@ -137,7 +147,7 @@ impl TryFrom<EntityPtr> for Entry {
     type Error = DomainError;
 
     fn try_from(value: EntityPtr) -> Result<Self, Self::Error> {
-        Ok(Self::new(&value.key(), value))
+        Ok(Self::new(value))
     }
 }
 
