@@ -18,6 +18,12 @@ pub struct EntityBuilder {
     properties: Properties,
 }
 
+impl Default for EntityBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EntityBuilder {
     pub fn new() -> Self {
         Self {

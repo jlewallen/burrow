@@ -52,9 +52,9 @@ impl ToString for QuickEdit {
     fn to_string(&self) -> String {
         format!(
             "{}\n\n{}\n\n{}",
-            self.name.as_ref().map(|s| s.as_str()).unwrap_or(""),
+            self.name.as_deref().unwrap_or(""),
             SEPARATOR,
-            self.desc.as_ref().map(|s| s.as_str()).unwrap_or("")
+            self.desc.as_deref().unwrap_or("")
         )
     }
 }

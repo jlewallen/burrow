@@ -318,7 +318,7 @@ pub mod actions {
                     Some(vessel) => {
                         if tools::is_container(&vessel)? {
                             let from = tools::container_of(&item)?;
-                            match tools::move_between(&from.try_into()?, &vessel, &item)? {
+                            match tools::move_between(&from, &vessel, &item)? {
                                 DomainOutcome::Ok => Ok(SimpleReply::Done.try_into()?),
                                 DomainOutcome::Nope => Ok(SimpleReply::NotFound.try_into()?),
                             }

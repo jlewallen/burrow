@@ -149,9 +149,9 @@ impl DomainBuilder {
     }
 
     pub fn storage_factory(&self) -> Result<sqlite::Factory> {
-        Ok(Factory::new(
+        Factory::new(
             self.path.as_ref().unwrap_or(&"world.sqlite3".to_owned()),
-        )?)
+        )
     }
 
     pub async fn build(&self) -> Result<Domain> {

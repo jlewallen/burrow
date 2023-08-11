@@ -130,20 +130,18 @@ pub mod actions {
             let found = cyclo.get_well_known_by_name(page_name)?;
             if let Some(found) = found {
                 Ok(session.entry(&LookupBy::Key(&found))?)
+            } else if create {
+                let creating: Entity = build_entity()
+                    .class(EntityClass::encyclopedia())
+                    .name(page_name)
+                    .try_into()?;
+                let creating = session.add_entity(creating)?;
+                let mut wiki = creating.scope_mut::<Wiki>()?;
+                wiki.set_default("# Hello, world!");
+                wiki.save()?;
+                Ok(Some(creating))
             } else {
-                if create {
-                    let creating: Entity = build_entity()
-                        .class(EntityClass::encyclopedia())
-                        .name(page_name)
-                        .try_into()?;
-                    let creating = session.add_entity(creating)?;
-                    let mut wiki = creating.scope_mut::<Wiki>()?;
-                    wiki.set_default("# Hello, world!");
-                    wiki.save()?;
-                    Ok(Some(creating))
-                } else {
-                    Ok(None)
-                }
+                Ok(None)
             }
         } else {
             Ok(Some(cyclo))
@@ -163,12 +161,7 @@ pub mod actions {
         fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             let (world, _, _) = surroundings.unpack();
 
-            let page = lookup_page_name(
-                &session,
-                &world,
-                self.page_name.as_ref().map(|s| s.as_str()),
-                false,
-            )?;
+            let page = lookup_page_name(&session, &world, self.page_name.as_deref(), false)?;
             let Some(page) = page else {
                 return Ok(SimpleReply::NotFound.try_into()?)
             };
@@ -193,18 +186,13 @@ pub mod actions {
             info!("editing {:?}", self.page_name);
 
             let (world, _, _) = surroundings.unpack();
-            let page = lookup_page_name(
-                &session,
-                &world,
-                self.page_name.as_ref().map(|s| s.as_str()),
-                true,
-            )?;
+            let page = lookup_page_name(&session, &world, self.page_name.as_deref(), true)?;
             let Some(page) = page else {
                 return Ok(SimpleReply::NotFound.try_into()?);
             };
 
             let wiki = page.scope::<Wiki>()?;
-            let body: String = wiki.get_default().unwrap_or_else(|| "".to_owned()).into();
+            let body: String = wiki.get_default().unwrap_or_else(|| "".to_owned());
             let reply = EditorReply::new(
                 page.key().to_string(),
                 WorkingCopy::Markdown(body),

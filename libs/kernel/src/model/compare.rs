@@ -65,7 +65,7 @@ impl CompareChanges<JsonValue, JsonValue> for TreeDiff {
                     | ChangeType::Added(k, _)
                     | ChangeType::Modified(k, _, _) => info!(
                         "modified {:?}",
-                        k.into_iter()
+                        k.iter()
                             .map(|k| format!("{}", k))
                             .collect::<Vec<_>>()
                             .join(".")

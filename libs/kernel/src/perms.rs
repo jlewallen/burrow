@@ -115,14 +115,7 @@ pub fn find_acls(value: &JsonValue) -> Option<Vec<AclProtection>> {
         JsonValue::Bool(_) => None,
         JsonValue::Number(_) => None,
         JsonValue::String(_) => None,
-        JsonValue::Array(array) => Some(
-            array
-                .iter()
-                .map(|e| find_acls(e))
-                .flatten()
-                .flatten()
-                .collect(),
-        ),
+        JsonValue::Array(array) => Some(array.iter().flat_map(find_acls).flatten().collect()),
         JsonValue::Object(o) => {
             let acls = serde_json::from_value::<Acls>(value.clone());
             match acls {
@@ -132,8 +125,7 @@ pub fn find_acls(value: &JsonValue) -> Option<Vec<AclProtection>> {
                 }]),
                 Err(_) => Some(
                     o.iter()
-                        .map(|(k, v)| find_acls(v).map(|o| o.into_iter().map(|p| p.prefix(k))))
-                        .flatten()
+                        .flat_map(|(k, v)| find_acls(v).map(|o| o.into_iter().map(|p| p.prefix(k))))
                         .flatten()
                         .collect(),
                 ),

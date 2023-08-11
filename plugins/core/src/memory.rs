@@ -133,9 +133,9 @@ pub mod model {
         }
     }
 
-    impl Into<Vec<SpecificMemory>> for Memory {
-        fn into(self) -> Vec<SpecificMemory> {
-            self.memory
+    impl From<Memory> for Vec<SpecificMemory> {
+        fn from(value: Memory) -> Self {
+            value.memory
         }
     }
 

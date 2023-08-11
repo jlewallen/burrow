@@ -142,8 +142,7 @@ pub mod model {
             Ok(self
                 .wearing
                 .iter()
-                .map(|i| i.keys())
-                .flatten()
+                .flat_map(|i| i.keys())
                 .any(|i| *i.key() == *item.key()))
         }
 
@@ -249,8 +248,7 @@ pub mod actions {
                                 item: (&wearing).observe(&user)?.expect("No observed entity"),
                                 area: area.entity_ref(),
                             },
-                        )?
-                        .into()),
+                        )?),
                         DomainOutcome::Nope => Ok(SimpleReply::NotFound.try_into()?),
                     }
                 }
@@ -284,8 +282,7 @@ pub mod actions {
                                 item: (&removing).observe(&user)?.expect("No observed entity"),
                                 area: area.entity_ref(),
                             },
-                        )?
-                        .into()),
+                        )?),
                         DomainOutcome::Nope => Ok(SimpleReply::NotFound.try_into()?),
                     },
                     None => Ok(SimpleReply::NotFound.try_into()?),

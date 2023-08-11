@@ -168,7 +168,7 @@ impl From<HostJsonValue> for Json {
 impl ToTaggedJson for Json {
     fn to_tagged_json(&self) -> std::result::Result<TaggedJson, TaggedJsonError> {
         let value: HostJsonValue = self.0.clone().into();
-        Ok(TaggedJson::new_from(value)?)
+        TaggedJson::new_from(value)
     }
 }
 
@@ -184,8 +184,7 @@ impl From<kernel::prelude::TaggedJson> for WireTaggedJson {
 
 impl From<WireTaggedJson> for kernel::prelude::TaggedJson {
     fn from(value: WireTaggedJson) -> Self {
-        let json: JsonValue = value.1.into();
-        let json: kernel::prelude::JsonValue = json.into();
+        let json: kernel::prelude::JsonValue = value.1.into();
         Self::new(value.0, json.into())
     }
 }

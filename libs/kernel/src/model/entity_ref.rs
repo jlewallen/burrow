@@ -30,19 +30,19 @@ impl Default for EntityRef {
     }
 }
 
-impl Into<EntityKey> for EntityRef {
-    fn into(self) -> EntityKey {
-        self.key
+impl From<EntityRef> for EntityKey {
+    fn from(value: EntityRef) -> Self {
+        value.key
     }
 }
 
-impl Into<EntityRef> for &Entity {
-    fn into(self) -> EntityRef {
-        EntityRef {
-            key: self.key().clone(),
-            class: self.class().to_owned(),
-            name: self.name(),
-            gid: self.gid(),
+impl From<&Entity> for EntityRef {
+    fn from(value: &Entity) -> Self {
+        Self {
+            key: value.key().clone(),
+            class: value.class().to_owned(),
+            name: value.name(),
+            gid: value.gid(),
             entity: None,
         }
     }
@@ -136,33 +136,24 @@ pub fn find_entity_refs(value: &JsonValue) -> Option<Vec<EntityRef>> {
         JsonValue::Bool(_) => None,
         JsonValue::Number(_) => None,
         JsonValue::String(_) => None,
-        JsonValue::Array(array) => Some(
-            array
-                .iter()
-                .map(|e| find_entity_refs(e))
-                .flatten()
-                .flatten()
-                .collect(),
-        ),
+        JsonValue::Array(array) => {
+            Some(array.iter().flat_map(find_entity_refs).flatten().collect())
+        }
         JsonValue::Object(o) => {
             let potential = serde_json::from_value::<PotentialRef>(value.clone());
 
             // If this object is an EntityRef, we can stop looking, otherwise we
             // need to keep going deeper.
-            match potential {
-                Ok(potential) => match potential.good_enough() {
-                    Some(entity_ref) => {
-                        return Some(vec![entity_ref]);
-                    }
-                    None => {}
-                },
-                _ => {}
+
+            if let Ok(potential) = potential {
+                if let Some(entity_ref) = potential.good_enough() {
+                    return Some(vec![entity_ref]);
+                }
             }
 
             Some(
                 o.iter()
-                    .map(|(_k, v)| find_entity_refs(v))
-                    .flatten()
+                    .flat_map(|(_k, v)| find_entity_refs(v))
                     .flatten()
                     .collect(),
             )
@@ -192,7 +183,7 @@ mod exp {
         MAP.with(|setting| {
             let reading = setting.borrow();
             if let Some(map) = &*reading {
-                map.get(key).map(|v| v.clone())
+                map.get(key).cloned()
             } else {
                 None
             }

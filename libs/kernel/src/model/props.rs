@@ -66,9 +66,9 @@ impl Props {
     }
 }
 
-impl Into<HashMap<String, Property>> for Props {
-    fn into(self) -> HashMap<String, Property> {
-        self.0
+impl From<Props> for HashMap<String, Property> {
+    fn from(value: Props) -> Self {
+        value.0
     }
 }
 
@@ -106,7 +106,7 @@ pub trait CoreProps {
 }
 
 fn load_props(entity: &Entity) -> Result<Box<Properties>, DomainError> {
-    Ok(entity.scopes().load_scope::<Properties>()?)
+    entity.scopes().load_scope::<Properties>()
 }
 
 fn save_props(entity: &mut Entity, properties: Box<Properties>) -> Result<(), DomainError> {

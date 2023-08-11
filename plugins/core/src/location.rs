@@ -62,7 +62,7 @@ where
 }
 
 pub fn container_of(item: &Entry) -> Result<Entry, DomainError> {
-    Ok(Location::get(item)?
+    Location::get(item)?
         .ok_or(DomainError::ContainerRequired)?
-        .to_entry()?)
+        .to_entry()
 }

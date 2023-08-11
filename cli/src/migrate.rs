@@ -43,7 +43,7 @@ fn load_and_save_scope<T: Scope>(entity: &Entry) -> Result<bool, DomainError> {
 
         Ok(entity
             .scope_mut::<T>()
-            .with_context(|| format!("{}", T::scope_key()))?
+            .with_context(|| T::scope_key().to_string())?
             .save()
             .map(|_| true)?)
     } else {
@@ -83,10 +83,8 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
                     let mut scopes = entity.scopes_mut();
                     if cmd.erase {
                         scopes.remove_scope_by_key(key)?;
-                    } else {
-                        if let Some(new_key) = &cmd.rename {
-                            scopes.rename_scope(key, new_key)?;
-                        }
+                    } else if let Some(new_key) = &cmd.rename {
+                        scopes.rename_scope(key, new_key)?;
                     }
                 }
 

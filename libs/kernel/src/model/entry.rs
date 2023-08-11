@@ -236,10 +236,6 @@ impl<T: Scope> OpenedScopeMut<T> {
 
         entity.scopes_mut().replace_scope::<T>(&self.target)
     }
-
-    pub fn as_ref(&mut self) -> &mut T {
-        &mut self.target
-    }
 }
 
 impl<T: Scope> Drop for OpenedScopeMut<T> {

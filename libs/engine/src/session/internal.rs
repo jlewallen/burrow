@@ -73,20 +73,15 @@ impl Maps {
         &mut self,
         each: T,
     ) -> Result<Vec<R>> {
-        Ok(self
-            .by_key
+        self.by_key
             .iter_mut()
             .map(|(_, e)| each(e))
-            .collect::<Result<Vec<_>>>()?)
+            .collect::<Result<Vec<_>>>()
     }
 
     #[allow(dead_code)]
     fn foreach_entity<R, T: Fn(&LoadedEntity) -> Result<R>>(&self, each: T) -> Result<Vec<R>> {
-        Ok(self
-            .by_key
-            .iter()
-            .map(|(_, e)| each(e))
-            .collect::<Result<Vec<_>>>()?)
+        self.by_key.values().map(each).collect::<Result<Vec<_>>>()
     }
 }
 
@@ -176,7 +171,7 @@ impl Entities {
             key: EntityKey::new(&persisted.key),
             entity: entity.clone(),
             serialized: Some(persisted.serialized),
-            value: json.clone().into(),
+            value: json.clone(),
             version: persisted.version + 1,
             gid: Some(gid),
         })?;
@@ -208,15 +203,15 @@ pub(crate) struct Added {
 impl Added {
     pub(crate) fn find_refs(&self) -> Vec<EntityKey> {
         find_entity_refs(&self.json)
-            .unwrap_or_else(|| vec![])
+            .unwrap_or_default()
             .into_iter()
             .map(|e| e.into())
             .collect()
     }
 }
 
-impl Into<EntityPtr> for Added {
-    fn into(self) -> EntityPtr {
-        self.entity
+impl From<Added> for EntityPtr {
+    fn from(value: Added) -> Self {
+        value.entity
     }
 }

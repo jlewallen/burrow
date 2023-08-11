@@ -119,13 +119,7 @@ pub mod model {
 
     impl Observe<ObservedEntity> for &Entry {
         fn observe(&self, _user: &Entry) -> Result<Option<ObservedEntity>> {
-            let quantity = {
-                if let Some(carryable) = self.maybe_scope::<Carryable>()? {
-                    Some(carryable.quantity())
-                } else {
-                    None
-                }
-            };
+            let quantity = self.maybe_scope::<Carryable>()?.map(|c| c.quantity());
             let key = self.key().to_string();
             let observing = self.entity().borrow();
             let name = observing.name();

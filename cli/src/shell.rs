@@ -141,7 +141,7 @@ impl Middleware for InteractiveEditor {
                                         let value: JsonValue = match reply.editing() {
                                             replies::WorkingCopy::Markdown(original) => {
                                                 JsonValue::String(default_external_editor(
-                                                    &original,
+                                                    original,
                                                     MD_EXTENSION,
                                                 )?)
                                             }
@@ -155,7 +155,7 @@ impl Middleware for InteractiveEditor {
                                             }
                                             replies::WorkingCopy::Script(original) => {
                                                 JsonValue::String(default_external_editor(
-                                                    &original,
+                                                    original,
                                                     RUNE_EXTENSION,
                                                 )?)
                                             }

@@ -28,7 +28,7 @@ impl Action for AddScopeAction {
 
         item.scopes_mut().add_scope_by_key(&self.scope_key)?;
 
-        return Ok(SimpleReply::Done.try_into()?);
+        Ok(SimpleReply::Done.try_into()?)
     }
 }
 
@@ -162,7 +162,7 @@ impl Action for MakeItemAction {
         let new_item = session.add_entity(new_item)?;
 
         tools::set_quantity(&new_item, 1f32)?;
-        tools::set_container(&creator, &vec![new_item.try_into()?])?;
+        tools::set_container(creator, &vec![new_item])?;
 
         Ok(SimpleReply::Done.try_into()?)
     }

@@ -194,7 +194,7 @@ impl BuildSurroundings {
             .wiki()?
             .into_entry()?;
 
-        world.set_encyclopedia(&encyclopedia.key())?;
+        world.set_encyclopedia(encyclopedia.key())?;
 
         Ok(Self {
             hands: Vec::new(),

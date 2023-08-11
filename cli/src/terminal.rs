@@ -18,7 +18,7 @@ impl Renderer {
     }
 
     pub fn render_value(&self, value: &JsonValue) -> Result<String> {
-        self.target.render_value(&value)
+        self.target.render_value(value)
     }
 }
 

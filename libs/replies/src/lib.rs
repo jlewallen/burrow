@@ -13,9 +13,9 @@ impl From<JsonValue> for Json {
     }
 }
 
-impl Into<JsonValue> for Json {
-    fn into(self) -> JsonValue {
-        self.0
+impl From<Json> for JsonValue {
+    fn from(value: Json) -> Self {
+        value.0
     }
 }
 
@@ -80,8 +80,7 @@ impl<'de> Deserialize<'de> for TaggedJson {
     {
         let value = JsonValue::deserialize(deserializer)?;
 
-        Ok(TaggedJson::new_from(value)
-            .map_err(|_| serde::de::Error::custom("Malformed tagged JSON"))?)
+        TaggedJson::new_from(value).map_err(|_| serde::de::Error::custom("Malformed tagged JSON"))
     }
 }
 
@@ -93,9 +92,9 @@ impl TryFrom<JsonValue> for TaggedJson {
     }
 }
 
-impl Into<JsonValue> for TaggedJson {
-    fn into(self) -> JsonValue {
-        JsonValue::Object([(self.0, self.1.into())].into_iter().collect())
+impl From<TaggedJson> for JsonValue {
+    fn from(value: TaggedJson) -> Self {
+        JsonValue::Object([(value.0, value.1.into())].into_iter().collect())
     }
 }
 
@@ -268,9 +267,9 @@ pub struct MarkdownReply {
     value: String,
 }
 
-impl Into<String> for MarkdownReply {
-    fn into(self) -> String {
-        self.value
+impl From<MarkdownReply> for String {
+    fn from(value: MarkdownReply) -> Self {
+        value.value
     }
 }
 

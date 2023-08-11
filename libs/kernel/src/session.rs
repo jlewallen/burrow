@@ -17,9 +17,9 @@ pub enum Raising {
     TaggedJson(TaggedJson),
 }
 
-impl Into<TaggedJson> for Raising {
-    fn into(self) -> TaggedJson {
-        match self {
+impl From<Raising> for TaggedJson {
+    fn from(value: Raising) -> Self {
+        match value {
             Raising::TaggedJson(tagged) => tagged,
         }
     }

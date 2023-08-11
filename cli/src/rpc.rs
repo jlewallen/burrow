@@ -15,6 +15,7 @@ use plugins_rune::actions::SaveScriptAction;
 // natural like text.
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[allow(clippy::enum_variant_names)]
 pub enum AcceptableActions {
     SaveEntityJsonAction(SaveEntityJsonAction),
     SaveQuickEditAction(SaveQuickEditAction),

@@ -49,7 +49,6 @@ impl Renderer {
         Ok(Self { tera })
     }
 
-    #[must_use]
     pub fn render_value(&self, value: &JsonValue) -> Result<String> {
         let mut all = "".to_string();
 

@@ -101,8 +101,7 @@ impl AppState {
                 let user = user.unwrap();
                 let hash = user
                     .maybe_scope::<Credentials>()?
-                    .map(|s| s.get().map(|s| s.clone()))
-                    .flatten();
+                    .and_then(|s| s.get().cloned());
 
                 Some((key, hash))
             }

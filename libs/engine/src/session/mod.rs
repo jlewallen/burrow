@@ -59,7 +59,7 @@ impl Session {
         let plugins = Arc::new(RefCell::new(plugins));
 
         let expand_surroundings: Rc<dyn Middleware> = Rc::new(ExpandSurroundingsMiddleware {
-            finder: Arc::clone(&finder),
+            finder: Arc::clone(finder),
         });
         let middleware: Vec<Rc<dyn Middleware>> = middleware
             .into_iter()
@@ -338,11 +338,7 @@ impl ActiveSession for Session {
     fn schedule(&self, key: &str, when: When, message: &dyn ToTaggedJson) -> Result<()> {
         let key = key.to_owned();
         let message = message.to_tagged_json()?;
-        let scheduling = Scheduling {
-            key,
-            when,
-            message: message.into(),
-        };
+        let scheduling = Scheduling { key, when, message };
         let perform = Perform::Schedule(scheduling);
 
         self.perform(perform).map(|_| ())
@@ -371,9 +367,9 @@ const USER_DEPTH: usize = 2;
 
 fn user_name_to_key<R: EntryResolver>(resolve: &R, name: &str) -> Result<EntityKey, DomainError> {
     let world = resolve.world()?.expect("No world");
-    Ok(world
+    world
         .find_name_key(name)?
-        .ok_or(DomainError::EntityNotFound)?)
+        .ok_or(DomainError::EntityNotFound)
 }
 
 struct MakeSurroundings {

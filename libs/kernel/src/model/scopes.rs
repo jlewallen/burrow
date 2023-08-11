@@ -174,9 +174,9 @@ impl From<HashMap<String, ScopeValue>> for ScopeMap {
     }
 }
 
-impl Into<HashMap<String, ScopeValue>> for ScopeMap {
-    fn into(self) -> HashMap<String, ScopeValue> {
-        self.0
+impl From<ScopeMap> for HashMap<String, ScopeValue> {
+    fn from(value: ScopeMap) -> Self {
+        value.0
     }
 }
 
