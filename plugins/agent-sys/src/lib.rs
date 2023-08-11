@@ -121,21 +121,6 @@ impl ActiveSession for AgentSession {
         unimplemented!("AgentSession:find-item")
     }
 
-    fn ensure_entity(
-        &self,
-        entity_ref: &kernel::prelude::EntityRef,
-    ) -> Result<kernel::prelude::EntityRef, DomainError> {
-        if entity_ref.has_entity() {
-            Ok(entity_ref.clone())
-        } else if let Some(entity) =
-            &self.entry(&kernel::prelude::LookupBy::Key(entity_ref.key()))?
-        {
-            Ok(entity.entity_ref())
-        } else {
-            Err(DomainError::EntityNotFound)
-        }
-    }
-
     fn add_entity(&self, entity: kernel::prelude::Entity) -> Result<Entry> {
         let key = entity.key().clone();
         let json_value = entity.to_json_value()?;

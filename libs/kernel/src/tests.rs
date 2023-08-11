@@ -58,10 +58,6 @@ impl ActiveSession for KeysOnlySession {
         todo!()
     }
 
-    fn ensure_entity(&self, _entity_ref: &EntityRef) -> Result<EntityRef, DomainError> {
-        todo!()
-    }
-
     fn add_entity(&self, _entity: Entity) -> Result<Entry> {
         todo!()
     }

@@ -297,16 +297,6 @@ impl ActiveSession for Session {
         }
     }
 
-    fn ensure_entity(&self, entity_ref: &EntityRef) -> Result<EntityRef, DomainError> {
-        if entity_ref.has_entity() {
-            Ok(entity_ref.clone())
-        } else if let Some(entity) = self.load_entity(&LookupBy::Key(entity_ref.key()), 0)? {
-            Ok(entity.borrow().entity_ref())
-        } else {
-            Err(DomainError::EntityNotFound)
-        }
-    }
-
     fn add_entity(&self, entity: Entity) -> Result<Entry> {
         if let Some(gid) = entity.gid() {
             let key = &entity.key();

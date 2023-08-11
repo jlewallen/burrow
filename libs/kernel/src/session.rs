@@ -9,9 +9,7 @@ use crate::model::Entity;
 use crate::surround::Surroundings;
 
 use super::actions::Performer;
-use super::model::{
-    Audience, DomainError, EntityKey, EntityRef, Entry, EntryResolver, Identity, Item, When,
-};
+use super::model::{Audience, DomainError, EntityKey, Entry, EntryResolver, Identity, Item, When};
 
 pub type SessionRef = Rc<dyn ActiveSession>;
 
@@ -28,33 +26,7 @@ impl Into<TaggedJson> for Raising {
 }
 
 pub trait ActiveSession: Performer + EntryResolver {
-    /// I think this will eventually need to return or take a construct that's
-    /// builder-like so callers can take more control. Things to consider are:
-    /// 1) Conditional needle visibility.
-    /// 2) Items containing others.
-    /// 3) Verb capabilities of the needle.
     fn find_item(&self, surroundings: &Surroundings, item: &Item) -> Result<Option<Entry>>;
-
-    fn find_optional_item(
-        &self,
-        surroundings: &Surroundings,
-        item: Option<Item>,
-    ) -> Result<Option<Entry>> {
-        if let Some(item) = item {
-            self.find_item(surroundings, &item)
-        } else {
-            Ok(None)
-        }
-    }
-
-    fn ensure_entity(&self, entity_ref: &EntityRef) -> Result<EntityRef, DomainError>;
-
-    fn ensure_optional_entity(&self, entity_ref: &Option<EntityRef>) -> Result<Option<EntityRef>> {
-        match entity_ref {
-            Some(e) => Ok(Some(self.ensure_entity(e)?)),
-            None => Ok(None),
-        }
-    }
 
     fn add_entity(&self, entity: Entity) -> Result<Entry>;
 
