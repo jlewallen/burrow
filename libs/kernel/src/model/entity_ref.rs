@@ -169,3 +169,180 @@ pub fn find_entity_refs(value: &JsonValue) -> Option<Vec<EntityRef>> {
         }
     }
 }
+
+mod exp {
+    use std::{cell::RefCell, collections::HashMap};
+
+    use serde::{Deserialize, Serialize};
+
+    use crate::{
+        model::{EntityKey, JsonValue, Needs, Scope, ScopeMap},
+        session::SessionRef,
+    };
+
+    type LocalType = Option<HashMap<String, JsonValue>>;
+
+    thread_local! {
+        static MAP: RefCell<LocalType> = RefCell::new(None)
+    }
+
+    struct SetMap {
+        previous: LocalType,
+    }
+
+    fn get_from_local(key: &str) -> Option<JsonValue> {
+        MAP.with(|setting| {
+            let reading = setting.borrow();
+            if let Some(map) = &*reading {
+                map.get(key).map(|v| v.clone())
+            } else {
+                None
+            }
+        })
+    }
+
+    impl SetMap {
+        fn new(map: HashMap<String, JsonValue>) -> Self {
+            MAP.with(|setting| {
+                let mut setting = setting.borrow_mut();
+                let previous = setting.take();
+
+                *setting = Some(map);
+
+                Self { previous }
+            })
+        }
+    }
+
+    impl Drop for SetMap {
+        fn drop(&mut self) {
+            MAP.with(|setting| {
+                let mut setting = setting.borrow_mut();
+                *setting = self.previous.take();
+            });
+        }
+    }
+
+    #[derive(Debug, Serialize)]
+    struct PreloadedEntityRef {
+        key: EntityKey,
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct KeyOnly {
+        key: EntityKey,
+    }
+
+    impl<'de> Deserialize<'de> for PreloadedEntityRef {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'de>,
+        {
+            let value = JsonValue::deserialize(deserializer)?;
+            let key: KeyOnly = serde_json::from_value(value).unwrap();
+
+            Ok(Self { key: key.key })
+        }
+    }
+
+    #[derive(Default, Serialize, Deserialize)]
+    struct ExampleEntity {
+        creator: Option<PreloadedEntityRef>,
+        scopes: ScopeMap,
+    }
+
+    #[derive(Default, Serialize, Deserialize, Debug)]
+    struct ExampleScope {
+        things: Vec<PreloadedEntityRef>,
+    }
+
+    impl Scope for ExampleScope {
+        fn scope_key() -> &'static str
+        where
+            Self: Sized,
+        {
+            "example"
+        }
+
+        fn serialize(&self) -> anyhow::Result<serde_json::Value> {
+            Ok(serde_json::to_value(self)?)
+        }
+    }
+
+    impl Needs<SessionRef> for ExampleScope {
+        fn supply(&mut self, _resource: &SessionRef) -> anyhow::Result<()> {
+            Ok(())
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use std::collections::HashMap;
+
+        use serde_json::json;
+
+        use crate::model::{JsonValue, ScopeValue};
+
+        use super::*;
+
+        #[test]
+        pub fn test_serializes() {
+            let example = ExampleScope {
+                things: vec![
+                    PreloadedEntityRef {
+                        key: "key-1".into(),
+                    },
+                    PreloadedEntityRef {
+                        key: "key-2".into(),
+                    },
+                ],
+            };
+            let scopes = [(
+                "example".to_owned(),
+                ScopeValue::Original(serde_json::to_value(example).unwrap().into()),
+            )]
+            .into_iter()
+            .collect::<HashMap<_, _>>();
+            let entity = ExampleEntity {
+                creator: Some(PreloadedEntityRef {
+                    key: "jacob".into(),
+                }),
+                scopes: scopes.into(),
+            };
+            let value = serde_json::to_value(entity).unwrap();
+            assert_eq!(
+                value,
+                json!({
+                    "creator": { "key": "jacob" },
+                    "scopes": {
+                        "example": {
+                            "things": [{
+                                "key": "key-1",
+                            },{
+                                "key": "key-2",
+                            }]
+                        }
+                    }
+                })
+            );
+        }
+
+        #[test]
+        pub fn test_deserializes_simple() {
+            let json: JsonValue = json!({
+                "creator": { "key": "jacob" },
+                "scopes": {
+                    "example": {
+                        "things": [{
+                            "key": "key-1",
+                        },{
+                            "key": "key-2",
+                        }]
+                    }
+                }
+            });
+
+            let example: ExampleEntity = serde_json::from_value(json).unwrap();
+        }
+    }
+}
