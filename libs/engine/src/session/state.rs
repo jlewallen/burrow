@@ -78,7 +78,7 @@ impl State {
         info!(pending = %pending.len(), "raising");
 
         for raised in pending.iter() {
-            debug!("{:?}", raised.event);
+            trace!("{:?}", raised.event);
             let audience_keys = finder.find_audience(&raised.audience)?;
             for key in audience_keys {
                 notifier.notify(&key, &raised.event)?;
@@ -110,7 +110,7 @@ impl State {
     }
 
     fn queue_raised(&self, raised: Raised) -> Result<()> {
-        info!("{:?}", raised);
+        trace!("{:?}", raised);
 
         self.raised.borrow_mut().push(raised);
 
@@ -118,7 +118,7 @@ impl State {
     }
 
     fn queue_scheduled(&self, scheduling: Scheduling) -> Result<()> {
-        info!("{:?}", scheduling);
+        trace!("{:?}", scheduling);
 
         self.futures.borrow_mut().push(scheduling);
 

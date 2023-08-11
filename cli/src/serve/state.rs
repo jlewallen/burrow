@@ -45,7 +45,7 @@ pub struct SenderNotifier {
 
 impl Notifier for SenderNotifier {
     fn notify(&self, audience: &EntityKey, observed: &TaggedJson) -> Result<()> {
-        debug!("notify {:?} -> {:?}", audience, observed);
+        trace!("notify {:?} -> {:?}", audience, observed);
 
         let serialized = observed.clone().into_tagged();
         let outgoing = ServerMessage::Notify(audience.to_string(), serialized);
