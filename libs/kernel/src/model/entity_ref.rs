@@ -190,6 +190,7 @@ mod exp {
         previous: LocalType,
     }
 
+    #[allow(dead_code)]
     fn get_from_local(key: &str) -> Option<JsonValue> {
         MAP.with(|setting| {
             let reading = setting.borrow();
@@ -202,6 +203,7 @@ mod exp {
     }
 
     impl SetMap {
+        #[allow(dead_code)]
         fn new(map: HashMap<String, JsonValue>) -> Self {
             MAP.with(|setting| {
                 let mut setting = setting.borrow_mut();
@@ -342,7 +344,7 @@ mod exp {
                 }
             });
 
-            let example: ExampleEntity = serde_json::from_value(json).unwrap();
+            let _example: ExampleEntity = serde_json::from_value(json).unwrap();
         }
     }
 }
