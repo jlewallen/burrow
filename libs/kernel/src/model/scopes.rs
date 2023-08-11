@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tracing::{debug, span, Level};
+use tracing::*;
 
 use crate::here;
 
@@ -61,25 +61,27 @@ pub struct ModifiedScope {
     previous: Option<Json>,
 }
 
+use tap::prelude::*;
+
 impl<'e> Scopes<'e> {
     pub fn has_scope<T: Scope>(&self) -> bool {
-        self.map.contains_key(<T as Scope>::scope_key())
+        let scope_key = <T as Scope>::scope_key();
+
+        self.map
+            .contains_key(<T as Scope>::scope_key())
+            .tap(|has| trace!(scope_key = scope_key, has = has, "has-scope"))
     }
 
     pub fn load_scope<T: Scope>(&self) -> Result<Box<T>, DomainError> {
         let scope_key = <T as Scope>::scope_key();
 
-        let _load_scope_span = span!(Level::TRACE, "scope", scope = scope_key).entered();
-
         if !self.map.contains_key(scope_key) {
+            trace!(scope_key = scope_key, "load-scope(default)");
             return Ok(Box::default());
         }
 
-        // The call to serde_json::from_value requires owned data and we have a
-        // reference to somebody else's. Presumuably so that we don't couple the
-        // lifetime of the returned object to the lifetime of the data being
-        // referenced? What's the right solution here?
-        // Should the 'un-parsed' Scope also owned the parsed data?
+        trace!(scope_key = scope_key, "load-scope");
+
         let data = &self.map[scope_key];
         let owned_value = data.clone();
         let mut scope: Box<T> = match owned_value {
@@ -91,7 +93,7 @@ impl<'e> Scopes<'e> {
         };
 
         match get_my_session() {
-            Ok(session) => scope.supply(&session)?,
+            Ok(session) => scope.supply(&session).context(here!())?,
             Err(e) => tracing::warn!("load-scope: {:?}", e),
         };
 
@@ -123,11 +125,9 @@ impl<'e> ScopesMut<'e> {
     pub fn replace_scope<T: Scope>(&mut self, scope: &T) -> Result<(), DomainError> {
         let scope_key = <T as Scope>::scope_key();
 
-        let _span = span!(Level::TRACE, "scope", scope = scope_key).entered();
+        trace!(scope = scope_key, "scope-replace");
 
         let value: Json = scope.serialize()?.into();
-
-        debug!("scope-replace");
 
         // TODO Would love to just take the value.
         let previous = self.map.get(scope_key).map(|value| match value {
