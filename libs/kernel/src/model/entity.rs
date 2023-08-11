@@ -3,9 +3,11 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::str::FromStr;
 
+use crate::session::SessionRef;
+
 use super::{base::*, Needs};
 use super::{EntityRef, ScopeMap};
-use super::{HasScopes, ScopeValue, Scopes, ScopesMut, SessionRef};
+use super::{HasScopes, ScopeValue, Scopes, ScopesMut};
 
 /// Central Entity model. Right now, the only thing that is ever modified at
 /// this level is `version` and even that could easily be swept into a scope.

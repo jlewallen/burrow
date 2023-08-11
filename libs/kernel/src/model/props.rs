@@ -1,3 +1,5 @@
+use crate::session::SessionRef;
+
 use super::*;
 use serde::{Deserialize, Serialize};
 

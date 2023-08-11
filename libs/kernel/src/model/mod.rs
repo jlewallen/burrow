@@ -8,17 +8,14 @@ use std::{
 };
 use JsonValue;
 
-mod base;
-mod builder;
-mod entity;
-mod entity_ref;
-mod entry;
-
+pub mod base;
+pub mod builder;
 pub mod compare;
+pub mod entity;
+pub mod entity_ref;
+pub mod entry;
 pub mod props;
 pub mod scopes;
-
-use compare::{AnyChanges, CompareChanges, CompareError, Modified, Original};
 
 pub use base::*;
 pub use builder::*;
@@ -27,8 +24,6 @@ pub use entity_ref::*;
 pub use entry::*;
 pub use props::*;
 pub use scopes::*;
-
-use super::session::*;
 
 #[derive(Clone)]
 pub struct EntityPtr(Rc<RefCell<Entity>>);
@@ -53,6 +48,7 @@ pub trait IntoEntry {
 
 impl IntoEntry for EntityRef {
     fn to_entry(&self) -> Result<Entry, DomainError> {
+        use super::session::get_my_session;
         if !self.key().valid() {
             return Err(DomainError::InvalidKey);
         }
@@ -61,6 +57,8 @@ impl IntoEntry for EntityRef {
             .ok_or(DomainError::DanglingEntity)
     }
 }
+
+use compare::{AnyChanges, CompareChanges, CompareError, Modified, Original};
 
 pub fn any_entity_changes(
     l: AnyChanges<Option<Original>, EntityPtr>,

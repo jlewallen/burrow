@@ -5,8 +5,9 @@ use std::collections::HashMap;
 use tracing::*;
 
 use crate::here;
+use crate::session::{get_my_session, SessionRef};
 
-use super::{get_my_session, DomainError, SessionRef};
+use super::DomainError;
 use replies::{Json, JsonValue};
 
 /// TODO Consider giving this Trait and the combination of another the ability to

@@ -3,9 +3,10 @@ use serde::{ser::SerializeStruct, Serialize};
 use tracing::trace;
 
 use super::{
-    get_my_session, CoreProps, DomainError, Entity, EntityKey, EntityPtr, EntityRef, HasScopes,
-    JsonValue, LookupBy, Scope, WORLD_KEY,
+    CoreProps, DomainError, Entity, EntityKey, EntityPtr, EntityRef, HasScopes, JsonValue,
+    LookupBy, Scope, WORLD_KEY,
 };
+use crate::session::get_my_session;
 
 pub trait EntryResolver {
     fn entry(&self, lookup: &LookupBy) -> Result<Option<Entry>, DomainError>;
