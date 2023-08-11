@@ -10,6 +10,7 @@ pub struct LoadedEntity {
     pub entity: EntityPtr,
     pub version: u64,
     pub gid: Option<EntityGid>,
+    pub value: Rc<JsonValue>,
     pub serialized: Option<String>,
 }
 
@@ -146,17 +147,20 @@ pub struct Entities {
 impl Entities {
     pub fn add_entity(&self, gid: EntityGid, mut entity: Entity) -> Result<()> {
         let (key, gid) = gid.assign(&mut entity)?;
+        let value: Rc<JsonValue> = serde_json::to_value(&entity)?.into();
         self.entities.add_entity(LoadedEntity {
             key,
             entity: EntityPtr::new(entity),
-            serialized: None,
-            version: 1,
             gid: Some(gid),
+            version: 1,
+            value,
+            serialized: None,
         })
     }
 
     pub fn add_persisted(&self, persisted: PersistedEntity) -> Result<EntityPtr> {
-        let loaded = Entity::from_str(&persisted.serialized)?;
+        let value: JsonValue = JsonValue::from_str(&persisted.serialized)?;
+        let loaded = Entity::from_value(value.clone())?;
 
         // Verify consistency between serialized Entity gid and the gid on the
         // row. We can eventually relax this.
@@ -175,6 +179,7 @@ impl Entities {
             key: EntityKey::new(&persisted.key),
             entity: cell.clone(),
             serialized: Some(persisted.serialized),
+            value: value.into(),
             version: persisted.version + 1,
             gid: Some(gid),
         })?;

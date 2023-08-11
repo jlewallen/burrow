@@ -18,12 +18,12 @@ use super::{HasScopes, ScopeValue, Scopes, ScopesMut};
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Entity {
     key: EntityKey,
-    pub(super) parent: Option<EntityRef>,
-    pub(super) creator: Option<EntityRef>,
+    acls: Acls,
     identity: Identity,
     #[serde(rename = "klass")] // TODO Rename, legacy from Python.
     pub(super) class: EntityClass,
-    acls: Acls,
+    pub(super) creator: Option<EntityRef>,
+    pub(super) parent: Option<EntityRef>,
     pub(super) scopes: HashMap<String, ScopeValue>,
 }
 
@@ -42,11 +42,11 @@ impl Entity {
     ) -> Self {
         Self {
             key,
-            parent,
-            creator,
-            identity,
-            class,
             acls: Default::default(),
+            class,
+            identity,
+            creator,
+            parent,
             scopes: scopes.into(),
         }
     }

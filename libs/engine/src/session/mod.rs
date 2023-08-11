@@ -18,7 +18,7 @@ use crate::notifications::Notifier;
 use crate::sequences::Sequence;
 use crate::storage::Storage;
 use crate::users::model::HasUsernames;
-use kernel::prelude::*;
+use kernel::{here, prelude::*};
 use state::State;
 
 pub struct Session {
@@ -415,7 +415,7 @@ impl Middleware for ExpandSurroundingsMiddleware {
                     living: living.clone(),
                 }
                 .try_into()
-                .with_context(|| "make-surroundings")?;
+                .context(here!())?;
 
                 info!("surroundings {:?}", &surroundings);
 
