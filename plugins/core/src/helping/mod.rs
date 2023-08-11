@@ -127,7 +127,7 @@ pub mod actions {
         let cyclo = cyclo.expect("TODO Dangling entity");
 
         if let Some(page_name) = page_name {
-            let found = cyclo.get_well_known_by_name(page_name)?;
+            let found = cyclo.get_well_known(page_name)?;
             if let Some(found) = found {
                 Ok(session.entry(&LookupBy::Key(&found))?)
             } else if create {

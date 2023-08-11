@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use super::base::*;
+use super::base::{Acls, DomainError, EntityClass, EntityKey, Identity, JsonValue};
 use super::{EntityRef, ScopeMap};
 use super::{HasScopes, ScopeValue, Scopes, ScopesMut};
 

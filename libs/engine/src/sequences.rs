@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use kernel::prelude::*;
+use kernel::prelude::{EntityKey, Identity};
 
 pub trait Sequence<T>: Send + Sync {
     fn following(&self) -> T;

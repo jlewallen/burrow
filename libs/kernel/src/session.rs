@@ -4,12 +4,11 @@ use std::{cell::RefCell, rc::Rc};
 
 use replies::{TaggedJson, ToTaggedJson};
 
+use crate::actions::Performer;
 use crate::hooks::ManagedHooks;
 use crate::model::Entity;
+use crate::model::{Audience, DomainError, EntityKey, Entry, EntryResolver, Identity, Item, When};
 use crate::surround::Surroundings;
-
-use super::actions::Performer;
-use super::model::{Audience, DomainError, EntityKey, Entry, EntryResolver, Identity, Item, When};
 
 pub type SessionRef = Rc<dyn ActiveSession>;
 

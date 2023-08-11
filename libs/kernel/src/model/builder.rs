@@ -1,12 +1,11 @@
 use anyhow::Result;
 use std::collections::HashMap;
 
-use crate::session::get_my_session;
-
 use super::{
     base::{DomainError, EntityClass, EntityKey, Identity, GID_PROPERTY},
     CoreProps, Entity, EntityRef, HasScopes, Properties, Scope, ScopeMap, ScopeValue,
 };
+use crate::session::get_my_session;
 
 pub struct EntityBuilder {
     key: Option<EntityKey>,

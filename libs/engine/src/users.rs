@@ -3,7 +3,7 @@ pub mod model {
     use serde::{Deserialize, Serialize};
     use std::collections::HashMap;
 
-    use kernel::prelude::*;
+    use kernel::prelude::{DomainError, EntityKey, Entry, JsonValue, Scope};
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Usernames {
@@ -87,29 +87,17 @@ pub mod model {
         }
     }
 
-    pub const LIMBO: &str = "limbo";
-    pub const ENCYCLOPEDIA: &str = "encyclopedia";
-    pub const WELCOME_AREA: &str = "welcomeArea";
+    #[allow(dead_code)]
+    const LIMBO: &str = "limbo";
+    const ENCYCLOPEDIA: &str = "encyclopedia";
+    const WELCOME_AREA: &str = "welcomeArea";
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct WellKnown {
         entities: HashMap<String, EntityKey>,
     }
 
-    #[allow(dead_code)]
     impl WellKnown {
-        pub fn welcome_area(&self) -> Option<&EntityKey> {
-            self.get(WELCOME_AREA)
-        }
-
-        pub fn encyclopedia(&self) -> Option<&EntityKey> {
-            self.get(ENCYCLOPEDIA)
-        }
-
-        pub fn limbo(&self) -> Option<&EntityKey> {
-            self.get(LIMBO)
-        }
-
         pub fn get(&self, name: &str) -> Option<&EntityKey> {
             self.entities.get(name)
         }
@@ -130,25 +118,29 @@ pub mod model {
     }
 
     pub trait HasWellKnownEntities {
+        fn get_well_known(&self, name: &str) -> Result<Option<EntityKey>, DomainError>;
+
+        fn set_well_known(&self, name: &str, key: &EntityKey) -> Result<(), DomainError>;
+
         fn get_welcome_area(&self) -> Result<Option<EntityKey>, DomainError> {
-            self.get_well_known_by_name(WELCOME_AREA)
+            self.get_well_known(WELCOME_AREA)
+        }
+
+        fn set_welcome_area(&self, key: &EntityKey) -> Result<(), DomainError> {
+            self.set_well_known(WELCOME_AREA, key)
         }
 
         fn get_encyclopedia(&self) -> Result<Option<EntityKey>, DomainError> {
-            self.get_well_known_by_name(ENCYCLOPEDIA)
+            self.get_well_known(ENCYCLOPEDIA)
         }
 
         fn set_encyclopedia(&self, key: &EntityKey) -> Result<(), DomainError> {
             self.set_well_known(ENCYCLOPEDIA, key)
         }
-
-        fn get_well_known_by_name(&self, name: &str) -> Result<Option<EntityKey>, DomainError>;
-
-        fn set_well_known(&self, name: &str, key: &EntityKey) -> Result<(), DomainError>;
     }
 
     impl HasWellKnownEntities for Entry {
-        fn get_well_known_by_name(&self, name: &str) -> Result<Option<EntityKey>, DomainError> {
+        fn get_well_known(&self, name: &str) -> Result<Option<EntityKey>, DomainError> {
             let well_known = self.scope::<WellKnown>()?;
             Ok(well_known.get(name).cloned())
         }

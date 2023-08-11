@@ -1,5 +1,6 @@
-use super::*;
 use serde::{Deserialize, Serialize};
+
+use super::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Property {

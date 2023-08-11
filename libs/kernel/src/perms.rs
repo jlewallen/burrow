@@ -1,3 +1,56 @@
+pub use replies::JsonValue;
+
+use crate::model::Acls;
+
+#[allow(dead_code)]
+#[derive(Debug, PartialEq)]
+pub struct AclProtection {
+    pub path: String,
+    pub acls: Acls,
+}
+
+impl AclProtection {
+    pub fn prefix(self, value: &str) -> Self {
+        Self {
+            path: if self.path.is_empty() {
+                value.to_owned()
+            } else {
+                format!("{}.{}", value, self.path)
+            },
+            acls: self.acls,
+        }
+    }
+}
+
+pub fn find_acls(value: &JsonValue) -> Option<Vec<AclProtection>> {
+    match value {
+        JsonValue::Null => None,
+        JsonValue::Bool(_) => None,
+        JsonValue::Number(_) => None,
+        JsonValue::String(_) => None,
+        JsonValue::Array(array) => Some(array.iter().flat_map(find_acls).flatten().collect()),
+        JsonValue::Object(o) => {
+            let acls = serde_json::from_value::<Acls>(value.clone());
+            match acls {
+                Ok(acls) => Some(vec![AclProtection {
+                    path: "".to_owned(),
+                    acls,
+                }]),
+                Err(_) => Some(
+                    o.iter()
+                        .flat_map(|(k, v)| find_acls(v).map(|o| o.into_iter().map(|p| p.prefix(k))))
+                        .flatten()
+                        .collect(),
+                ),
+            }
+        }
+    }
+}
+
+pub fn apply_read_acls(value: JsonValue) -> JsonValue {
+    value
+}
+
 #[cfg(test)]
 mod tests {
     use replies::JsonValue;
@@ -83,57 +136,4 @@ mod tests {
             ])
         );
     }
-}
-
-pub use replies::JsonValue;
-
-use crate::model::Acls;
-
-#[allow(dead_code)]
-#[derive(Debug, PartialEq)]
-pub struct AclProtection {
-    pub path: String,
-    pub acls: Acls,
-}
-
-impl AclProtection {
-    pub fn prefix(self, value: &str) -> Self {
-        Self {
-            path: if self.path.is_empty() {
-                value.to_owned()
-            } else {
-                format!("{}.{}", value, self.path)
-            },
-            acls: self.acls,
-        }
-    }
-}
-
-pub fn find_acls(value: &JsonValue) -> Option<Vec<AclProtection>> {
-    match value {
-        JsonValue::Null => None,
-        JsonValue::Bool(_) => None,
-        JsonValue::Number(_) => None,
-        JsonValue::String(_) => None,
-        JsonValue::Array(array) => Some(array.iter().flat_map(find_acls).flatten().collect()),
-        JsonValue::Object(o) => {
-            let acls = serde_json::from_value::<Acls>(value.clone());
-            match acls {
-                Ok(acls) => Some(vec![AclProtection {
-                    path: "".to_owned(),
-                    acls,
-                }]),
-                Err(_) => Some(
-                    o.iter()
-                        .flat_map(|(k, v)| find_acls(v).map(|o| o.into_iter().map(|p| p.prefix(k))))
-                        .flatten()
-                        .collect(),
-                ),
-            }
-        }
-    }
-}
-
-pub fn apply_read_acls(value: JsonValue) -> JsonValue {
-    value
 }

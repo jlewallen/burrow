@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use kernel::prelude::*;
+use kernel::prelude::{EntityKey, TaggedJson};
 
 pub trait Notifier {
     fn notify(&self, audience: &EntityKey, observed: &TaggedJson) -> Result<()>;

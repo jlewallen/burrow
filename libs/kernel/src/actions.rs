@@ -2,14 +2,13 @@ use anyhow::Result;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{fmt::Debug, rc::Rc};
 
+pub use replies::{JsonValue, TaggedJson, TaggedJsonError, ToTaggedJson};
+
+use crate::session::SessionRef;
 use crate::{
     model::{Audience, Entry, When},
     surround::Surroundings,
 };
-
-use super::session::SessionRef;
-
-pub use replies::{JsonValue, TaggedJson, TaggedJsonError, ToTaggedJson};
 
 pub type ReplyResult = anyhow::Result<Effect>;
 

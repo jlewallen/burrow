@@ -4,9 +4,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::*;
 
-use crate::here;
-
 use super::DomainError;
+use crate::here;
 use replies::{Json, JsonValue};
 
 /// TODO Consider giving this Trait and the combination of another the ability to

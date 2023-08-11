@@ -5,10 +5,10 @@ use tracing::*;
 pub use std::rc::Rc;
 
 use crate::actions::{Action, Incoming};
+use crate::model::*;
 
-use super::model::*;
+mod mw;
 
-pub mod mw;
 pub use mw::*;
 
 pub type EvaluationResult = Result<Option<Box<dyn Action>>, EvaluationError>;
