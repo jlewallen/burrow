@@ -28,13 +28,6 @@ impl Scope for Location {
     }
 }
 
-impl Needs<SessionRef> for Location {
-    fn supply(&mut self, session: &SessionRef) -> Result<()> {
-        self.container = session.ensure_optional_entity(&self.container)?;
-        Ok(())
-    }
-}
-
 pub fn change_location<A, B, C, D>(
     from: &Entry,
     to: &Entry,

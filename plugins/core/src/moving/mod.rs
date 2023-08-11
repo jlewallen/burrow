@@ -139,13 +139,6 @@ pub mod model {
         }
     }
 
-    impl Needs<SessionRef> for Occupying {
-        fn supply(&mut self, session: &SessionRef) -> Result<()> {
-            self.area = session.ensure_entity(&self.area)?;
-            Ok(())
-        }
-    }
-
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Occupyable {
         pub acls: Acls,
@@ -182,17 +175,6 @@ pub mod model {
         }
     }
 
-    impl Needs<SessionRef> for Occupyable {
-        fn supply(&mut self, session: &SessionRef) -> Result<()> {
-            self.occupied = self
-                .occupied
-                .iter()
-                .map(|r| session.ensure_entity(r).unwrap())
-                .collect();
-            Ok(())
-        }
-    }
-
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Exit {
         pub area: EntityRef,
@@ -205,13 +187,6 @@ pub mod model {
 
         fn scope_key() -> &'static str {
             "exit"
-        }
-    }
-
-    impl Needs<SessionRef> for Exit {
-        fn supply(&mut self, session: &SessionRef) -> Result<()> {
-            self.area = session.ensure_entity(&self.area)?;
-            Ok(())
         }
     }
 
@@ -232,15 +207,6 @@ pub mod model {
 
         fn scope_key() -> &'static str {
             "movement"
-        }
-    }
-
-    impl Needs<SessionRef> for Movement {
-        fn supply(&mut self, session: &SessionRef) -> Result<()> {
-            for route in self.routes.iter_mut() {
-                route.area = session.ensure_entity(&route.area)?;
-            }
-            Ok(())
         }
     }
 }

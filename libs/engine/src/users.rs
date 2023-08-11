@@ -20,12 +20,6 @@ pub mod model {
         }
     }
 
-    impl Needs<SessionRef> for Usernames {
-        fn supply(&mut self, _session: &SessionRef) -> Result<()> {
-            Ok(())
-        }
-    }
-
     impl Scope for Usernames {
         fn serialize(&self) -> Result<JsonValue> {
             Ok(serde_json::to_value(self)?)
@@ -83,12 +77,6 @@ pub mod model {
         }
     }
 
-    impl Needs<SessionRef> for Credentials {
-        fn supply(&mut self, _session: &SessionRef) -> Result<()> {
-            Ok(())
-        }
-    }
-
     impl Scope for Credentials {
         fn serialize(&self) -> Result<JsonValue> {
             Ok(serde_json::to_value(self)?)
@@ -128,12 +116,6 @@ pub mod model {
 
         pub fn set(&mut self, name: &str, key: &EntityKey) {
             self.entities.insert(name.to_owned(), key.clone());
-        }
-    }
-
-    impl Needs<SessionRef> for WellKnown {
-        fn supply(&mut self, _session: &SessionRef) -> Result<()> {
-            Ok(())
         }
     }
 

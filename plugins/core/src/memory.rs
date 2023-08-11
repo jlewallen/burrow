@@ -123,12 +123,6 @@ pub mod model {
 
     impl Memory {}
 
-    impl Needs<SessionRef> for Memory {
-        fn supply(&mut self, _session: &SessionRef) -> Result<()> {
-            Ok(())
-        }
-    }
-
     impl Scope for Memory {
         fn serialize(&self) -> Result<JsonValue> {
             Ok(serde_json::to_value(self)?)

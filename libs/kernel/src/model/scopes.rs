@@ -5,24 +5,18 @@ use std::collections::HashMap;
 use tracing::*;
 
 use crate::here;
-use crate::session::{get_my_session, SessionRef};
 
 use super::DomainError;
 use replies::{Json, JsonValue};
 
 /// TODO Consider giving this Trait and the combination of another the ability to
 /// extract itself, potentially cleaning up Entity.
-pub trait Scope: Needs<SessionRef> + DeserializeOwned + Default + std::fmt::Debug {
+pub trait Scope: DeserializeOwned + Default + std::fmt::Debug {
     fn scope_key() -> &'static str
     where
         Self: Sized;
 
     fn serialize(&self) -> Result<JsonValue>;
-}
-
-/// TODO I would love to deprecate this but I don't know if I'll need it.
-pub trait Needs<T> {
-    fn supply(&mut self, resource: &T) -> Result<()>;
 }
 
 #[derive(Clone, Deserialize)]
@@ -85,17 +79,12 @@ impl<'e> Scopes<'e> {
 
         let data = &self.map[scope_key];
         let owned_value = data.clone();
-        let mut scope: Box<T> = match owned_value {
+        let scope: Box<T> = match owned_value {
             ScopeValue::Original(v)
             | ScopeValue::Intermediate {
                 value: v,
                 previous: _,
             } => serde_json::from_value(v.into()).context(here!())?,
-        };
-
-        match get_my_session() {
-            Ok(session) => scope.supply(&session).context(here!())?,
-            Err(e) => tracing::warn!("load-scope: {:?}", e),
         };
 
         Ok(scope)

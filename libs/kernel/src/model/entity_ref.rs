@@ -175,10 +175,7 @@ mod exp {
 
     use serde::{Deserialize, Serialize};
 
-    use crate::{
-        model::{EntityKey, JsonValue, Needs, Scope, ScopeMap},
-        session::SessionRef,
-    };
+    use crate::model::{EntityKey, JsonValue, Scope, ScopeMap};
 
     type LocalType = Option<HashMap<String, JsonValue>>;
 
@@ -268,12 +265,6 @@ mod exp {
 
         fn serialize(&self) -> anyhow::Result<serde_json::Value> {
             Ok(serde_json::to_value(self)?)
-        }
-    }
-
-    impl Needs<SessionRef> for ExampleScope {
-        fn supply(&mut self, _resource: &SessionRef) -> anyhow::Result<()> {
-            Ok(())
         }
     }
 

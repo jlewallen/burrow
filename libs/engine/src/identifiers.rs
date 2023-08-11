@@ -10,12 +10,6 @@ pub mod model {
         acls: Acls,
     }
 
-    impl Needs<SessionRef> for Identifiers {
-        fn supply(&mut self, _session: &SessionRef) -> Result<()> {
-            Ok(())
-        }
-    }
-
     impl Scope for Identifiers {
         fn serialize(&self) -> Result<JsonValue> {
             Ok(serde_json::to_value(self)?)

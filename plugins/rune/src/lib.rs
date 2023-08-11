@@ -153,12 +153,6 @@ pub struct Behaviors {
     pub langs: Option<HashMap<String, String>>,
 }
 
-impl Needs<SessionRef> for Behaviors {
-    fn supply(&mut self, _session: &SessionRef) -> Result<()> {
-        Ok(())
-    }
-}
-
 impl Scope for Behaviors {
     fn serialize(&self) -> Result<JsonValue> {
         Ok(serde_json::to_value(self)?)

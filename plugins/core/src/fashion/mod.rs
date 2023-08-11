@@ -111,20 +111,6 @@ pub mod model {
         }
     }
 
-    impl Needs<SessionRef> for Wearing {
-        fn supply(&mut self, session: &SessionRef) -> Result<()> {
-            self.wearing = self
-                .wearing
-                .iter()
-                .map(|r| match r {
-                    Article::Just(e) => Ok(Article::Just(session.ensure_entity(e)?)),
-                })
-                .collect::<Result<Vec<_>, DomainError>>()?;
-
-            Ok(())
-        }
-    }
-
     impl Wearing {
         pub fn start_wearing(&mut self, item: &Entry) -> Result<DomainOutcome, DomainError> {
             if !item.has_scope::<Wearable>()? {
@@ -229,12 +215,6 @@ pub mod model {
 
         fn scope_key() -> &'static str {
             "wearable"
-        }
-    }
-
-    impl Needs<SessionRef> for Wearable {
-        fn supply(&mut self, _session: &SessionRef) -> Result<()> {
-            Ok(())
         }
     }
 }

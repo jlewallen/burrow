@@ -105,12 +105,6 @@ pub mod model {
             "encyclopedia"
         }
     }
-
-    impl Needs<SessionRef> for Wiki {
-        fn supply(&mut self, _session: &SessionRef) -> Result<()> {
-            Ok(())
-        }
-    }
 }
 
 pub mod actions {

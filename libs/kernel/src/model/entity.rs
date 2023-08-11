@@ -3,9 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use crate::session::SessionRef;
-
-use super::{base::*, Needs};
+use super::base::*;
 use super::{EntityRef, ScopeMap};
 use super::{HasScopes, ScopeValue, Scopes, ScopesMut};
 
@@ -77,14 +75,6 @@ impl HasScopes for Entity {
         ScopesMut {
             map: &mut self.scopes,
         }
-    }
-}
-
-impl Needs<SessionRef> for Entity {
-    fn supply(&mut self, session: &SessionRef) -> Result<()> {
-        self.parent = session.ensure_optional_entity(&self.parent)?;
-        self.creator = session.ensure_optional_entity(&self.creator)?;
-        Ok(())
     }
 }
 

@@ -1,5 +1,3 @@
-use crate::session::SessionRef;
-
 use super::*;
 use serde::{Deserialize, Serialize};
 
@@ -230,12 +228,6 @@ impl CoreProps for Properties {
             .unwrap()
             .set_property(DESTROYED_PROPERTY, value);
 
-        Ok(())
-    }
-}
-
-impl Needs<SessionRef> for Properties {
-    fn supply(&mut self, _session: &SessionRef) -> Result<()> {
         Ok(())
     }
 }

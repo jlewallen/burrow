@@ -81,18 +81,6 @@ pub mod model {
         }
     }
 
-    impl Needs<SessionRef> for Containing {
-        fn supply(&mut self, session: &SessionRef) -> Result<()> {
-            self.holding = self
-                .holding
-                .iter()
-                .map(|r| session.ensure_entity(r))
-                .collect::<Result<Vec<_>, DomainError>>()?;
-
-            Ok(())
-        }
-    }
-
     impl Containing {
         pub fn start_carrying(&mut self, item: &Entry) -> CarryingResult {
             let carryable = item.scope::<Carryable>()?;
@@ -235,12 +223,6 @@ pub mod model {
 
         fn scope_key() -> &'static str {
             "carryable"
-        }
-    }
-
-    impl Needs<SessionRef> for Carryable {
-        fn supply(&mut self, _session: &SessionRef) -> Result<()> {
-            Ok(())
         }
     }
 }
