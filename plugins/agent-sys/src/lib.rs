@@ -99,7 +99,11 @@ impl Performer for AgentSession {
 }
 
 impl EntryResolver for AgentSession {
-    fn entry(&self, lookup: &kernel::prelude::LookupBy) -> Result<Option<Entry>, DomainError> {
+    fn recursive_entry(
+        &self,
+        lookup: &kernel::prelude::LookupBy,
+        _depth: usize,
+    ) -> Result<Option<Entry>, DomainError> {
         let entities = self.entities.borrow();
         match lookup {
             kernel::prelude::LookupBy::Key(key) => Ok(entities.get(key)?),

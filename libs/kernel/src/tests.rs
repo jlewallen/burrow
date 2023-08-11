@@ -38,7 +38,11 @@ impl KeysOnlySession {
 }
 
 impl EntryResolver for KeysOnlySession {
-    fn entry(&self, _lookup: &LookupBy) -> Result<Option<Entry>, DomainError> {
+    fn recursive_entry(
+        &self,
+        _lookup: &LookupBy,
+        _depth: usize,
+    ) -> Result<Option<Entry>, DomainError> {
         todo!()
     }
 }

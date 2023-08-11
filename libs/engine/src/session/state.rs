@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 use tracing::*;
 
-use super::internal::{Entities, LoadedEntity};
+use super::internal::{Added, Entities, LoadedEntity};
 use crate::{
     notifications::Notifier,
     storage::{PersistedEntity, PersistedFuture, Storage},
@@ -48,7 +48,7 @@ impl State {
         self.entities.lookup_entity(lookup)
     }
 
-    pub fn add_persisted(&self, persisted: PersistedEntity) -> Result<EntityPtr> {
+    pub(crate) fn add_persisted(&self, persisted: PersistedEntity) -> Result<Added> {
         self.entities.add_persisted(persisted)
     }
 

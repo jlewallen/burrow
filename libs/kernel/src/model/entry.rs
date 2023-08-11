@@ -9,7 +9,15 @@ use super::{
 use crate::session::get_my_session;
 
 pub trait EntryResolver {
-    fn entry(&self, lookup: &LookupBy) -> Result<Option<Entry>, DomainError>;
+    fn recursive_entry(
+        &self,
+        lookup: &LookupBy,
+        depth: usize,
+    ) -> Result<Option<Entry>, DomainError>;
+
+    fn entry(&self, lookup: &LookupBy) -> Result<Option<Entry>, DomainError> {
+        self.recursive_entry(lookup, 0)
+    }
 
     fn world(&self) -> Result<Option<Entry>, DomainError> {
         self.entry(&LookupBy::Key(&EntityKey::new(WORLD_KEY)))

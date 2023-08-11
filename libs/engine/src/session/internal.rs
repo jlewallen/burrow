@@ -5,13 +5,14 @@ use tracing::*;
 use crate::storage::PersistedEntity;
 use kernel::prelude::*;
 
+#[allow(dead_code)]
 pub struct LoadedEntity {
-    pub key: EntityKey,
-    pub entity: EntityPtr,
-    pub version: u64,
-    pub gid: Option<EntityGid>,
-    pub value: Rc<JsonValue>,
-    pub serialized: Option<String>,
+    pub(crate) key: EntityKey,
+    pub(crate) entity: EntityPtr,
+    pub(crate) version: u64,
+    pub(crate) gid: Option<EntityGid>,
+    pub(crate) value: Rc<JsonValue>,
+    pub(crate) serialized: Option<String>,
 }
 
 impl Debug for LoadedEntity {
@@ -72,24 +73,20 @@ impl Maps {
         &mut self,
         each: T,
     ) -> Result<Vec<R>> {
-        let mut rvals: Vec<R> = Vec::new();
-
-        for (_key, entity) in self.by_key.iter_mut() {
-            rvals.push(each(entity)?);
-        }
-
-        Ok(rvals)
+        Ok(self
+            .by_key
+            .iter_mut()
+            .map(|(_, e)| each(e))
+            .collect::<Result<Vec<_>>>()?)
     }
 
-    #[cfg(test)]
+    #[allow(dead_code)]
     fn foreach_entity<R, T: Fn(&LoadedEntity) -> Result<R>>(&self, each: T) -> Result<Vec<R>> {
-        let mut rvals: Vec<R> = Vec::new();
-
-        for (_key, entity) in self.by_key.iter() {
-            rvals.push(each(entity)?);
-        }
-
-        Ok(rvals)
+        Ok(self
+            .by_key
+            .iter()
+            .map(|(_, e)| each(e))
+            .collect::<Result<Vec<_>>>()?)
     }
 }
 
@@ -118,7 +115,6 @@ impl EntityMap {
         self.maps.borrow_mut().foreach_entity_mut(each)
     }
 
-    #[cfg(test)]
     #[allow(dead_code)]
     fn foreach_entity<R, T: Fn(&LoadedEntity) -> Result<R>>(&self, each: T) -> Result<Vec<R>> {
         self.maps.borrow().foreach_entity(each)
@@ -158,9 +154,10 @@ impl Entities {
         })
     }
 
-    pub fn add_persisted(&self, persisted: PersistedEntity) -> Result<EntityPtr> {
-        let value: JsonValue = JsonValue::from_str(&persisted.serialized)?;
-        let loaded = Entity::from_value(value.clone())?;
+    pub(crate) fn add_persisted(&self, persisted: PersistedEntity) -> Result<Added> {
+        let json: JsonValue = JsonValue::from_str(&persisted.serialized)?;
+        let loaded = Entity::from_value(json.clone())?;
+        let json = Rc::new(json);
 
         // Verify consistency between serialized Entity gid and the gid on the
         // row. We can eventually relax this.
@@ -173,18 +170,18 @@ impl Entities {
         );
 
         // Wrap entity in memory management gizmos.
-        let cell = EntityPtr::new(loaded);
+        let entity = EntityPtr::new(loaded);
 
         self.entities.add_entity(LoadedEntity {
             key: EntityKey::new(&persisted.key),
-            entity: cell.clone(),
+            entity: entity.clone(),
             serialized: Some(persisted.serialized),
-            value: value.into(),
+            value: json.clone().into(),
             version: persisted.version + 1,
             gid: Some(gid),
         })?;
 
-        Ok(cell)
+        Ok(Added { entity, json })
     }
 
     pub fn lookup_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
@@ -200,5 +197,26 @@ impl Entities {
 
     pub fn size(&self) -> usize {
         self.entities.size()
+    }
+}
+
+pub(crate) struct Added {
+    pub(crate) entity: EntityPtr,
+    pub(crate) json: Rc<JsonValue>,
+}
+
+impl Added {
+    pub(crate) fn find_refs(&self) -> Vec<EntityKey> {
+        find_entity_refs(&self.json)
+            .unwrap_or_else(|| vec![])
+            .into_iter()
+            .map(|e| e.into())
+            .collect()
+    }
+}
+
+impl Into<EntityPtr> for Added {
+    fn into(self) -> EntityPtr {
+        self.entity
     }
 }

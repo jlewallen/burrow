@@ -114,12 +114,14 @@ impl Session {
 
         match action {
             Some(action) => {
-                let living = match evaluate_as {
-                    EvaluateAs::Name(user_name) => user_name_to_entry(self, user_name)?,
-                    EvaluateAs::Key(key) => self
-                        .entry(&LookupBy::Key(&key))?
-                        .expect("No living found with key"),
+                let key = match evaluate_as {
+                    EvaluateAs::Name(user_name) => user_name_to_key(self, user_name)?,
+                    EvaluateAs::Key(key) => key.clone(),
                 };
+
+                let living = self
+                    .recursive_entry(&LookupBy::Key(&key), USER_DEPTH)?
+                    .expect("No living found with key");
 
                 let perform = Perform::Living {
                     living,
@@ -223,17 +225,23 @@ impl Session {
         }
     }
 
-    fn load_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
+    fn load_entity(&self, lookup: &LookupBy, depth: usize) -> Result<Option<EntityPtr>> {
         if let Some(e) = self.state.lookup_entity(lookup)? {
             return Ok(Some(e));
         }
 
-        let _loading_span =
-            span!(Level::INFO, "entity", lookup = format!("{:?}", lookup)).entered();
+        let _span = span!(Level::INFO, "entity", lookup = format!("{:?}", lookup)).entered();
 
         trace!("loading");
         if let Some(persisted) = self.storage.load(lookup)? {
-            Ok(Some(self.state.add_persisted(persisted)?))
+            let added = self.state.add_persisted(persisted)?;
+            if depth > 0 {
+                info!("{:?}", added.find_refs());
+                for key in added.find_refs().into_iter() {
+                    self.load_entity(&LookupBy::Key(&key), depth - 1)?;
+                }
+            }
+            Ok(Some(added.into()))
         } else {
             Ok(None)
         }
@@ -257,8 +265,12 @@ impl Performer for Session {
 }
 
 impl EntryResolver for Session {
-    fn entry(&self, lookup: &LookupBy) -> Result<Option<Entry>, DomainError> {
-        match self.load_entity(lookup)? {
+    fn recursive_entry(
+        &self,
+        lookup: &LookupBy,
+        depth: usize,
+    ) -> Result<Option<Entry>, DomainError> {
+        match self.load_entity(lookup, depth)? {
             Some(entity) => Ok(Some(Entry::new(entity))),
             None => Ok(None),
         }
@@ -288,7 +300,7 @@ impl ActiveSession for Session {
     fn ensure_entity(&self, entity_ref: &EntityRef) -> Result<EntityRef, DomainError> {
         if entity_ref.has_entity() {
             Ok(entity_ref.clone())
-        } else if let Some(entity) = self.load_entity(&LookupBy::Key(entity_ref.key()))? {
+        } else if let Some(entity) = self.load_entity(&LookupBy::Key(entity_ref.key()), 0)? {
             Ok(entity.borrow().entity_ref())
         } else {
             Err(DomainError::EntityNotFound)
@@ -365,15 +377,13 @@ fn should_force_rollback() -> bool {
     env::var("FORCE_ROLLBACK").is_ok()
 }
 
-fn user_name_to_entry<R: EntryResolver>(resolve: &R, name: &str) -> Result<Entry, DomainError> {
-    let world = resolve.world()?.expect("No world");
-    let user_key = world
-        .find_name_key(name)?
-        .ok_or(DomainError::EntityNotFound)?;
+const USER_DEPTH: usize = 2;
 
-    resolve
-        .entry(&LookupBy::Key(&user_key))?
-        .ok_or(DomainError::EntityNotFound)
+fn user_name_to_key<R: EntryResolver>(resolve: &R, name: &str) -> Result<EntityKey, DomainError> {
+    let world = resolve.world()?.expect("No world");
+    Ok(world
+        .find_name_key(name)?
+        .ok_or(DomainError::EntityNotFound)?)
 }
 
 struct MakeSurroundings {

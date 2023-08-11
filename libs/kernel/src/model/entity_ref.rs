@@ -30,6 +30,12 @@ impl Default for EntityRef {
     }
 }
 
+impl Into<EntityKey> for EntityRef {
+    fn into(self) -> EntityKey {
+        self.key
+    }
+}
+
 impl Into<EntityRef> for &Entity {
     fn into(self) -> EntityRef {
         EntityRef {
@@ -91,7 +97,7 @@ impl std::fmt::Debug for EntityRef {
     }
 }
 
-#[derive(Default, Deserialize)]
+#[derive(Default, Deserialize, Debug)]
 struct PotentialRef {
     key: Option<String>,
     #[serde(rename = "klass")] // TODO Python name collision.
@@ -144,15 +150,22 @@ pub fn find_entity_refs(value: &JsonValue) -> Option<Vec<EntityRef>> {
             // If this object is an EntityRef, we can stop looking, otherwise we
             // need to keep going deeper.
             match potential {
-                Ok(potential) => potential.good_enough().map(|i| vec![i]),
-                Err(_) => Some(
-                    o.iter()
-                        .map(|(_k, v)| find_entity_refs(v))
-                        .flatten()
-                        .flatten()
-                        .collect(),
-                ),
+                Ok(potential) => match potential.good_enough() {
+                    Some(entity_ref) => {
+                        return Some(vec![entity_ref]);
+                    }
+                    None => {}
+                },
+                _ => {}
             }
+
+            Some(
+                o.iter()
+                    .map(|(_k, v)| find_entity_refs(v))
+                    .flatten()
+                    .flatten()
+                    .collect(),
+            )
         }
     }
 }
