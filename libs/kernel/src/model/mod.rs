@@ -30,10 +30,6 @@ pub use scopes::*;
 
 use super::session::*;
 
-pub trait LoadsEntities {
-    fn load_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>>;
-}
-
 #[derive(Clone)]
 pub struct EntityPtr(Rc<RefCell<Entity>>);
 

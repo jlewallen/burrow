@@ -222,6 +222,22 @@ impl Session {
             }
         }
     }
+
+    fn load_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
+        if let Some(e) = self.state.lookup_entity(lookup)? {
+            return Ok(Some(e));
+        }
+
+        let _loading_span =
+            span!(Level::INFO, "entity", lookup = format!("{:?}", lookup)).entered();
+
+        trace!("loading");
+        if let Some(persisted) = self.storage.load(lookup)? {
+            Ok(Some(self.state.add_persisted(persisted)?))
+        } else {
+            Ok(None)
+        }
+    }
 }
 
 impl Performer for Session {
@@ -237,24 +253,6 @@ impl Performer for Session {
 
         let middleware = self.middleware.borrow();
         apply_middleware(&middleware, perform, request_fn)
-    }
-}
-
-impl LoadsEntities for Session {
-    fn load_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
-        if let Some(e) = self.state.lookup_entity(lookup)? {
-            return Ok(Some(e));
-        }
-
-        let _loading_span =
-            span!(Level::INFO, "entity", lookup = format!("{:?}", lookup)).entered();
-
-        trace!("loading");
-        if let Some(persisted) = self.storage.load(lookup)? {
-            Ok(Some(self.state.add_persisted(persisted)?))
-        } else {
-            Ok(None)
-        }
     }
 }
 

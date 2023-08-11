@@ -13,7 +13,7 @@ use tracing::info;
 use crate::DomainBuilder;
 use engine::{prelude::DevNullNotifier, prelude::SessionOpener, storage::StorageFactory};
 use kernel::prelude::{
-    DomainError, EntityKey, Entry, HasScopes, LoadsEntities, LookupBy, Properties, Scope,
+    DomainError, EntityKey, Entry, EntryResolver, HasScopes, LookupBy, Properties, Scope,
 };
 
 #[derive(Debug, Args, Clone)]
@@ -74,8 +74,10 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
         for key in keys.iter() {
             info!("processing {:?}", key);
 
-            let entity = session.load_entity(&LookupBy::Key(key))?;
-            if let Some(entity) = entity {
+            let entry = session.entry(&LookupBy::Key(key))?;
+            if let Some(entry) = entry {
+                let entity = entry.entity();
+
                 if let Some(key) = &cmd.scope {
                     let mut entity = entity.borrow_mut();
                     let mut scopes = entity.scopes_mut();
@@ -89,7 +91,6 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
                 }
 
                 if cmd.scopes {
-                    let entry: Entry = entity.try_into()?;
                     load_and_save_scope::<Properties>(&entry)?;
                     load_and_save_scope::<Location>(&entry)?;
                     load_and_save_scope::<Carryable>(&entry)?;
