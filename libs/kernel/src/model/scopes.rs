@@ -87,6 +87,23 @@ pub trait StoreScope {
     fn store_scope(&mut self, scope_key: &str, value: JsonValue);
 }
 
+impl StoreScope for HashMap<String, ScopeValue> {
+    fn store_scope(&mut self, scope_key: &str, value: JsonValue) {
+        let previous = self.remove(scope_key);
+        let value = ScopeValue::Intermediate {
+            value: value.into(),
+            previous: previous.map(|p| p.into()),
+        };
+        self.insert(scope_key.to_owned(), value);
+    }
+}
+
+impl StoreScope for ScopeMap {
+    fn store_scope(&mut self, scope_key: &str, value: JsonValue) {
+        self.0.store_scope(scope_key, value);
+    }
+}
+
 pub trait LoadAndStoreScope: StoreScope {
     fn load_scope(&self, scope_key: &str) -> Option<&JsonValue>;
     fn remove_scope(&mut self, scope_key: &str) -> Option<ScopeValue>;
@@ -106,17 +123,6 @@ pub trait LoadAndStoreScope: StoreScope {
     }
 }
 
-impl StoreScope for HashMap<String, ScopeValue> {
-    fn store_scope(&mut self, scope_key: &str, value: JsonValue) {
-        let previous = self.remove(scope_key);
-        let value = ScopeValue::Intermediate {
-            value: value.into(),
-            previous: previous.map(|p| p.into()),
-        };
-        self.insert(scope_key.to_owned(), value);
-    }
-}
-
 impl LoadAndStoreScope for HashMap<String, ScopeValue> {
     fn load_scope(&self, scope_key: &str) -> Option<&JsonValue> {
         self.get(scope_key).map(|v| v.json_value())
@@ -124,12 +130,6 @@ impl LoadAndStoreScope for HashMap<String, ScopeValue> {
 
     fn remove_scope(&mut self, scope_key: &str) -> Option<ScopeValue> {
         self.remove(scope_key)
-    }
-}
-
-impl StoreScope for ScopeMap {
-    fn store_scope(&mut self, scope_key: &str, value: JsonValue) {
-        self.0.store_scope(scope_key, value);
     }
 }
 
