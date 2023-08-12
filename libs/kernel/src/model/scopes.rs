@@ -221,10 +221,7 @@ mod exp {
         fn store_scope(&mut self, scope_key: &str, value: JsonValue) -> Result<(), DomainError>;
     }
 
-    pub trait OpenScope<O>
-    where
-        O: LoadAndStoreScope,
-    {
+    pub trait OpenScope<O> {
         fn scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError>;
     }
 
