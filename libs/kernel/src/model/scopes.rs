@@ -228,42 +228,6 @@ mod exp {
         fn scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError>;
     }
 
-    pub trait OpenScopeRefMut<O>
-    where
-        O: LoadAndStoreScope,
-    {
-        fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeRefMut<T, O>, DomainError>;
-    }
-
-    pub trait OpenScopeMut<O> {
-        fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeMut<T>, DomainError>;
-    }
-
-    impl<O> OpenScope<O> for RefCell<O>
-    where
-        O: LoadAndStoreScope,
-    {
-        fn scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError> {
-            let owner = self.borrow();
-            owner.scope::<T>()
-        }
-    }
-
-    impl<O> OpenScopeRefMut<O> for RefCell<O>
-    where
-        O: LoadAndStoreScope,
-    {
-        fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeRefMut<T, O>, DomainError> {
-            let owner = self.borrow();
-            let value = match owner.load_scope(T::scope_key())? {
-                Some(value) => serde_json::from_value(value.clone().into()).context(here!())?,
-                None => T::default(),
-            };
-
-            Ok(OpenedScopeRefMut::new(self, Box::new(value)))
-        }
-    }
-
     impl<O> OpenScope<O> for O
     where
         O: LoadAndStoreScope,
@@ -280,6 +244,20 @@ mod exp {
         }
     }
 
+    impl<O> OpenScope<O> for RefCell<O>
+    where
+        O: LoadAndStoreScope,
+    {
+        fn scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError> {
+            let owner = self.borrow();
+            owner.scope::<T>()
+        }
+    }
+
+    pub trait OpenScopeMut<O> {
+        fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeMut<T>, DomainError>;
+    }
+
     impl<O> OpenScopeMut<O> for O
     where
         O: LoadAndStoreScope,
@@ -291,6 +269,28 @@ mod exp {
             };
 
             Ok(OpenedScopeMut::new(Box::new(value)))
+        }
+    }
+
+    pub trait OpenScopeRefMut<O>
+    where
+        O: LoadAndStoreScope,
+    {
+        fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeRefMut<T, O>, DomainError>;
+    }
+
+    impl<O> OpenScopeRefMut<O> for RefCell<O>
+    where
+        O: LoadAndStoreScope,
+    {
+        fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeRefMut<T, O>, DomainError> {
+            let owner = self.borrow();
+            let value = match owner.load_scope(T::scope_key())? {
+                Some(value) => serde_json::from_value(value.clone().into()).context(here!())?,
+                None => T::default(),
+            };
+
+            Ok(OpenedScopeRefMut::new(self, Box::new(value)))
         }
     }
 
