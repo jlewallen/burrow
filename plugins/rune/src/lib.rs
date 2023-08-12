@@ -154,8 +154,8 @@ pub struct Behaviors {
 }
 
 impl Scope for Behaviors {
-    fn serialize(&self) -> Result<JsonValue> {
-        Ok(serde_json::to_value(self)?)
+    fn serialize(&self) -> Result<JsonValue, serde_json::Error> {
+        serde_json::to_value(self)
     }
 
     fn scope_key() -> &'static str {

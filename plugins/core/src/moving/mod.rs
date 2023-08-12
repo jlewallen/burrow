@@ -130,8 +130,8 @@ pub mod model {
     }
 
     impl Scope for Occupying {
-        fn serialize(&self) -> Result<JsonValue> {
-            Ok(serde_json::to_value(self)?)
+        fn serialize(&self) -> Result<JsonValue, serde_json::Error> {
+            serde_json::to_value(self)
         }
 
         fn scope_key() -> &'static str {
@@ -166,8 +166,8 @@ pub mod model {
     }
 
     impl Scope for Occupyable {
-        fn serialize(&self) -> Result<JsonValue> {
-            Ok(serde_json::to_value(self)?)
+        fn serialize(&self) -> Result<JsonValue, serde_json::Error> {
+            serde_json::to_value(self)
         }
 
         fn scope_key() -> &'static str {
@@ -181,8 +181,8 @@ pub mod model {
     }
 
     impl Scope for Exit {
-        fn serialize(&self) -> Result<JsonValue> {
-            Ok(serde_json::to_value(self)?)
+        fn serialize(&self) -> Result<JsonValue, serde_json::Error> {
+            serde_json::to_value(self)
         }
 
         fn scope_key() -> &'static str {
@@ -201,8 +201,8 @@ pub mod model {
     }
 
     impl Scope for Movement {
-        fn serialize(&self) -> Result<JsonValue> {
-            Ok(serde_json::to_value(self)?)
+        fn serialize(&self) -> Result<JsonValue, serde_json::Error> {
+            serde_json::to_value(self)
         }
 
         fn scope_key() -> &'static str {

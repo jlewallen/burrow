@@ -254,7 +254,7 @@ mod exp {
             "example"
         }
 
-        fn serialize(&self) -> anyhow::Result<serde_json::Value> {
+        fn serialize(&self) -> Result<JsonValue, serde_json::Error> {
             Ok(serde_json::to_value(self)?)
         }
     }

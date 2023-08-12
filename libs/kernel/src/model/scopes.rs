@@ -14,7 +14,7 @@ pub trait Scope: DeserializeOwned + Default + std::fmt::Debug {
     where
         Self: Sized;
 
-    fn serialize(&self) -> Result<JsonValue>;
+    fn serialize(&self) -> Result<JsonValue, serde_json::Error>;
 }
 
 #[derive(Clone, Deserialize)]
@@ -389,8 +389,8 @@ mod tests {
             "example"
         }
 
-        fn serialize(&self) -> Result<JsonValue> {
-            Ok(serde_json::to_value(self)?)
+        fn serialize(&self) -> Result<JsonValue, serde_json::Error> {
+            serde_json::to_value(self)
         }
     }
 
