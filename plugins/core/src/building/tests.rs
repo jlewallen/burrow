@@ -1,3 +1,5 @@
+use kernel::here;
+
 use super::parser::*;
 use super::*;
 use crate::building::actions::{SaveEntityJsonAction, SaveQuickEditAction};
@@ -205,7 +207,7 @@ fn it_digs_bidirectionally() -> Result<()> {
     // Not the best way of finding the constructed area.
     let destination = session
         .entry(&LookupBy::Gid(&EntityGid::new(4)))?
-        .ok_or(DomainError::EntityNotFound)?;
+        .ok_or(DomainError::EntityNotFound(here!().into()))?;
 
     let reply: AreaObservation = reply.json_as()?;
     assert_eq!(reply, new_area_observation(&living, &destination)?);

@@ -3,7 +3,8 @@ use tracing::{debug, info};
 
 use crate::{moving::model::Occupying, tools};
 use kernel::prelude::{
-    get_my_session, Audience, DomainError, Entry, Finder, IntoEntry, Item, OpenScope, Surroundings,
+    get_my_session, here, Audience, DomainError, Entry, Finder, IntoEntry, Item, OpenScope,
+    Surroundings,
 };
 
 /// Determines if an entity matches a user's description of that entity, given
@@ -269,7 +270,7 @@ impl Finder for DefaultFinder {
                 let session = get_my_session()?;
                 let area = session
                     .entry(&kernel::prelude::LookupBy::Key(area))?
-                    .ok_or(DomainError::EntityNotFound)?;
+                    .ok_or(DomainError::EntityNotFound(here!().into()))?;
                 tools::get_occupant_keys(&area)
             }
         }

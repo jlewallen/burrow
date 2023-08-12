@@ -1,7 +1,10 @@
 use anyhow::Result;
 
 use engine::prelude::{DevNullNotifier, HasUsernames, SessionOpener};
-use kernel::prelude::{DomainError, Entry, EntryResolver, LookupBy, OpenScope};
+use kernel::{
+    here,
+    prelude::{DomainError, Entry, EntryResolver, LookupBy, OpenScope},
+};
 use plugins_core::moving::model::Occupying;
 
 use crate::DomainBuilder;
@@ -15,7 +18,7 @@ pub async fn execute_command() -> Result<()> {
     let world = session.world()?.expect("No world");
     let user_key = world
         .find_name_key("jlewallen")?
-        .ok_or_else(|| DomainError::EntityNotFound)?;
+        .ok_or(DomainError::EntityNotFound(here!().into()))?;
     let user = session
         .entry(&LookupBy::Key(&user_key))?
         .expect("No 'USER' entity.");

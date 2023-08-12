@@ -13,6 +13,8 @@ pub mod common {
 pub mod prelude {
     pub use replies::DomainEvent;
 
+    pub use crate::here;
+
     pub use crate::actions::*;
     pub use crate::finder::*;
     pub use crate::hooks::*;

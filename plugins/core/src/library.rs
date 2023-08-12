@@ -132,6 +132,7 @@ pub mod tests {
     pub use crate::tools;
     pub use crate::{BuildSurroundings, QuickThing};
     pub use kernel::common::*;
+    pub use kernel::here;
     pub use kernel::prelude::*;
     pub use tracing::*;
 
