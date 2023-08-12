@@ -213,6 +213,38 @@ impl HasScopes for ScopeMap {
 pub trait LoadAndStoreScope {
     fn load_scope(&self, scope_key: &str) -> Result<Option<&JsonValue>, DomainError>;
     fn store_scope(&mut self, scope_key: &str, value: JsonValue) -> Result<(), DomainError>;
+
+    fn replace_scope<T: Scope>(&mut self, value: &T) -> Result<(), DomainError> {
+        let json = value.serialize()?.into();
+        self.store_scope(T::scope_key(), json)
+    }
+}
+
+impl LoadAndStoreScope for HashMap<String, ScopeValue> {
+    fn load_scope(&self, scope_key: &str) -> Result<Option<&JsonValue>, DomainError> {
+        Ok(self.get(scope_key).map(|v| v.json_value()))
+    }
+
+    fn store_scope(&mut self, scope_key: &str, value: JsonValue) -> Result<(), DomainError> {
+        let previous = self.remove(scope_key);
+        let value = ScopeValue::Intermediate {
+            value: value.into(),
+            previous: previous.map(|p| p.into()),
+        };
+        self.insert(scope_key.to_owned(), value);
+
+        Ok(())
+    }
+}
+
+impl LoadAndStoreScope for ScopeMap {
+    fn load_scope(&self, scope_key: &str) -> Result<Option<&JsonValue>, DomainError> {
+        self.0.load_scope(scope_key)
+    }
+
+    fn store_scope(&mut self, scope_key: &str, value: JsonValue) -> Result<(), DomainError> {
+        self.0.store_scope(scope_key, value)
+    }
 }
 
 pub trait OpenScope<O> {
