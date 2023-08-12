@@ -102,10 +102,6 @@ pub mod model {
     }
 
     impl Scope for Wearing {
-        fn serialize(&self) -> Result<JsonValue, serde_json::Error> {
-            serde_json::to_value(self)
-        }
-
         fn scope_key() -> &'static str {
             "wearing"
         }
@@ -206,10 +202,6 @@ pub mod model {
     }
 
     impl Scope for Wearable {
-        fn serialize(&self) -> Result<JsonValue, serde_json::Error> {
-            serde_json::to_value(self)
-        }
-
         fn scope_key() -> &'static str {
             "wearable"
         }

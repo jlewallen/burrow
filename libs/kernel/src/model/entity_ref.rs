@@ -253,10 +253,6 @@ mod exp {
         {
             "example"
         }
-
-        fn serialize(&self) -> Result<JsonValue, serde_json::Error> {
-            Ok(serde_json::to_value(self)?)
-        }
     }
 
     #[cfg(test)]
