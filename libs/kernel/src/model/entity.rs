@@ -67,19 +67,17 @@ impl Entity {
 }
 
 impl LoadAndStoreScope for Entity {
-    fn load_scope(&self, scope_key: &str) -> Result<Option<&JsonValue>, DomainError> {
-        Ok(self.scopes.get(scope_key).map(|v| v.json_value()))
+    fn load_scope(&self, scope_key: &str) -> Option<&JsonValue> {
+        self.scopes.get(scope_key).map(|v| v.json_value())
     }
 
-    fn store_scope(&mut self, scope_key: &str, value: JsonValue) -> Result<(), DomainError> {
+    fn store_scope(&mut self, scope_key: &str, value: JsonValue) {
         let previous = self.scopes.remove(scope_key);
         let value = ScopeValue::Intermediate {
             value: value.into(),
             previous: previous.map(|p| p.into()),
         };
         self.scopes.insert(scope_key.to_owned(), value);
-
-        Ok(())
     }
 
     fn remove_scope(&mut self, scope_key: &str) -> Option<ScopeValue> {

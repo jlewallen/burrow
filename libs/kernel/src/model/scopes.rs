@@ -153,30 +153,6 @@ impl<'e> ScopesMut<'e> {
 
         Ok(())
     }
-
-    pub fn remove_scope_by_key(&mut self, scope_key: &str) -> Result<(), DomainError> {
-        self.map.remove(scope_key);
-
-        Ok(())
-    }
-
-    pub fn rename_scope(&mut self, old_key: &str, new_key: &str) -> Result<(), DomainError> {
-        if let Some(value) = self.map.remove(old_key) {
-            self.map.insert(new_key.to_owned(), value);
-        }
-
-        Ok(())
-    }
-
-    pub fn add_scope_by_key(&mut self, scope_key: &str) -> Result<(), DomainError> {
-        if !self.map.contains_key(scope_key) {
-            self.map.insert(
-                scope_key.to_owned(),
-                ScopeValue::Original(JsonValue::Object(Default::default()).into()),
-            );
-        }
-        Ok(())
-    }
 }
 
 pub trait HasScopes {
@@ -211,40 +187,37 @@ impl HasScopes for ScopeMap {
 }
 
 pub trait LoadAndStoreScope {
-    fn load_scope(&self, scope_key: &str) -> Result<Option<&JsonValue>, DomainError>;
-    fn store_scope(&mut self, scope_key: &str, value: JsonValue) -> Result<(), DomainError>;
+    fn load_scope(&self, scope_key: &str) -> Option<&JsonValue>;
+    fn store_scope(&mut self, scope_key: &str, value: JsonValue);
     fn remove_scope(&mut self, scope_key: &str) -> Option<ScopeValue>;
     fn rename_scope(&mut self, old_key: &str, new_key: &str) {
         if let Some(value) = self.remove_scope(old_key) {
-            self.store_scope(new_key, value.json_value().clone())
-                .unwrap();
+            self.store_scope(new_key, value.json_value().clone());
         }
     }
     fn add_scope_by_key(&mut self, scope_key: &str) {
-        self.store_scope(scope_key, JsonValue::Object(Default::default()))
-            .unwrap();
+        self.store_scope(scope_key, JsonValue::Object(Default::default()));
     }
 
     fn replace_scope<T: Scope>(&mut self, value: &T) -> Result<(), DomainError> {
         let json = value.serialize()?.into();
-        self.store_scope(T::scope_key(), json)
+        self.store_scope(T::scope_key(), json);
+        Ok(())
     }
 }
 
 impl LoadAndStoreScope for HashMap<String, ScopeValue> {
-    fn load_scope(&self, scope_key: &str) -> Result<Option<&JsonValue>, DomainError> {
-        Ok(self.get(scope_key).map(|v| v.json_value()))
+    fn load_scope(&self, scope_key: &str) -> Option<&JsonValue> {
+        self.get(scope_key).map(|v| v.json_value())
     }
 
-    fn store_scope(&mut self, scope_key: &str, value: JsonValue) -> Result<(), DomainError> {
+    fn store_scope(&mut self, scope_key: &str, value: JsonValue) {
         let previous = self.remove(scope_key);
         let value = ScopeValue::Intermediate {
             value: value.into(),
             previous: previous.map(|p| p.into()),
         };
         self.insert(scope_key.to_owned(), value);
-
-        Ok(())
     }
 
     fn remove_scope(&mut self, scope_key: &str) -> Option<ScopeValue> {
@@ -253,12 +226,12 @@ impl LoadAndStoreScope for HashMap<String, ScopeValue> {
 }
 
 impl LoadAndStoreScope for ScopeMap {
-    fn load_scope(&self, scope_key: &str) -> Result<Option<&JsonValue>, DomainError> {
+    fn load_scope(&self, scope_key: &str) -> Option<&JsonValue> {
         self.0.load_scope(scope_key)
     }
 
-    fn store_scope(&mut self, scope_key: &str, value: JsonValue) -> Result<(), DomainError> {
-        self.0.store_scope(scope_key, value)
+    fn store_scope(&mut self, scope_key: &str, value: JsonValue) {
+        self.0.store_scope(scope_key, value);
     }
 
     fn remove_scope(&mut self, scope_key: &str) -> Option<ScopeValue> {
@@ -275,7 +248,7 @@ where
     O: LoadAndStoreScope,
 {
     fn scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError> {
-        let Some(value) = self.load_scope(T::scope_key())? else {
+        let Some(value) = self.load_scope(T::scope_key()) else {
                 return Ok(None);
             };
 
@@ -305,7 +278,7 @@ where
     O: LoadAndStoreScope,
 {
     fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeMut<T>, DomainError> {
-        let value = match self.load_scope(T::scope_key())? {
+        let value = match self.load_scope(T::scope_key()) {
             Some(value) => serde_json::from_value(value.clone().into()).context(here!())?,
             None => T::default(),
         };
@@ -327,7 +300,7 @@ where
 {
     fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeRefMut<T, O>, DomainError> {
         let owner = self.borrow();
-        let value = match owner.load_scope(T::scope_key())? {
+        let value = match owner.load_scope(T::scope_key()) {
             Some(value) => serde_json::from_value(value.clone().into()).context(here!())?,
             None => T::default(),
         };
@@ -383,7 +356,7 @@ impl<T: Scope> OpenedScopeMut<T> {
     where
         O: LoadAndStoreScope,
     {
-        entity.store_scope(T::scope_key(), self.target.serialize()?)
+        Ok(entity.store_scope(T::scope_key(), self.target.serialize()?))
     }
 }
 
@@ -433,7 +406,7 @@ where
     {
         let value = self.target.serialize()?;
         let mut owner = self.owner.borrow_mut();
-        owner.store_scope(T::scope_key(), value)
+        Ok(owner.store_scope(T::scope_key(), value))
     }
 }
 
@@ -535,26 +508,17 @@ mod tests {
     }
 
     impl LoadAndStoreScope for Whatever {
-        fn load_scope(
-            &self,
-            scope_key: &str,
-        ) -> anyhow::Result<Option<&JsonValue>, crate::model::DomainError> {
-            Ok(self.scopes.get(scope_key).map(|v| v.json_value()))
+        fn load_scope(&self, scope_key: &str) -> Option<&JsonValue> {
+            self.scopes.get(scope_key).map(|v| v.json_value())
         }
 
-        fn store_scope(
-            &mut self,
-            scope_key: &str,
-            value: JsonValue,
-        ) -> anyhow::Result<(), crate::model::DomainError> {
+        fn store_scope(&mut self, scope_key: &str, value: JsonValue) {
             let previous = self.scopes.remove(scope_key);
             let value = ScopeValue::Intermediate {
                 value: value.into(),
                 previous: previous.map(|p| p.into()),
             };
             self.scopes.insert(scope_key.to_owned(), value);
-
-            Ok(())
         }
 
         fn remove_scope(&mut self, scope_key: &str) -> Option<ScopeValue> {

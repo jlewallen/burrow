@@ -29,7 +29,7 @@ impl Action for AddScopeAction {
 
         let mut item = item.entity().borrow_mut();
 
-        item.scopes_mut().add_scope_by_key(&self.scope_key)?;
+        item.add_scope_by_key(&self.scope_key);
 
         Ok(SimpleReply::Done.try_into()?)
     }
