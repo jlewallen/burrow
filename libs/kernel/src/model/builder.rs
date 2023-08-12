@@ -3,7 +3,8 @@ use std::collections::HashMap;
 
 use super::{
     base::{DomainError, EntityClass, EntityKey, Identity, GID_PROPERTY},
-    CoreProps, Entity, EntityRef, HasScopes, Properties, Scope, ScopeMap, ScopeValue,
+    CoreProps, Entity, EntityRef, LoadAndStoreScope, OpenScope, Properties, Scope, ScopeMap,
+    ScopeValue,
 };
 use crate::session::get_my_session;
 
@@ -73,7 +74,7 @@ impl EntityBuilder {
 
     pub fn copying(mut self, template: &Entity) -> Result<Self> {
         let scopes: ScopeMap = template.scopes.clone().into();
-        let properties = scopes.scopes().load_scope::<Properties>()?;
+        let properties = scopes.scope::<Properties>()?.unwrap_or_default();
         let mut props = properties.props();
         props.remove_property(GID_PROPERTY);
         self.properties = props.into();
@@ -105,7 +106,6 @@ impl EntityBuilder {
             self.scopes = Some(ScopeMap::default());
         }
         let scopes = self.scopes.as_mut().unwrap();
-        let mut scopes = scopes.scopes_mut();
         scopes.replace_scope(&T::default())?;
 
         Ok(self)

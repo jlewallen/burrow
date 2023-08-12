@@ -107,7 +107,12 @@ pub trait CoreProps {
 }
 
 fn load_props(entity: &Entity) -> Result<Box<Properties>, DomainError> {
-    entity.scopes().load_scope::<Properties>()
+    Ok(Box::new(
+        entity
+            .scope::<Properties>()?
+            .map(|v| v.into())
+            .unwrap_or_default(),
+    ))
 }
 
 fn save_props(entity: &mut Entity, properties: Box<Properties>) -> Result<(), DomainError> {

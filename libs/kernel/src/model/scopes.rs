@@ -62,93 +62,10 @@ impl Serialize for ScopeValue {
 }
 
 #[allow(dead_code)]
-pub struct ScopesMut<'e> {
-    pub(crate) map: &'e mut HashMap<String, ScopeValue>,
-}
-
-#[allow(dead_code)]
-pub struct Scopes<'e> {
-    pub(crate) map: &'e HashMap<String, ScopeValue>,
-}
-
-#[allow(dead_code)]
 pub struct ModifiedScope {
     scope: String,
     value: Json,
     previous: Option<Json>,
-}
-
-impl<'e> Scopes<'e> {
-    pub fn load_scope<T: Scope>(&self) -> Result<Box<T>, DomainError> {
-        let scope_key = <T as Scope>::scope_key();
-
-        if !self.map.contains_key(scope_key) {
-            trace!(scope_key = scope_key, "load-scope(default)");
-            return Ok(Box::default());
-        }
-
-        trace!(scope_key = scope_key, "load-scope");
-
-        let data = &self.map[scope_key];
-        let owned_value = data.clone();
-        let scope: Box<T> = match owned_value {
-            ScopeValue::Original(v)
-            | ScopeValue::Intermediate {
-                value: v,
-                previous: _,
-            } => serde_json::from_value(v.into()).context(here!())?,
-        };
-
-        Ok(scope)
-    }
-
-    pub fn modified(&self) -> Result<Vec<ModifiedScope>> {
-        let mut changes = Vec::new();
-
-        for (key, value) in self.map.iter() {
-            match value {
-                ScopeValue::Original(_) => {}
-                ScopeValue::Intermediate { value, previous } => {
-                    // TODO Not happy about cloning the JSON here.
-                    changes.push(ModifiedScope {
-                        scope: key.clone(),
-                        value: value.clone(),
-                        previous: previous.clone(),
-                    });
-                }
-            }
-        }
-
-        Ok(changes)
-    }
-}
-
-impl<'e> ScopesMut<'e> {
-    pub fn replace_scope<T: Scope>(&mut self, scope: &T) -> Result<(), DomainError> {
-        let scope_key = <T as Scope>::scope_key();
-
-        trace!(scope = scope_key, "scope-replace");
-
-        let value: Json = scope.serialize()?.into();
-
-        // TODO Would love to just take the value.
-        let previous = self.map.get(scope_key).map(|value| match value {
-            ScopeValue::Original(original) => original.clone(),
-            ScopeValue::Intermediate { value, previous: _ } => value.clone(),
-        });
-
-        let value = ScopeValue::Intermediate { value, previous };
-
-        self.map.insert(scope_key.to_owned(), value);
-
-        Ok(())
-    }
-}
-
-pub trait HasScopes {
-    fn scopes(&self) -> Scopes;
-
-    fn scopes_mut(&mut self) -> ScopesMut;
 }
 
 #[derive(Clone, Serialize, Deserialize, Default)]
@@ -163,16 +80,6 @@ impl From<HashMap<String, ScopeValue>> for ScopeMap {
 impl From<ScopeMap> for HashMap<String, ScopeValue> {
     fn from(value: ScopeMap) -> Self {
         value.0
-    }
-}
-
-impl HasScopes for ScopeMap {
-    fn scopes(&self) -> Scopes {
-        Scopes { map: &self.0 }
-    }
-
-    fn scopes_mut(&mut self) -> ScopesMut {
-        ScopesMut { map: &mut self.0 }
     }
 }
 
@@ -299,8 +206,14 @@ where
     }
 }
 
-pub struct OpenedScope<T: Scope> {
+pub struct OpenedScope<T> {
     target: T,
+}
+
+impl<T> OpenedScope<T> {
+    pub fn into(self) -> T {
+        self.target
+    }
 }
 
 impl<T: Scope + Default> Default for OpenedScope<T> {
