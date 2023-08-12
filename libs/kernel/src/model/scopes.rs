@@ -233,6 +233,8 @@ impl<T: Scope + Default> Default for OpenedScope<T> {
 
 impl<T: Scope> OpenedScope<T> {
     pub fn new(target: T) -> Self {
+        trace!("scope-open {:?}", target);
+
         Self { target }
     }
 }
@@ -251,7 +253,7 @@ impl<T: Scope> std::ops::Deref for OpenedScope<T> {
     }
 }
 
-pub struct OpenedScopeMut<T: Scope> {
+pub struct OpenedScopeMut<T> {
     target: Box<T>,
 }
 
@@ -264,23 +266,19 @@ impl<T: Scope> OpenedScopeMut<T> {
 
     pub fn save<O>(&mut self, entity: &mut O) -> Result<(), DomainError>
     where
-        O: LoadAndStoreScope,
+        O: StoreScope,
     {
         Ok(entity.store_scope(T::scope_key(), self.target.serialize()?))
     }
 }
 
-impl<T: Scope> Drop for OpenedScopeMut<T> {
+impl<T> Drop for OpenedScopeMut<T> {
     fn drop(&mut self) {
-        // TODO Check for unsaved changes to this scope and possibly warn the
-        // user, this would require them to intentionally discard any unsaved
-        // changes. Not being able to bubble an error up makes doing anything
-        // elaborate in here a bad idea.
-        // trace!("scope-dropped {:?}", self.target);
+        // TODO Panic or log on unsaved changes?
     }
 }
 
-impl<T: Scope> std::ops::Deref for OpenedScopeMut<T> {
+impl<T> std::ops::Deref for OpenedScopeMut<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -288,16 +286,13 @@ impl<T: Scope> std::ops::Deref for OpenedScopeMut<T> {
     }
 }
 
-impl<T: Scope> std::ops::DerefMut for OpenedScopeMut<T> {
+impl<T> std::ops::DerefMut for OpenedScopeMut<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.target
     }
 }
 
-pub struct OpenedScopeRefMut<'a, T: Scope, O>
-where
-    O: StoreScope,
-{
+pub struct OpenedScopeRefMut<'a, T, O> {
     owner: &'a RefCell<O>,
     target: Box<T>,
 }
@@ -307,6 +302,8 @@ where
     O: StoreScope,
 {
     pub fn new(owner: &'a RefCell<O>, target: Box<T>) -> Self {
+        trace!("scope-open {:?}", target);
+
         Self { owner, target }
     }
 
@@ -317,22 +314,13 @@ where
     }
 }
 
-impl<'a, T: Scope, O> Drop for OpenedScopeRefMut<'a, T, O>
-where
-    O: StoreScope,
-{
+impl<'a, T, O> Drop for OpenedScopeRefMut<'a, T, O> {
     fn drop(&mut self) {
-        // TODO Check for unsaved changes to this scope and possibly warn the
-        // user, this would require them to intentionally discard any unsaved
-        // changes. Not being able to bubble an error up makes doing anything
-        // elaborate in here a bad idea.
+        // TODO Panic or log on unsaved changes?
     }
 }
 
-impl<'a, T: Scope, O> std::ops::Deref for OpenedScopeRefMut<'a, T, O>
-where
-    O: StoreScope,
-{
+impl<'a, T, O> std::ops::Deref for OpenedScopeRefMut<'a, T, O> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -340,10 +328,7 @@ where
     }
 }
 
-impl<'a, T: Scope, O> std::ops::DerefMut for OpenedScopeRefMut<'a, T, O>
-where
-    O: StoreScope,
-{
+impl<'a, T, O> std::ops::DerefMut for OpenedScopeRefMut<'a, T, O> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.target
     }
