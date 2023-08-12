@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use super::base::{Acls, DomainError, EntityClass, EntityKey, Identity, JsonValue};
-use super::{EntityRef, LoadAndStoreScope, ScopeMap};
-use super::{HasScopes, ScopeValue, Scopes, ScopesMut};
+use super::{EntityRef, HasScopes, LoadAndStoreScope, ScopeMap};
+use super::{ScopeValue, Scopes, ScopesMut};
 
 /// Central Entity model. Right now, the only thing that is ever modified at
 /// this level is `version` and even that could easily be swept into a scope.

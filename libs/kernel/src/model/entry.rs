@@ -2,8 +2,8 @@ use anyhow::Result;
 use serde::{ser::SerializeStruct, Serialize};
 
 use super::{
-    CoreProps, DomainError, Entity, EntityKey, EntityPtr, EntityRef, HasScopes, JsonValue,
-    LookupBy, OpenedScope, OpenedScopeRefMut, Scope, WORLD_KEY,
+    CoreProps, DomainError, Entity, EntityKey, EntityPtr, EntityRef, JsonValue, LookupBy,
+    OpenScope, OpenScopeRefMut, OpenedScope, OpenedScopeRefMut, Scope, WORLD_KEY,
 };
 use crate::session::get_my_session;
 
@@ -104,29 +104,18 @@ impl Entry {
     pub fn has_scope<T: Scope>(&self) -> Result<bool, DomainError> {
         let entity = self.entity();
         let entity = entity.borrow();
-        let scopes = entity.scopes();
-
-        Ok(scopes.has_scope::<T>())
+        Ok(entity.scope::<T>()?.is_some())
     }
 
     pub fn scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError> {
         let entity = self.entity();
         let entity = entity.borrow();
-        let scopes = entity.scopes();
-        if !scopes.has_scope::<T>() {
-            return Ok(None);
-        }
-
-        let scope = scopes.load_scope::<T>()?;
-        Ok(Some(OpenedScope::new(scope)))
+        Ok(entity.scope::<T>()?)
     }
 
     pub fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeRefMut<T, Entity>, DomainError> {
         let entity = self.entity();
-        let entity = entity.borrow();
-        let scope = entity.scopes().load_scope::<T>()?;
-
-        Ok(OpenedScopeRefMut::new(self.entity(), scope))
+        Ok(entity.scope_mut::<T>()?)
     }
 }
 

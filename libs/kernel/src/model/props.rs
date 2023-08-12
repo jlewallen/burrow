@@ -111,7 +111,7 @@ fn load_props(entity: &Entity) -> Result<Box<Properties>, DomainError> {
 }
 
 fn save_props(entity: &mut Entity, properties: Box<Properties>) -> Result<(), DomainError> {
-    entity.scopes_mut().replace_scope::<Properties>(&properties)
+    entity.replace_scope::<Properties>(&properties)
 }
 
 impl CoreProps for Entity {
