@@ -213,6 +213,17 @@ impl HasScopes for ScopeMap {
 pub trait LoadAndStoreScope {
     fn load_scope(&self, scope_key: &str) -> Result<Option<&JsonValue>, DomainError>;
     fn store_scope(&mut self, scope_key: &str, value: JsonValue) -> Result<(), DomainError>;
+    fn remove_scope(&mut self, scope_key: &str) -> Option<ScopeValue>;
+    fn rename_scope(&mut self, old_key: &str, new_key: &str) {
+        if let Some(value) = self.remove_scope(old_key) {
+            self.store_scope(new_key, value.json_value().clone())
+                .unwrap();
+        }
+    }
+    fn add_scope_by_key(&mut self, scope_key: &str) {
+        self.store_scope(scope_key, JsonValue::Object(Default::default()))
+            .unwrap();
+    }
 
     fn replace_scope<T: Scope>(&mut self, value: &T) -> Result<(), DomainError> {
         let json = value.serialize()?.into();
@@ -235,6 +246,10 @@ impl LoadAndStoreScope for HashMap<String, ScopeValue> {
 
         Ok(())
     }
+
+    fn remove_scope(&mut self, scope_key: &str) -> Option<ScopeValue> {
+        self.remove(scope_key)
+    }
 }
 
 impl LoadAndStoreScope for ScopeMap {
@@ -244,6 +259,10 @@ impl LoadAndStoreScope for ScopeMap {
 
     fn store_scope(&mut self, scope_key: &str, value: JsonValue) -> Result<(), DomainError> {
         self.0.store_scope(scope_key, value)
+    }
+
+    fn remove_scope(&mut self, scope_key: &str) -> Option<ScopeValue> {
+        self.0.remove_scope(scope_key)
     }
 }
 
@@ -536,6 +555,10 @@ mod tests {
             self.scopes.insert(scope_key.to_owned(), value);
 
             Ok(())
+        }
+
+        fn remove_scope(&mut self, scope_key: &str) -> Option<ScopeValue> {
+            self.scopes.remove(scope_key)
         }
     }
 }

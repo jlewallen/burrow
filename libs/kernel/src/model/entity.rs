@@ -81,6 +81,10 @@ impl LoadAndStoreScope for Entity {
 
         Ok(())
     }
+
+    fn remove_scope(&mut self, scope_key: &str) -> Option<ScopeValue> {
+        self.scopes.remove(scope_key)
+    }
 }
 
 impl HasScopes for Entity {
