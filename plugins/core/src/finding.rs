@@ -3,7 +3,7 @@ use tracing::{debug, info};
 
 use crate::{moving::model::Occupying, tools};
 use kernel::prelude::{
-    get_my_session, Audience, DomainError, Entry, Finder, IntoEntry, Item, Surroundings,
+    get_my_session, Audience, DomainError, Entry, Finder, IntoEntry, Item, OpenScope, Surroundings,
 };
 
 /// Determines if an entity matches a user's description of that entity, given
@@ -133,7 +133,7 @@ impl EntityRelationshipSet {
 
         for entity in &self.entities {
             if let EntityRelationship::Ground(item) = entity {
-                if let Some(exit) = item.maybe_scope::<Exit>()? {
+                if let Some(exit) = item.scope::<Exit>()? {
                     expanded.push(EntityRelationship::Exit(
                         item.name()?
                             .ok_or_else(|| anyhow!("Route name is required"))?,
@@ -246,7 +246,7 @@ impl Finder for DefaultFinder {
     }
 
     fn find_location(&self, entry: &Entry) -> Result<Entry> {
-        let occupying = entry.scope::<Occupying>()?;
+        let occupying = entry.scope::<Occupying>()?.unwrap();
         Ok(occupying.area.to_entry()?)
     }
 

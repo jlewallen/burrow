@@ -1,6 +1,9 @@
 use std::str::FromStr;
 
-use crate::{building::model::QuickEdit, library::actions::*, looking::actions::LookAction};
+use crate::{
+    building::model::QuickEdit, carrying::model::Carryable, library::actions::*,
+    looking::actions::LookAction,
+};
 
 #[action]
 pub struct AddScopeAction {
@@ -26,7 +29,7 @@ impl Action for AddScopeAction {
 
         let mut item = item.entity().borrow_mut();
 
-        item.scopes_mut().add_scope_by_key(&self.scope_key)?;
+        item.add_scope_by_key(&self.scope_key);
 
         Ok(SimpleReply::Done.try_into()?)
     }
@@ -197,6 +200,7 @@ impl Action for BidirectionalDigAction {
 
         let returning: Entity = build_entity()
             .exit()
+            .default_scope::<Carryable>()?
             .name(&self.returning)
             .desc(&self.returning)
             .try_into()?;
@@ -204,6 +208,7 @@ impl Action for BidirectionalDigAction {
 
         let outgoing: Entity = build_entity()
             .exit()
+            .default_scope::<Carryable>()?
             .name(&self.outgoing)
             .desc(&self.outgoing)
             .try_into()?;

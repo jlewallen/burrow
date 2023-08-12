@@ -3,7 +3,8 @@ use std::collections::HashMap;
 
 use super::{
     base::{DomainError, EntityClass, EntityKey, Identity, GID_PROPERTY},
-    CoreProps, Entity, EntityRef, HasScopes, Properties, Scope, ScopeMap, ScopeValue,
+    CoreProps, Entity, EntityRef, LoadAndStoreScope, OpenScope, Properties, Scope, ScopeMap,
+    ScopeValue,
 };
 use crate::session::get_my_session;
 
@@ -73,7 +74,7 @@ impl EntityBuilder {
 
     pub fn copying(mut self, template: &Entity) -> Result<Self> {
         let scopes: ScopeMap = template.scopes.clone().into();
-        let properties = scopes.scopes().load_scope::<Properties>()?;
+        let properties = scopes.scope::<Properties>()?.unwrap_or_default();
         let mut props = properties.props();
         props.remove_property(GID_PROPERTY);
         self.properties = props.into();
@@ -105,7 +106,6 @@ impl EntityBuilder {
             self.scopes = Some(ScopeMap::default());
         }
         let scopes = self.scopes.as_mut().unwrap();
-        let mut scopes = scopes.scopes_mut();
         scopes.replace_scope(&T::default())?;
 
         Ok(self)
@@ -124,12 +124,16 @@ impl TryInto<Entity> for EntityBuilder {
             Some(key) => key,
             None => get_my_session()?.new_key(),
         };
-        let map = [(
+
+        let props: HashMap<String, ScopeValue> = [(
             "props".to_owned(),
             ScopeValue::Original(serde_json::to_value(self.properties)?.into()),
         )]
         .into_iter()
         .collect::<HashMap<_, _>>();
+
+        let mut map: HashMap<_, _> = self.scopes.clone().map(|v| v.into()).unwrap_or_default();
+        map.extend(props);
 
         let scopes: ScopeMap = map.into();
         Ok(Entity::new_heavily_customized(

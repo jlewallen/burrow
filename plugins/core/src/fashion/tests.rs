@@ -12,16 +12,16 @@ fn it_wears_unworn_items() -> Result<()> {
         .build()?;
 
     let (_, person, _area) = surroundings.unpack();
-    assert_eq!(person.scope::<Wearing>()?.wearing.len(), 0);
-    assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
+    assert_eq!(person.scope::<Wearing>()?.unwrap().wearing.len(), 0);
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 1);
 
     let action = try_parsing(WearActionParser {}, "wear jacket")?;
     let action = action.unwrap();
     let effect = action.perform(session.clone(), &surroundings)?;
     assert_eq!(effect, Effect::Ok);
 
-    assert_eq!(person.scope::<Wearing>()?.wearing.len(), 1);
-    assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
+    assert_eq!(person.scope::<Wearing>()?.unwrap().wearing.len(), 1);
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 0);
 
     build.close()?;
 
@@ -41,8 +41,8 @@ fn it_removes_worn_items() -> Result<()> {
     assert_eq!(effect, Effect::Ok);
 
     let (_, person, _area) = surroundings.unpack();
-    assert_eq!(person.scope::<Wearing>()?.wearing.len(), 0);
-    assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
+    assert_eq!(person.scope::<Wearing>()?.unwrap().wearing.len(), 0);
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 1);
 
     build.close()?;
 

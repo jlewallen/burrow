@@ -7,6 +7,12 @@ pub use serde_json::Value as JsonValue;
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
 pub struct Json(JsonValue);
 
+impl Json {
+    pub fn value(&self) -> &JsonValue {
+        &self.0
+    }
+}
+
 impl From<JsonValue> for Json {
     fn from(value: JsonValue) -> Self {
         Self(value)

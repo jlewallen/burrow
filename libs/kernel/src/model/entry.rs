@@ -1,10 +1,9 @@
 use anyhow::Result;
 use serde::{ser::SerializeStruct, Serialize};
-use tracing::trace;
 
 use super::{
-    CoreProps, DomainError, Entity, EntityKey, EntityPtr, EntityRef, HasScopes, JsonValue,
-    LookupBy, Scope, WORLD_KEY,
+    CoreProps, DomainError, Entity, EntityKey, EntityPtr, EntityRef, JsonValue, LookupBy,
+    OpenScope, OpenScopeRefMut, OpenedScope, OpenedScopeRefMut, Scope, WORLD_KEY,
 };
 use crate::session::get_my_session;
 
@@ -84,6 +83,10 @@ impl Entry {
         entity.entity_ref()
     }
 
+    pub fn to_json_value(&self) -> Result<JsonValue, DomainError> {
+        self.entity.borrow().to_json_value()
+    }
+
     pub fn name(&self) -> Result<Option<String>, DomainError> {
         let entity = self.entity();
         let entity = entity.borrow();
@@ -98,44 +101,16 @@ impl Entry {
         Ok(entity.desc())
     }
 
-    pub fn has_scope<T: Scope>(&self) -> Result<bool, DomainError> {
+    pub fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeRefMut<T, Entity>, DomainError> {
         let entity = self.entity();
-        let entity = entity.borrow();
-        let scopes = entity.scopes();
-
-        Ok(scopes.has_scope::<T>())
+        Ok(entity.scope_mut::<T>()?)
     }
+}
 
-    pub fn scope<T: Scope>(&self) -> Result<OpenedScope<T>, DomainError> {
-        let entity = self.entity();
-        let entity = entity.borrow();
-        let scope = entity.scopes().load_scope::<T>()?;
-
-        Ok(OpenedScope::new(scope))
-    }
-
-    pub fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeMut<T>, DomainError> {
-        let entity = self.entity();
-        let entity = entity.borrow();
-        let scope = entity.scopes().load_scope::<T>()?;
-
-        Ok(OpenedScopeMut::new(self.entity(), scope))
-    }
-
-    pub fn maybe_scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError> {
-        if !self.has_scope::<T>()? {
-            return Ok(None);
-        }
-
-        Ok(Some(self.scope::<T>()?))
-    }
-
-    pub fn debug(&self) -> Option<&String> {
-        self.debug.as_ref()
-    }
-
-    pub fn to_json_value(&self) -> Result<JsonValue, DomainError> {
-        self.entity.borrow().to_json_value()
+impl OpenScope<Entry> for Entry {
+    fn scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError> {
+        let entity = self.entity.borrow();
+        entity.scope::<T>()
     }
 }
 
@@ -187,77 +162,5 @@ impl std::fmt::Debug for Entry {
         } else {
             f.debug_struct("Entry").field("key", &self.key).finish()
         }
-    }
-}
-
-pub struct OpenedScope<T: Scope> {
-    target: Box<T>,
-}
-
-impl<T: Scope> OpenedScope<T> {
-    pub fn new(target: Box<T>) -> Self {
-        trace!("scope-open {:?}", target);
-
-        Self { target }
-    }
-}
-
-impl<T: Scope> AsRef<T> for OpenedScope<T> {
-    fn as_ref(&self) -> &T {
-        &self.target
-    }
-}
-
-impl<T: Scope> std::ops::Deref for OpenedScope<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.target
-    }
-}
-
-pub struct OpenedScopeMut<T: Scope> {
-    owner: EntityPtr,
-    target: Box<T>,
-}
-
-impl<T: Scope> OpenedScopeMut<T> {
-    pub fn new(owner: &EntityPtr, target: Box<T>) -> Self {
-        trace!("scope-open {:?}", target);
-
-        Self {
-            owner: owner.clone(),
-            target,
-        }
-    }
-
-    pub fn save(&mut self) -> Result<(), DomainError> {
-        let mut entity = self.owner.borrow_mut();
-
-        entity.scopes_mut().replace_scope::<T>(&self.target)
-    }
-}
-
-impl<T: Scope> Drop for OpenedScopeMut<T> {
-    fn drop(&mut self) {
-        // TODO Check for unsaved changes to this scope and possibly warn the
-        // user, this would require them to intentionally discard any unsaved
-        // changes. Not being able to bubble an error up makes doing anything
-        // elaborate in here a bad idea.
-        trace!("scope-dropped {:?}", self.target);
-    }
-}
-
-impl<T: Scope> std::ops::Deref for OpenedScopeMut<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.target
-    }
-}
-
-impl<T: Scope> std::ops::DerefMut for OpenedScopeMut<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.target
     }
 }

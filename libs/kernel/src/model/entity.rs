@@ -4,8 +4,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use super::base::{Acls, DomainError, EntityClass, EntityKey, Identity, JsonValue};
-use super::{EntityRef, ScopeMap};
-use super::{HasScopes, ScopeValue, Scopes, ScopesMut};
+use super::{EntityRef, LoadAndStoreScope, ScopeMap, ScopeValue, StoreScope};
 
 /// Central Entity model. Right now, the only thing that is ever modified at
 /// this level is `version` and even that could easily be swept into a scope.
@@ -66,15 +65,24 @@ impl Entity {
     }
 }
 
-impl HasScopes for Entity {
-    fn scopes(&self) -> Scopes {
-        Scopes { map: &self.scopes }
+impl StoreScope for Entity {
+    fn store_scope(&mut self, scope_key: &str, value: JsonValue) {
+        let previous = self.scopes.remove(scope_key);
+        let value = ScopeValue::Intermediate {
+            value: value.into(),
+            previous: previous.map(|p| p.into()),
+        };
+        self.scopes.insert(scope_key.to_owned(), value);
+    }
+}
+
+impl LoadAndStoreScope for Entity {
+    fn load_scope(&self, scope_key: &str) -> Option<&JsonValue> {
+        self.scopes.get(scope_key).map(|v| v.json_value())
     }
 
-    fn scopes_mut(&mut self) -> ScopesMut {
-        ScopesMut {
-            map: &mut self.scopes,
-        }
+    fn remove_scope(&mut self, scope_key: &str) -> Option<ScopeValue> {
+        self.scopes.remove(scope_key)
     }
 }
 

@@ -87,6 +87,15 @@ expression: domain.snapshot().await?
     },
     "parent": null,
     "scopes": {
+      "carryable": {
+        "kind": {
+          "identity": {
+            "private": "Private#3",
+            "public": "Public#3"
+          }
+        },
+        "quantity": 1.0
+      },
       "location": {
         "container": {
           "gid": 3,
@@ -115,8 +124,8 @@ expression: domain.snapshot().await?
     },
     "creator": null,
     "identity": {
-      "private": "Private#3",
-      "public": "Public#3"
+      "private": "Private#4",
+      "public": "Public#4"
     },
     "key": "E-2",
     "klass": {
@@ -124,6 +133,15 @@ expression: domain.snapshot().await?
     },
     "parent": null,
     "scopes": {
+      "carryable": {
+        "kind": {
+          "identity": {
+            "private": "Private#5",
+            "public": "Public#5"
+          }
+        },
+        "quantity": 1.0
+      },
       "containing": {
         "capacity": null,
         "holding": [
@@ -164,8 +182,8 @@ expression: domain.snapshot().await?
     },
     "creator": null,
     "identity": {
-      "private": "Private#5",
-      "public": "Public#5"
+      "private": "Private#6",
+      "public": "Public#6"
     },
     "key": "E-3",
     "klass": {
@@ -280,6 +298,15 @@ expression: domain.snapshot().await?
     },
     "parent": null,
     "scopes": {
+      "carryable": {
+        "kind": {
+          "identity": {
+            "private": "Private#9",
+            "public": "Public#9"
+          }
+        },
+        "quantity": 1.0
+      },
       "exit": {
         "area": {
           "gid": 1,

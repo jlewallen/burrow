@@ -13,7 +13,8 @@ use tracing::info;
 use crate::DomainBuilder;
 use engine::{prelude::DevNullNotifier, prelude::SessionOpener, storage::StorageFactory};
 use kernel::prelude::{
-    DomainError, EntityKey, Entry, EntryResolver, HasScopes, LookupBy, Properties, Scope,
+    DomainError, EntityKey, Entry, EntryResolver, LoadAndStoreScope, LookupBy, OpenScope,
+    Properties, Scope,
 };
 
 #[derive(Debug, Args, Clone)]
@@ -38,7 +39,7 @@ impl Command {
 
 fn load_and_save_scope<T: Scope>(entity: &Entry) -> Result<bool, DomainError> {
     use anyhow::Context;
-    if entity.has_scope::<T>()? {
+    if entity.scope::<T>()?.is_some() {
         tracing::trace!("{:?} {:?}", entity.key(), T::scope_key());
 
         Ok(entity
@@ -80,11 +81,10 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
 
                 if let Some(key) = &cmd.scope {
                     let mut entity = entity.borrow_mut();
-                    let mut scopes = entity.scopes_mut();
                     if cmd.erase {
-                        scopes.remove_scope_by_key(key)?;
+                        entity.remove_scope(key);
                     } else if let Some(new_key) = &cmd.rename {
-                        scopes.rename_scope(key, new_key)?;
+                        entity.rename_scope(key, new_key);
                     }
                 }
 

@@ -157,6 +157,7 @@ impl QuickThing {
 
                 Ok(Build::new(session)?
                     .named(name)?
+                    .carryable()?
                     .leads_to(area)?
                     .into_entry()?)
             }

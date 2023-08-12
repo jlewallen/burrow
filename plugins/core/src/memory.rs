@@ -140,7 +140,7 @@ pub mod model {
     }
 
     pub fn memories_of(entity: &Entry) -> Result<Vec<SpecificMemory>, DomainError> {
-        let memory = entity.scope::<Memory>()?;
+        let memory = entity.scope::<Memory>()?.unwrap_or_default();
         Ok(memory.memory.clone())
     }
 

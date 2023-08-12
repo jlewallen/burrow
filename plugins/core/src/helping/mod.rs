@@ -136,9 +136,11 @@ pub mod actions {
                     .name(page_name)
                     .try_into()?;
                 let creating = session.add_entity(creating)?;
-                let mut wiki = creating.scope_mut::<Wiki>()?;
-                wiki.set_default("# Hello, world!");
-                wiki.save()?;
+                {
+                    let mut wiki = creating.scope_mut::<Wiki>()?;
+                    wiki.set_default("# Hello, world!");
+                    wiki.save()?;
+                }
                 Ok(Some(creating))
             } else {
                 Ok(None)
@@ -166,7 +168,7 @@ pub mod actions {
                 return Ok(SimpleReply::NotFound.try_into()?)
             };
 
-            let wiki = page.scope::<Wiki>()?;
+            let wiki = page.scope::<Wiki>()?.unwrap();
             let reply: MarkdownReply = wiki.get_default().unwrap_or_else(|| "".to_owned()).into();
             Ok(reply.try_into()?)
         }
@@ -191,7 +193,7 @@ pub mod actions {
                 return Ok(SimpleReply::NotFound.try_into()?);
             };
 
-            let wiki = page.scope::<Wiki>()?;
+            let wiki = page.scope::<Wiki>()?.unwrap();
             let body: String = wiki.get_default().unwrap_or_else(|| "".to_owned());
             let reply = EditorReply::new(
                 page.key().to_string(),

@@ -1,22 +1,17 @@
 use anyhow::Context;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use engine::prelude::HasWellKnownEntities;
 use tokio::sync::broadcast;
 use tokio::sync::Mutex;
 use tracing::*;
 
-use engine::prelude::{
-    AfterTick, Credentials, DevNullNotifier, Domain, HasUsernames, Notifier, SessionOpener,
-};
-use kernel::prelude::build_entity;
-use kernel::prelude::ActiveSession;
-use kernel::prelude::{EntityKey, EntryResolver};
+use engine::prelude::*;
+use kernel::prelude::*;
+
 use plugins_core::carrying::model::Containing;
 use plugins_core::fashion::model::Wearing;
 use plugins_core::tools;
 use plugins_rune::Behaviors;
-use replies::TaggedJson;
 
 use super::handlers::RegisterUser;
 use super::ServerMessage;
@@ -99,9 +94,7 @@ impl AppState {
             Some(key) => {
                 let user = session.entry(&kernel::prelude::LookupBy::Key(&key))?;
                 let user = user.unwrap();
-                let hash = user
-                    .maybe_scope::<Credentials>()?
-                    .and_then(|s| s.get().cloned());
+                let hash = user.scope::<Credentials>()?.and_then(|s| s.get().cloned());
 
                 Some((key, hash))
             }

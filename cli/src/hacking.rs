@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 use engine::prelude::{DevNullNotifier, HasUsernames, SessionOpener};
-use kernel::prelude::{DomainError, Entry, EntryResolver, LookupBy};
+use kernel::prelude::{DomainError, Entry, EntryResolver, LookupBy, OpenScope};
 use plugins_core::moving::model::Occupying;
 
 use crate::DomainBuilder;
@@ -20,7 +20,7 @@ pub async fn execute_command() -> Result<()> {
         .entry(&LookupBy::Key(&user_key))?
         .expect("No 'USER' entity.");
 
-    let occupying = user.scope::<Occupying>()?;
+    let occupying = user.scope::<Occupying>()?.unwrap();
     let _area: Option<Entry> = occupying.area.clone().try_into()?; // TODO Annoying clone
 
     session.close(&DevNullNotifier {})?;

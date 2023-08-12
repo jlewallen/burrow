@@ -83,7 +83,7 @@ pub mod model {
 
     impl Containing {
         pub fn start_carrying(&mut self, item: &Entry) -> CarryingResult {
-            let carryable = item.scope::<Carryable>()?;
+            let carryable = item.scope::<Carryable>()?.unwrap();
 
             let holding = self
                 .holding
@@ -136,7 +136,7 @@ pub mod model {
                 return Ok(None);
             }
 
-            let carryable = item.scope_mut::<Carryable>()?;
+            let carryable = item.scope::<Carryable>()?.unwrap_or_default();
             if carryable.quantity > 1.0 {
                 let (_original, separated) = tools::separate(item, 1.0)?;
 
@@ -156,7 +156,7 @@ pub mod model {
     }
 
     fn is_kind(entity: &Entry, kind: &Kind) -> Result<bool> {
-        Ok(*entity.scope::<Carryable>()?.kind() == *kind)
+        Ok(*entity.scope::<Carryable>()?.unwrap().kind() == *kind)
     }
 
     impl Default for Carryable {
