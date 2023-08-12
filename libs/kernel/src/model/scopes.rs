@@ -245,7 +245,7 @@ where
         let json = value.clone().into();
         let value = serde_json::from_value(json).context(here!())?;
 
-        Ok(Some(OpenedScope::new(Box::new(value))))
+        Ok(Some(OpenedScope::new(value)))
     }
 }
 
@@ -300,7 +300,7 @@ where
 }
 
 pub struct OpenedScope<T: Scope> {
-    target: Box<T>,
+    target: T,
 }
 
 impl<T: Scope + Default> Default for OpenedScope<T> {
@@ -312,7 +312,7 @@ impl<T: Scope + Default> Default for OpenedScope<T> {
 }
 
 impl<T: Scope> OpenedScope<T> {
-    pub fn new(target: Box<T>) -> Self {
+    pub fn new(target: T) -> Self {
         Self { target }
     }
 }
