@@ -12,8 +12,8 @@ fn it_holds_unheld_items() -> Result<()> {
         .build()?;
 
     let (_, person, area) = surroundings.unpack();
-    assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
-    assert_eq!(area.scope::<Containing>()?.holding.len(), 1);
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 0);
+    assert_eq!(area.scope::<Containing>()?.unwrap().holding.len(), 1);
 
     let action = try_parsing(HoldActionParser {}, "hold rake")?;
     let action = action.unwrap();
@@ -21,8 +21,8 @@ fn it_holds_unheld_items() -> Result<()> {
 
     assert_eq!(effect, Effect::Ok);
 
-    assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
-    assert_eq!(area.scope::<Containing>()?.holding.len(), 0);
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 1);
+    assert_eq!(area.scope::<Containing>()?.unwrap().holding.len(), 0);
 
     build.close()?;
 
@@ -37,8 +37,8 @@ fn it_separates_multiple_ground_items_when_held() -> Result<()> {
         .build()?;
 
     let (_, person, area) = surroundings.unpack();
-    assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
-    assert_eq!(area.scope::<Containing>()?.holding.len(), 1);
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 0);
+    assert_eq!(area.scope::<Containing>()?.unwrap().holding.len(), 1);
 
     let action = try_parsing(HoldActionParser {}, "hold rake")?;
     let action = action.unwrap();
@@ -46,8 +46,8 @@ fn it_separates_multiple_ground_items_when_held() -> Result<()> {
 
     assert_eq!(effect, Effect::Ok);
 
-    let held = &person.scope::<Containing>()?.holding;
-    let ground = &area.scope::<Containing>()?.holding;
+    let held = &person.scope::<Containing>()?.unwrap().holding;
+    let ground = &area.scope::<Containing>()?.unwrap().holding;
     assert_eq!(held.len(), 1);
     assert_eq!(ground.len(), 1);
 
@@ -73,8 +73,8 @@ fn it_combines_multiple_items_when_together_on_ground() -> Result<()> {
         .build()?;
 
     let (_, person, area) = surroundings.unpack();
-    assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
-    assert_eq!(area.scope::<Containing>()?.holding.len(), 1);
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 1);
+    assert_eq!(area.scope::<Containing>()?.unwrap().holding.len(), 1);
 
     let action = try_parsing(HoldActionParser {}, "hold rake")?;
     let action = action.unwrap();
@@ -82,8 +82,8 @@ fn it_combines_multiple_items_when_together_on_ground() -> Result<()> {
 
     assert_eq!(effect, Effect::Ok);
 
-    assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
-    assert_eq!(area.scope::<Containing>()?.holding.len(), 0);
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 1);
+    assert_eq!(area.scope::<Containing>()?.unwrap().holding.len(), 0);
 
     build.close()?;
 
@@ -105,8 +105,8 @@ fn it_fails_to_hold_unknown_items() -> Result<()> {
     let reply: SimpleReply = reply.json_as()?;
     assert_eq!(reply, SimpleReply::NotFound);
 
-    assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
-    assert_eq!(area.scope::<Containing>()?.holding.len(), 1);
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 0);
+    assert_eq!(area.scope::<Containing>()?.unwrap().holding.len(), 1);
 
     build.close()?;
 
@@ -126,8 +126,8 @@ fn it_drops_held_items() -> Result<()> {
 
     let (_, person, area) = surroundings.unpack();
 
-    assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
-    assert_eq!(area.scope::<Containing>()?.holding.len(), 1);
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 0);
+    assert_eq!(area.scope::<Containing>()?.unwrap().holding.len(), 1);
 
     build.close()?;
 
@@ -149,8 +149,8 @@ fn it_fails_to_drop_unknown_items() -> Result<()> {
     let reply: SimpleReply = reply.json_as()?;
     assert_eq!(reply, SimpleReply::NotFound);
 
-    assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
-    assert_eq!(area.scope::<Containing>()?.holding.len(), 0);
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 1);
+    assert_eq!(area.scope::<Containing>()?.unwrap().holding.len(), 0);
 
     build.close()?;
 
@@ -172,8 +172,8 @@ fn it_fails_to_drop_unheld_items() -> Result<()> {
     let reply: SimpleReply = reply.json_as()?;
     assert_eq!(reply, SimpleReply::NotFound);
 
-    assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
-    assert_eq!(area.scope::<Containing>()?.holding.len(), 1);
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 0);
+    assert_eq!(area.scope::<Containing>()?.unwrap().holding.len(), 1);
 
     build.close()?;
 
@@ -181,9 +181,13 @@ fn it_fails_to_drop_unheld_items() -> Result<()> {
 }
 
 #[test]
-fn it_fails_to_puts_item_in_non_containers() -> Result<()> {
+fn it_fails_to_put_item_in_non_containers() -> Result<()> {
     let mut build = BuildSurroundings::new()?;
-    let vessel = build.entity()?.named("Not A Vessel")?.into_entry()?;
+    let vessel = build
+        .entity()?
+        .named("Not A Vessel")?
+        .carryable()?
+        .into_entry()?;
     let (session, surroundings) = build
         .hands(vec![
             QuickThing::Object("key"),
@@ -198,8 +202,8 @@ fn it_fails_to_puts_item_in_non_containers() -> Result<()> {
 
     insta::assert_json_snapshot!(reply.to_debug_json()?);
 
-    assert_eq!(person.scope::<Containing>()?.holding.len(), 2);
-    assert_eq!(vessel.scope::<Containing>()?.holding.len(), 0);
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 2);
+    assert!(vessel.scope::<Containing>()?.is_none());
 
     build.close()?;
 
@@ -212,6 +216,7 @@ fn it_puts_items_in_containers() -> Result<()> {
     let vessel = build
         .entity()?
         .named("Vessel")?
+        .carryable()?
         .holding(&vec![])?
         .into_entry()?;
     let (session, surroundings) = build
@@ -228,8 +233,8 @@ fn it_puts_items_in_containers() -> Result<()> {
 
     insta::assert_json_snapshot!(reply.to_debug_json()?);
 
-    assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
-    assert_eq!(vessel.scope::<Containing>()?.holding.len(), 1);
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 1);
+    assert_eq!(vessel.scope::<Containing>()?.unwrap().holding.len(), 1);
 
     build.close()?;
 
@@ -239,10 +244,11 @@ fn it_puts_items_in_containers() -> Result<()> {
 #[test]
 fn it_takes_items_out_of_containers() -> Result<()> {
     let mut build = BuildSurroundings::new()?;
-    let key = build.entity()?.named("Key")?.into_entry()?;
+    let key = build.entity()?.named("Key")?.carryable()?.into_entry()?;
     let vessel = build
         .entity()?
         .named("Vessel")?
+        .carryable()?
         .holding(&vec![key.clone()])?
         .into_entry()?;
     let (session, surroundings) = build
@@ -256,10 +262,15 @@ fn it_takes_items_out_of_containers() -> Result<()> {
 
     insta::assert_json_snapshot!(reply.to_debug_json()?);
 
-    assert_eq!(person.scope::<Containing>()?.holding.len(), 2);
-    assert_eq!(vessel.scope::<Containing>()?.holding.len(), 0);
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 2);
+    assert_eq!(vessel.scope::<Containing>()?.unwrap().holding.len(), 0);
     assert_eq!(
-        *key.scope::<Location>()?.container.as_ref().unwrap().key(),
+        *key.scope::<Location>()?
+            .unwrap()
+            .container
+            .as_ref()
+            .unwrap()
+            .key(),
         *person.key()
     );
 

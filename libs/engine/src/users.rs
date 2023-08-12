@@ -31,7 +31,7 @@ pub mod model {
     }
 
     fn username_to_key(world: &Entry, username: &str) -> Result<Option<EntityKey>, DomainError> {
-        let usernames = world.scope::<Usernames>()?;
+        let usernames = world.scope::<Usernames>()?.expect("No usernames scope");
         Ok(usernames.find(username).cloned())
     }
 
@@ -141,7 +141,9 @@ pub mod model {
 
     impl HasWellKnownEntities for Entry {
         fn get_well_known(&self, name: &str) -> Result<Option<EntityKey>, DomainError> {
-            let well_known = self.scope::<WellKnown>()?;
+            let Some(well_known) = self.scope::<WellKnown>()? else {
+                return Ok(None);
+            };
             Ok(well_known.get(name).cloned())
         }
 

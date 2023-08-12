@@ -139,9 +139,9 @@ fn it_duplicates_items_named() -> Result<()> {
 
     let reply: SimpleReply = reply.json_as()?;
     assert_eq!(reply, SimpleReply::Done);
-    assert_eq!(person.scope::<Containing>()?.holding.len(), 1);
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 1);
     assert_eq!(
-        tools::quantity(&person.scope::<Containing>()?.holding[0].to_entry()?)?,
+        tools::quantity(&person.scope::<Containing>()?.unwrap().holding[0].to_entry()?)?,
         2.0
     );
 
@@ -181,8 +181,8 @@ fn it_obliterates_items_named() -> Result<()> {
     assert_eq!(reply, SimpleReply::Done);
     // It's not enough just to check this, but why not given how easy.
     // Should actually verify it's deleted.
-    assert_eq!(person.scope::<Containing>()?.holding.len(), 0);
-    assert_eq!(area.scope::<Containing>()?.holding.len(), 0);
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 0);
+    assert_eq!(area.scope::<Containing>()?.unwrap().holding.len(), 0);
 
     build.flush()?;
 
@@ -226,7 +226,7 @@ fn it_makes_items() -> Result<()> {
     let reply: SimpleReply = reply.json_as()?;
     assert_eq!(reply, SimpleReply::Done);
 
-    assert_eq!(living.scope::<Containing>()?.holding.len(), 1);
+    assert_eq!(living.scope::<Containing>()?.unwrap().holding.len(), 1);
 
     Ok(())
 }
@@ -300,7 +300,7 @@ fn it_adds_scopes_to_solo_held_items() -> Result<()> {
     let reply: SimpleReply = reply.json_as()?;
     assert_eq!(reply, SimpleReply::Done);
 
-    assert_eq!(living.scope::<Containing>()?.holding.len(), 1);
+    assert_eq!(living.scope::<Containing>()?.unwrap().holding.len(), 1);
 
     assert!(jacket.has_scope::<Wearable>()?);
 

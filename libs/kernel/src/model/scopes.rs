@@ -289,6 +289,14 @@ pub struct OpenedScope<T: Scope> {
     target: Box<T>,
 }
 
+impl<T: Scope + Default> Default for OpenedScope<T> {
+    fn default() -> Self {
+        Self {
+            target: Default::default(),
+        }
+    }
+}
+
 impl<T: Scope> OpenedScope<T> {
     pub fn new(target: Box<T>) -> Self {
         Self { target }

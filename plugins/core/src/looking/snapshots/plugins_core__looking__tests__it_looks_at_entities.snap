@@ -12,7 +12,7 @@ expression: reply.to_debug_json()?
           "name": "Hammer",
           "qualified": "a Hammer"
         },
-        "wearing": []
+        "wearing": null
       }
     }
   }

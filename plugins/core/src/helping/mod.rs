@@ -168,7 +168,7 @@ pub mod actions {
                 return Ok(SimpleReply::NotFound.try_into()?)
             };
 
-            let wiki = page.scope::<Wiki>()?;
+            let wiki = page.scope::<Wiki>()?.unwrap();
             let reply: MarkdownReply = wiki.get_default().unwrap_or_else(|| "".to_owned()).into();
             Ok(reply.try_into()?)
         }
@@ -193,7 +193,7 @@ pub mod actions {
                 return Ok(SimpleReply::NotFound.try_into()?);
             };
 
-            let wiki = page.scope::<Wiki>()?;
+            let wiki = page.scope::<Wiki>()?.unwrap();
             let body: String = wiki.get_default().unwrap_or_else(|| "".to_owned());
             let reply = EditorReply::new(
                 page.key().to_string(),

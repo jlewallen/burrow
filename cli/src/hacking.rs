@@ -20,7 +20,7 @@ pub async fn execute_command() -> Result<()> {
         .entry(&LookupBy::Key(&user_key))?
         .expect("No 'USER' entity.");
 
-    let occupying = user.scope::<Occupying>()?;
+    let occupying = user.scope::<Occupying>()?.unwrap();
     let _area: Option<Entry> = occupying.area.clone().try_into()?; // TODO Annoying clone
 
     session.close(&DevNullNotifier {})?;

@@ -31,7 +31,7 @@ expression: reply.to_debug_json()?
             "desc": null,
             "key": "E-6",
             "name": "East Exit",
-            "qualified": "East Exit"
+            "qualified": "an East Exit"
           }
         ],
         "living": [

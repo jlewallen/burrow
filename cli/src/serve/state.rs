@@ -99,9 +99,7 @@ impl AppState {
             Some(key) => {
                 let user = session.entry(&kernel::prelude::LookupBy::Key(&key))?;
                 let user = user.unwrap();
-                let hash = user
-                    .maybe_scope::<Credentials>()?
-                    .and_then(|s| s.get().cloned());
+                let hash = user.scope::<Credentials>()?.and_then(|s| s.get().cloned());
 
                 Some((key, hash))
             }

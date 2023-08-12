@@ -124,12 +124,16 @@ impl TryInto<Entity> for EntityBuilder {
             Some(key) => key,
             None => get_my_session()?.new_key(),
         };
-        let map = [(
+
+        let props: HashMap<String, ScopeValue> = [(
             "props".to_owned(),
             ScopeValue::Original(serde_json::to_value(self.properties)?.into()),
         )]
         .into_iter()
         .collect::<HashMap<_, _>>();
+
+        let mut map: HashMap<_, _> = self.scopes.clone().map(|v| v.into()).unwrap_or_default();
+        map.extend(props);
 
         let scopes: ScopeMap = map.into();
         Ok(Entity::new_heavily_customized(

@@ -109,12 +109,16 @@ impl Entry {
         Ok(scopes.has_scope::<T>())
     }
 
-    pub fn scope<T: Scope>(&self) -> Result<OpenedScope<T>, DomainError> {
+    pub fn scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError> {
         let entity = self.entity();
         let entity = entity.borrow();
-        let scope = entity.scopes().load_scope::<T>()?;
+        let scopes = entity.scopes();
+        if !scopes.has_scope::<T>() {
+            return Ok(None);
+        }
 
-        Ok(OpenedScope::new(scope))
+        let scope = scopes.load_scope::<T>()?;
+        Ok(Some(OpenedScope::new(scope)))
     }
 
     pub fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeRefMut<T, Entity>, DomainError> {
@@ -123,14 +127,6 @@ impl Entry {
         let scope = entity.scopes().load_scope::<T>()?;
 
         Ok(OpenedScopeRefMut::new(self.entity(), scope))
-    }
-
-    pub fn maybe_scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError> {
-        if !self.has_scope::<T>()? {
-            return Ok(None);
-        }
-
-        Ok(Some(self.scope::<T>()?))
     }
 }
 

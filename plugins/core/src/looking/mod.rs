@@ -119,7 +119,7 @@ pub mod model {
 
     impl Observe<ObservedEntity> for &Entry {
         fn observe(&self, _user: &Entry) -> Result<Option<ObservedEntity>> {
-            let quantity = self.maybe_scope::<Carryable>()?.map(|c| c.quantity());
+            let quantity = self.scope::<Carryable>()?.map(|c| c.quantity());
             let key = self.key().to_string();
             let observing = self.entity().borrow();
             let name = observing.name();
@@ -155,7 +155,7 @@ pub mod model {
         vessel: &Entry,
     ) -> Result<Option<InsideObservation>> {
         let mut items = Vec::new();
-        if let Ok(containing) = vessel.scope::<Containing>() {
+        if let Ok(Some(containing)) = vessel.scope::<Containing>() {
             for lazy_entity in &containing.holding {
                 let entity = &lazy_entity.to_entry()?;
                 items.push(entity.observe(user)?);
@@ -170,7 +170,7 @@ pub mod model {
 
     pub fn new_area_observation(user: &Entry, area: &Entry) -> Result<AreaObservation> {
         let mut living: Vec<ObservedEntity> = vec![];
-        if let Ok(occupyable) = area.scope::<Occupyable>() {
+        if let Ok(Some(occupyable)) = area.scope::<Occupyable>() {
             for entity in &occupyable.occupied {
                 if let Some(observed) = (&entity.to_entry()?).observe(user)? {
                     living.push(observed);
@@ -179,21 +179,21 @@ pub mod model {
         }
 
         let mut items = vec![];
-        if let Ok(containing) = area.scope::<Containing>() {
+        if let Ok(Some(containing)) = area.scope::<Containing>() {
             for entity in &containing.holding {
                 items.push((&entity.to_entry()?).observe(user)?);
             }
         }
 
         let mut carrying = vec![];
-        if let Ok(containing) = user.scope::<Containing>() {
+        if let Ok(Some(containing)) = user.scope::<Containing>() {
             for entity in &containing.holding {
                 carrying.push((&entity.to_entry()?).observe(user)?);
             }
         }
 
         let mut routes = vec![];
-        if let Ok(movement) = user.scope::<Movement>() {
+        if let Ok(Some(movement)) = user.scope::<Movement>() {
             for route in &movement.routes {
                 routes.push((&route.area.to_entry()?).observe(user)?);
             }

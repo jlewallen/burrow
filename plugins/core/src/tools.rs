@@ -85,13 +85,13 @@ pub fn navigate_between(
 }
 
 pub fn area_of(living: &Entry) -> Result<Entry, DomainError> {
-    let occupying = living.scope::<Occupying>()?;
+    let occupying = living.scope::<Occupying>()?.unwrap();
 
     occupying.area.to_entry()
 }
 
 pub fn get_contained_keys(area: &Entry) -> Result<Vec<EntityKey>, DomainError> {
-    let containing = area.scope::<Containing>()?;
+    let containing = area.scope::<Containing>()?.unwrap();
 
     Ok(containing
         .holding
@@ -131,7 +131,7 @@ pub fn set_occupying(area: &Entry, living: &Vec<Entry>) -> Result<(), DomainErro
 
 pub fn contained_by(container: &Entry) -> Result<Vec<Entry>, DomainError> {
     let mut entities: Vec<Entry> = vec![];
-    if let Ok(containing) = container.scope::<Containing>() {
+    if let Ok(Some(containing)) = container.scope::<Containing>() {
         for entity in &containing.holding {
             entities.push(entity.to_entry()?);
         }
@@ -149,7 +149,7 @@ pub fn leads_to<'a>(route: &'a Entry, area: &'a Entry) -> Result<&'a Entry> {
 }
 
 pub fn occupied_by(area: &Entry) -> Result<Vec<Entry>> {
-    let occupyable = area.scope::<Occupyable>()?;
+    let occupyable = area.scope::<Occupyable>()?.unwrap();
 
     occupyable
         .occupied
@@ -159,7 +159,7 @@ pub fn occupied_by(area: &Entry) -> Result<Vec<Entry>> {
 }
 
 pub fn get_occupant_keys(area: &Entry) -> Result<Vec<EntityKey>> {
-    let occupyable = area.scope::<Occupyable>()?;
+    let occupyable = area.scope::<Occupyable>()?.unwrap();
 
     Ok(occupyable
         .occupied
@@ -179,7 +179,7 @@ pub fn new_entity_from_template_ptr(template_entry: &Entry) -> Result<Entry> {
 }
 
 pub fn quantity(entity: &Entry) -> Result<f32> {
-    let carryable = entity.scope::<Carryable>()?;
+    let carryable = entity.scope::<Carryable>()?.unwrap();
     Ok(carryable.quantity())
 }
 
@@ -224,7 +224,7 @@ pub fn duplicate(entity: &Entry) -> Result<Entry> {
 
 pub fn obliterate(obliterating: &Entry) -> Result<()> {
     // NOTE: It's very easy to get confused about which entity is which.
-    let location = obliterating.scope::<Location>()?;
+    let location = obliterating.scope::<Location>()?.unwrap();
     if let Some(container) = &location.container {
         let container = container.to_entry()?;
         let mut containing = container.scope_mut::<Containing>()?;
@@ -241,7 +241,7 @@ pub fn obliterate(obliterating: &Entry) -> Result<()> {
 }
 
 pub fn get_adjacent_keys(entry: &Entry) -> Result<Vec<EntityKey>> {
-    let containing = entry.scope::<Containing>()?;
+    let containing = entry.scope::<Containing>()?.unwrap();
 
     Ok(containing
         .holding
@@ -250,7 +250,7 @@ pub fn get_adjacent_keys(entry: &Entry) -> Result<Vec<EntityKey>> {
         .collect::<Result<Vec<Entry>, kernel::prelude::DomainError>>()?
         .into_iter()
         .map(|e| {
-            if let Some(exit) = e.maybe_scope::<Exit>()? {
+            if let Some(exit) = e.scope::<Exit>()? {
                 Ok(vec![exit.area.key().clone()])
             } else {
                 Ok(vec![])
@@ -263,7 +263,7 @@ pub fn get_adjacent_keys(entry: &Entry) -> Result<Vec<EntityKey>> {
 }
 
 pub fn worn_by(wearer: &Entry) -> Result<Option<Vec<Entry>>, DomainError> {
-    let Ok(wearing) = wearer.scope::<Wearing>() else {
+    let Ok(Some(wearing)) = wearer.scope::<Wearing>() else {
         return Ok(None);
     };
 

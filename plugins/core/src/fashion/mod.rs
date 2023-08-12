@@ -117,7 +117,7 @@ pub mod model {
                 return Ok(DomainOutcome::Nope);
             }
 
-            let wearable = item.scope::<Wearable>()?;
+            let wearable = item.scope::<Wearable>()?.unwrap();
 
             let wearing = self
                 .wearing
@@ -185,7 +185,7 @@ pub mod model {
     }
 
     fn is_kind(entity: &Entry, kind: &Kind) -> Result<bool> {
-        Ok(*entity.scope::<Wearable>()?.kind() == *kind)
+        Ok(*entity.scope::<Wearable>()?.unwrap().kind() == *kind)
     }
 
     impl Default for Wearable {
