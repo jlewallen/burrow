@@ -216,21 +216,21 @@ mod exp {
 
     use super::*;
 
-    pub trait LoadAndStoreScope<O> {
+    pub trait LoadAndStoreScope {
         fn load_scope(&self, scope_key: &str) -> Result<Option<&JsonValue>, DomainError>;
         fn store_scope(&mut self, scope_key: &str, value: JsonValue) -> Result<(), DomainError>;
     }
 
     pub trait OpenScope<O>
     where
-        O: LoadAndStoreScope<O>,
+        O: LoadAndStoreScope,
     {
         fn scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError>;
     }
 
     pub trait OpenScopeRefMut<O>
     where
-        O: LoadAndStoreScope<O>,
+        O: LoadAndStoreScope,
     {
         fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeRefMut<T, O>, DomainError>;
     }
@@ -241,7 +241,7 @@ mod exp {
 
     impl<O> OpenScope<O> for RefCell<O>
     where
-        O: LoadAndStoreScope<O>,
+        O: LoadAndStoreScope,
     {
         fn scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError> {
             let owner = self.borrow();
@@ -251,7 +251,7 @@ mod exp {
 
     impl<O> OpenScopeRefMut<O> for RefCell<O>
     where
-        O: LoadAndStoreScope<O>,
+        O: LoadAndStoreScope,
     {
         fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeRefMut<T, O>, DomainError> {
             let owner = self.borrow();
@@ -266,7 +266,7 @@ mod exp {
 
     impl<O> OpenScope<O> for O
     where
-        O: LoadAndStoreScope<O>,
+        O: LoadAndStoreScope,
     {
         fn scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError> {
             let Some(value) = self.load_scope(T::scope_key())? else {
@@ -282,7 +282,7 @@ mod exp {
 
     impl<O> OpenScopeMut<O> for O
     where
-        O: LoadAndStoreScope<O>,
+        O: LoadAndStoreScope,
     {
         fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeMut<T>, DomainError> {
             let value = match self.load_scope(T::scope_key())? {
@@ -359,7 +359,7 @@ mod exp {
             scopes: HashMap<String, ScopeValue>,
         }
 
-        impl LoadAndStoreScope<Whatever> for Whatever {
+        impl LoadAndStoreScope for Whatever {
             fn load_scope(
                 &self,
                 scope_key: &str,
@@ -421,7 +421,7 @@ mod exp {
 
         pub fn save<O>(&mut self, entity: &mut O) -> Result<(), DomainError>
         where
-            O: LoadAndStoreScope<O>,
+            O: LoadAndStoreScope,
         {
             entity.store_scope(T::scope_key(), self.target.serialize()?)
         }
@@ -453,7 +453,7 @@ mod exp {
 
     pub struct OpenedScopeRefMut<'a, T: Scope, O>
     where
-        O: LoadAndStoreScope<O>,
+        O: LoadAndStoreScope,
     {
         owner: &'a RefCell<O>,
         target: Box<T>,
@@ -461,7 +461,7 @@ mod exp {
 
     impl<'a, T: Scope, O> OpenedScopeRefMut<'a, T, O>
     where
-        O: LoadAndStoreScope<O>,
+        O: LoadAndStoreScope,
     {
         pub fn new(owner: &'a RefCell<O>, target: Box<T>) -> Self {
             Self { owner, target }
@@ -469,7 +469,7 @@ mod exp {
 
         pub fn save(&mut self) -> Result<(), DomainError>
         where
-            O: LoadAndStoreScope<O>,
+            O: LoadAndStoreScope,
         {
             let value = self.target.serialize()?;
             let mut owner = self.owner.borrow_mut();
@@ -479,7 +479,7 @@ mod exp {
 
     impl<'a, T: Scope, O> Drop for OpenedScopeRefMut<'a, T, O>
     where
-        O: LoadAndStoreScope<O>,
+        O: LoadAndStoreScope,
     {
         fn drop(&mut self) {
             // TODO Check for unsaved changes to this scope and possibly warn the
@@ -491,7 +491,7 @@ mod exp {
 
     impl<'a, T: Scope, O> std::ops::Deref for OpenedScopeRefMut<'a, T, O>
     where
-        O: LoadAndStoreScope<O>,
+        O: LoadAndStoreScope,
     {
         type Target = T;
 
@@ -502,7 +502,7 @@ mod exp {
 
     impl<'a, T: Scope, O> std::ops::DerefMut for OpenedScopeRefMut<'a, T, O>
     where
-        O: LoadAndStoreScope<O>,
+        O: LoadAndStoreScope,
     {
         fn deref_mut(&mut self) -> &mut Self::Target {
             &mut self.target
