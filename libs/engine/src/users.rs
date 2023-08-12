@@ -3,7 +3,7 @@ pub mod model {
     use serde::{Deserialize, Serialize};
     use std::collections::HashMap;
 
-    use kernel::prelude::{DomainError, EntityKey, Entry, JsonValue, OpenScope, Scope};
+    use kernel::prelude::{DomainError, EntityKey, Entry, OpenScope, Scope};
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Usernames {
@@ -21,10 +21,6 @@ pub mod model {
     }
 
     impl Scope for Usernames {
-        fn serialize(&self) -> Result<JsonValue, serde_json::Error> {
-            serde_json::to_value(self)
-        }
-
         fn scope_key() -> &'static str {
             "usernames"
         }
@@ -78,10 +74,6 @@ pub mod model {
     }
 
     impl Scope for Credentials {
-        fn serialize(&self) -> Result<JsonValue, serde_json::Error> {
-            serde_json::to_value(self)
-        }
-
         fn scope_key() -> &'static str {
             "credentials"
         }
@@ -108,10 +100,6 @@ pub mod model {
     }
 
     impl Scope for WellKnown {
-        fn serialize(&self) -> Result<JsonValue, serde_json::Error> {
-            serde_json::to_value(self)
-        }
-
         fn scope_key() -> &'static str {
             "wellKnown"
         }

@@ -72,10 +72,6 @@ pub mod model {
     }
 
     impl Scope for Containing {
-        fn serialize(&self) -> Result<JsonValue, serde_json::Error> {
-            serde_json::to_value(self)
-        }
-
         fn scope_key() -> &'static str {
             "containing"
         }
@@ -217,10 +213,6 @@ pub mod model {
     }
 
     impl Scope for Carryable {
-        fn serialize(&self) -> Result<JsonValue, serde_json::Error> {
-            serde_json::to_value(self)
-        }
-
         fn scope_key() -> &'static str {
             "carryable"
         }

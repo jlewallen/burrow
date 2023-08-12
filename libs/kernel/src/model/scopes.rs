@@ -9,12 +9,10 @@ use super::DomainError;
 use crate::here;
 use replies::{Json, JsonValue};
 
-pub trait Scope: DeserializeOwned + Default + std::fmt::Debug {
+pub trait Scope: Serialize + DeserializeOwned + Default + std::fmt::Debug {
     fn scope_key() -> &'static str
     where
         Self: Sized;
-
-    fn serialize(&self) -> Result<JsonValue, serde_json::Error>;
 }
 
 #[derive(Clone, Deserialize)]
@@ -117,7 +115,7 @@ pub trait LoadAndStoreScope: StoreScope {
         self.store_scope(scope_key, JsonValue::Object(Default::default()));
     }
     fn replace_scope<T: Scope>(&mut self, value: &T) -> Result<(), DomainError> {
-        let json = value.serialize()?.into();
+        let json = serde_json::to_value(value)?.into();
         self.store_scope(T::scope_key(), json);
         Ok(())
     }
@@ -174,14 +172,14 @@ where
 }
 
 pub trait OpenScopeMut<O> {
-    fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeMut<T>, DomainError>;
+    fn scope_mut<T: Scope + Serialize>(&self) -> Result<OpenedScopeMut<T>, DomainError>;
 }
 
 impl<O> OpenScopeMut<O> for O
 where
     O: LoadAndStoreScope,
 {
-    fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeMut<T>, DomainError> {
+    fn scope_mut<T: Scope + Serialize>(&self) -> Result<OpenedScopeMut<T>, DomainError> {
         let value = match self.load_scope(T::scope_key()) {
             Some(value) => serde_json::from_value(value.clone().into()).context(here!())?,
             None => T::default(),
@@ -195,14 +193,14 @@ pub trait OpenScopeRefMut<O>
 where
     O: StoreScope,
 {
-    fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeRefMut<T, O>, DomainError>;
+    fn scope_mut<T: Scope + Serialize>(&self) -> Result<OpenedScopeRefMut<T, O>, DomainError>;
 }
 
 impl<O> OpenScopeRefMut<O> for RefCell<O>
 where
     O: LoadAndStoreScope,
 {
-    fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeRefMut<T, O>, DomainError> {
+    fn scope_mut<T: Scope + Serialize>(&self) -> Result<OpenedScopeRefMut<T, O>, DomainError> {
         let owner = self.borrow();
         let value = match owner.load_scope(T::scope_key()) {
             Some(value) => serde_json::from_value(value.clone().into()).context(here!())?,
@@ -257,7 +255,7 @@ pub struct OpenedScopeMut<T> {
     target: T,
 }
 
-impl<T: Scope> OpenedScopeMut<T> {
+impl<T: Scope + Serialize> OpenedScopeMut<T> {
     pub fn new(target: T) -> Self {
         trace!("scope-open {:?}", target);
 
@@ -268,7 +266,7 @@ impl<T: Scope> OpenedScopeMut<T> {
     where
         O: StoreScope,
     {
-        Ok(entity.store_scope(T::scope_key(), self.target.serialize()?))
+        Ok(entity.store_scope(T::scope_key(), serde_json::to_value(&self.target)?))
     }
 }
 
@@ -297,7 +295,7 @@ pub struct OpenedScopeRefMut<'a, T, O> {
     target: T,
 }
 
-impl<'a, T: Scope, O> OpenedScopeRefMut<'a, T, O>
+impl<'a, T: Scope + Serialize, O> OpenedScopeRefMut<'a, T, O>
 where
     O: StoreScope,
 {
@@ -308,7 +306,7 @@ where
     }
 
     pub fn save(&mut self) -> Result<(), DomainError> {
-        let value = self.target.serialize()?;
+        let value = serde_json::to_value(&self.target)?;
         let mut owner = self.owner.borrow_mut();
         Ok(owner.store_scope(T::scope_key(), value))
     }
@@ -387,10 +385,6 @@ mod tests {
             Self: Sized,
         {
             "example"
-        }
-
-        fn serialize(&self) -> Result<JsonValue, serde_json::Error> {
-            serde_json::to_value(self)
         }
     }
 

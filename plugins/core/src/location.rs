@@ -19,10 +19,6 @@ impl Location {
 }
 
 impl Scope for Location {
-    fn serialize(&self) -> Result<JsonValue, serde_json::Error> {
-        serde_json::to_value(self)
-    }
-
     fn scope_key() -> &'static str {
         "location"
     }
@@ -36,8 +32,8 @@ pub fn change_location<A, B, C, D>(
     do_into: D,
 ) -> Result<DomainOutcome, DomainError>
 where
-    A: Scope,
-    B: Scope,
+    A: Scope + Serialize,
+    B: Scope + Serialize,
     C: FnOnce(&mut A, Entry) -> Result<Option<Entry>>,
     D: FnOnce(&mut B, Entry) -> Result<Option<Entry>>,
 {

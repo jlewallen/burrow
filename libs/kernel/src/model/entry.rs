@@ -101,7 +101,9 @@ impl Entry {
         Ok(entity.desc())
     }
 
-    pub fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeRefMut<T, Entity>, DomainError> {
+    pub fn scope_mut<T: Scope + Serialize>(
+        &self,
+    ) -> Result<OpenedScopeRefMut<T, Entity>, DomainError> {
         let entity = self.entity();
         Ok(entity.scope_mut::<T>()?)
     }
