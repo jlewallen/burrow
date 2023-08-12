@@ -86,7 +86,7 @@ impl Maps {
 }
 
 #[derive(Default)]
-pub struct EntityMap {
+pub(crate) struct EntityMap {
     maps: RefCell<Maps>,
 }
 
@@ -116,7 +116,7 @@ impl EntityMap {
     }
 }
 
-pub trait AssignEntityId {
+pub(crate) trait AssignEntityId {
     fn assign(&self, entity: &mut Entity) -> Result<(EntityKey, EntityGid)>;
 }
 
@@ -136,7 +136,7 @@ pub struct Entities {
 }
 
 impl Entities {
-    pub fn add_entity(&self, gid: EntityGid, mut entity: Entity) -> Result<()> {
+    pub(crate) fn add_entity(&self, gid: EntityGid, mut entity: Entity) -> Result<()> {
         let (key, gid) = gid.assign(&mut entity)?;
         let value: Rc<JsonValue> = serde_json::to_value(&entity)?.into();
         self.entities.add_entity(LoadedEntity {
@@ -179,18 +179,18 @@ impl Entities {
         Ok(Added { entity, json })
     }
 
-    pub fn lookup_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
+    pub(crate) fn lookup_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
         self.entities.lookup_entity(lookup)
     }
 
-    pub fn foreach_entity_mut<R, T: Fn(&mut LoadedEntity) -> Result<R>>(
+    pub(crate) fn foreach_entity_mut<R, T: Fn(&mut LoadedEntity) -> Result<R>>(
         &self,
         each: T,
     ) -> Result<Vec<R>> {
         self.entities.foreach_entity_mut(each)
     }
 
-    pub fn size(&self) -> usize {
+    pub(crate) fn size(&self) -> usize {
         self.entities.size()
     }
 }

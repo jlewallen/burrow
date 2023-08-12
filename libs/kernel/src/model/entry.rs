@@ -84,6 +84,10 @@ impl Entry {
         entity.entity_ref()
     }
 
+    pub fn to_json_value(&self) -> Result<JsonValue, DomainError> {
+        self.entity.borrow().to_json_value()
+    }
+
     pub fn name(&self) -> Result<Option<String>, DomainError> {
         let entity = self.entity();
         let entity = entity.borrow();
@@ -128,14 +132,6 @@ impl Entry {
         }
 
         Ok(Some(self.scope::<T>()?))
-    }
-
-    pub fn debug(&self) -> Option<&String> {
-        self.debug.as_ref()
-    }
-
-    pub fn to_json_value(&self) -> Result<JsonValue, DomainError> {
-        self.entity.borrow().to_json_value()
     }
 }
 

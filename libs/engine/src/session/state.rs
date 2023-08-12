@@ -44,7 +44,7 @@ impl State {
         self.entities.size()
     }
 
-    pub fn lookup_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
+    pub(crate) fn lookup_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
         self.entities.lookup_entity(lookup)
     }
 
