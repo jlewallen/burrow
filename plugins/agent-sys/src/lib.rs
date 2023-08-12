@@ -296,7 +296,7 @@ where
     ) -> std::result::Result<kernel::prelude::Entry, DomainError> {
         self.session
             .entry(&kernel::prelude::LookupBy::Key(&key.into()))?
-            .ok_or(DomainError::EntityNotFound)
+            .ok_or(DomainError::EntityNotFound(here!().into()))
     }
 }
 

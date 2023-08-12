@@ -303,7 +303,7 @@ impl ActiveSession for Session {
             warn!(key = ?key, gid = ?gid, "unnecessary add-entity");
             return Ok(self
                 .entry(&LookupBy::Key(key))?
-                .ok_or(DomainError::EntityNotFound)?);
+                .ok_or(DomainError::EntityNotFound(here!().into()))?);
         }
 
         let world = self.world()?;
@@ -369,7 +369,7 @@ fn user_name_to_key<R: EntryResolver>(resolve: &R, name: &str) -> Result<EntityK
     let world = resolve.world()?.expect("No world");
     world
         .find_name_key(name)?
-        .ok_or(DomainError::EntityNotFound)
+        .ok_or(DomainError::EntityNotFound(here!().into()))
 }
 
 struct MakeSurroundings {

@@ -231,6 +231,23 @@ pub struct Acls {
     rules: Vec<AclRule>,
 }
 
+#[derive(Debug)]
+pub enum ErrorContext {
+    Simple(String),
+}
+
+impl ErrorContext {
+    pub fn new(v: String) -> Self {
+        Self::Simple(v)
+    }
+}
+
+impl From<String> for ErrorContext {
+    fn from(value: String) -> Self {
+        Self::new(value)
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum DomainError {
     #[error("No such scope '{:?}' on entity '{:?}'", .0, .1)]
@@ -250,7 +267,7 @@ pub enum DomainError {
     #[error("Container required")]
     ContainerRequired,
     #[error("Entity not found")]
-    EntityNotFound,
+    EntityNotFound(ErrorContext),
     #[error("Impossible")]
     Impossible,
     #[error("Overflow")]
