@@ -101,21 +101,16 @@ impl Entry {
         Ok(entity.desc())
     }
 
-    pub fn has_scope<T: Scope>(&self) -> Result<bool, DomainError> {
-        let entity = self.entity();
-        let entity = entity.borrow();
-        Ok(entity.scope::<T>()?.is_some())
-    }
-
-    pub fn scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError> {
-        let entity = self.entity();
-        let entity = entity.borrow();
-        Ok(entity.scope::<T>()?)
-    }
-
     pub fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeRefMut<T, Entity>, DomainError> {
         let entity = self.entity();
         Ok(entity.scope_mut::<T>()?)
+    }
+}
+
+impl OpenScope<Entry> for Entry {
+    fn scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError> {
+        let entity = self.entity.borrow();
+        entity.scope::<T>()
     }
 }
 

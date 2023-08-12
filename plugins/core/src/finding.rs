@@ -3,7 +3,7 @@ use tracing::{debug, info};
 
 use crate::{moving::model::Occupying, tools};
 use kernel::prelude::{
-    get_my_session, Audience, DomainError, Entry, Finder, IntoEntry, Item, Surroundings,
+    get_my_session, Audience, DomainError, Entry, Finder, IntoEntry, Item, OpenScope, Surroundings,
 };
 
 /// Determines if an entity matches a user's description of that entity, given

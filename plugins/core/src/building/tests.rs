@@ -286,7 +286,7 @@ fn it_adds_scopes_to_solo_held_items() -> Result<()> {
     let mut build = BuildSurroundings::new()?;
     let jacket = build.entity()?.named("Jacket")?.carryable()?.into_entry()?;
 
-    assert!(!jacket.has_scope::<Wearable>()?);
+    assert!(!jacket.scope::<Wearable>()?.is_some());
 
     let (session, surroundings) = build
         .plain()
@@ -302,7 +302,7 @@ fn it_adds_scopes_to_solo_held_items() -> Result<()> {
 
     assert_eq!(living.scope::<Containing>()?.unwrap().holding.len(), 1);
 
-    assert!(jacket.has_scope::<Wearable>()?);
+    assert!(jacket.scope::<Wearable>()?.is_some());
 
     Ok(())
 }

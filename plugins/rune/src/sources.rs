@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use tracing::*;
 
-use kernel::prelude::{EntityKey, Entry, Surroundings};
+use kernel::prelude::{EntityKey, Entry, OpenScope, Surroundings};
 
 use crate::Behaviors;
 

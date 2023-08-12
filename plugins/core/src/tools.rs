@@ -12,7 +12,7 @@ use kernel::prelude::*;
 pub use super::location::container_of;
 
 pub fn is_container(item: &Entry) -> Result<bool, DomainError> {
-    item.has_scope::<Containing>()
+    Ok(item.scope::<Containing>()?.is_some())
 }
 
 pub fn wear_article(from: &Entry, to: &Entry, item: &Entry) -> Result<DomainOutcome, DomainError> {

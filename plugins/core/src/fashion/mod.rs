@@ -113,11 +113,9 @@ pub mod model {
 
     impl Wearing {
         pub fn start_wearing(&mut self, item: &Entry) -> Result<DomainOutcome, DomainError> {
-            if !item.has_scope::<Wearable>()? {
+            let Some(wearable) = item.scope::<Wearable>()? else {
                 return Ok(DomainOutcome::Nope);
-            }
-
-            let wearable = item.scope::<Wearable>()?.unwrap();
+            };
 
             let wearing = self
                 .wearing

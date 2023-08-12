@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 use engine::prelude::{DevNullNotifier, HasUsernames, SessionOpener};
-use kernel::prelude::{DomainError, Entry, EntryResolver, LookupBy};
+use kernel::prelude::{DomainError, Entry, EntryResolver, LookupBy, OpenScope};
 use plugins_core::moving::model::Occupying;
 
 use crate::DomainBuilder;

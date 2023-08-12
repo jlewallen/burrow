@@ -83,9 +83,12 @@ impl From<ScopeMap> for HashMap<String, ScopeValue> {
     }
 }
 
-pub trait LoadAndStoreScope {
-    fn load_scope(&self, scope_key: &str) -> Option<&JsonValue>;
+pub trait StoreScope {
     fn store_scope(&mut self, scope_key: &str, value: JsonValue);
+}
+
+pub trait LoadAndStoreScope: StoreScope {
+    fn load_scope(&self, scope_key: &str) -> Option<&JsonValue>;
     fn remove_scope(&mut self, scope_key: &str) -> Option<ScopeValue>;
 
     fn rename_scope(&mut self, old_key: &str, new_key: &str) {
@@ -103,11 +106,7 @@ pub trait LoadAndStoreScope {
     }
 }
 
-impl LoadAndStoreScope for HashMap<String, ScopeValue> {
-    fn load_scope(&self, scope_key: &str) -> Option<&JsonValue> {
-        self.get(scope_key).map(|v| v.json_value())
-    }
-
+impl StoreScope for HashMap<String, ScopeValue> {
     fn store_scope(&mut self, scope_key: &str, value: JsonValue) {
         let previous = self.remove(scope_key);
         let value = ScopeValue::Intermediate {
@@ -116,19 +115,27 @@ impl LoadAndStoreScope for HashMap<String, ScopeValue> {
         };
         self.insert(scope_key.to_owned(), value);
     }
+}
+
+impl LoadAndStoreScope for HashMap<String, ScopeValue> {
+    fn load_scope(&self, scope_key: &str) -> Option<&JsonValue> {
+        self.get(scope_key).map(|v| v.json_value())
+    }
 
     fn remove_scope(&mut self, scope_key: &str) -> Option<ScopeValue> {
         self.remove(scope_key)
     }
 }
 
+impl StoreScope for ScopeMap {
+    fn store_scope(&mut self, scope_key: &str, value: JsonValue) {
+        self.0.store_scope(scope_key, value);
+    }
+}
+
 impl LoadAndStoreScope for ScopeMap {
     fn load_scope(&self, scope_key: &str) -> Option<&JsonValue> {
         self.0.load_scope(scope_key)
-    }
-
-    fn store_scope(&mut self, scope_key: &str, value: JsonValue) {
-        self.0.store_scope(scope_key, value);
     }
 
     fn remove_scope(&mut self, scope_key: &str) -> Option<ScopeValue> {
@@ -186,7 +193,7 @@ where
 
 pub trait OpenScopeRefMut<O>
 where
-    O: LoadAndStoreScope,
+    O: StoreScope,
 {
     fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeRefMut<T, O>, DomainError>;
 }
@@ -289,7 +296,7 @@ impl<T: Scope> std::ops::DerefMut for OpenedScopeMut<T> {
 
 pub struct OpenedScopeRefMut<'a, T: Scope, O>
 where
-    O: LoadAndStoreScope,
+    O: StoreScope,
 {
     owner: &'a RefCell<O>,
     target: Box<T>,
@@ -297,16 +304,13 @@ where
 
 impl<'a, T: Scope, O> OpenedScopeRefMut<'a, T, O>
 where
-    O: LoadAndStoreScope,
+    O: StoreScope,
 {
     pub fn new(owner: &'a RefCell<O>, target: Box<T>) -> Self {
         Self { owner, target }
     }
 
-    pub fn save(&mut self) -> Result<(), DomainError>
-    where
-        O: LoadAndStoreScope,
-    {
+    pub fn save(&mut self) -> Result<(), DomainError> {
         let value = self.target.serialize()?;
         let mut owner = self.owner.borrow_mut();
         Ok(owner.store_scope(T::scope_key(), value))
@@ -315,7 +319,7 @@ where
 
 impl<'a, T: Scope, O> Drop for OpenedScopeRefMut<'a, T, O>
 where
-    O: LoadAndStoreScope,
+    O: StoreScope,
 {
     fn drop(&mut self) {
         // TODO Check for unsaved changes to this scope and possibly warn the
@@ -327,7 +331,7 @@ where
 
 impl<'a, T: Scope, O> std::ops::Deref for OpenedScopeRefMut<'a, T, O>
 where
-    O: LoadAndStoreScope,
+    O: StoreScope,
 {
     type Target = T;
 
@@ -338,7 +342,7 @@ where
 
 impl<'a, T: Scope, O> std::ops::DerefMut for OpenedScopeRefMut<'a, T, O>
 where
-    O: LoadAndStoreScope,
+    O: StoreScope,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.target
@@ -410,11 +414,7 @@ mod tests {
         scopes: HashMap<String, ScopeValue>,
     }
 
-    impl LoadAndStoreScope for Whatever {
-        fn load_scope(&self, scope_key: &str) -> Option<&JsonValue> {
-            self.scopes.get(scope_key).map(|v| v.json_value())
-        }
-
+    impl StoreScope for Whatever {
         fn store_scope(&mut self, scope_key: &str, value: JsonValue) {
             let previous = self.scopes.remove(scope_key);
             let value = ScopeValue::Intermediate {
@@ -422,6 +422,12 @@ mod tests {
                 previous: previous.map(|p| p.into()),
             };
             self.scopes.insert(scope_key.to_owned(), value);
+        }
+    }
+
+    impl LoadAndStoreScope for Whatever {
+        fn load_scope(&self, scope_key: &str) -> Option<&JsonValue> {
+            self.scopes.get(scope_key).map(|v| v.json_value())
         }
 
         fn remove_scope(&mut self, scope_key: &str) -> Option<ScopeValue> {

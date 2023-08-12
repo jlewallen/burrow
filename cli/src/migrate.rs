@@ -13,7 +13,8 @@ use tracing::info;
 use crate::DomainBuilder;
 use engine::{prelude::DevNullNotifier, prelude::SessionOpener, storage::StorageFactory};
 use kernel::prelude::{
-    DomainError, EntityKey, Entry, EntryResolver, LoadAndStoreScope, LookupBy, Properties, Scope,
+    DomainError, EntityKey, Entry, EntryResolver, LoadAndStoreScope, LookupBy, OpenScope,
+    Properties, Scope,
 };
 
 #[derive(Debug, Args, Clone)]
@@ -38,7 +39,7 @@ impl Command {
 
 fn load_and_save_scope<T: Scope>(entity: &Entry) -> Result<bool, DomainError> {
     use anyhow::Context;
-    if entity.has_scope::<T>()? {
+    if entity.scope::<T>()?.is_some() {
         tracing::trace!("{:?} {:?}", entity.key(), T::scope_key());
 
         Ok(entity
