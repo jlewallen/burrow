@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use super::base::{Acls, DomainError, EntityClass, EntityKey, Identity, JsonValue};
-use super::{EntityRef, ScopeMap};
+use super::{EntityRef, LoadAndStoreScope, ScopeMap};
 use super::{HasScopes, ScopeValue, Scopes, ScopesMut};
 
 /// Central Entity model. Right now, the only thing that is ever modified at
@@ -63,6 +63,23 @@ impl Entity {
 
     pub fn entity_ref(&self) -> EntityRef {
         EntityRef::new_from_entity(self, None)
+    }
+}
+
+impl LoadAndStoreScope for Entity {
+    fn load_scope(&self, scope_key: &str) -> Result<Option<&JsonValue>, DomainError> {
+        Ok(self.scopes.get(scope_key).map(|v| v.json_value()))
+    }
+
+    fn store_scope(&mut self, scope_key: &str, value: JsonValue) -> Result<(), DomainError> {
+        let previous = self.scopes.remove(scope_key);
+        let value = ScopeValue::Intermediate {
+            value: value.into(),
+            previous: previous.map(|p| p.into()),
+        };
+        self.scopes.insert(scope_key.to_owned(), value);
+
+        Ok(())
     }
 }
 

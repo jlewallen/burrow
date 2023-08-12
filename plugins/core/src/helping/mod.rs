@@ -136,9 +136,11 @@ pub mod actions {
                     .name(page_name)
                     .try_into()?;
                 let creating = session.add_entity(creating)?;
-                let mut wiki = creating.scope_mut::<Wiki>()?;
-                wiki.set_default("# Hello, world!");
-                wiki.save()?;
+                {
+                    let mut wiki = creating.scope_mut::<Wiki>()?;
+                    wiki.set_default("# Hello, world!");
+                    wiki.save()?;
+                }
                 Ok(Some(creating))
             } else {
                 Ok(None)

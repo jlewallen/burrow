@@ -201,13 +201,15 @@ pub fn separate(entity: &Entry, quantity: f32) -> Result<(&Entry, Entry)> {
 
     let separated = new_entity_from_template_ptr(entity)?;
 
-    let mut carryable = separated.scope_mut::<Carryable>()?;
+    {
+        let mut carryable = separated.scope_mut::<Carryable>()?;
 
-    // TODO Would be nice if we could pass 'Kind' in to the ctor and avoid
-    // creating one unnecessarily. See comments in Entity::new_from
-    carryable.set_kind(&kind);
-    carryable.set_quantity(quantity)?;
-    carryable.save()?;
+        // TODO Would be nice if we could pass 'Kind' in to the ctor and avoid
+        // creating one unnecessarily. See comments in Entity::new_from
+        carryable.set_kind(&kind);
+        carryable.set_quantity(quantity)?;
+        carryable.save()?;
+    }
 
     Ok((entity, separated))
 }

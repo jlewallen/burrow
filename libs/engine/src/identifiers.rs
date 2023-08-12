@@ -21,7 +21,7 @@ pub mod model {
     }
 
     pub fn fetch_add_one(entity: &Entry) -> Result<EntityGid> {
-        let mut ids = entity.scope_mut::<Identifiers>()?;
+        let mut ids = entity.entity().scope_mut::<Identifiers>()?;
         ids.gid += 1;
         let value = EntityGid::new(ids.gid);
         ids.save()?;

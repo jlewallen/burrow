@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
+use std::cell::RefCell;
 use std::collections::HashMap;
 use tracing::*;
 
@@ -209,300 +210,292 @@ impl HasScopes for ScopeMap {
     }
 }
 
-#[allow(dead_code)]
-mod exp {
+pub trait LoadAndStoreScope {
+    fn load_scope(&self, scope_key: &str) -> Result<Option<&JsonValue>, DomainError>;
+    fn store_scope(&mut self, scope_key: &str, value: JsonValue) -> Result<(), DomainError>;
+}
 
-    use std::cell::RefCell;
+pub trait OpenScope<O> {
+    fn scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError>;
+}
 
-    use super::*;
-
-    pub trait LoadAndStoreScope {
-        fn load_scope(&self, scope_key: &str) -> Result<Option<&JsonValue>, DomainError>;
-        fn store_scope(&mut self, scope_key: &str, value: JsonValue) -> Result<(), DomainError>;
-    }
-
-    pub trait OpenScope<O> {
-        fn scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError>;
-    }
-
-    impl<O> OpenScope<O> for O
-    where
-        O: LoadAndStoreScope,
-    {
-        fn scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError> {
-            let Some(value) = self.load_scope(T::scope_key())? else {
+impl<O> OpenScope<O> for O
+where
+    O: LoadAndStoreScope,
+{
+    fn scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError> {
+        let Some(value) = self.load_scope(T::scope_key())? else {
                 return Ok(None);
             };
 
-            let json = value.clone().into();
-            let value = serde_json::from_value(json).context(here!())?;
+        let json = value.clone().into();
+        let value = serde_json::from_value(json).context(here!())?;
 
-            Ok(Some(OpenedScope::new(Box::new(value))))
-        }
+        Ok(Some(OpenedScope::new(Box::new(value))))
+    }
+}
+
+impl<O> OpenScope<O> for RefCell<O>
+where
+    O: LoadAndStoreScope,
+{
+    fn scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError> {
+        let owner = self.borrow();
+        owner.scope::<T>()
+    }
+}
+
+pub trait OpenScopeMut<O> {
+    fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeMut<T>, DomainError>;
+}
+
+impl<O> OpenScopeMut<O> for O
+where
+    O: LoadAndStoreScope,
+{
+    fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeMut<T>, DomainError> {
+        let value = match self.load_scope(T::scope_key())? {
+            Some(value) => serde_json::from_value(value.clone().into()).context(here!())?,
+            None => T::default(),
+        };
+
+        Ok(OpenedScopeMut::new(Box::new(value)))
+    }
+}
+
+pub trait OpenScopeRefMut<O>
+where
+    O: LoadAndStoreScope,
+{
+    fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeRefMut<T, O>, DomainError>;
+}
+
+impl<O> OpenScopeRefMut<O> for RefCell<O>
+where
+    O: LoadAndStoreScope,
+{
+    fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeRefMut<T, O>, DomainError> {
+        let owner = self.borrow();
+        let value = match owner.load_scope(T::scope_key())? {
+            Some(value) => serde_json::from_value(value.clone().into()).context(here!())?,
+            None => T::default(),
+        };
+
+        Ok(OpenedScopeRefMut::new(self, Box::new(value)))
+    }
+}
+
+pub struct OpenedScope<T: Scope> {
+    target: Box<T>,
+}
+
+impl<T: Scope> OpenedScope<T> {
+    pub fn new(target: Box<T>) -> Self {
+        Self { target }
+    }
+}
+
+impl<T: Scope> AsRef<T> for OpenedScope<T> {
+    fn as_ref(&self) -> &T {
+        &self.target
+    }
+}
+
+impl<T: Scope> std::ops::Deref for OpenedScope<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.target
+    }
+}
+
+pub struct OpenedScopeMut<T: Scope> {
+    target: Box<T>,
+}
+
+impl<T: Scope> OpenedScopeMut<T> {
+    pub fn new(target: Box<T>) -> Self {
+        trace!("scope-open {:?}", target);
+
+        Self { target }
     }
 
-    impl<O> OpenScope<O> for RefCell<O>
+    pub fn save<O>(&mut self, entity: &mut O) -> Result<(), DomainError>
     where
         O: LoadAndStoreScope,
     {
-        fn scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError> {
-            let owner = self.borrow();
-            owner.scope::<T>()
-        }
+        entity.store_scope(T::scope_key(), self.target.serialize()?)
+    }
+}
+
+impl<T: Scope> Drop for OpenedScopeMut<T> {
+    fn drop(&mut self) {
+        // TODO Check for unsaved changes to this scope and possibly warn the
+        // user, this would require them to intentionally discard any unsaved
+        // changes. Not being able to bubble an error up makes doing anything
+        // elaborate in here a bad idea.
+        // trace!("scope-dropped {:?}", self.target);
+    }
+}
+
+impl<T: Scope> std::ops::Deref for OpenedScopeMut<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.target
+    }
+}
+
+impl<T: Scope> std::ops::DerefMut for OpenedScopeMut<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.target
+    }
+}
+
+pub struct OpenedScopeRefMut<'a, T: Scope, O>
+where
+    O: LoadAndStoreScope,
+{
+    owner: &'a RefCell<O>,
+    target: Box<T>,
+}
+
+impl<'a, T: Scope, O> OpenedScopeRefMut<'a, T, O>
+where
+    O: LoadAndStoreScope,
+{
+    pub fn new(owner: &'a RefCell<O>, target: Box<T>) -> Self {
+        Self { owner, target }
     }
 
-    pub trait OpenScopeMut<O> {
-        fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeMut<T>, DomainError>;
-    }
-
-    impl<O> OpenScopeMut<O> for O
+    pub fn save(&mut self) -> Result<(), DomainError>
     where
         O: LoadAndStoreScope,
     {
-        fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeMut<T>, DomainError> {
-            let value = match self.load_scope(T::scope_key())? {
-                Some(value) => serde_json::from_value(value.clone().into()).context(here!())?,
-                None => T::default(),
+        let value = self.target.serialize()?;
+        let mut owner = self.owner.borrow_mut();
+        owner.store_scope(T::scope_key(), value)
+    }
+}
+
+impl<'a, T: Scope, O> Drop for OpenedScopeRefMut<'a, T, O>
+where
+    O: LoadAndStoreScope,
+{
+    fn drop(&mut self) {
+        // TODO Check for unsaved changes to this scope and possibly warn the
+        // user, this would require them to intentionally discard any unsaved
+        // changes. Not being able to bubble an error up makes doing anything
+        // elaborate in here a bad idea.
+    }
+}
+
+impl<'a, T: Scope, O> std::ops::Deref for OpenedScopeRefMut<'a, T, O>
+where
+    O: LoadAndStoreScope,
+{
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.target
+    }
+}
+
+impl<'a, T: Scope, O> std::ops::DerefMut for OpenedScopeRefMut<'a, T, O>
+where
+    O: LoadAndStoreScope,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.target
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde::Deserialize;
+
+    #[test]
+    pub fn test_plain_owner_passing_mutable_to_save() -> Result<()> {
+        let mut w = Whatever::default();
+        let mut scope = w.scope_mut::<ExampleScope>()?;
+        scope.values.push("A".to_owned());
+        scope.save(&mut w)?;
+
+        let mut scope = w.scope_mut::<ExampleScope>()?;
+        scope.values.push("B".to_owned());
+        scope.save(&mut w)?;
+
+        let read = w.scope::<ExampleScope>()?.unwrap();
+        assert_eq!(read.values, vec!["A", "B"]);
+
+        Ok(())
+    }
+
+    #[test]
+    pub fn test_refcell_owner() -> Result<()> {
+        let w = RefCell::new(Whatever::default());
+
+        assert!(w.scope::<ExampleScope>()?.is_none());
+
+        let mut scope = w.scope_mut::<ExampleScope>()?;
+        scope.values.push("A".to_owned());
+        scope.save()?;
+
+        let mut scope = w.scope_mut::<ExampleScope>()?;
+        scope.values.push("B".to_owned());
+        scope.save()?;
+
+        let read = w.scope::<ExampleScope>()?.unwrap();
+        assert_eq!(read.values, vec!["A", "B"]);
+
+        Ok(())
+    }
+
+    #[derive(Debug, Deserialize, Serialize, Default)]
+    pub struct ExampleScope {
+        values: Vec<String>,
+    }
+
+    impl Scope for ExampleScope {
+        fn scope_key() -> &'static str
+        where
+            Self: Sized,
+        {
+            "example"
+        }
+
+        fn serialize(&self) -> Result<JsonValue> {
+            Ok(serde_json::to_value(self)?)
+        }
+    }
+
+    #[derive(Default)]
+    pub struct Whatever {
+        scopes: HashMap<String, ScopeValue>,
+    }
+
+    impl LoadAndStoreScope for Whatever {
+        fn load_scope(
+            &self,
+            scope_key: &str,
+        ) -> anyhow::Result<Option<&JsonValue>, crate::model::DomainError> {
+            Ok(self.scopes.get(scope_key).map(|v| v.json_value()))
+        }
+
+        fn store_scope(
+            &mut self,
+            scope_key: &str,
+            value: JsonValue,
+        ) -> anyhow::Result<(), crate::model::DomainError> {
+            let previous = self.scopes.remove(scope_key);
+            let value = ScopeValue::Intermediate {
+                value: value.into(),
+                previous: previous.map(|p| p.into()),
             };
-
-            Ok(OpenedScopeMut::new(Box::new(value)))
-        }
-    }
-
-    pub trait OpenScopeRefMut<O>
-    where
-        O: LoadAndStoreScope,
-    {
-        fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeRefMut<T, O>, DomainError>;
-    }
-
-    impl<O> OpenScopeRefMut<O> for RefCell<O>
-    where
-        O: LoadAndStoreScope,
-    {
-        fn scope_mut<T: Scope>(&self) -> Result<OpenedScopeRefMut<T, O>, DomainError> {
-            let owner = self.borrow();
-            let value = match owner.load_scope(T::scope_key())? {
-                Some(value) => serde_json::from_value(value.clone().into()).context(here!())?,
-                None => T::default(),
-            };
-
-            Ok(OpenedScopeRefMut::new(self, Box::new(value)))
-        }
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-        use serde::Deserialize;
-
-        #[test]
-        pub fn test_plain_owner_passing_mutable_to_save() -> Result<()> {
-            let mut w = Whatever::default();
-            let mut scope = w.scope_mut::<ExampleScope>()?;
-            scope.values.push("A".to_owned());
-            scope.save(&mut w)?;
-
-            let mut scope = w.scope_mut::<ExampleScope>()?;
-            scope.values.push("B".to_owned());
-            scope.save(&mut w)?;
-
-            let read = w.scope::<ExampleScope>()?.unwrap();
-            assert_eq!(read.values, vec!["A", "B"]);
+            self.scopes.insert(scope_key.to_owned(), value);
 
             Ok(())
-        }
-
-        #[test]
-        pub fn test_refcell_owner() -> Result<()> {
-            let w = RefCell::new(Whatever::default());
-
-            assert!(w.scope::<ExampleScope>()?.is_none());
-
-            let mut scope = w.scope_mut::<ExampleScope>()?;
-            scope.values.push("A".to_owned());
-            scope.save()?;
-
-            let mut scope = w.scope_mut::<ExampleScope>()?;
-            scope.values.push("B".to_owned());
-            scope.save()?;
-
-            let read = w.scope::<ExampleScope>()?.unwrap();
-            assert_eq!(read.values, vec!["A", "B"]);
-
-            Ok(())
-        }
-
-        #[derive(Debug, Deserialize, Serialize, Default)]
-        pub struct ExampleScope {
-            values: Vec<String>,
-        }
-
-        impl Scope for ExampleScope {
-            fn scope_key() -> &'static str
-            where
-                Self: Sized,
-            {
-                "example"
-            }
-
-            fn serialize(&self) -> Result<JsonValue> {
-                Ok(serde_json::to_value(self)?)
-            }
-        }
-
-        #[derive(Default)]
-        pub struct Whatever {
-            scopes: HashMap<String, ScopeValue>,
-        }
-
-        impl LoadAndStoreScope for Whatever {
-            fn load_scope(
-                &self,
-                scope_key: &str,
-            ) -> anyhow::Result<Option<&JsonValue>, crate::model::DomainError> {
-                Ok(self.scopes.get(scope_key).map(|v| v.json_value()))
-            }
-
-            fn store_scope(
-                &mut self,
-                scope_key: &str,
-                value: JsonValue,
-            ) -> anyhow::Result<(), crate::model::DomainError> {
-                let previous = self.scopes.remove(scope_key);
-                let value = ScopeValue::Intermediate {
-                    value: value.into(),
-                    previous: previous.map(|p| p.into()),
-                };
-                self.scopes.insert(scope_key.to_owned(), value);
-
-                Ok(())
-            }
-        }
-    }
-
-    pub struct OpenedScope<T: Scope> {
-        target: Box<T>,
-    }
-
-    impl<T: Scope> OpenedScope<T> {
-        pub fn new(target: Box<T>) -> Self {
-            Self { target }
-        }
-    }
-
-    impl<T: Scope> AsRef<T> for OpenedScope<T> {
-        fn as_ref(&self) -> &T {
-            &self.target
-        }
-    }
-
-    impl<T: Scope> std::ops::Deref for OpenedScope<T> {
-        type Target = T;
-
-        fn deref(&self) -> &Self::Target {
-            &self.target
-        }
-    }
-
-    pub struct OpenedScopeMut<T: Scope> {
-        target: Box<T>,
-    }
-
-    impl<T: Scope> OpenedScopeMut<T> {
-        pub fn new(target: Box<T>) -> Self {
-            trace!("scope-open {:?}", target);
-
-            Self { target }
-        }
-
-        pub fn save<O>(&mut self, entity: &mut O) -> Result<(), DomainError>
-        where
-            O: LoadAndStoreScope,
-        {
-            entity.store_scope(T::scope_key(), self.target.serialize()?)
-        }
-    }
-
-    impl<T: Scope> Drop for OpenedScopeMut<T> {
-        fn drop(&mut self) {
-            // TODO Check for unsaved changes to this scope and possibly warn the
-            // user, this would require them to intentionally discard any unsaved
-            // changes. Not being able to bubble an error up makes doing anything
-            // elaborate in here a bad idea.
-            // trace!("scope-dropped {:?}", self.target);
-        }
-    }
-
-    impl<T: Scope> std::ops::Deref for OpenedScopeMut<T> {
-        type Target = T;
-
-        fn deref(&self) -> &Self::Target {
-            &self.target
-        }
-    }
-
-    impl<T: Scope> std::ops::DerefMut for OpenedScopeMut<T> {
-        fn deref_mut(&mut self) -> &mut Self::Target {
-            &mut self.target
-        }
-    }
-
-    pub struct OpenedScopeRefMut<'a, T: Scope, O>
-    where
-        O: LoadAndStoreScope,
-    {
-        owner: &'a RefCell<O>,
-        target: Box<T>,
-    }
-
-    impl<'a, T: Scope, O> OpenedScopeRefMut<'a, T, O>
-    where
-        O: LoadAndStoreScope,
-    {
-        pub fn new(owner: &'a RefCell<O>, target: Box<T>) -> Self {
-            Self { owner, target }
-        }
-
-        pub fn save(&mut self) -> Result<(), DomainError>
-        where
-            O: LoadAndStoreScope,
-        {
-            let value = self.target.serialize()?;
-            let mut owner = self.owner.borrow_mut();
-            owner.store_scope(T::scope_key(), value)
-        }
-    }
-
-    impl<'a, T: Scope, O> Drop for OpenedScopeRefMut<'a, T, O>
-    where
-        O: LoadAndStoreScope,
-    {
-        fn drop(&mut self) {
-            // TODO Check for unsaved changes to this scope and possibly warn the
-            // user, this would require them to intentionally discard any unsaved
-            // changes. Not being able to bubble an error up makes doing anything
-            // elaborate in here a bad idea.
-        }
-    }
-
-    impl<'a, T: Scope, O> std::ops::Deref for OpenedScopeRefMut<'a, T, O>
-    where
-        O: LoadAndStoreScope,
-    {
-        type Target = T;
-
-        fn deref(&self) -> &Self::Target {
-            &self.target
-        }
-    }
-
-    impl<'a, T: Scope, O> std::ops::DerefMut for OpenedScopeRefMut<'a, T, O>
-    where
-        O: LoadAndStoreScope,
-    {
-        fn deref_mut(&mut self) -> &mut Self::Target {
-            &mut self.target
         }
     }
 }
