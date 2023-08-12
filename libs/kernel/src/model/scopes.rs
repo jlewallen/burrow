@@ -187,7 +187,7 @@ where
             None => T::default(),
         };
 
-        Ok(OpenedScopeMut::new(Box::new(value)))
+        Ok(OpenedScopeMut::new(value))
     }
 }
 
@@ -209,7 +209,7 @@ where
             None => T::default(),
         };
 
-        Ok(OpenedScopeRefMut::new(self, Box::new(value)))
+        Ok(OpenedScopeRefMut::new(self, value))
     }
 }
 
@@ -254,11 +254,11 @@ impl<T: Scope> std::ops::Deref for OpenedScope<T> {
 }
 
 pub struct OpenedScopeMut<T> {
-    target: Box<T>,
+    target: T,
 }
 
 impl<T: Scope> OpenedScopeMut<T> {
-    pub fn new(target: Box<T>) -> Self {
+    pub fn new(target: T) -> Self {
         trace!("scope-open {:?}", target);
 
         Self { target }
@@ -294,14 +294,14 @@ impl<T> std::ops::DerefMut for OpenedScopeMut<T> {
 
 pub struct OpenedScopeRefMut<'a, T, O> {
     owner: &'a RefCell<O>,
-    target: Box<T>,
+    target: T,
 }
 
 impl<'a, T: Scope, O> OpenedScopeRefMut<'a, T, O>
 where
     O: StoreScope,
 {
-    pub fn new(owner: &'a RefCell<O>, target: Box<T>) -> Self {
+    pub fn new(owner: &'a RefCell<O>, target: T) -> Self {
         trace!("scope-open {:?}", target);
 
         Self { owner, target }
