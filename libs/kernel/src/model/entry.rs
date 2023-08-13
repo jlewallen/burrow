@@ -38,61 +38,9 @@ pub use new::*;
 
 #[allow(dead_code)]
 mod new {
-    use std::{cell::RefCell, ops::Deref};
-
     pub use super::*;
 
-    #[derive(Clone)]
-    pub struct Entry(EntityPtr);
-
-    impl Entry {
-        pub fn new(target: impl Into<EntityPtr>) -> Self {
-            Self(target.into())
-        }
-
-        pub fn new_from_entity(entity: Entity) -> Result<Self> {
-            Ok(Self(EntityPtr::new(entity).into()))
-        }
-
-        pub fn key(&self) -> EntityKey {
-            self.0.borrow().key().clone()
-        }
-
-        pub fn entity(&self) -> &EntityPtr {
-            &self.0
-        }
-
-        pub fn entity_ref(&self) -> EntityRef {
-            let entity = self.borrow();
-            EntityRef::new_from_entity(&entity, None)
-        }
-
-        pub fn name(&self) -> Result<Option<String>, DomainError> {
-            let entity = self.0.borrow();
-            Ok(entity.name())
-        }
-
-        pub fn desc(&self) -> Result<Option<String>, DomainError> {
-            let entity = self.0.borrow();
-
-            Ok(entity.desc())
-        }
-    }
-
-    impl Deref for Entry {
-        type Target = RefCell<Entity>;
-
-        fn deref(&self) -> &Self::Target {
-            &self.0
-        }
-    }
-
-    impl std::fmt::Debug for Entry {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            let entity = self.0.borrow();
-            f.debug_struct("Entity").field("key", entity.key()).finish()
-        }
-    }
+    pub type Entry = EntityPtr;
 }
 
 #[allow(dead_code)]

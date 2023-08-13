@@ -28,8 +28,41 @@ pub use scopes::*;
 pub struct EntityPtr(Rc<RefCell<Entity>>);
 
 impl EntityPtr {
+    pub fn new_from_entity(e: Entity) -> Result<Self> {
+        // TODO Remove Result
+        Ok(Self(Rc::new(RefCell::new(e))))
+    }
+
     pub fn new(e: Entity) -> Self {
         Self(Rc::new(RefCell::new(e)))
+    }
+
+    pub fn key(&self) -> EntityKey {
+        self.0.borrow().key().clone()
+    }
+
+    pub fn entity_ref(&self) -> EntityRef {
+        let entity = self.0.borrow();
+        entity.entity_ref()
+    }
+
+    pub fn entity(&self) -> &EntityPtr {
+        &self
+    }
+
+    pub fn name(&self) -> Result<Option<String>, DomainError> {
+        let entity = self.0.borrow();
+        Ok(entity.name())
+    }
+
+    pub fn desc(&self) -> Result<Option<String>, DomainError> {
+        let entity = self.0.borrow();
+
+        Ok(entity.desc())
+    }
+
+    pub fn to_json_value(&self) -> Result<JsonValue, DomainError> {
+        self.0.borrow().to_json_value()
     }
 }
 
@@ -50,6 +83,12 @@ impl Deref for EntityPtr {
 
     fn deref(&self) -> &Self::Target {
         self.0.as_ref()
+    }
+}
+
+impl std::fmt::Debug for EntityPtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Entity").field("key", &self.key()).finish()
     }
 }
 

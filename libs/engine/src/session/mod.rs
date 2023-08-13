@@ -271,7 +271,7 @@ impl EntryResolver for Session {
         depth: usize,
     ) -> Result<Option<Entry>, DomainError> {
         match self.load_entity(lookup, depth)? {
-            Some(entity) => Ok(Some(Entry::new(entity))),
+            Some(entity) => Ok(Some(entity)),
             None => Ok(None),
         }
     }
