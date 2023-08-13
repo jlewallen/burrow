@@ -74,15 +74,18 @@ impl SessionServices {
 
     fn lookup_one(&self, lookup: &LookupBy) -> Result<(LookupBy, Option<(EntityPtr, Json)>)> {
         let session = get_my_session().with_context(|| "SessionServer::lookup_one")?;
-        let entry = match lookup {
-            LookupBy::Key(key) => session.entry(&kernel::prelude::LookupBy::Key(&key.into()))?,
+        let entity = match lookup {
+            LookupBy::Key(key) => session.entity(&kernel::prelude::LookupBy::Key(&key.into()))?,
             LookupBy::Gid(gid) => {
-                session.entry(&kernel::prelude::LookupBy::Gid(&EntityGid::new(*gid)))?
+                session.entity(&kernel::prelude::LookupBy::Gid(&EntityGid::new(*gid)))?
             }
         };
 
-        match entry {
-            Some(entry) => Ok((lookup.clone(), Some((entry.clone(), (&entry).try_into()?)))),
+        match entity {
+            Some(entity) => Ok((
+                lookup.clone(),
+                Some((entity.clone(), (&entity).try_into()?)),
+            )),
             None => Ok((lookup.clone(), None)),
         }
     }
@@ -119,11 +122,11 @@ impl FoldToDepth {
         let queue = adding
             .iter()
             .map(|(_lookup, maybe)| match maybe {
-                Some((entry, _)) => {
+                Some((entity, _)) => {
                     let mut keys = Vec::new();
-                    keys.extend(tools::get_contained_keys(entry)?);
-                    keys.extend(tools::get_occupant_keys(entry)?);
-                    keys.extend(tools::get_adjacent_keys(entry)?);
+                    keys.extend(tools::get_contained_keys(entity)?);
+                    keys.extend(tools::get_occupant_keys(entity)?);
+                    keys.extend(tools::get_adjacent_keys(entity)?);
                     Ok(keys)
                 }
                 None => Ok(vec![]),
@@ -168,10 +171,9 @@ impl Services for SessionServices {
     fn apply_update(&self, update: EntityUpdate) -> Result<()> {
         let session = get_my_session().with_context(|| "SessionServer::apply_update")?;
 
-        if let Some(entry) = session.entry(&kernel::prelude::LookupBy::Key(&update.key.into()))? {
+        if let Some(entity) = session.entity(&kernel::prelude::LookupBy::Key(&update.key.into()))? {
             let value: JsonValue = update.entity.into();
             let replacing = Entity::from_value(value)?;
-            let entity = entry.entity();
             entity.replace(replacing);
             Ok(())
         } else {

@@ -92,7 +92,7 @@ impl AppState {
         let world = session.world()?.expect("No world");
         let maybe_key = match world.find_name_key(name)? {
             Some(key) => {
-                let user = session.entry(&kernel::prelude::LookupBy::Key(&key))?;
+                let user = session.entity(&kernel::prelude::LookupBy::Key(&key))?;
                 let user = user.unwrap();
                 let hash = user.scope::<Credentials>()?.and_then(|s| s.get().cloned());
 
@@ -134,7 +134,7 @@ impl AppState {
 
         let welcome_area_key = world.get_welcome_area()?.expect("no welcome area");
         let welcome_area = session
-            .entry(&kernel::prelude::LookupBy::Key(&welcome_area_key))?
+            .entity(&kernel::prelude::LookupBy::Key(&welcome_area_key))?
             .expect("no welcome area");
 
         let creating = build_entity()

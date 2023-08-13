@@ -16,8 +16,8 @@ use crate::{terminal::default_external_editor, DomainBuilder};
 use engine::prelude::{DevNullNotifier, Domain, HasUsernames, Notifier, SessionOpener};
 use kernel::common::SimpleReply;
 use kernel::prelude::{
-    get_my_session, Effect, EffectReply, EntityKey, EntityPtrResolver, JsonValue, Middleware, Perform,
-    PerformAction,
+    get_my_session, Effect, EffectReply, EntityKey, EntityPtrResolver, JsonValue, Middleware,
+    Perform, PerformAction,
 };
 use replies::{EditorReply, TaggedJson};
 
@@ -169,7 +169,7 @@ impl Middleware for InteractiveEditor {
 
                                         let session = get_my_session()?;
                                         match session
-                                            .entry(&kernel::prelude::LookupBy::Key(&self.living))?
+                                            .entity(&kernel::prelude::LookupBy::Key(&self.living))?
                                         {
                                             Some(living) => {
                                                 return session.perform(Perform::Living {

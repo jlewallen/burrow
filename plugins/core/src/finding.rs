@@ -36,7 +36,7 @@ pub enum EntityRelationship {
 }
 
 impl EntityRelationship {
-    pub fn entry(&self) -> Result<&EntityPtr> {
+    pub fn entity(&self) -> Result<&EntityPtr> {
         Ok(match self {
             EntityRelationship::World(e) => e,
             EntityRelationship::User(e) => e,
@@ -138,7 +138,7 @@ impl EntityRelationshipSet {
                     expanded.push(EntityRelationship::Exit(
                         item.name()?
                             .ok_or_else(|| anyhow!("Route name is required"))?,
-                        exit.area.to_entry()?,
+                        exit.area.to_entity()?,
                     ));
                 }
             }
@@ -246,9 +246,9 @@ impl Finder for DefaultFinder {
         Ok(get_my_session()?.world()?.expect("No world"))
     }
 
-    fn find_location(&self, entry: &EntityPtr) -> Result<EntityPtr> {
-        let occupying = entry.scope::<Occupying>()?.unwrap();
-        Ok(occupying.area.to_entry()?)
+    fn find_location(&self, entity: &EntityPtr) -> Result<EntityPtr> {
+        let occupying = entity.scope::<Occupying>()?.unwrap();
+        Ok(occupying.area.to_entity()?)
     }
 
     fn find_item(&self, surroundings: &Surroundings, item: &Item) -> Result<Option<EntityPtr>> {
@@ -269,7 +269,7 @@ impl Finder for DefaultFinder {
                 // lookup when the event is raised rather than in here.
                 let session = get_my_session()?;
                 let area = session
-                    .entry(&kernel::prelude::LookupBy::Key(area))?
+                    .entity(&kernel::prelude::LookupBy::Key(area))?
                     .ok_or(DomainError::EntityNotFound(here!().into()))?;
                 tools::get_occupant_keys(&area)
             }

@@ -108,9 +108,10 @@ fn it_looks_inside_containers() -> Result<()> {
     let vessel = build
         .entity()?
         .named("Vessel")?
+        .save()?
         .carryable()?
         .holding(&vec![build.make(QuickThing::Object("Key"))?])?
-        .into_entry()?;
+        .into_entity()?;
     let (session, surroundings) = build.hands(vec![QuickThing::Actual(vessel)]).build()?;
 
     let action = try_parsing(LookActionParser {}, "look inside vessel")?;
@@ -128,7 +129,12 @@ fn it_looks_inside_containers() -> Result<()> {
 #[test]
 fn it_fails_to_look_at_not_found_entities() -> Result<()> {
     let mut build = BuildSurroundings::new()?;
-    let vessel = build.entity()?.named("Hammer")?.carryable()?.into_entry()?;
+    let vessel = build
+        .entity()?
+        .named("Hammer")?
+        .save()?
+        .carryable()?
+        .into_entity()?;
     let (session, surroundings) = build.hands(vec![QuickThing::Actual(vessel)]).build()?;
 
     let action = try_parsing(LookActionParser {}, "look at shovel")?;
@@ -146,7 +152,12 @@ fn it_fails_to_look_at_not_found_entities() -> Result<()> {
 #[test]
 fn it_looks_at_entities() -> Result<()> {
     let mut build = BuildSurroundings::new()?;
-    let hammer = build.entity()?.named("Hammer")?.carryable()?.into_entry()?;
+    let hammer = build
+        .entity()?
+        .named("Hammer")?
+        .save()?
+        .carryable()?
+        .into_entity()?;
     let (session, surroundings) = build.hands(vec![QuickThing::Actual(hammer)]).build()?;
 
     let action = try_parsing(LookActionParser {}, "look at hammer")?;
@@ -167,9 +178,10 @@ fn it_sees_worm_items() -> Result<()> {
     let jacket = build
         .entity()?
         .named("Jacket")?
+        .save()?
         .wearable()?
         .carryable()?
-        .into_entry()?;
+        .into_entity()?;
     let (session, surroundings) = build.wearing(vec![QuickThing::Actual(jacket)]).build()?;
 
     let action = try_parsing(LookActionParser {}, "look at myself")?;

@@ -261,25 +261,22 @@ impl Action for SaveQuickEditAction {
     fn perform(&self, session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
         info!("save:quick-edit {:?}", self.key);
 
-        match session.entry(&LookupBy::Key(&self.key))? {
-            Some(entry) => {
-                let entity = entry.entity();
-                match &self.copy {
-                    WorkingCopy::Markdown(text) => {
-                        let quick = QuickEdit::from_str(text)?;
-                        let mut entity = entity.borrow_mut();
-                        if let Some(name) = quick.name {
-                            entity.set_name(&name)?;
-                        }
-                        if let Some(desc) = quick.desc {
-                            entity.set_desc(&desc)?;
-                        }
-
-                        Ok(SimpleReply::Done.try_into()?)
+        match session.entity(&LookupBy::Key(&self.key))? {
+            Some(entity) => match &self.copy {
+                WorkingCopy::Markdown(text) => {
+                    let quick = QuickEdit::from_str(text)?;
+                    let mut entity = entity.borrow_mut();
+                    if let Some(name) = quick.name {
+                        entity.set_name(&name)?;
                     }
-                    _ => Err(anyhow::anyhow!("Save expected JSON working copy")),
+                    if let Some(desc) = quick.desc {
+                        entity.set_desc(&desc)?;
+                    }
+
+                    Ok(SimpleReply::Done.try_into()?)
                 }
-            }
+                _ => Err(anyhow::anyhow!("Save expected JSON working copy")),
+            },
             None => Ok(SimpleReply::NotFound.try_into()?),
         }
     }
@@ -312,19 +309,16 @@ impl Action for SaveEntityJsonAction {
     fn perform(&self, session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
         info!("save:entity-json {:?}", self.key);
 
-        match session.entry(&LookupBy::Key(&self.key))? {
-            Some(entry) => {
-                let entity = entry.entity();
-                match &self.copy {
-                    WorkingCopy::Json(value) => {
-                        let replacing = Entity::from_value(value.clone())?;
-                        entity.replace(replacing);
+        match session.entity(&LookupBy::Key(&self.key))? {
+            Some(entity) => match &self.copy {
+                WorkingCopy::Json(value) => {
+                    let replacing = Entity::from_value(value.clone())?;
+                    entity.replace(replacing);
 
-                        Ok(SimpleReply::Done.try_into()?)
-                    }
-                    _ => Err(anyhow::anyhow!("Save expected JSON working copy")),
+                    Ok(SimpleReply::Done.try_into()?)
                 }
-            }
+                _ => Err(anyhow::anyhow!("Save expected JSON working copy")),
+            },
             None => Ok(SimpleReply::NotFound.try_into()?),
         }
     }

@@ -143,7 +143,7 @@ fn it_duplicates_items_named() -> Result<()> {
     assert_eq!(reply, SimpleReply::Done);
     assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 1);
     assert_eq!(
-        tools::quantity(&person.scope::<Containing>()?.unwrap().holding[0].to_entry()?)?,
+        tools::quantity(&person.scope::<Containing>()?.unwrap().holding[0].to_entity()?)?,
         2.0
     );
 
@@ -206,7 +206,7 @@ fn it_digs_bidirectionally() -> Result<()> {
 
     // Not the best way of finding the constructed area.
     let destination = session
-        .entry(&LookupBy::Gid(&EntityGid::new(4)))?
+        .entity(&LookupBy::Gid(&EntityGid::new(4)))?
         .ok_or(DomainError::EntityNotFound(here!().into()))?;
 
     let reply: AreaObservation = reply.json_as()?;
@@ -286,7 +286,12 @@ fn it_saves_changes_to_whole_entities() -> Result<()> {
 #[test]
 fn it_adds_scopes_to_solo_held_items() -> Result<()> {
     let mut build = BuildSurroundings::new()?;
-    let jacket = build.entity()?.named("Jacket")?.carryable()?.into_entry()?;
+    let jacket = build
+        .entity()?
+        .named("Jacket")?
+        .save()?
+        .carryable()?
+        .into_entity()?;
 
     assert!(!jacket.scope::<Wearable>()?.is_some());
 

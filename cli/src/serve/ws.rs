@@ -150,7 +150,7 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
                                     .expect("try parse action failed")
                                     .into();
                                 let living = session
-                                    .entry(&LookupBy::Key(&EntityKey::new(&our_key)))
+                                    .entity(&LookupBy::Key(&EntityKey::new(&our_key)))
                                     .expect("Living lookup failed")
                                     .expect("Living not found");
                                 let perform = Perform::Living {

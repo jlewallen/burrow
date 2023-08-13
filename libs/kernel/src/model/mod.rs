@@ -91,34 +91,34 @@ impl std::fmt::Debug for EntityPtr {
 }
 
 pub trait IntoEntityPtr {
-    fn to_entry(&self) -> Result<EntityPtr, DomainError>;
+    fn to_entity(&self) -> Result<EntityPtr, DomainError>;
 }
 
 impl IntoEntityPtr for EntityRef {
-    fn to_entry(&self) -> Result<EntityPtr, DomainError> {
+    fn to_entity(&self) -> Result<EntityPtr, DomainError> {
         use super::session::get_my_session;
         if !self.key().valid() {
             return Err(DomainError::InvalidKey);
         }
         get_my_session()?
-            .entry(&LookupBy::Key(self.key()))?
+            .entity(&LookupBy::Key(self.key()))?
             .ok_or(DomainError::DanglingEntity)
     }
 }
 
 pub trait EntityPtrResolver {
-    fn recursive_entry(
+    fn recursive_entity(
         &self,
         lookup: &LookupBy,
         depth: usize,
     ) -> Result<Option<EntityPtr>, DomainError>;
 
-    fn entry(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>, DomainError> {
-        self.recursive_entry(lookup, 0)
+    fn entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>, DomainError> {
+        self.recursive_entity(lookup, 0)
     }
 
     fn world(&self) -> Result<Option<EntityPtr>, DomainError> {
-        self.entry(&LookupBy::Key(&EntityKey::new(WORLD_KEY)))
+        self.entity(&LookupBy::Key(&EntityKey::new(WORLD_KEY)))
     }
 }
 

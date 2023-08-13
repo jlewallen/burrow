@@ -157,7 +157,7 @@ pub mod model {
         let mut items = Vec::new();
         if let Ok(Some(containing)) = vessel.scope::<Containing>() {
             for lazy_entity in &containing.holding {
-                let entity = &lazy_entity.to_entry()?;
+                let entity = &lazy_entity.to_entity()?;
                 items.push(entity.observe(user)?);
             }
         }
@@ -172,7 +172,7 @@ pub mod model {
         let mut living: Vec<ObservedEntity> = vec![];
         if let Ok(Some(occupyable)) = area.scope::<Occupyable>() {
             for entity in &occupyable.occupied {
-                if let Some(observed) = (&entity.to_entry()?).observe(user)? {
+                if let Some(observed) = (&entity.to_entity()?).observe(user)? {
                     living.push(observed);
                 }
             }
@@ -181,21 +181,21 @@ pub mod model {
         let mut items = vec![];
         if let Ok(Some(containing)) = area.scope::<Containing>() {
             for entity in &containing.holding {
-                items.push((&entity.to_entry()?).observe(user)?);
+                items.push((&entity.to_entity()?).observe(user)?);
             }
         }
 
         let mut carrying = vec![];
         if let Ok(Some(containing)) = user.scope::<Containing>() {
             for entity in &containing.holding {
-                carrying.push((&entity.to_entry()?).observe(user)?);
+                carrying.push((&entity.to_entity()?).observe(user)?);
             }
         }
 
         let mut routes = vec![];
         if let Ok(Some(movement)) = user.scope::<Movement>() {
             for route in &movement.routes {
-                routes.push((&route.area.to_entry()?).observe(user)?);
+                routes.push((&route.area.to_entity()?).observe(user)?);
             }
         }
 

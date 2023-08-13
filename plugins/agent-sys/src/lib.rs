@@ -11,7 +11,7 @@ pub use kernel::prelude::{Effect, Perform};
 
 struct WorkingEntity {
     original: JsonValue,
-    entry: EntityPtr,
+    entity: EntityPtr,
 }
 
 #[derive(Default)]
@@ -29,13 +29,13 @@ impl WorkingEntities {
             key.clone(),
             WorkingEntity {
                 original: value.0,
-                entry: value.1,
+                entity: value.1,
             },
         );
     }
 
     pub fn get(&self, key: &kernel::prelude::EntityKey) -> Result<Option<EntityPtr>, DomainError> {
-        Ok(self.entities.get(key).map(|r| r.entry.clone()))
+        Ok(self.entities.get(key).map(|r| r.entity.clone()))
     }
 
     pub fn flush(&self) -> Result<Vec<Query>> {
@@ -45,7 +45,7 @@ impl WorkingEntities {
             .map(|(key, modified)| {
                 if let Some(modified) = any_entity_changes(AnyChanges {
                     before: Some(Original::Json(&modified.original)),
-                    after: modified.entry.entity().clone().into(),
+                    after: modified.entity.entity().clone().into(),
                 })? {
                     debug!("{:?} modified", key);
                     Ok(vec![Query::Update(EntityUpdate::new(
@@ -99,7 +99,7 @@ impl Performer for AgentSession {
 }
 
 impl EntityPtrResolver for AgentSession {
-    fn recursive_entry(
+    fn recursive_entity(
         &self,
         lookup: &kernel::prelude::LookupBy,
         _depth: usize,
@@ -124,10 +124,10 @@ impl ActiveSession for AgentSession {
     fn add_entity(&self, entity: kernel::prelude::Entity) -> Result<EntityPtr> {
         let key = entity.key().clone();
         let json_value = entity.to_json_value()?;
-        let entry = EntityPtr::new_from_entity(entity)?;
+        let entity = EntityPtr::new_from_entity(entity)?;
         let mut entities = self.entities.borrow_mut();
-        entities.insert(&key, (json_value, entry.clone()));
-        Ok(entry)
+        entities.insert(&key, (json_value, entity.clone()));
+        Ok(entity)
     }
 
     fn obliterate(&self, _entity: &EntityPtr) -> Result<()> {
@@ -295,7 +295,7 @@ where
         key: impl Into<kernel::prelude::EntityKey>,
     ) -> std::result::Result<kernel::prelude::EntityPtr, DomainError> {
         self.session
-            .entry(&kernel::prelude::LookupBy::Key(&key.into()))?
+            .entity(&kernel::prelude::LookupBy::Key(&key.into()))?
             .ok_or(DomainError::EntityNotFound(here!().into()))
     }
 }

@@ -120,7 +120,7 @@ impl Session {
                 };
 
                 let living = self
-                    .recursive_entry(&LookupBy::Key(&key), USER_DEPTH)?
+                    .recursive_entity(&LookupBy::Key(&key), USER_DEPTH)?
                     .expect("No living found with key");
 
                 let perform = Perform::Living {
@@ -265,7 +265,7 @@ impl Performer for Session {
 }
 
 impl EntityPtrResolver for Session {
-    fn recursive_entry(
+    fn recursive_entity(
         &self,
         lookup: &LookupBy,
         depth: usize,
@@ -292,7 +292,7 @@ impl ActiveSession for Session {
         info!("finding");
 
         match item {
-            Item::Gid(gid) => Ok(self.entry(&LookupBy::Gid(gid))?),
+            Item::Gid(gid) => Ok(self.entity(&LookupBy::Gid(gid))?),
             _ => self.finder.find_item(surroundings, item),
         }
     }
@@ -302,7 +302,7 @@ impl ActiveSession for Session {
             let key = &entity.key();
             warn!(key = ?key, gid = ?gid, "unnecessary add-entity");
             return Ok(self
-                .entry(&LookupBy::Key(key))?
+                .entity(&LookupBy::Key(key))?
                 .ok_or(DomainError::EntityNotFound(here!().into()))?);
         }
 
@@ -321,12 +321,12 @@ impl ActiveSession for Session {
         self.state.add_entity(gid, entity)?;
 
         Ok(self
-            .entry(&LookupBy::Key(&key))?
+            .entity(&LookupBy::Key(&key))?
             .expect("Bug: Newly added entity has no EntityPtr"))
     }
 
-    fn obliterate(&self, entry: &EntityPtr) -> Result<()> {
-        self.state.obliterate(entry)
+    fn obliterate(&self, entity: &EntityPtr) -> Result<()> {
+        self.state.obliterate(entity)
     }
 
     fn raise(&self, audience: Audience, raising: Raising) -> Result<()> {
@@ -365,7 +365,10 @@ fn should_force_rollback() -> bool {
 
 const USER_DEPTH: usize = 2;
 
-fn user_name_to_key<R: EntityPtrResolver>(resolve: &R, name: &str) -> Result<EntityKey, DomainError> {
+fn user_name_to_key<R: EntityPtrResolver>(
+    resolve: &R,
+    name: &str,
+) -> Result<EntityKey, DomainError> {
     let world = resolve.world()?.expect("No world");
     world
         .find_name_key(name)?

@@ -19,7 +19,7 @@ pub async fn execute_command() -> Result<()> {
         .find_name_key("jlewallen")?
         .ok_or(DomainError::EntityNotFound(here!().into()))?;
     let _user = session
-        .entry(&LookupBy::Key(&user_key))?
+        .entity(&LookupBy::Key(&user_key))?
         .expect("No 'USER' entity.");
 
     // let occupying = user.scope::<Occupying>()?.unwrap();

@@ -60,5 +60,5 @@ where
 pub fn container_of(item: &EntityPtr) -> Result<EntityPtr, DomainError> {
     Location::get(item)?
         .ok_or(DomainError::ContainerRequired)?
-        .to_entry()
+        .to_entity()
 }
