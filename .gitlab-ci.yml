@@ -1,0 +1,23 @@
+stages:
+  - test
+  - build
+  - publish
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+
+tests:
+  stage: test
+  image: rust
+  script:
+    - cargo test --workspace
+
+build:amd64:
+  stage: build
+  image: rust
+  script:
+    - cargo build --release
+  artifacts:
+    paths:
+      - target/release/cli
