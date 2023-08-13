@@ -11,6 +11,7 @@ tests:
   stage: test
   image: rust
   script:
+    - cp .env.default .env
     - cargo test --workspace
 
 build:amd64:
