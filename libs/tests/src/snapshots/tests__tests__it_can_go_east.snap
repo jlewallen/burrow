@@ -7,15 +7,15 @@ expression: domain.snapshot().await?
     "acls": {
       "rules": []
     },
+    "class": {
+      "name": "scopes.ItemClass"
+    },
     "creator": null,
     "identity": {
       "private": "Private#0",
       "public": "Public#0"
     },
     "key": "world",
-    "klass": {
-      "py/type": "scopes.ItemClass"
-    },
     "parent": null,
     "scopes": {
       "identifiers": {
@@ -47,15 +47,15 @@ expression: domain.snapshot().await?
     "acls": {
       "rules": []
     },
+    "class": {
+      "name": "scopes.ItemClass"
+    },
     "creator": null,
     "identity": {
       "private": "Private#1",
       "public": "Public#1"
     },
     "key": "E-0",
-    "klass": {
-      "py/type": "scopes.ItemClass"
-    },
     "parent": null,
     "scopes": {
       "occupyable": {
@@ -65,9 +65,9 @@ expression: domain.snapshot().await?
         "occupancy": 0,
         "occupied": [
           {
+            "class": "scopes.ItemClass",
             "gid": 4,
             "key": "E-3",
-            "klass": "scopes.ItemClass",
             "name": "Living"
           }
         ]
@@ -90,15 +90,15 @@ expression: domain.snapshot().await?
     "acls": {
       "rules": []
     },
+    "class": {
+      "name": "scopes.ItemClass"
+    },
     "creator": null,
     "identity": {
       "private": "Private#2",
       "public": "Public#2"
     },
     "key": "E-1",
-    "klass": {
-      "py/type": "scopes.ItemClass"
-    },
     "parent": null,
     "scopes": {
       "carryable": {
@@ -112,9 +112,9 @@ expression: domain.snapshot().await?
       },
       "location": {
         "container": {
+          "class": "scopes.ItemClass",
           "gid": 3,
           "key": "E-2",
-          "klass": "scopes.ItemClass",
           "name": "Vessel"
         }
       },
@@ -136,15 +136,15 @@ expression: domain.snapshot().await?
     "acls": {
       "rules": []
     },
+    "class": {
+      "name": "scopes.ItemClass"
+    },
     "creator": null,
     "identity": {
       "private": "Private#4",
       "public": "Public#4"
     },
     "key": "E-2",
-    "klass": {
-      "py/type": "scopes.ItemClass"
-    },
     "parent": null,
     "scopes": {
       "carryable": {
@@ -160,9 +160,9 @@ expression: domain.snapshot().await?
         "capacity": null,
         "holding": [
           {
+            "class": "scopes.ItemClass",
             "gid": 2,
             "key": "E-1",
-            "klass": "scopes.ItemClass",
             "name": "Key"
           }
         ],
@@ -170,9 +170,9 @@ expression: domain.snapshot().await?
       },
       "location": {
         "container": {
+          "class": "scopes.ItemClass",
           "gid": 4,
           "key": "E-3",
-          "klass": "scopes.ItemClass",
           "name": "Living"
         }
       },
@@ -194,24 +194,24 @@ expression: domain.snapshot().await?
     "acls": {
       "rules": []
     },
+    "class": {
+      "name": "scopes.ItemClass"
+    },
     "creator": null,
     "identity": {
       "private": "Private#6",
       "public": "Public#6"
     },
     "key": "E-3",
-    "klass": {
-      "py/type": "scopes.ItemClass"
-    },
     "parent": null,
     "scopes": {
       "containing": {
         "capacity": null,
         "holding": [
           {
+            "class": "scopes.ItemClass",
             "gid": 3,
             "key": "E-2",
-            "klass": "scopes.ItemClass",
             "name": "Vessel"
           }
         ],
@@ -219,9 +219,9 @@ expression: domain.snapshot().await?
       },
       "occupying": {
         "area": {
+          "class": "scopes.ItemClass",
           "gid": 1,
           "key": "E-0",
-          "klass": "scopes.ItemClass",
           "name": "Place"
         }
       },
@@ -246,24 +246,24 @@ expression: domain.snapshot().await?
     "acls": {
       "rules": []
     },
+    "class": {
+      "name": "scopes.ItemClass"
+    },
     "creator": null,
     "identity": {
       "private": "Private#7",
       "public": "Public#7"
     },
     "key": "E-4",
-    "klass": {
-      "py/type": "scopes.ItemClass"
-    },
     "parent": null,
     "scopes": {
       "containing": {
         "capacity": null,
         "holding": [
           {
+            "class": "scopes.ItemClass",
             "gid": 6,
             "key": "E-5",
-            "klass": "scopes.ItemClass",
             "name": "East"
           }
         ],
@@ -294,15 +294,15 @@ expression: domain.snapshot().await?
     "acls": {
       "rules": []
     },
+    "class": {
+      "name": "scopes.ItemClass"
+    },
     "creator": null,
     "identity": {
       "private": "Private#8",
       "public": "Public#8"
     },
     "key": "E-5",
-    "klass": {
-      "py/type": "scopes.ItemClass"
-    },
     "parent": null,
     "scopes": {
       "carryable": {
@@ -316,17 +316,17 @@ expression: domain.snapshot().await?
       },
       "exit": {
         "area": {
+          "class": "scopes.ItemClass",
           "gid": 1,
           "key": "E-0",
-          "klass": "scopes.ItemClass",
           "name": "Place"
         }
       },
       "location": {
         "container": {
+          "class": "scopes.ItemClass",
           "gid": 5,
           "key": "E-4",
-          "klass": "scopes.ItemClass",
           "name": "Welcome Area"
         }
       },

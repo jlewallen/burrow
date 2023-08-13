@@ -17,7 +17,7 @@ pub struct Entity {
     key: EntityKey,
     acls: Acls,
     identity: Identity,
-    #[serde(rename = "klass")] // TODO Rename, legacy from Python.
+    #[serde(alias = "klass")]
     pub(super) class: EntityClass,
     pub(super) creator: Option<EntityRef>,
     pub(super) parent: Option<EntityRef>,
@@ -53,7 +53,7 @@ impl Entity {
     }
 
     pub fn class(&self) -> &str {
-        &self.class.py_type
+        &self.class.name
     }
 
     pub fn to_json_value(&self) -> Result<JsonValue, DomainError> {

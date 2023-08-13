@@ -176,8 +176,8 @@ impl Kind {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct EntityClass {
-    #[serde(rename = "py/type")]
-    pub py_type: String,
+    #[serde(alias = "py/type")]
+    pub name: String,
 }
 
 impl FromStr for EntityClass {
@@ -191,7 +191,7 @@ impl FromStr for EntityClass {
 impl EntityClass {
     fn new(value: &str) -> Self {
         Self {
-            py_type: value.to_owned(),
+            name: value.to_owned(),
         }
     }
 

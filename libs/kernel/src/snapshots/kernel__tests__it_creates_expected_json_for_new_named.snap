@@ -7,10 +7,13 @@ expression: "[world.to_json_value()?, jacob.to_json_value()?]"
     "acls": {
       "rules": []
     },
+    "class": {
+      "name": "scopes.WorldClass"
+    },
     "creator": {
+      "class": "scopes.WorldClass",
       "gid": null,
       "key": "E-0",
-      "klass": "scopes.WorldClass",
       "name": "Jacob"
     },
     "identity": {
@@ -18,9 +21,6 @@ expression: "[world.to_json_value()?, jacob.to_json_value()?]"
       "public": ""
     },
     "key": "E-1",
-    "klass": {
-      "py/type": "scopes.WorldClass"
-    },
     "parent": null,
     "scopes": {
       "props": {
@@ -41,15 +41,15 @@ expression: "[world.to_json_value()?, jacob.to_json_value()?]"
     "acls": {
       "rules": []
     },
+    "class": {
+      "name": "scopes.WorldClass"
+    },
     "creator": null,
     "identity": {
       "private": "",
       "public": ""
     },
     "key": "E-0",
-    "klass": {
-      "py/type": "scopes.WorldClass"
-    },
     "parent": null,
     "scopes": {
       "props": {
