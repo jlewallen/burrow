@@ -176,7 +176,6 @@ impl Kind {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct EntityClass {
-    #[serde(alias = "py/type")]
     pub name: String,
 }
 

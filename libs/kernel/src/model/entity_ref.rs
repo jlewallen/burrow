@@ -9,7 +9,6 @@ use super::{CoreProps, Entity};
 #[derive(Clone, Serialize, Deserialize)]
 pub struct EntityRef {
     key: EntityKey,
-    #[serde(alias = "klass")]
     class: String,
     name: Option<String>,
     gid: Option<EntityGid>,

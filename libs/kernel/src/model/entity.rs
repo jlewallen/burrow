@@ -17,7 +17,6 @@ pub struct Entity {
     key: EntityKey,
     acls: Acls,
     identity: Identity,
-    #[serde(alias = "klass")]
     pub(super) class: EntityClass,
     pub(super) creator: Option<EntityRef>,
     pub(super) parent: Option<EntityRef>,
