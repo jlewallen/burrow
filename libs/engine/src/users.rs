@@ -3,7 +3,7 @@ pub mod model {
     use serde::{Deserialize, Serialize};
     use std::collections::HashMap;
 
-    use kernel::prelude::{DomainError, EntityKey, Entry, OpenScope, Scope};
+    use kernel::prelude::{DomainError, EntityKey, Entry, OpenScope, OpenScopeRefMut, Scope};
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Usernames {

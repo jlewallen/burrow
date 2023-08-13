@@ -108,7 +108,7 @@ impl FoldToDepth {
     {
         debug!(queue = self.queue.len(), "discovering");
 
-        let have: HashSet<&kernel::prelude::EntityKey> = self
+        let have: HashSet<kernel::prelude::EntityKey> = self
             .entities
             .iter()
             .filter_map(|(_lookup, maybe)| maybe.as_ref().map(|m| m.0.key()))

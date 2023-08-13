@@ -271,7 +271,7 @@ fn it_takes_items_out_of_containers() -> Result<()> {
             .as_ref()
             .unwrap()
             .key(),
-        *person.key()
+        person.key()
     );
 
     build.close()?;

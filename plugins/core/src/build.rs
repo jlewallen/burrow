@@ -4,8 +4,8 @@ use std::{rc::Rc, sync::Arc};
 use engine::{domain, prelude::*, sequences::DeterministicKeys, storage::InMemoryStorageFactory};
 use kernel::{
     prelude::{
-        build_entity, CoreProps, Entity, EntityKey, Entry, RegisteredPlugins, SessionRef,
-        SetSession, Surroundings, WORLD_KEY,
+        build_entity, CoreProps, Entity, EntityKey, Entry, OpenScopeRefMut, RegisteredPlugins,
+        SessionRef, SetSession, Surroundings, WORLD_KEY,
     },
     session::ActiveSession,
 };
@@ -58,7 +58,7 @@ impl Build {
     }
 
     pub fn encyclopedia(&mut self, entry: &Entry) -> Result<&mut Self> {
-        self.into_entry()?.set_encyclopedia(entry.key())?;
+        self.into_entry()?.set_encyclopedia(&entry.key())?;
 
         Ok(self)
     }
@@ -195,7 +195,7 @@ impl BuildSurroundings {
             .wiki()?
             .into_entry()?;
 
-        world.set_encyclopedia(encyclopedia.key())?;
+        world.set_encyclopedia(&encyclopedia.key())?;
 
         Ok(Self {
             hands: Vec::new(),
@@ -280,7 +280,7 @@ impl BuildSurroundings {
             )?
             .into_entry()?;
 
-        self.world.add_username_to_key("burrow", person.key())?;
+        self.world.add_username_to_key("burrow", &person.key())?;
 
         let area = Build::new(&self.session)?
             .named("Welcome Area")?

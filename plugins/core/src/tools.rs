@@ -71,7 +71,7 @@ pub fn navigate_between(
     match from.stop_occupying(item)? {
         DomainOutcome::Ok => {
             let mut location = item.scope_mut::<Occupying>()?;
-            location.area = to.try_into()?;
+            location.area = to.entity_ref();
 
             into.start_occupying(item)?;
             into.save()?;
@@ -104,7 +104,7 @@ pub fn set_wearing(container: &Entry, items: &Vec<Entry>) -> Result<(), DomainEr
     let mut wearing = container.scope_mut::<Wearing>()?;
     for item in items {
         wearing.start_wearing(item)?;
-        Location::set(item, container.try_into()?)?;
+        Location::set(item, container.entity_ref())?;
     }
     wearing.save()
 }
@@ -113,7 +113,7 @@ pub fn set_container(container: &Entry, items: &Vec<Entry>) -> Result<(), Domain
     let mut containing = container.scope_mut::<Containing>()?;
     for item in items {
         containing.start_carrying(item)?;
-        Location::set(item, container.try_into()?)?;
+        Location::set(item, container.entity_ref())?;
     }
     containing.save()
 }
@@ -123,7 +123,7 @@ pub fn set_occupying(area: &Entry, living: &Vec<Entry>) -> Result<(), DomainErro
     for item in living {
         occupyable.start_occupying(item)?;
         let mut occupying = item.scope_mut::<Occupying>()?;
-        occupying.area = area.try_into()?;
+        occupying.area = area.entity_ref();
         occupying.save()?;
     }
     occupyable.save()
@@ -142,7 +142,7 @@ pub fn contained_by(container: &Entry) -> Result<Vec<Entry>, DomainError> {
 
 pub fn leads_to<'a>(route: &'a Entry, area: &'a Entry) -> Result<&'a Entry> {
     let mut exit = route.scope_mut::<Exit>()?;
-    exit.area = area.try_into()?;
+    exit.area = area.entity_ref();
     exit.save()?;
 
     Ok(route)

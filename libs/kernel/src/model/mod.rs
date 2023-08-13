@@ -33,6 +33,18 @@ impl EntityPtr {
     }
 }
 
+impl From<Rc<RefCell<Entity>>> for EntityPtr {
+    fn from(value: Rc<RefCell<Entity>>) -> Self {
+        Self(value)
+    }
+}
+
+impl Into<Rc<RefCell<Entity>>> for EntityPtr {
+    fn into(self) -> Rc<RefCell<Entity>> {
+        self.0
+    }
+}
+
 impl Deref for EntityPtr {
     type Target = RefCell<Entity>;
 

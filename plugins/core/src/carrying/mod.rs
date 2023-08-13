@@ -101,13 +101,13 @@ pub mod model {
                 }
             }
 
-            self.holding.push(item.try_into()?);
+            self.holding.push(item.entity_ref());
 
             Ok(DomainOutcome::Ok)
         }
 
         pub fn is_holding(&self, item: &Entry) -> Result<bool> {
-            Ok(self.holding.iter().any(|i| *i.key() == *item.key()))
+            Ok(self.holding.iter().any(|i| *i.key() == item.key()))
         }
 
         fn remove_item(&mut self, item: &Entry) -> CarryingResult {
@@ -115,7 +115,7 @@ pub mod model {
                 .holding
                 .iter()
                 .flat_map(|i| {
-                    if *i.key() == *item.key() {
+                    if *i.key() == item.key() {
                         vec![]
                     } else {
                         vec![i.clone()]

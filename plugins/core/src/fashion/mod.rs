@@ -127,7 +127,7 @@ pub mod model {
                 }
             }
 
-            self.wearing.push(Article::Just(item.try_into()?));
+            self.wearing.push(Article::Just(item.entity_ref()));
 
             Ok(DomainOutcome::Ok)
         }
@@ -137,7 +137,7 @@ pub mod model {
                 .wearing
                 .iter()
                 .flat_map(|i| i.keys())
-                .any(|i| *i.key() == *item.key()))
+                .any(|i| *i.key() == item.key()))
         }
 
         fn remove_item(&mut self, item: &Entry) -> CarryingResult {
@@ -145,7 +145,7 @@ pub mod model {
                 .wearing
                 .iter()
                 .flat_map(|i| {
-                    if i.keys().into_iter().any(|i| *i.key() == *item.key()) {
+                    if i.keys().into_iter().any(|i| *i.key() == item.key()) {
                         vec![]
                     } else {
                         vec![i.clone()]

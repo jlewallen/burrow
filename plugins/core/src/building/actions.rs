@@ -80,7 +80,10 @@ impl Action for EditRawAction {
         match session.find_item(surroundings, &self.item)? {
             Some(editing) => {
                 info!("editing {:?}", editing);
-                let json = editing.to_json_value()?;
+                let json = {
+                    let editing = editing.borrow();
+                    editing.to_json_value()?
+                };
                 let key = editing.key().clone();
                 Ok(EditorReply::new(
                     key.to_string(),

@@ -45,7 +45,7 @@ where
     match do_from(&mut from, item.clone())? {
         Some(moving) => match do_into(&mut into, moving)? {
             Some(moving) => {
-                Location::set(&moving, to.try_into()?)?;
+                Location::set(&moving, to.entity_ref())?;
                 from.save()?;
                 into.save()?;
 

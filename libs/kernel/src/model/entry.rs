@@ -5,7 +5,6 @@ use super::{
     CoreProps, DomainError, Entity, EntityKey, EntityPtr, EntityRef, JsonValue, LookupBy,
     OpenScope, OpenScopeRefMut, OpenedScope, OpenedScopeRefMut, Scope, WORLD_KEY,
 };
-use crate::session::get_my_session;
 
 pub trait EntryResolver {
     fn recursive_entry(
@@ -35,15 +34,65 @@ fn make_debug_string(entity: &Entity) -> String {
     }
 }
 
-pub use old::*;
+pub use new::*;
 
 #[allow(dead_code)]
 mod new {
-    use std::{cell::RefCell, rc::Rc};
+    use std::{cell::RefCell, ops::Deref, rc::Rc};
 
     pub use super::*;
 
-    pub type Entry = Rc<RefCell<Entity>>;
+    #[derive(Clone)]
+    pub struct Entry(Rc<RefCell<Entity>>);
+
+    impl Entry {
+        pub fn new(target: impl Into<Rc<RefCell<Entity>>>) -> Self {
+            Self(target.into())
+        }
+
+        pub fn new_from_entity(entity: Entity) -> Result<Self> {
+            Ok(Self(EntityPtr::new(entity).into()))
+        }
+
+        pub fn key(&self) -> EntityKey {
+            self.0.borrow().key().clone()
+        }
+
+        pub fn entity(&self) -> &Rc<RefCell<Entity>> {
+            &self.0
+        }
+
+        pub fn entity_ref(&self) -> EntityRef {
+            let entity = self.borrow();
+            EntityRef::new_from_entity(&entity, None)
+        }
+
+        pub fn name(&self) -> Result<Option<String>, DomainError> {
+            let entity = self.0.borrow();
+            Ok(entity.name())
+        }
+
+        pub fn desc(&self) -> Result<Option<String>, DomainError> {
+            let entity = self.0.borrow();
+
+            Ok(entity.desc())
+        }
+    }
+
+    impl Deref for Entry {
+        type Target = RefCell<Entity>;
+
+        fn deref(&self) -> &Self::Target {
+            &self.0
+        }
+    }
+
+    impl std::fmt::Debug for Entry {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let entity = self.0.borrow();
+            f.debug_struct("Entity").field("key", entity.key()).finish()
+        }
+    }
 }
 
 #[allow(dead_code)]
@@ -163,6 +212,7 @@ mod old {
         }
     }
 
+    /*
     impl TryFrom<EntityRef> for Option<Entry> {
         type Error = DomainError;
 
@@ -171,6 +221,7 @@ mod old {
             session.entry(&LookupBy::Key(value.key()))
         }
     }
+    */
 
     impl std::fmt::Debug for Entry {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

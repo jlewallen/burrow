@@ -45,7 +45,7 @@ impl WorkingEntities {
             .map(|(key, modified)| {
                 if let Some(modified) = any_entity_changes(AnyChanges {
                     before: Some(Original::Json(&modified.original)),
-                    after: modified.entry.entity().clone(),
+                    after: modified.entry.entity().clone().into(),
                 })? {
                     debug!("{:?} modified", key);
                     Ok(vec![Query::Update(EntityUpdate::new(
