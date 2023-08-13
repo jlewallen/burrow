@@ -38,15 +38,15 @@ pub use new::*;
 
 #[allow(dead_code)]
 mod new {
-    use std::{cell::RefCell, ops::Deref, rc::Rc};
+    use std::{cell::RefCell, ops::Deref};
 
     pub use super::*;
 
     #[derive(Clone)]
-    pub struct Entry(Rc<RefCell<Entity>>);
+    pub struct Entry(EntityPtr);
 
     impl Entry {
-        pub fn new(target: impl Into<Rc<RefCell<Entity>>>) -> Self {
+        pub fn new(target: impl Into<EntityPtr>) -> Self {
             Self(target.into())
         }
 
@@ -58,7 +58,7 @@ mod new {
             self.0.borrow().key().clone()
         }
 
-        pub fn entity(&self) -> &Rc<RefCell<Entity>> {
+        pub fn entity(&self) -> &EntityPtr {
             &self.0
         }
 
