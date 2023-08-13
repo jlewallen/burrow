@@ -223,7 +223,7 @@ pub mod actions {
         fn perform(&self, session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
             info!("saving {:?}", self.key);
 
-            match session.entry(&LookupBy::Key(&self.key))? {
+            match session.entity(&LookupBy::Key(&self.key))? {
                 Some(entry) => {
                     match &self.copy {
                         WorkingCopy::Script(script) => {

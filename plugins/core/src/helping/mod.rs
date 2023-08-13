@@ -119,13 +119,13 @@ pub mod actions {
                 return Ok(None);
             };
 
-        let cyclo = session.entry(&LookupBy::Key(&cyclo))?;
+        let cyclo = session.entity(&LookupBy::Key(&cyclo))?;
         let cyclo = cyclo.expect("TODO Dangling entity");
 
         if let Some(page_name) = page_name {
             let found = cyclo.get_well_known(page_name)?;
             if let Some(found) = found {
-                Ok(session.entry(&LookupBy::Key(&found))?)
+                Ok(session.entity(&LookupBy::Key(&found))?)
             } else if create {
                 let creating: Entity = build_entity()
                     .class(EntityClass::encyclopedia())
@@ -227,11 +227,11 @@ pub mod actions {
         fn perform(&self, session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
             info!("saving {:?}", self.key);
 
-            match session.entry(&LookupBy::Key(&self.key))? {
-                Some(entry) => {
+            match session.entity(&LookupBy::Key(&self.key))? {
+                Some(entity) => {
                     match &self.copy {
                         WorkingCopy::Markdown(markdown) => {
-                            let mut wiki = entry.scope_mut::<Wiki>()?;
+                            let mut wiki = entity.scope_mut::<Wiki>()?;
                             wiki.set_default(markdown);
                             wiki.save()?;
                         }

@@ -75,10 +75,8 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
         for key in keys.iter() {
             info!("processing {:?}", key);
 
-            let entry = session.entry(&LookupBy::Key(key))?;
-            if let Some(entry) = entry {
-                let entity = entry.entity();
-
+            let entity = session.entity(&LookupBy::Key(key))?;
+            if let Some(entity) = entity {
                 if let Some(key) = &cmd.scope {
                     let mut entity = entity.borrow_mut();
                     if cmd.erase {
@@ -89,18 +87,18 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
                 }
 
                 if cmd.scopes {
-                    load_and_save_scope::<Properties>(&entry)?;
-                    load_and_save_scope::<Location>(&entry)?;
-                    load_and_save_scope::<Carryable>(&entry)?;
-                    load_and_save_scope::<Occupyable>(&entry)?;
-                    load_and_save_scope::<Occupying>(&entry)?;
-                    load_and_save_scope::<Exit>(&entry)?;
-                    load_and_save_scope::<Movement>(&entry)?;
-                    load_and_save_scope::<Containing>(&entry)?;
-                    load_and_save_scope::<Wearable>(&entry)?;
-                    load_and_save_scope::<Wearing>(&entry)?;
-                    load_and_save_scope::<Memory>(&entry)?;
-                    load_and_save_scope::<Behaviors>(&entry)?;
+                    load_and_save_scope::<Properties>(&entity)?;
+                    load_and_save_scope::<Location>(&entity)?;
+                    load_and_save_scope::<Carryable>(&entity)?;
+                    load_and_save_scope::<Occupyable>(&entity)?;
+                    load_and_save_scope::<Occupying>(&entity)?;
+                    load_and_save_scope::<Exit>(&entity)?;
+                    load_and_save_scope::<Movement>(&entity)?;
+                    load_and_save_scope::<Containing>(&entity)?;
+                    load_and_save_scope::<Wearable>(&entity)?;
+                    load_and_save_scope::<Wearing>(&entity)?;
+                    load_and_save_scope::<Memory>(&entity)?;
+                    load_and_save_scope::<Behaviors>(&entity)?;
                 }
             }
         }

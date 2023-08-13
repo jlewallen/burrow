@@ -99,7 +99,7 @@ impl Performer for AgentSession {
 }
 
 impl EntityPtrResolver for AgentSession {
-    fn recursive_entry(
+    fn recursive_entity(
         &self,
         lookup: &kernel::prelude::LookupBy,
         _depth: usize,
@@ -295,7 +295,7 @@ where
         key: impl Into<kernel::prelude::EntityKey>,
     ) -> std::result::Result<kernel::prelude::EntityPtr, DomainError> {
         self.session
-            .entry(&kernel::prelude::LookupBy::Key(&key.into()))?
+            .entity(&kernel::prelude::LookupBy::Key(&key.into()))?
             .ok_or(DomainError::EntityNotFound(here!().into()))
     }
 }

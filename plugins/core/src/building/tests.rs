@@ -206,7 +206,7 @@ fn it_digs_bidirectionally() -> Result<()> {
 
     // Not the best way of finding the constructed area.
     let destination = session
-        .entry(&LookupBy::Gid(&EntityGid::new(4)))?
+        .entity(&LookupBy::Gid(&EntityGid::new(4)))?
         .ok_or(DomainError::EntityNotFound(here!().into()))?;
 
     let reply: AreaObservation = reply.json_as()?;

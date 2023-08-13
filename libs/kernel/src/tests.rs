@@ -38,7 +38,7 @@ impl KeysOnlySession {
 }
 
 impl EntityPtrResolver for KeysOnlySession {
-    fn recursive_entry(
+    fn recursive_entity(
         &self,
         _lookup: &LookupBy,
         _depth: usize,

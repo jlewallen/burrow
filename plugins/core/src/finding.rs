@@ -269,7 +269,7 @@ impl Finder for DefaultFinder {
                 // lookup when the event is raised rather than in here.
                 let session = get_my_session()?;
                 let area = session
-                    .entry(&kernel::prelude::LookupBy::Key(area))?
+                    .entity(&kernel::prelude::LookupBy::Key(area))?
                     .ok_or(DomainError::EntityNotFound(here!().into()))?;
                 tools::get_occupant_keys(&area)
             }
