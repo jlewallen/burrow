@@ -23,9 +23,9 @@ pub enum ScopeValue {
     Intermediate { value: Json, previous: Option<Json> },
 }
 
-impl Into<Json> for ScopeValue {
-    fn into(self) -> Json {
-        match self {
+impl From<ScopeValue> for Json {
+    fn from(value: ScopeValue) -> Self {
+        match value {
             ScopeValue::Original(v)
             | ScopeValue::Intermediate {
                 value: v,
@@ -115,7 +115,7 @@ pub trait LoadAndStoreScope: StoreScope {
         self.store_scope(scope_key, JsonValue::Object(Default::default()));
     }
     fn replace_scope<T: Scope>(&mut self, value: &T) -> Result<(), DomainError> {
-        let json = serde_json::to_value(value)?.into();
+        let json = serde_json::to_value(value)?;
         self.store_scope(T::scope_key(), json);
         Ok(())
     }
@@ -154,7 +154,7 @@ where
                 return Ok(None);
             };
 
-        let json = value.clone().into();
+        let json = value.clone();
         let value = serde_json::from_value(json).context(here!())?;
 
         Ok(Some(OpenedScope::new(value)))
@@ -181,7 +181,7 @@ where
 {
     fn scope_mut<T: Scope + Serialize>(&self) -> Result<OpenedScopeMut<T>, DomainError> {
         let value = match self.load_scope(T::scope_key()) {
-            Some(value) => serde_json::from_value(value.clone().into()).context(here!())?,
+            Some(value) => serde_json::from_value(value.clone()).context(here!())?,
             None => T::default(),
         };
 
@@ -203,7 +203,7 @@ where
     fn scope_mut<T: Scope + Serialize>(&self) -> Result<OpenedScopeRefMut<T, O>, DomainError> {
         let owner = self.borrow();
         let value = match owner.load_scope(T::scope_key()) {
-            Some(value) => serde_json::from_value(value.clone().into()).context(here!())?,
+            Some(value) => serde_json::from_value(value.clone()).context(here!())?,
             None => T::default(),
         };
 
@@ -266,7 +266,8 @@ impl<T: Scope + Serialize> OpenedScopeMut<T> {
     where
         O: StoreScope,
     {
-        Ok(entity.store_scope(T::scope_key(), serde_json::to_value(&self.target)?))
+        entity.store_scope(T::scope_key(), serde_json::to_value(&self.target)?);
+        Ok(())
     }
 }
 
@@ -308,7 +309,8 @@ where
     pub fn save(&mut self) -> Result<(), DomainError> {
         let value = serde_json::to_value(&self.target)?;
         let mut owner = self.owner.borrow_mut();
-        Ok(owner.store_scope(T::scope_key(), value))
+        owner.store_scope(T::scope_key(), value);
+        Ok(())
     }
 }
 

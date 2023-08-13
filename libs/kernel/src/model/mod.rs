@@ -44,7 +44,7 @@ impl EntityPtr {
     }
 
     pub fn entity(&self) -> &EntityPtr {
-        &self
+        self
     }
 
     pub fn name(&self) -> Result<Option<String>, DomainError> {
@@ -69,9 +69,9 @@ impl From<Rc<RefCell<Entity>>> for EntityPtr {
     }
 }
 
-impl Into<Rc<RefCell<Entity>>> for EntityPtr {
-    fn into(self) -> Rc<RefCell<Entity>> {
-        self.0
+impl From<EntityPtr> for Rc<RefCell<Entity>> {
+    fn from(value: EntityPtr) -> Self {
+        value.0
     }
 }
 
