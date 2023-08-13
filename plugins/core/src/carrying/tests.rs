@@ -186,6 +186,7 @@ fn it_fails_to_put_item_in_non_containers() -> Result<()> {
     let vessel = build
         .entity()?
         .named("Not A Vessel")?
+        .save()?
         .carryable()?
         .into_entity()?;
     let (session, surroundings) = build
@@ -216,6 +217,7 @@ fn it_puts_items_in_containers() -> Result<()> {
     let vessel = build
         .entity()?
         .named("Vessel")?
+        .save()?
         .carryable()?
         .holding(&vec![])?
         .into_entity()?;
@@ -244,10 +246,16 @@ fn it_puts_items_in_containers() -> Result<()> {
 #[test]
 fn it_takes_items_out_of_containers() -> Result<()> {
     let mut build = BuildSurroundings::new()?;
-    let key = build.entity()?.named("Key")?.carryable()?.into_entity()?;
+    let key = build
+        .entity()?
+        .named("Key")?
+        .save()?
+        .carryable()?
+        .into_entity()?;
     let vessel = build
         .entity()?
         .named("Vessel")?
+        .save()?
         .carryable()?
         .holding(&vec![key.clone()])?
         .into_entity()?;

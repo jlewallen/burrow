@@ -289,6 +289,7 @@ fn it_adds_scopes_to_solo_held_items() -> Result<()> {
     let jacket = build
         .entity()?
         .named("Jacket")?
+        .save()?
         .carryable()?
         .into_entity()?;
 

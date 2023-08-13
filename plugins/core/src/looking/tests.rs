@@ -108,6 +108,7 @@ fn it_looks_inside_containers() -> Result<()> {
     let vessel = build
         .entity()?
         .named("Vessel")?
+        .save()?
         .carryable()?
         .holding(&vec![build.make(QuickThing::Object("Key"))?])?
         .into_entity()?;
@@ -131,6 +132,7 @@ fn it_fails_to_look_at_not_found_entities() -> Result<()> {
     let vessel = build
         .entity()?
         .named("Hammer")?
+        .save()?
         .carryable()?
         .into_entity()?;
     let (session, surroundings) = build.hands(vec![QuickThing::Actual(vessel)]).build()?;
@@ -153,6 +155,7 @@ fn it_looks_at_entities() -> Result<()> {
     let hammer = build
         .entity()?
         .named("Hammer")?
+        .save()?
         .carryable()?
         .into_entity()?;
     let (session, surroundings) = build.hands(vec![QuickThing::Actual(hammer)]).build()?;
@@ -175,6 +178,7 @@ fn it_sees_worm_items() -> Result<()> {
     let jacket = build
         .entity()?
         .named("Jacket")?
+        .save()?
         .wearable()?
         .carryable()?
         .into_entity()?;

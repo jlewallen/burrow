@@ -48,10 +48,16 @@ impl WorldFixture for HoldingKeyInVessel {
         let mut build = BuildSurroundings::new_in_session(session.clone())?;
 
         let place = build.make(QuickThing::Place("Place"))?;
-        let key = build.entity()?.named("Key")?.carryable()?.into_entity()?;
+        let key = build
+            .entity()?
+            .named("Key")?
+            .save()?
+            .carryable()?
+            .into_entity()?;
         let vessel = build
             .entity()?
             .named("Vessel")?
+            .save()?
             .carryable()?
             .holding(&vec![key.clone()])?
             .into_entity()?;
