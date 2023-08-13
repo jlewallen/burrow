@@ -124,7 +124,7 @@ impl ActiveSession for AgentSession {
     fn add_entity(&self, entity: kernel::prelude::Entity) -> Result<EntityPtr> {
         let key = entity.key().clone();
         let json_value = entity.to_json_value()?;
-        let entity = EntityPtr::new_from_entity(entity)?;
+        let entity = EntityPtr::new_from_entity(entity);
         let mut entities = self.entities.borrow_mut();
         entities.insert(&key, (json_value, entity.clone()));
         Ok(entity)

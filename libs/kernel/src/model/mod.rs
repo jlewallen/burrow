@@ -26,9 +26,8 @@ pub use scopes::*;
 pub struct EntityPtr(Rc<RefCell<Entity>>);
 
 impl EntityPtr {
-    pub fn new_from_entity(e: Entity) -> Result<Self> {
-        // TODO Remove Result
-        Ok(Self(Rc::new(RefCell::new(e))))
+    pub fn new_from_entity(e: Entity) -> Self {
+        Self(Rc::new(RefCell::new(e)))
     }
 
     pub fn new(e: Entity) -> Self {

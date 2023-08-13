@@ -6,11 +6,9 @@ use std::rc::{Rc, Weak};
 use super::base::{DomainError, EntityGid, EntityKey, JsonValue};
 use super::{CoreProps, Entity};
 
-// TODO Make this generic across 'entity's type?
 #[derive(Clone, Serialize, Deserialize)]
 pub struct EntityRef {
     key: EntityKey,
-    #[serde(rename = "klass")] // TODO Python name collision.
     class: String,
     name: Option<String>,
     gid: Option<EntityGid>,
