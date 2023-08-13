@@ -49,7 +49,7 @@ impl Build {
     }
 
     pub fn wiki(&mut self) -> Result<&mut Self> {
-        let entry = self.into_entry()?;
+        let entry = self.into_entity()?;
         let mut wiki = entry.scope_mut::<Wiki>()?;
         wiki.set_default("# Hello, world!");
         wiki.save()?;
@@ -58,62 +58,62 @@ impl Build {
     }
 
     pub fn encyclopedia(&mut self, entry: &EntityPtr) -> Result<&mut Self> {
-        self.into_entry()?.set_encyclopedia(&entry.key())?;
+        self.into_entity()?.set_encyclopedia(&entry.key())?;
 
         Ok(self)
     }
 
     pub fn carryable(&mut self) -> Result<&mut Self> {
-        tools::set_quantity(&self.into_entry()?, 1.0)?;
+        tools::set_quantity(&self.into_entity()?, 1.0)?;
 
         Ok(self)
     }
 
     pub fn wearable(&mut self) -> Result<&mut Self> {
-        let entry = self.into_entry()?;
+        let entry = self.into_entity()?;
         entry.scope_mut::<Wearable>()?.save()?;
 
         Ok(self)
     }
 
     pub fn of_quantity(&mut self, quantity: f32) -> Result<&mut Self> {
-        tools::set_quantity(&self.into_entry()?, quantity)?;
+        tools::set_quantity(&self.into_entity()?, quantity)?;
 
         Ok(self)
     }
 
     pub fn leads_to(&mut self, area: EntityPtr) -> Result<&mut Self> {
-        tools::leads_to(&self.into_entry()?, &area)?;
+        tools::leads_to(&self.into_entity()?, &area)?;
 
         Ok(self)
     }
 
     pub fn occupying(&mut self, living: &Vec<EntityPtr>) -> Result<&mut Self> {
-        tools::set_occupying(&self.into_entry()?, living)?;
+        tools::set_occupying(&self.into_entity()?, living)?;
 
         Ok(self)
     }
 
     pub fn holding(&mut self, items: &Vec<EntityPtr>) -> Result<&mut Self> {
-        tools::set_container(&self.into_entry()?, items)?;
+        tools::set_container(&self.into_entity()?, items)?;
 
         Ok(self)
     }
 
     pub fn wearing(&mut self, items: &Vec<EntityPtr>) -> Result<&mut Self> {
-        tools::set_wearing(&self.into_entry()?, items)?;
+        tools::set_wearing(&self.into_entity()?, items)?;
 
         Ok(self)
     }
 
     pub fn with_username(&mut self, name: &str, key: &EntityKey) -> Result<&mut Self> {
-        let entry = self.into_entry()?;
+        let entry = self.into_entity()?;
         entry.add_username_to_key(name, key)?;
 
         Ok(self)
     }
 
-    pub fn into_entry(&mut self) -> Result<EntityPtr> {
+    pub fn into_entity(&mut self) -> Result<EntityPtr> {
         match &self.entry {
             Some(entry) => Ok(entry.clone()),
             None => {
@@ -141,17 +141,17 @@ impl QuickThing {
             QuickThing::Object(name) => Ok(Build::new(session)?
                 .named(name)?
                 .carryable()?
-                .into_entry()?),
+                .into_entity()?),
             QuickThing::Wearable(name) => Ok(Build::new(session)?
                 .named(name)?
                 .carryable()?
                 .wearable()?
-                .into_entry()?),
+                .into_entity()?),
             QuickThing::Multiple(name, quantity) => Ok(Build::new(session)?
                 .named(name)?
                 .of_quantity(*quantity)?
-                .into_entry()?),
-            QuickThing::Place(name) => Ok(Build::new(session)?.named(name)?.into_entry()?),
+                .into_entity()?),
+            QuickThing::Place(name) => Ok(Build::new(session)?.named(name)?.into_entity()?),
             QuickThing::Route(name, area) => {
                 let area = area.make(session)?;
 
@@ -159,7 +159,7 @@ impl QuickThing {
                     .named(name)?
                     .carryable()?
                     .leads_to(area)?
-                    .into_entry()?)
+                    .into_entity()?)
             }
             QuickThing::Actual(ep) => Ok(ep.clone()),
         }
@@ -188,12 +188,12 @@ impl BuildSurroundings {
         let set = session.set_session()?;
 
         // TODO One problem at a time.
-        let world = Build::new_world(&session)?.named("World")?.into_entry()?;
+        let world = Build::new_world(&session)?.named("World")?.into_entity()?;
 
         let encyclopedia = Build::new(&session)?
             .named("Encyclopedia")?
             .wiki()?
-            .into_entry()?;
+            .into_entity()?;
 
         world.set_encyclopedia(&encyclopedia.key())?;
 
@@ -211,7 +211,7 @@ impl BuildSurroundings {
         let set = session.set_session()?;
 
         // TODO One problem at a time.
-        let world = Build::new_world(&session)?.named("World")?.into_entry()?;
+        let world = Build::new_world(&session)?.named("World")?.into_entity()?;
 
         Ok(Self {
             hands: Vec::new(),
@@ -278,7 +278,7 @@ impl BuildSurroundings {
                     .map(|i| -> Result<_> { i.make(&self.session) })
                     .collect::<Result<Vec<_>>>()?,
             )?
-            .into_entry()?;
+            .into_entity()?;
 
         self.world.add_username_to_key("burrow", &person.key())?;
 
@@ -292,7 +292,7 @@ impl BuildSurroundings {
                     .map(|i| -> Result<_> { i.make(&self.session) })
                     .collect::<Result<Vec<_>>>()?,
             )?
-            .into_entry()?;
+            .into_entity()?;
 
         self.flush()?;
 

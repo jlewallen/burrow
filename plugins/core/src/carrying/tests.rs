@@ -187,7 +187,7 @@ fn it_fails_to_put_item_in_non_containers() -> Result<()> {
         .entity()?
         .named("Not A Vessel")?
         .carryable()?
-        .into_entry()?;
+        .into_entity()?;
     let (session, surroundings) = build
         .hands(vec![
             QuickThing::Object("key"),
@@ -218,7 +218,7 @@ fn it_puts_items_in_containers() -> Result<()> {
         .named("Vessel")?
         .carryable()?
         .holding(&vec![])?
-        .into_entry()?;
+        .into_entity()?;
     let (session, surroundings) = build
         .hands(vec![
             QuickThing::Object("key"),
@@ -244,13 +244,13 @@ fn it_puts_items_in_containers() -> Result<()> {
 #[test]
 fn it_takes_items_out_of_containers() -> Result<()> {
     let mut build = BuildSurroundings::new()?;
-    let key = build.entity()?.named("Key")?.carryable()?.into_entry()?;
+    let key = build.entity()?.named("Key")?.carryable()?.into_entity()?;
     let vessel = build
         .entity()?
         .named("Vessel")?
         .carryable()?
         .holding(&vec![key.clone()])?
-        .into_entry()?;
+        .into_entity()?;
     let (session, surroundings) = build
         .hands(vec![QuickThing::Actual(vessel.clone())])
         .build()?;

@@ -286,7 +286,11 @@ fn it_saves_changes_to_whole_entities() -> Result<()> {
 #[test]
 fn it_adds_scopes_to_solo_held_items() -> Result<()> {
     let mut build = BuildSurroundings::new()?;
-    let jacket = build.entity()?.named("Jacket")?.carryable()?.into_entry()?;
+    let jacket = build
+        .entity()?
+        .named("Jacket")?
+        .carryable()?
+        .into_entity()?;
 
     assert!(!jacket.scope::<Wearable>()?.is_some());
 
