@@ -176,8 +176,7 @@ pub fn get_occupant_keys(area: &EntityPtr) -> Result<Vec<EntityKey>> {
         .collect::<Vec<EntityKey>>())
 }
 
-pub fn new_entity_from_template_ptr(template_entry: &EntityPtr) -> Result<EntityPtr> {
-    let template = template_entry.entity();
+pub fn new_entity_from_template_ptr(template: &EntityPtr) -> Result<EntityPtr> {
     let key = get_my_session()?.new_key();
     let entity = build_entity()
         .with_key(key)
@@ -248,8 +247,8 @@ pub fn obliterate(obliterating: &EntityPtr) -> Result<()> {
     }
 }
 
-pub fn get_adjacent_keys(entry: &EntityPtr) -> Result<Vec<EntityKey>> {
-    let containing = entry.scope::<Containing>()?.unwrap();
+pub fn get_adjacent_keys(entity: &EntityPtr) -> Result<Vec<EntityKey>> {
+    let containing = entity.scope::<Containing>()?.unwrap();
 
     Ok(containing
         .holding

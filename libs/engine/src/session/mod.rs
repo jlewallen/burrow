@@ -325,8 +325,8 @@ impl ActiveSession for Session {
             .expect("Bug: Newly added entity has no EntityPtr"))
     }
 
-    fn obliterate(&self, entry: &EntityPtr) -> Result<()> {
-        self.state.obliterate(entry)
+    fn obliterate(&self, entity: &EntityPtr) -> Result<()> {
+        self.state.obliterate(entity)
     }
 
     fn raise(&self, audience: Audience, raising: Raising) -> Result<()> {

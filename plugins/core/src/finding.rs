@@ -36,7 +36,7 @@ pub enum EntityRelationship {
 }
 
 impl EntityRelationship {
-    pub fn entry(&self) -> Result<&EntityPtr> {
+    pub fn entity(&self) -> Result<&EntityPtr> {
         Ok(match self {
             EntityRelationship::World(e) => e,
             EntityRelationship::User(e) => e,
@@ -246,8 +246,8 @@ impl Finder for DefaultFinder {
         Ok(get_my_session()?.world()?.expect("No world"))
     }
 
-    fn find_location(&self, entry: &EntityPtr) -> Result<EntityPtr> {
-        let occupying = entry.scope::<Occupying>()?.unwrap();
+    fn find_location(&self, entity: &EntityPtr) -> Result<EntityPtr> {
+        let occupying = entity.scope::<Occupying>()?.unwrap();
         Ok(occupying.area.to_entity()?)
     }
 

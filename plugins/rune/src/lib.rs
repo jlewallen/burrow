@@ -224,10 +224,10 @@ pub mod actions {
             info!("saving {:?}", self.key);
 
             match session.entity(&LookupBy::Key(&self.key))? {
-                Some(entry) => {
+                Some(entity) => {
                     match &self.copy {
                         WorkingCopy::Script(script) => {
-                            let mut behaviors = entry.scope_mut::<Behaviors>()?;
+                            let mut behaviors = entity.scope_mut::<Behaviors>()?;
                             let langs = behaviors.langs.get_or_insert_with(HashMap::new);
                             langs.insert(RUNE_EXTENSION.to_owned(), script.clone());
                             behaviors.save()?;

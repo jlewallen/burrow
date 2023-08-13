@@ -22,8 +22,8 @@ pub enum ScriptSource {
 
 pub fn load_user_sources() -> Result<HashSet<ScriptSource>> {
     let mut scripts = HashSet::new();
-    for entry in glob("user/*.rn")? {
-        match entry {
+    for file in glob("user/*.rn")? {
+        match file {
             Ok(path) => {
                 info!("script {}", path.display());
                 scripts.insert(ScriptSource::File(path));
@@ -42,7 +42,7 @@ pub fn load_sources_from_surroundings(
     let haystack = EntityRelationshipSet::new_from_surroundings(surroundings).expand()?;
     for nearby in haystack
         .iter()
-        .map(|r| r.entry())
+        .map(|r| r.entity())
         .collect::<Result<Vec<_>>>()?
     {
         trace!(key = ?nearby.key(), "check-sources");
@@ -55,8 +55,8 @@ pub fn load_sources_from_surroundings(
     Ok(scripts)
 }
 
-pub fn get_script(entry: &EntityPtr) -> Result<Option<String>> {
-    let behaviors = entry.scope::<Behaviors>()?.unwrap_or_default();
+pub fn get_script(entity: &EntityPtr) -> Result<Option<String>> {
+    let behaviors = entity.scope::<Behaviors>()?.unwrap_or_default();
     match &behaviors.langs {
         Some(langs) => match langs.get(RUNE_EXTENSION) {
             Some(script) => Ok(Some(script.clone())),
