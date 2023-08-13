@@ -265,7 +265,7 @@ fn it_saves_changes_to_whole_entities() -> Result<()> {
     let (session, surroundings) = build.plain().build()?;
     let (_, living, area) = surroundings.unpack();
 
-    let original = living.to_json_value()?;
+    let original = living.borrow().to_json_value()?;
 
     let action = Box::new(SaveEntityJsonAction {
         key: area.key().clone(),

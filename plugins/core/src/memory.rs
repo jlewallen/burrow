@@ -135,13 +135,13 @@ pub mod model {
         }
     }
 
-    pub fn memories_of(entity: &Entry) -> Result<Vec<SpecificMemory>, DomainError> {
+    pub fn memories_of(entity: &EntityPtr) -> Result<Vec<SpecificMemory>, DomainError> {
         let memory = entity.scope::<Memory>()?.unwrap_or_default();
         Ok(memory.memory.clone())
     }
 
     pub fn remember(
-        entity: &Entry,
+        entity: &EntityPtr,
         time: DateTime<Utc>,
         event: MemoryEvent,
     ) -> Result<(), DomainError> {

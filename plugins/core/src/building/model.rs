@@ -14,10 +14,10 @@ pub struct QuickEdit {
     pub desc: Option<String>,
 }
 
-impl TryFrom<&Entry> for QuickEdit {
+impl TryFrom<&EntityPtr> for QuickEdit {
     type Error = DomainError;
 
-    fn try_from(value: &Entry) -> std::result::Result<Self, Self::Error> {
+    fn try_from(value: &EntityPtr) -> std::result::Result<Self, Self::Error> {
         let name = value.name()?;
         let desc = value.desc()?;
         Ok(Self { name, desc })

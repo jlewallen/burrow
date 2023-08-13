@@ -14,7 +14,7 @@ use tracing::{info, trace, warn};
 use engine::prelude::{EvaluateAs, Notifier, Session, SessionOpener};
 use kernel::common::SimpleReply;
 use kernel::prelude::{
-    Effect, EntityKey, EntryResolver, JsonValue, LookupBy, Perform, PerformAction, Performer,
+    Effect, EntityKey, EntityPtrResolver, JsonValue, LookupBy, Perform, PerformAction, Performer,
 };
 
 use crate::{

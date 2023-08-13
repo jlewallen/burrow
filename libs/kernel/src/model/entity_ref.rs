@@ -49,11 +49,6 @@ impl From<&Entity> for EntityRef {
 }
 
 impl EntityRef {
-    pub(crate) fn new_from_raw(entity: &Rc<RefCell<Entity>>) -> Self {
-        let shared_entity = entity.borrow();
-        Self::new_from_entity(&shared_entity, Some(Rc::downgrade(entity)))
-    }
-
     pub(crate) fn new_from_entity(entity: &Entity, shared: Option<Weak<RefCell<Entity>>>) -> Self {
         Self {
             key: entity.key().clone(),

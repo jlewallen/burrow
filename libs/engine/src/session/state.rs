@@ -18,12 +18,15 @@ pub struct State {
 }
 
 impl State {
-    pub fn obliterate(&self, entry: &Entry) -> Result<()> {
-        let destroying = entry.entity();
-        let mut destroying = destroying.borrow_mut();
-        destroying.destroy()?;
+    pub fn obliterate(&self, entry: &EntityPtr) -> Result<()> {
+        {
+            let destroying = entry.entity();
+            let mut destroying = destroying.borrow_mut();
+            destroying.destroy()?;
+        }
 
-        self.destroyed.borrow_mut().push(entry.key().clone());
+        let key = entry.key();
+        self.destroyed.borrow_mut().push(key);
 
         Ok(())
     }

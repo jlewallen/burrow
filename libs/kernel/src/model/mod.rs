@@ -12,7 +12,6 @@ pub mod builder;
 pub mod compare;
 pub mod entity;
 pub mod entity_ref;
-pub mod entry;
 pub mod props;
 pub mod scopes;
 
@@ -20,7 +19,6 @@ pub use base::*;
 pub use builder::*;
 pub use entity::*;
 pub use entity_ref::*;
-pub use entry::*;
 pub use props::*;
 pub use scopes::*;
 
@@ -28,8 +26,53 @@ pub use scopes::*;
 pub struct EntityPtr(Rc<RefCell<Entity>>);
 
 impl EntityPtr {
+    pub fn new_from_entity(e: Entity) -> Result<Self> {
+        // TODO Remove Result
+        Ok(Self(Rc::new(RefCell::new(e))))
+    }
+
     pub fn new(e: Entity) -> Self {
         Self(Rc::new(RefCell::new(e)))
+    }
+
+    pub fn key(&self) -> EntityKey {
+        self.0.borrow().key().clone()
+    }
+
+    pub fn entity_ref(&self) -> EntityRef {
+        let entity = self.0.borrow();
+        entity.entity_ref()
+    }
+
+    pub fn entity(&self) -> &EntityPtr {
+        &self
+    }
+
+    pub fn name(&self) -> Result<Option<String>, DomainError> {
+        let entity = self.0.borrow();
+        Ok(entity.name())
+    }
+
+    pub fn desc(&self) -> Result<Option<String>, DomainError> {
+        let entity = self.0.borrow();
+
+        Ok(entity.desc())
+    }
+
+    pub fn to_json_value(&self) -> Result<JsonValue, DomainError> {
+        self.0.borrow().to_json_value()
+    }
+}
+
+impl From<Rc<RefCell<Entity>>> for EntityPtr {
+    fn from(value: Rc<RefCell<Entity>>) -> Self {
+        Self(value)
+    }
+}
+
+impl Into<Rc<RefCell<Entity>>> for EntityPtr {
+    fn into(self) -> Rc<RefCell<Entity>> {
+        self.0
     }
 }
 
@@ -41,12 +84,18 @@ impl Deref for EntityPtr {
     }
 }
 
-pub trait IntoEntry {
-    fn to_entry(&self) -> Result<Entry, DomainError>;
+impl std::fmt::Debug for EntityPtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Entity").field("key", &self.key()).finish()
+    }
 }
 
-impl IntoEntry for EntityRef {
-    fn to_entry(&self) -> Result<Entry, DomainError> {
+pub trait IntoEntityPtr {
+    fn to_entry(&self) -> Result<EntityPtr, DomainError>;
+}
+
+impl IntoEntityPtr for EntityRef {
+    fn to_entry(&self) -> Result<EntityPtr, DomainError> {
         use super::session::get_my_session;
         if !self.key().valid() {
             return Err(DomainError::InvalidKey);
@@ -54,6 +103,22 @@ impl IntoEntry for EntityRef {
         get_my_session()?
             .entry(&LookupBy::Key(self.key()))?
             .ok_or(DomainError::DanglingEntity)
+    }
+}
+
+pub trait EntityPtrResolver {
+    fn recursive_entry(
+        &self,
+        lookup: &LookupBy,
+        depth: usize,
+    ) -> Result<Option<EntityPtr>, DomainError>;
+
+    fn entry(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>, DomainError> {
+        self.recursive_entry(lookup, 0)
+    }
+
+    fn world(&self) -> Result<Option<EntityPtr>, DomainError> {
+        self.entry(&LookupBy::Key(&EntityKey::new(WORLD_KEY)))
     }
 }
 

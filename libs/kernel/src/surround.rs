@@ -1,16 +1,16 @@
-use crate::model::Entry;
+use crate::model::EntityPtr;
 
 #[derive(Debug, Clone)]
 pub enum Surroundings {
     Living {
-        world: Entry,
-        living: Entry,
-        area: Entry,
+        world: EntityPtr,
+        living: EntityPtr,
+        area: EntityPtr,
     },
 }
 
 impl Surroundings {
-    pub fn unpack(&self) -> (Entry, Entry, Entry) {
+    pub fn unpack(&self) -> (EntityPtr, EntityPtr, EntityPtr) {
         match self {
             Surroundings::Living {
                 world,
@@ -20,7 +20,7 @@ impl Surroundings {
         }
     }
 
-    pub fn living(&self) -> &Entry {
+    pub fn living(&self) -> &EntityPtr {
         match self {
             Surroundings::Living {
                 world: _,

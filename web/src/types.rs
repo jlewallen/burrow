@@ -60,11 +60,11 @@ pub enum AllKnownItems {
 }
 
 #[derive(Debug, Serialize, Clone, Eq, PartialEq)]
-pub struct HistoryEntry {
+pub struct HistoryEntityPtr {
     pub value: JsonValue,
 }
 
-impl Into<Option<AllKnownItems>> for HistoryEntry {
+impl Into<Option<AllKnownItems>> for HistoryEntityPtr {
     fn into(self) -> Option<AllKnownItems> {
         if let Ok(item) = serde_json::from_value::<AllKnownItems>(self.value) {
             Some(item)
@@ -74,19 +74,19 @@ impl Into<Option<AllKnownItems>> for HistoryEntry {
     }
 }
 
-impl From<JsonValue> for HistoryEntry {
+impl From<JsonValue> for HistoryEntityPtr {
     fn from(value: JsonValue) -> Self {
         Self::new(value)
     }
 }
 
-impl Into<JsonValue> for HistoryEntry {
+impl Into<JsonValue> for HistoryEntityPtr {
     fn into(self) -> JsonValue {
         self.value
     }
 }
 
-impl HistoryEntry {
+impl HistoryEntityPtr {
     pub fn new(value: JsonValue) -> Self {
         Self { value }
     }
@@ -94,7 +94,7 @@ impl HistoryEntry {
 
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct SessionHistory {
-    pub entries: Vec<HistoryEntry>,
+    pub entries: Vec<HistoryEntityPtr>,
 }
 
 impl Reducible for SessionHistory {
@@ -111,7 +111,7 @@ impl SessionHistory {
             self.entries
                 .clone()
                 .into_iter()
-                .chain([HistoryEntry::new(value)])
+                .chain([HistoryEntityPtr::new(value)])
                 .collect()
         } else {
             self.entries.clone()
@@ -119,7 +119,7 @@ impl SessionHistory {
         Self { entries }
     }
 
-    pub fn latest(&self) -> Option<HistoryEntry> {
+    pub fn latest(&self) -> Option<HistoryEntityPtr> {
         self.entries.iter().last().cloned()
     }
 }

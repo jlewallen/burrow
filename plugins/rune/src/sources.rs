@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use tracing::*;
 
-use kernel::prelude::{EntityKey, Entry, OpenScope, Surroundings};
+use kernel::prelude::{EntityKey, EntityPtr, OpenScope, Surroundings};
 
 use crate::Behaviors;
 
@@ -55,7 +55,7 @@ pub fn load_sources_from_surroundings(
     Ok(scripts)
 }
 
-pub fn get_script(entry: &Entry) -> Result<Option<String>> {
+pub fn get_script(entry: &EntityPtr) -> Result<Option<String>> {
     let behaviors = entry.scope::<Behaviors>()?.unwrap_or_default();
     match &behaviors.langs {
         Some(langs) => match langs.get(RUNE_EXTENSION) {
