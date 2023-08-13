@@ -6,13 +6,13 @@ pub struct Location {
 }
 
 impl Location {
-    pub fn set(item: &Entry, container: EntityRef) -> Result<(), DomainError> {
+    pub fn set(item: &EntityPtr, container: EntityRef) -> Result<(), DomainError> {
         let mut location = item.scope_mut::<Location>()?;
         location.container = Some(container);
         location.save()
     }
 
-    pub fn get(item: &Entry) -> Result<Option<EntityRef>, DomainError> {
+    pub fn get(item: &EntityPtr) -> Result<Option<EntityRef>, DomainError> {
         let location = item.scope::<Location>()?.unwrap();
         Ok(location.container.clone())
     }
@@ -25,17 +25,17 @@ impl Scope for Location {
 }
 
 pub fn change_location<A, B, C, D>(
-    from: &Entry,
-    to: &Entry,
-    item: &Entry,
+    from: &EntityPtr,
+    to: &EntityPtr,
+    item: &EntityPtr,
     do_from: C,
     do_into: D,
 ) -> Result<DomainOutcome, DomainError>
 where
     A: Scope + Serialize,
     B: Scope + Serialize,
-    C: FnOnce(&mut A, Entry) -> Result<Option<Entry>>,
-    D: FnOnce(&mut B, Entry) -> Result<Option<Entry>>,
+    C: FnOnce(&mut A, EntityPtr) -> Result<Option<EntityPtr>>,
+    D: FnOnce(&mut B, EntityPtr) -> Result<Option<EntityPtr>>,
 {
     info!("moving {:?} {:?} {:?}", item, from, to);
 
@@ -57,7 +57,7 @@ where
     }
 }
 
-pub fn container_of(item: &Entry) -> Result<Entry, DomainError> {
+pub fn container_of(item: &EntityPtr) -> Result<EntityPtr, DomainError> {
     Location::get(item)?
         .ok_or(DomainError::ContainerRequired)?
         .to_entry()

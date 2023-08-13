@@ -6,7 +6,7 @@ pub use replies::{JsonValue, TaggedJson, TaggedJsonError, ToTaggedJson};
 
 use crate::session::SessionRef;
 use crate::{
-    model::{Audience, Entry, When},
+    model::{Audience, EntityPtr, When},
     surround::Surroundings,
 };
 
@@ -73,7 +73,7 @@ pub enum PerformAction {
 #[non_exhaustive]
 pub enum Perform {
     Living {
-        living: Entry,
+        living: EntityPtr,
         action: PerformAction,
     },
     Surroundings {

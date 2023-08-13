@@ -92,12 +92,12 @@ impl std::fmt::Debug for EntityPtr {
     }
 }
 
-pub trait IntoEntry {
-    fn to_entry(&self) -> Result<Entry, DomainError>;
+pub trait IntoEntityPtr {
+    fn to_entry(&self) -> Result<EntityPtr, DomainError>;
 }
 
-impl IntoEntry for EntityRef {
-    fn to_entry(&self) -> Result<Entry, DomainError> {
+impl IntoEntityPtr for EntityRef {
+    fn to_entry(&self) -> Result<EntityPtr, DomainError> {
         use super::session::get_my_session;
         if !self.key().valid() {
             return Err(DomainError::InvalidKey);

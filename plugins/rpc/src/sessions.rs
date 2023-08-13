@@ -72,7 +72,7 @@ impl SessionServices {
         Ok(produced.take())
     }
 
-    fn lookup_one(&self, lookup: &LookupBy) -> Result<(LookupBy, Option<(Entry, Json)>)> {
+    fn lookup_one(&self, lookup: &LookupBy) -> Result<(LookupBy, Option<(EntityPtr, Json)>)> {
         let session = get_my_session().with_context(|| "SessionServer::lookup_one")?;
         let entry = match lookup {
             LookupBy::Key(key) => session.entry(&kernel::prelude::LookupBy::Key(&key.into()))?,
@@ -91,7 +91,7 @@ impl SessionServices {
 #[derive(Default)]
 struct FoldToDepth {
     queue: Vec<LookupBy>,
-    entities: Vec<(LookupBy, Option<(Entry, Json)>)>,
+    entities: Vec<(LookupBy, Option<(EntityPtr, Json)>)>,
 }
 
 impl FoldToDepth {
@@ -104,7 +104,7 @@ impl FoldToDepth {
 
     pub fn into_with<F>(self, f: F) -> Result<Self>
     where
-        F: FnMut(LookupBy) -> Result<(LookupBy, Option<(Entry, Json)>)>,
+        F: FnMut(LookupBy) -> Result<(LookupBy, Option<(EntityPtr, Json)>)>,
     {
         debug!(queue = self.queue.len(), "discovering");
 

@@ -341,13 +341,13 @@ mod hooks {
     }
 
     impl BeforeMovingHook for WasmMovingHooks {
-        fn before_moving(&self, _surroundings: &Surroundings, _to_area: &Entry) -> Result<CanMove> {
+        fn before_moving(&self, _surroundings: &Surroundings, _to_area: &EntityPtr) -> Result<CanMove> {
             Ok(CanMove::Allow)
         }
     }
 
     impl AfterMoveHook for WasmMovingHooks {
-        fn after_move(&self, _surroundings: &Surroundings, _from_area: &Entry) -> Result<()> {
+        fn after_move(&self, _surroundings: &Surroundings, _from_area: &EntityPtr) -> Result<()> {
             Ok(())
         }
     }

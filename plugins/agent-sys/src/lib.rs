@@ -11,7 +11,7 @@ pub use kernel::prelude::{Effect, Perform};
 
 struct WorkingEntity {
     original: JsonValue,
-    entry: Entry,
+    entry: EntityPtr,
 }
 
 #[derive(Default)]
@@ -24,7 +24,7 @@ impl WorkingEntities {
         Rc::new(RefCell::new(Self::default()))
     }
 
-    pub fn insert(&mut self, key: &kernel::prelude::EntityKey, value: (JsonValue, Entry)) {
+    pub fn insert(&mut self, key: &kernel::prelude::EntityKey, value: (JsonValue, EntityPtr)) {
         self.entities.insert(
             key.clone(),
             WorkingEntity {
@@ -34,7 +34,7 @@ impl WorkingEntities {
         );
     }
 
-    pub fn get(&self, key: &kernel::prelude::EntityKey) -> Result<Option<Entry>, DomainError> {
+    pub fn get(&self, key: &kernel::prelude::EntityKey) -> Result<Option<EntityPtr>, DomainError> {
         Ok(self.entities.get(key).map(|r| r.entry.clone()))
     }
 
@@ -98,16 +98,16 @@ impl Performer for AgentSession {
     }
 }
 
-impl EntryResolver for AgentSession {
+impl EntityPtrResolver for AgentSession {
     fn recursive_entry(
         &self,
         lookup: &kernel::prelude::LookupBy,
         _depth: usize,
-    ) -> Result<Option<Entry>, DomainError> {
+    ) -> Result<Option<EntityPtr>, DomainError> {
         let entities = self.entities.borrow();
         match lookup {
             kernel::prelude::LookupBy::Key(key) => Ok(entities.get(key)?),
-            kernel::prelude::LookupBy::Gid(_) => unimplemented!("Entry by Gid"),
+            kernel::prelude::LookupBy::Gid(_) => unimplemented!("EntityPtr by Gid"),
         }
     }
 }
@@ -117,20 +117,20 @@ impl ActiveSession for AgentSession {
         &self,
         _surroundings: &kernel::prelude::Surroundings,
         _item: &kernel::prelude::Item,
-    ) -> Result<Option<Entry>> {
+    ) -> Result<Option<EntityPtr>> {
         unimplemented!("AgentSession:find-item")
     }
 
-    fn add_entity(&self, entity: kernel::prelude::Entity) -> Result<Entry> {
+    fn add_entity(&self, entity: kernel::prelude::Entity) -> Result<EntityPtr> {
         let key = entity.key().clone();
         let json_value = entity.to_json_value()?;
-        let entry = Entry::new_from_entity(entity)?;
+        let entry = EntityPtr::new_from_entity(entity)?;
         let mut entities = self.entities.borrow_mut();
         entities.insert(&key, (json_value, entry.clone()));
         Ok(entry)
     }
 
-    fn obliterate(&self, _entity: &Entry) -> Result<()> {
+    fn obliterate(&self, _entity: &EntityPtr) -> Result<()> {
         unimplemented!("AgentSession:obliterate")
     }
 
@@ -293,7 +293,7 @@ where
     fn get(
         &self,
         key: impl Into<kernel::prelude::EntityKey>,
-    ) -> std::result::Result<kernel::prelude::Entry, DomainError> {
+    ) -> std::result::Result<kernel::prelude::EntityPtr, DomainError> {
         self.session
             .entry(&kernel::prelude::LookupBy::Key(&key.into()))?
             .ok_or(DomainError::EntityNotFound(here!().into()))

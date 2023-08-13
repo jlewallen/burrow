@@ -91,14 +91,14 @@ pub mod model {
         fn observe(
             &self,
             surroundings: &Surroundings,
-            user: &Entry,
-            target: &Entry,
+            user: &EntityPtr,
+            target: &EntityPtr,
         ) -> Result<Option<T>>;
     }
 
     fn observe_all(
-        entries: Option<Vec<Entry>>,
-        user: &Entry,
+        entries: Option<Vec<EntityPtr>>,
+        user: &EntityPtr,
     ) -> Result<Option<Vec<ObservedEntity>>> {
         let Some(observing) = entries else {
             return Ok(None)
@@ -114,11 +114,11 @@ pub mod model {
     }
 
     pub trait Observe<T> {
-        fn observe(&self, user: &Entry) -> Result<Option<T>>;
+        fn observe(&self, user: &EntityPtr) -> Result<Option<T>>;
     }
 
-    impl Observe<ObservedEntity> for &Entry {
-        fn observe(&self, _user: &Entry) -> Result<Option<ObservedEntity>> {
+    impl Observe<ObservedEntity> for &EntityPtr {
+        fn observe(&self, _user: &EntityPtr) -> Result<Option<ObservedEntity>> {
             let quantity = self.scope::<Carryable>()?.map(|c| c.quantity());
             let key = self.key().to_string();
             let observing = self.entity().borrow();
@@ -141,8 +141,8 @@ pub mod model {
     }
 
     pub fn new_entity_observation(
-        user: &Entry,
-        entity: &Entry,
+        user: &EntityPtr,
+        entity: &EntityPtr,
     ) -> Result<Option<EntityObservation>> {
         let wearing = observe_all(tools::worn_by(entity)?, user)?;
         Ok(entity
@@ -151,8 +151,8 @@ pub mod model {
     }
 
     pub fn new_inside_observation(
-        user: &Entry,
-        vessel: &Entry,
+        user: &EntityPtr,
+        vessel: &EntityPtr,
     ) -> Result<Option<InsideObservation>> {
         let mut items = Vec::new();
         if let Ok(Some(containing)) = vessel.scope::<Containing>() {
@@ -168,7 +168,7 @@ pub mod model {
         }))
     }
 
-    pub fn new_area_observation(user: &Entry, area: &Entry) -> Result<AreaObservation> {
+    pub fn new_area_observation(user: &EntityPtr, area: &EntityPtr) -> Result<AreaObservation> {
         let mut living: Vec<ObservedEntity> = vec![];
         if let Ok(Some(occupyable)) = area.scope::<Occupyable>() {
             for entity in &occupyable.occupied {

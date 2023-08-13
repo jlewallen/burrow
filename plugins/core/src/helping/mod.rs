@@ -111,10 +111,10 @@ pub mod actions {
 
     fn lookup_page_name(
         session: &SessionRef,
-        world: &Entry,
+        world: &EntityPtr,
         page_name: Option<&str>,
         create: bool,
-    ) -> Result<Option<Entry>, DomainError> {
+    ) -> Result<Option<EntityPtr>, DomainError> {
         let Some(cyclo) = world.get_encyclopedia()? else {
                 return Ok(None);
             };

@@ -16,7 +16,7 @@ use crate::{terminal::default_external_editor, DomainBuilder};
 use engine::prelude::{DevNullNotifier, Domain, HasUsernames, Notifier, SessionOpener};
 use kernel::common::SimpleReply;
 use kernel::prelude::{
-    get_my_session, Effect, EffectReply, EntityKey, EntryResolver, JsonValue, Middleware, Perform,
+    get_my_session, Effect, EffectReply, EntityKey, EntityPtrResolver, JsonValue, Middleware, Perform,
     PerformAction,
 };
 use replies::{EditorReply, TaggedJson};

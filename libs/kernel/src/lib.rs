@@ -26,19 +26,19 @@ pub mod prelude {
 }
 
 mod finder {
-    use crate::model::{Audience, EntityKey, Entry, Item};
+    use crate::model::{Audience, EntityKey, EntityPtr, Item};
     use crate::surround::Surroundings;
 
     pub trait Finder: Send + Sync {
-        fn find_world(&self) -> anyhow::Result<Entry>;
+        fn find_world(&self) -> anyhow::Result<EntityPtr>;
 
-        fn find_location(&self, entry: &Entry) -> anyhow::Result<Entry>;
+        fn find_location(&self, entry: &EntityPtr) -> anyhow::Result<EntityPtr>;
 
         fn find_item(
             &self,
             surroundings: &Surroundings,
             item: &Item,
-        ) -> anyhow::Result<Option<Entry>>;
+        ) -> anyhow::Result<Option<EntityPtr>>;
 
         fn find_audience(&self, audience: &Audience) -> anyhow::Result<Vec<EntityKey>>;
     }

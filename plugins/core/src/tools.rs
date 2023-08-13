@@ -11,17 +11,17 @@ use kernel::prelude::*;
 
 pub use super::location::container_of;
 
-pub fn is_container(item: &Entry) -> Result<bool, DomainError> {
+pub fn is_container(item: &EntityPtr) -> Result<bool, DomainError> {
     Ok(item.scope::<Containing>()?.is_some())
 }
 
-pub fn wear_article(from: &Entry, to: &Entry, item: &Entry) -> Result<DomainOutcome, DomainError> {
+pub fn wear_article(from: &EntityPtr, to: &EntityPtr, item: &EntityPtr) -> Result<DomainOutcome, DomainError> {
     change_location(
         from,
         to,
         item,
-        |s: &mut Containing, item: Entry| s.stop_carrying(&item),
-        |s: &mut Wearing, item: Entry| {
+        |s: &mut Containing, item: EntityPtr| s.stop_carrying(&item),
+        |s: &mut Wearing, item: EntityPtr| {
             s.start_wearing(&item)?;
             Ok(Some(item))
         },
@@ -29,29 +29,29 @@ pub fn wear_article(from: &Entry, to: &Entry, item: &Entry) -> Result<DomainOutc
 }
 
 pub fn remove_article(
-    from: &Entry,
-    to: &Entry,
-    item: &Entry,
+    from: &EntityPtr,
+    to: &EntityPtr,
+    item: &EntityPtr,
 ) -> Result<DomainOutcome, DomainError> {
     change_location(
         from,
         to,
         item,
-        |s: &mut Wearing, item: Entry| s.stop_wearing(&item),
-        |s: &mut Containing, item: Entry| {
+        |s: &mut Wearing, item: EntityPtr| s.stop_wearing(&item),
+        |s: &mut Containing, item: EntityPtr| {
             s.start_carrying(&item)?;
             Ok(Some(item))
         },
     )
 }
 
-pub fn move_between(from: &Entry, to: &Entry, item: &Entry) -> Result<DomainOutcome, DomainError> {
+pub fn move_between(from: &EntityPtr, to: &EntityPtr, item: &EntityPtr) -> Result<DomainOutcome, DomainError> {
     change_location(
         from,
         to,
         item,
-        |s: &mut Containing, item: Entry| s.stop_carrying(&item),
-        |s: &mut Containing, item: Entry| {
+        |s: &mut Containing, item: EntityPtr| s.stop_carrying(&item),
+        |s: &mut Containing, item: EntityPtr| {
             s.start_carrying(&item)?;
             Ok(Some(item.clone()))
         },
@@ -59,9 +59,9 @@ pub fn move_between(from: &Entry, to: &Entry, item: &Entry) -> Result<DomainOutc
 }
 
 pub fn navigate_between(
-    from: &Entry,
-    to: &Entry,
-    item: &Entry,
+    from: &EntityPtr,
+    to: &EntityPtr,
+    item: &EntityPtr,
 ) -> Result<DomainOutcome, DomainError> {
     info!("navigating {:?}", item);
 
@@ -84,13 +84,13 @@ pub fn navigate_between(
     }
 }
 
-pub fn area_of(living: &Entry) -> Result<Entry, DomainError> {
+pub fn area_of(living: &EntityPtr) -> Result<EntityPtr, DomainError> {
     let occupying = living.scope::<Occupying>()?.unwrap();
 
     occupying.area.to_entry()
 }
 
-pub fn get_contained_keys(area: &Entry) -> Result<Vec<EntityKey>, DomainError> {
+pub fn get_contained_keys(area: &EntityPtr) -> Result<Vec<EntityKey>, DomainError> {
     let containing = area.scope::<Containing>()?.unwrap();
 
     Ok(containing
@@ -100,7 +100,7 @@ pub fn get_contained_keys(area: &Entry) -> Result<Vec<EntityKey>, DomainError> {
         .collect::<Vec<EntityKey>>())
 }
 
-pub fn set_wearing(container: &Entry, items: &Vec<Entry>) -> Result<(), DomainError> {
+pub fn set_wearing(container: &EntityPtr, items: &Vec<EntityPtr>) -> Result<(), DomainError> {
     let mut wearing = container.scope_mut::<Wearing>()?;
     for item in items {
         wearing.start_wearing(item)?;
@@ -109,7 +109,7 @@ pub fn set_wearing(container: &Entry, items: &Vec<Entry>) -> Result<(), DomainEr
     wearing.save()
 }
 
-pub fn set_container(container: &Entry, items: &Vec<Entry>) -> Result<(), DomainError> {
+pub fn set_container(container: &EntityPtr, items: &Vec<EntityPtr>) -> Result<(), DomainError> {
     let mut containing = container.scope_mut::<Containing>()?;
     for item in items {
         containing.start_carrying(item)?;
@@ -118,7 +118,7 @@ pub fn set_container(container: &Entry, items: &Vec<Entry>) -> Result<(), Domain
     containing.save()
 }
 
-pub fn set_occupying(area: &Entry, living: &Vec<Entry>) -> Result<(), DomainError> {
+pub fn set_occupying(area: &EntityPtr, living: &Vec<EntityPtr>) -> Result<(), DomainError> {
     let mut occupyable = area.scope_mut::<Occupyable>()?;
     for item in living {
         occupyable.start_occupying(item)?;
@@ -129,8 +129,8 @@ pub fn set_occupying(area: &Entry, living: &Vec<Entry>) -> Result<(), DomainErro
     occupyable.save()
 }
 
-pub fn contained_by(container: &Entry) -> Result<Vec<Entry>, DomainError> {
-    let mut entities: Vec<Entry> = vec![];
+pub fn contained_by(container: &EntityPtr) -> Result<Vec<EntityPtr>, DomainError> {
+    let mut entities: Vec<EntityPtr> = vec![];
     if let Ok(Some(containing)) = container.scope::<Containing>() {
         for entity in &containing.holding {
             entities.push(entity.to_entry()?);
@@ -140,7 +140,7 @@ pub fn contained_by(container: &Entry) -> Result<Vec<Entry>, DomainError> {
     Ok(entities)
 }
 
-pub fn leads_to<'a>(route: &'a Entry, area: &'a Entry) -> Result<&'a Entry> {
+pub fn leads_to<'a>(route: &'a EntityPtr, area: &'a EntityPtr) -> Result<&'a EntityPtr> {
     let mut exit = route.scope_mut::<Exit>()?;
     exit.area = area.entity_ref();
     exit.save()?;
@@ -148,7 +148,7 @@ pub fn leads_to<'a>(route: &'a Entry, area: &'a Entry) -> Result<&'a Entry> {
     Ok(route)
 }
 
-pub fn occupied_by(area: &Entry) -> Result<Vec<Entry>> {
+pub fn occupied_by(area: &EntityPtr) -> Result<Vec<EntityPtr>> {
     let occupyable = area.scope::<Occupyable>()?.unwrap();
 
     occupyable
@@ -158,7 +158,7 @@ pub fn occupied_by(area: &Entry) -> Result<Vec<Entry>> {
         .collect::<Result<Vec<_>>>()
 }
 
-pub fn get_occupant_keys(area: &Entry) -> Result<Vec<EntityKey>> {
+pub fn get_occupant_keys(area: &EntityPtr) -> Result<Vec<EntityKey>> {
     let occupyable = area.scope::<Occupyable>()?.unwrap();
 
     Ok(occupyable
@@ -168,7 +168,7 @@ pub fn get_occupant_keys(area: &Entry) -> Result<Vec<EntityKey>> {
         .collect::<Vec<EntityKey>>())
 }
 
-pub fn new_entity_from_template_ptr(template_entry: &Entry) -> Result<Entry> {
+pub fn new_entity_from_template_ptr(template_entry: &EntityPtr) -> Result<EntityPtr> {
     let template = template_entry.entity();
     let key = get_my_session()?.new_key();
     let entity = build_entity()
@@ -178,12 +178,12 @@ pub fn new_entity_from_template_ptr(template_entry: &Entry) -> Result<Entry> {
     get_my_session()?.add_entity(entity)
 }
 
-pub fn quantity(entity: &Entry) -> Result<f32> {
+pub fn quantity(entity: &EntityPtr) -> Result<f32> {
     let carryable = entity.scope::<Carryable>()?.unwrap();
     Ok(carryable.quantity())
 }
 
-pub fn set_quantity(entity: &Entry, quantity: f32) -> Result<&Entry> {
+pub fn set_quantity(entity: &EntityPtr, quantity: f32) -> Result<&EntityPtr> {
     let mut carryable = entity.scope_mut::<Carryable>()?;
     carryable.set_quantity(quantity)?;
     carryable.save()?;
@@ -191,7 +191,7 @@ pub fn set_quantity(entity: &Entry, quantity: f32) -> Result<&Entry> {
     Ok(entity)
 }
 
-pub fn separate(entity: &Entry, quantity: f32) -> Result<(&Entry, Entry)> {
+pub fn separate(entity: &EntityPtr, quantity: f32) -> Result<(&EntityPtr, EntityPtr)> {
     let kind = {
         let mut carryable = entity.scope_mut::<Carryable>()?;
         carryable.decrease_quantity(quantity)?;
@@ -214,7 +214,7 @@ pub fn separate(entity: &Entry, quantity: f32) -> Result<(&Entry, Entry)> {
     Ok((entity, separated))
 }
 
-pub fn duplicate(entity: &Entry) -> Result<Entry> {
+pub fn duplicate(entity: &EntityPtr) -> Result<EntityPtr> {
     let mut carryable = entity.scope_mut::<Carryable>()?;
     carryable.increase_quantity(1.0)?;
     carryable.save()?;
@@ -222,7 +222,7 @@ pub fn duplicate(entity: &Entry) -> Result<Entry> {
     Ok(entity.clone())
 }
 
-pub fn obliterate(obliterating: &Entry) -> Result<()> {
+pub fn obliterate(obliterating: &EntityPtr) -> Result<()> {
     // NOTE: It's very easy to get confused about which entity is which.
     let location = obliterating.scope::<Location>()?.unwrap();
     if let Some(container) = &location.container {
@@ -240,14 +240,14 @@ pub fn obliterate(obliterating: &Entry) -> Result<()> {
     }
 }
 
-pub fn get_adjacent_keys(entry: &Entry) -> Result<Vec<EntityKey>> {
+pub fn get_adjacent_keys(entry: &EntityPtr) -> Result<Vec<EntityKey>> {
     let containing = entry.scope::<Containing>()?.unwrap();
 
     Ok(containing
         .holding
         .iter()
         .map(|e| e.to_entry())
-        .collect::<Result<Vec<Entry>, kernel::prelude::DomainError>>()?
+        .collect::<Result<Vec<EntityPtr>, kernel::prelude::DomainError>>()?
         .into_iter()
         .map(|e| {
             if let Some(exit) = e.scope::<Exit>()? {
@@ -262,19 +262,19 @@ pub fn get_adjacent_keys(entry: &Entry) -> Result<Vec<EntityKey>> {
         .collect::<Vec<_>>())
 }
 
-pub fn worn_by(wearer: &Entry) -> Result<Option<Vec<Entry>>, DomainError> {
+pub fn worn_by(wearer: &EntityPtr) -> Result<Option<Vec<EntityPtr>>, DomainError> {
     let Ok(Some(wearing)) = wearer.scope::<Wearing>() else {
         return Ok(None);
     };
 
-    let mut entities: Vec<Entry> = vec![];
+    let mut entities: Vec<EntityPtr> = vec![];
     for entity in &wearing.wearing {
         entities.push(entity.to_entry()?);
     }
     Ok(Some(entities))
 }
 
-pub fn holding_one_item(container: &Entry) -> Result<Option<Entry>, DomainError> {
+pub fn holding_one_item(container: &EntityPtr) -> Result<Option<EntityPtr>, DomainError> {
     let holding = contained_by(container)?;
     if holding.len() == 1 {
         Ok(holding.into_iter().next())

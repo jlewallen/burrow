@@ -3,7 +3,7 @@ pub mod model {
     use serde::{Deserialize, Serialize};
     use std::collections::HashMap;
 
-    use kernel::prelude::{DomainError, EntityKey, Entry, OpenScope, OpenScopeRefMut, Scope};
+    use kernel::prelude::{DomainError, EntityKey, EntityPtr, OpenScope, OpenScopeRefMut, Scope};
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Usernames {
@@ -26,13 +26,13 @@ pub mod model {
         }
     }
 
-    fn username_to_key(world: &Entry, username: &str) -> Result<Option<EntityKey>, DomainError> {
+    fn username_to_key(world: &EntityPtr, username: &str) -> Result<Option<EntityKey>, DomainError> {
         let usernames = world.scope::<Usernames>()?.expect("No usernames scope");
         Ok(usernames.find(username).cloned())
     }
 
     fn add_username_to_key(
-        world: &Entry,
+        world: &EntityPtr,
         username: &str,
         key: &EntityKey,
     ) -> Result<(), DomainError> {
@@ -46,7 +46,7 @@ pub mod model {
         fn add_username_to_key(&self, username: &str, key: &EntityKey) -> Result<(), DomainError>;
     }
 
-    impl HasUsernames for Entry {
+    impl HasUsernames for EntityPtr {
         fn find_name_key(&self, name: &str) -> Result<Option<EntityKey>, DomainError> {
             username_to_key(self, name)
         }
@@ -127,7 +127,7 @@ pub mod model {
         }
     }
 
-    impl HasWellKnownEntities for Entry {
+    impl HasWellKnownEntities for EntityPtr {
         fn get_well_known(&self, name: &str) -> Result<Option<EntityKey>, DomainError> {
             let Some(well_known) = self.scope::<WellKnown>()? else {
                 return Ok(None);

@@ -3,7 +3,7 @@ use anyhow::Result;
 use engine::prelude::{DevNullNotifier, HasUsernames, SessionOpener};
 use kernel::{
     here,
-    prelude::{DomainError, EntryResolver, LookupBy},
+    prelude::{DomainError, EntityPtrResolver, LookupBy},
 };
 
 use crate::DomainBuilder;
@@ -23,7 +23,7 @@ pub async fn execute_command() -> Result<()> {
         .expect("No 'USER' entity.");
 
     // let occupying = user.scope::<Occupying>()?.unwrap();
-    // let _area: Option<Entry> = occupying.area.clone().try_into()?; // TODO Annoying clone
+    // let _area: Option<EntityPtr> = occupying.area.clone().try_into()?; // TODO Annoying clone
 
     session.close(&DevNullNotifier {})?;
 

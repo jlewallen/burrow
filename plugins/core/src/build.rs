@@ -4,7 +4,7 @@ use std::{rc::Rc, sync::Arc};
 use engine::{domain, prelude::*, sequences::DeterministicKeys, storage::InMemoryStorageFactory};
 use kernel::{
     prelude::{
-        build_entity, CoreProps, Entity, EntityKey, Entry, OpenScopeRefMut, RegisteredPlugins,
+        build_entity, CoreProps, Entity, EntityKey, EntityPtr, OpenScopeRefMut, RegisteredPlugins,
         SessionRef, SetSession, Surroundings, WORLD_KEY,
     },
     session::ActiveSession,
@@ -14,7 +14,7 @@ use crate::{fashion::model::Wearable, helping::model::Wiki, tools, DefaultFinder
 
 pub struct Build {
     session: SessionRef,
-    entry: Option<Entry>,
+    entry: Option<EntityPtr>,
     entity: Option<Entity>,
 }
 
@@ -57,7 +57,7 @@ impl Build {
         Ok(self)
     }
 
-    pub fn encyclopedia(&mut self, entry: &Entry) -> Result<&mut Self> {
+    pub fn encyclopedia(&mut self, entry: &EntityPtr) -> Result<&mut Self> {
         self.into_entry()?.set_encyclopedia(&entry.key())?;
 
         Ok(self)
@@ -82,25 +82,25 @@ impl Build {
         Ok(self)
     }
 
-    pub fn leads_to(&mut self, area: Entry) -> Result<&mut Self> {
+    pub fn leads_to(&mut self, area: EntityPtr) -> Result<&mut Self> {
         tools::leads_to(&self.into_entry()?, &area)?;
 
         Ok(self)
     }
 
-    pub fn occupying(&mut self, living: &Vec<Entry>) -> Result<&mut Self> {
+    pub fn occupying(&mut self, living: &Vec<EntityPtr>) -> Result<&mut Self> {
         tools::set_occupying(&self.into_entry()?, living)?;
 
         Ok(self)
     }
 
-    pub fn holding(&mut self, items: &Vec<Entry>) -> Result<&mut Self> {
+    pub fn holding(&mut self, items: &Vec<EntityPtr>) -> Result<&mut Self> {
         tools::set_container(&self.into_entry()?, items)?;
 
         Ok(self)
     }
 
-    pub fn wearing(&mut self, items: &Vec<Entry>) -> Result<&mut Self> {
+    pub fn wearing(&mut self, items: &Vec<EntityPtr>) -> Result<&mut Self> {
         tools::set_wearing(&self.into_entry()?, items)?;
 
         Ok(self)
@@ -113,7 +113,7 @@ impl Build {
         Ok(self)
     }
 
-    pub fn into_entry(&mut self) -> Result<Entry> {
+    pub fn into_entry(&mut self) -> Result<EntityPtr> {
         match &self.entry {
             Some(entry) => Ok(entry.clone()),
             None => {
@@ -132,11 +132,11 @@ pub enum QuickThing {
     Multiple(&'static str, f32),
     Place(&'static str),
     Route(&'static str, Box<QuickThing>),
-    Actual(Entry),
+    Actual(EntityPtr),
 }
 
 impl QuickThing {
-    pub fn make(&self, session: &Rc<Session>) -> Result<Entry> {
+    pub fn make(&self, session: &Rc<Session>) -> Result<EntityPtr> {
         match self {
             QuickThing::Object(name) => Ok(Build::new(session)?
                 .named(name)?
@@ -170,7 +170,7 @@ pub struct BuildSurroundings {
     hands: Vec<QuickThing>,
     ground: Vec<QuickThing>,
     wearing: Vec<QuickThing>,
-    world: Entry,
+    world: EntityPtr,
     #[allow(dead_code)] // TODO Combine with Rc<Session>?
     set: SetSession<Session>,
     session: Rc<Session>,
@@ -235,7 +235,7 @@ impl BuildSurroundings {
         Build::new(&self.session)
     }
 
-    pub fn make(&mut self, q: QuickThing) -> Result<Entry> {
+    pub fn make(&mut self, q: QuickThing) -> Result<EntityPtr> {
         q.make(&self.session)
     }
 

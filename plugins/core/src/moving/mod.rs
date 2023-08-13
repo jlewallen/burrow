@@ -58,11 +58,11 @@ pub mod model {
     use crate::library::model::*;
 
     pub trait BeforeMovingHook {
-        fn before_moving(&self, surroundings: &Surroundings, to_area: &Entry) -> Result<CanMove>;
+        fn before_moving(&self, surroundings: &Surroundings, to_area: &EntityPtr) -> Result<CanMove>;
     }
 
     impl BeforeMovingHook for MovingHooks {
-        fn before_moving(&self, surroundings: &Surroundings, to_area: &Entry) -> Result<CanMove> {
+        fn before_moving(&self, surroundings: &Surroundings, to_area: &EntityPtr) -> Result<CanMove> {
             Ok(self
                 .before_moving
                 .instances
@@ -76,11 +76,11 @@ pub mod model {
     }
 
     pub trait AfterMoveHook {
-        fn after_move(&self, surroundings: &Surroundings, from_area: &Entry) -> Result<()>;
+        fn after_move(&self, surroundings: &Surroundings, from_area: &EntityPtr) -> Result<()>;
     }
 
     impl AfterMoveHook for MovingHooks {
-        fn after_move(&self, surroundings: &Surroundings, from_area: &Entry) -> Result<()> {
+        fn after_move(&self, surroundings: &Surroundings, from_area: &EntityPtr) -> Result<()> {
             self.after_move
                 .instances
                 .borrow()
@@ -143,7 +143,7 @@ pub mod model {
     }
 
     impl Occupyable {
-        pub fn stop_occupying(&mut self, item: &Entry) -> Result<DomainOutcome> {
+        pub fn stop_occupying(&mut self, item: &EntityPtr) -> Result<DomainOutcome> {
             let before = self.occupied.len();
             self.occupied.retain(|i| *i.key() != item.key());
             let after = self.occupied.len();
@@ -154,7 +154,7 @@ pub mod model {
             Ok(DomainOutcome::Ok)
         }
 
-        pub fn start_occupying(&mut self, item: &Entry) -> Result<DomainOutcome> {
+        pub fn start_occupying(&mut self, item: &EntityPtr) -> Result<DomainOutcome> {
             self.occupied.push(item.entity_ref());
 
             Ok(DomainOutcome::Ok)

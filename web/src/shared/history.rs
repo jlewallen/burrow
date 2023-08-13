@@ -4,7 +4,7 @@ use yew::prelude::*;
 
 use crate::{
     hooks::use_user_context,
-    types::{AllKnownItems, HistoryEntry, Myself},
+    types::{AllKnownItems, HistoryEntityPtr, Myself},
 };
 
 const NO_NAME: &str = "No Name";
@@ -163,10 +163,10 @@ impl Render for AllKnownItems {
 
 #[derive(Properties, Clone, PartialEq)]
 pub struct Props {
-    pub entry: HistoryEntry,
+    pub entry: HistoryEntityPtr,
 }
 
-#[function_component(HistoryEntryItem)]
+#[function_component(HistoryEntityPtrItem)]
 pub fn history_entry_item(props: &Props) -> Html {
     let user = use_user_context();
     let key = user.key().expect("expected authenticated user with key");

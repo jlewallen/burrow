@@ -78,7 +78,7 @@ pub mod model {
     }
 
     impl Containing {
-        pub fn start_carrying(&mut self, item: &Entry) -> CarryingResult {
+        pub fn start_carrying(&mut self, item: &EntityPtr) -> CarryingResult {
             let carryable = item.scope::<Carryable>()?.unwrap();
 
             let holding = self
@@ -106,11 +106,11 @@ pub mod model {
             Ok(DomainOutcome::Ok)
         }
 
-        pub fn is_holding(&self, item: &Entry) -> Result<bool> {
+        pub fn is_holding(&self, item: &EntityPtr) -> Result<bool> {
             Ok(self.holding.iter().any(|i| *i.key() == item.key()))
         }
 
-        fn remove_item(&mut self, item: &Entry) -> CarryingResult {
+        fn remove_item(&mut self, item: &EntityPtr) -> CarryingResult {
             self.holding = self
                 .holding
                 .iter()
@@ -127,7 +127,7 @@ pub mod model {
             Ok(DomainOutcome::Ok)
         }
 
-        pub fn stop_carrying(&mut self, item: &Entry) -> Result<Option<Entry>> {
+        pub fn stop_carrying(&mut self, item: &EntityPtr) -> Result<Option<EntityPtr>> {
             if !self.is_holding(item)? {
                 return Ok(None);
             }
@@ -151,7 +151,7 @@ pub mod model {
         quantity: f32,
     }
 
-    fn is_kind(entity: &Entry, kind: &Kind) -> Result<bool> {
+    fn is_kind(entity: &EntityPtr, kind: &Kind) -> Result<bool> {
         Ok(*entity.scope::<Carryable>()?.unwrap().kind() == *kind)
     }
 

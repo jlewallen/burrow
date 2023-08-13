@@ -89,7 +89,7 @@ pub mod model {
             }
         }
 
-        pub fn to_entry(&self) -> Result<Entry, DomainError> {
+        pub fn to_entry(&self) -> Result<EntityPtr, DomainError> {
             match self {
                 Article::Just(e) => e.to_entry(),
             }
@@ -108,7 +108,7 @@ pub mod model {
     }
 
     impl Wearing {
-        pub fn start_wearing(&mut self, item: &Entry) -> Result<DomainOutcome, DomainError> {
+        pub fn start_wearing(&mut self, item: &EntityPtr) -> Result<DomainOutcome, DomainError> {
             let Some(wearable) = item.scope::<Wearable>()? else {
                 return Ok(DomainOutcome::Nope);
             };
@@ -132,7 +132,7 @@ pub mod model {
             Ok(DomainOutcome::Ok)
         }
 
-        pub fn is_wearing(&self, item: &Entry) -> Result<bool> {
+        pub fn is_wearing(&self, item: &EntityPtr) -> Result<bool> {
             Ok(self
                 .wearing
                 .iter()
@@ -140,7 +140,7 @@ pub mod model {
                 .any(|i| *i.key() == item.key()))
         }
 
-        fn remove_item(&mut self, item: &Entry) -> CarryingResult {
+        fn remove_item(&mut self, item: &EntityPtr) -> CarryingResult {
             self.wearing = self
                 .wearing
                 .iter()
@@ -157,7 +157,7 @@ pub mod model {
             Ok(DomainOutcome::Ok)
         }
 
-        pub fn stop_wearing(&mut self, item: &Entry) -> Result<Option<Entry>> {
+        pub fn stop_wearing(&mut self, item: &EntityPtr) -> Result<Option<EntityPtr>> {
             if !self.is_wearing(item)? {
                 return Ok(None);
             }
@@ -178,7 +178,7 @@ pub mod model {
         kind: Kind,
     }
 
-    fn is_kind(entity: &Entry, kind: &Kind) -> Result<bool> {
+    fn is_kind(entity: &EntityPtr, kind: &Kind) -> Result<bool> {
         Ok(*entity.scope::<Wearable>()?.unwrap().kind() == *kind)
     }
 

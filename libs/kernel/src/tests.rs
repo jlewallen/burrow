@@ -37,12 +37,12 @@ impl KeysOnlySession {
     }
 }
 
-impl EntryResolver for KeysOnlySession {
+impl EntityPtrResolver for KeysOnlySession {
     fn recursive_entry(
         &self,
         _lookup: &LookupBy,
         _depth: usize,
-    ) -> Result<Option<Entry>, DomainError> {
+    ) -> Result<Option<EntityPtr>, DomainError> {
         todo!()
     }
 }
@@ -54,15 +54,15 @@ impl Performer for KeysOnlySession {
 }
 
 impl ActiveSession for KeysOnlySession {
-    fn find_item(&self, _surroundings: &Surroundings, _item: &Item) -> Result<Option<Entry>> {
+    fn find_item(&self, _surroundings: &Surroundings, _item: &Item) -> Result<Option<EntityPtr>> {
         todo!()
     }
 
-    fn add_entity(&self, _entity: Entity) -> Result<Entry> {
+    fn add_entity(&self, _entity: Entity) -> Result<EntityPtr> {
         todo!()
     }
 
-    fn obliterate(&self, _entity: &Entry) -> Result<()> {
+    fn obliterate(&self, _entity: &EntityPtr) -> Result<()> {
         todo!()
     }
 

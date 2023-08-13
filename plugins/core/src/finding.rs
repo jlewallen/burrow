@@ -3,14 +3,14 @@ use tracing::{debug, info};
 
 use crate::{moving::model::Occupying, tools};
 use kernel::prelude::{
-    get_my_session, here, Audience, DomainError, Entry, Finder, IntoEntry, Item, OpenScope,
+    get_my_session, here, Audience, DomainError, EntityPtr, Finder, IntoEntityPtr, Item, OpenScope,
     Surroundings,
 };
 
 /// Determines if an entity matches a user's description of that entity, given
 /// no other context at all.
 /// TODO Not very excited about this returning Result.
-pub fn matches_description(entity: &Entry, desc: &str) -> Result<bool> {
+pub fn matches_description(entity: &EntityPtr, desc: &str) -> Result<bool> {
     if let Some(name) = entity.name()? {
         Ok(matches_string(&name, desc))
     } else {
@@ -24,19 +24,19 @@ pub fn matches_string(haystack: &str, desc: &str) -> bool {
 
 #[derive(Debug, Clone)]
 pub enum EntityRelationship {
-    World(Entry),
-    User(Entry),
-    Area(Entry),
-    Holding(Entry),
-    Occupying(Entry),
-    Ground(Entry),
-    Contained(Entry),
-    Exit(String, Entry),
-    Wearing(Entry),
+    World(EntityPtr),
+    User(EntityPtr),
+    Area(EntityPtr),
+    Holding(EntityPtr),
+    Occupying(EntityPtr),
+    Ground(EntityPtr),
+    Contained(EntityPtr),
+    Exit(String, EntityPtr),
+    Wearing(EntityPtr),
 }
 
 impl EntityRelationship {
-    pub fn entry(&self) -> Result<&Entry> {
+    pub fn entry(&self) -> Result<&EntityPtr> {
         Ok(match self {
             EntityRelationship::World(e) => e,
             EntityRelationship::User(e) => e,
@@ -147,7 +147,7 @@ impl EntityRelationshipSet {
         Ok(Self { entities: expanded })
     }
 
-    pub fn find_item(&self, item: &Item) -> Result<Option<Entry>> {
+    pub fn find_item(&self, item: &Item) -> Result<Option<EntityPtr>> {
         debug!("haystack {:?}", self);
 
         match item {
@@ -242,16 +242,16 @@ fn default_priority(e: &EntityRelationship) -> u32 {
 pub struct DefaultFinder {}
 
 impl Finder for DefaultFinder {
-    fn find_world(&self) -> anyhow::Result<Entry> {
+    fn find_world(&self) -> anyhow::Result<EntityPtr> {
         Ok(get_my_session()?.world()?.expect("No world"))
     }
 
-    fn find_location(&self, entry: &Entry) -> Result<Entry> {
+    fn find_location(&self, entry: &EntityPtr) -> Result<EntityPtr> {
         let occupying = entry.scope::<Occupying>()?.unwrap();
         Ok(occupying.area.to_entry()?)
     }
 
-    fn find_item(&self, surroundings: &Surroundings, item: &Item) -> Result<Option<Entry>> {
+    fn find_item(&self, surroundings: &Surroundings, item: &Item) -> Result<Option<EntityPtr>> {
         let haystack = EntityRelationshipSet::new_from_surroundings(surroundings).expand()?;
         haystack.find_item(item)
     }

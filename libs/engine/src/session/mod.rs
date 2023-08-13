@@ -264,12 +264,12 @@ impl Performer for Session {
     }
 }
 
-impl EntryResolver for Session {
+impl EntityPtrResolver for Session {
     fn recursive_entry(
         &self,
         lookup: &LookupBy,
         depth: usize,
-    ) -> Result<Option<Entry>, DomainError> {
+    ) -> Result<Option<EntityPtr>, DomainError> {
         match self.load_entity(lookup, depth)? {
             Some(entity) => Ok(Some(entity)),
             None => Ok(None),
@@ -286,7 +286,7 @@ impl ActiveSession for Session {
         self.identities.following()
     }
 
-    fn find_item(&self, surroundings: &Surroundings, item: &Item) -> Result<Option<Entry>> {
+    fn find_item(&self, surroundings: &Surroundings, item: &Item) -> Result<Option<EntityPtr>> {
         let _loading_span = span!(Level::INFO, "finding", i = format!("{:?}", item)).entered();
 
         info!("finding");
@@ -297,7 +297,7 @@ impl ActiveSession for Session {
         }
     }
 
-    fn add_entity(&self, entity: Entity) -> Result<Entry> {
+    fn add_entity(&self, entity: Entity) -> Result<EntityPtr> {
         if let Some(gid) = entity.gid() {
             let key = &entity.key();
             warn!(key = ?key, gid = ?gid, "unnecessary add-entity");
@@ -322,10 +322,10 @@ impl ActiveSession for Session {
 
         Ok(self
             .entry(&LookupBy::Key(&key))?
-            .expect("Bug: Newly added entity has no Entry"))
+            .expect("Bug: Newly added entity has no EntityPtr"))
     }
 
-    fn obliterate(&self, entry: &Entry) -> Result<()> {
+    fn obliterate(&self, entry: &EntityPtr) -> Result<()> {
         self.state.obliterate(entry)
     }
 
@@ -365,7 +365,7 @@ fn should_force_rollback() -> bool {
 
 const USER_DEPTH: usize = 2;
 
-fn user_name_to_key<R: EntryResolver>(resolve: &R, name: &str) -> Result<EntityKey, DomainError> {
+fn user_name_to_key<R: EntityPtrResolver>(resolve: &R, name: &str) -> Result<EntityKey, DomainError> {
     let world = resolve.world()?.expect("No world");
     world
         .find_name_key(name)?
@@ -374,7 +374,7 @@ fn user_name_to_key<R: EntryResolver>(resolve: &R, name: &str) -> Result<EntityK
 
 struct MakeSurroundings {
     finder: Arc<dyn Finder>,
-    living: Entry,
+    living: EntityPtr,
 }
 
 impl TryInto<Surroundings> for MakeSurroundings {
@@ -383,7 +383,7 @@ impl TryInto<Surroundings> for MakeSurroundings {
     fn try_into(self) -> std::result::Result<Surroundings, Self::Error> {
         let world = self.finder.find_world()?;
         let living = self.living.clone();
-        let area: Entry = self
+        let area: EntityPtr = self
             .finder
             .find_location(&living)
             .with_context(|| "find-location")?;

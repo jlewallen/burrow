@@ -323,10 +323,10 @@ pub enum Surroundings {
     },
 }
 
-impl TryFrom<&kernel::prelude::Entry> for Json {
+impl TryFrom<&kernel::prelude::EntityPtr> for Json {
     type Error = anyhow::Error;
 
-    fn try_from(value: &kernel::prelude::Entry) -> Result<Self, Self::Error> {
+    fn try_from(value: &kernel::prelude::EntityPtr) -> Result<Self, Self::Error> {
         let entity = value.borrow();
         Ok(Self(entity.to_json_value()?.into()))
     }
