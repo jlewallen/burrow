@@ -91,11 +91,11 @@ impl std::fmt::Debug for EntityPtr {
 }
 
 pub trait IntoEntityPtr {
-    fn to_entry(&self) -> Result<EntityPtr, DomainError>;
+    fn to_entity(&self) -> Result<EntityPtr, DomainError>;
 }
 
 impl IntoEntityPtr for EntityRef {
-    fn to_entry(&self) -> Result<EntityPtr, DomainError> {
+    fn to_entity(&self) -> Result<EntityPtr, DomainError> {
         use super::session::get_my_session;
         if !self.key().valid() {
             return Err(DomainError::InvalidKey);

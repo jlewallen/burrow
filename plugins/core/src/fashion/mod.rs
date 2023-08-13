@@ -89,9 +89,9 @@ pub mod model {
             }
         }
 
-        pub fn to_entry(&self) -> Result<EntityPtr, DomainError> {
+        pub fn to_entity(&self) -> Result<EntityPtr, DomainError> {
             match self {
-                Article::Just(e) => e.to_entry(),
+                Article::Just(e) => e.to_entity(),
             }
         }
     }
@@ -117,7 +117,7 @@ pub mod model {
                 .wearing
                 .iter()
                 .map(|h| match h {
-                    Article::Just(e) => e.to_entry(),
+                    Article::Just(e) => e.to_entity(),
                 })
                 .collect::<Result<Vec<_>, _>>()?;
 
@@ -229,7 +229,7 @@ pub mod actions {
 
             match session.find_item(surroundings, &self.item)? {
                 Some(wearing) => {
-                    let location = Location::get(&wearing)?.expect("No location").to_entry()?;
+                    let location = Location::get(&wearing)?.expect("No location").to_entity()?;
                     match tools::wear_article(&location, &user, &wearing)? {
                         DomainOutcome::Ok => Ok(reply_ok(
                             Audience::Area(area.key().clone()),

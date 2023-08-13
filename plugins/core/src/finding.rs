@@ -138,7 +138,7 @@ impl EntityRelationshipSet {
                     expanded.push(EntityRelationship::Exit(
                         item.name()?
                             .ok_or_else(|| anyhow!("Route name is required"))?,
-                        exit.area.to_entry()?,
+                        exit.area.to_entity()?,
                     ));
                 }
             }
@@ -248,7 +248,7 @@ impl Finder for DefaultFinder {
 
     fn find_location(&self, entry: &EntityPtr) -> Result<EntityPtr> {
         let occupying = entry.scope::<Occupying>()?.unwrap();
-        Ok(occupying.area.to_entry()?)
+        Ok(occupying.area.to_entity()?)
     }
 
     fn find_item(&self, surroundings: &Surroundings, item: &Item) -> Result<Option<EntityPtr>> {
