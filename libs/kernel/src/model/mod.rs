@@ -12,7 +12,6 @@ pub mod builder;
 pub mod compare;
 pub mod entity;
 pub mod entity_ref;
-pub mod entry;
 pub mod props;
 pub mod scopes;
 
@@ -20,7 +19,6 @@ pub use base::*;
 pub use builder::*;
 pub use entity::*;
 pub use entity_ref::*;
-pub use entry::*;
 pub use props::*;
 pub use scopes::*;
 
@@ -105,6 +103,22 @@ impl IntoEntityPtr for EntityRef {
         get_my_session()?
             .entry(&LookupBy::Key(self.key()))?
             .ok_or(DomainError::DanglingEntity)
+    }
+}
+
+pub trait EntityPtrResolver {
+    fn recursive_entry(
+        &self,
+        lookup: &LookupBy,
+        depth: usize,
+    ) -> Result<Option<EntityPtr>, DomainError>;
+
+    fn entry(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>, DomainError> {
+        self.recursive_entry(lookup, 0)
+    }
+
+    fn world(&self) -> Result<Option<EntityPtr>, DomainError> {
+        self.entry(&LookupBy::Key(&EntityKey::new(WORLD_KEY)))
     }
 }
 
