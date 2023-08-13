@@ -38,3 +38,15 @@ build:amd64:
   artifacts:
     paths:
       - target/release/cli
+
+build:web:
+  stage: build
+  before_script:
+    - rustup target add wasm32-unknown-unknown
+    - cargo install trunk
+  script:
+    - cd web
+    - trunk build
+  artifacts:
+    paths:
+      - web/dist
