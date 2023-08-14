@@ -250,3 +250,48 @@ fn it_removes_simple_routes() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn it_navigates_through_simple_routes() -> Result<()> {
+    let mut build = BuildSurroundings::new()?;
+    let destination = build.make(QuickThing::Place("Place"))?;
+    let gid = destination.borrow().gid().unwrap();
+    let (session, surroundings) = build.build()?;
+
+    let action = try_parsing(RouteActionParser {}, &format!("@route #{} north", gid))?.unwrap();
+    action.perform(session.clone(), &surroundings)?;
+
+    let action = try_parsing(GoActionParser {}, "go north")?.unwrap();
+    let reply = action.perform(session.clone(), &surroundings)?;
+
+    insta::assert_json_snapshot!(reply.to_debug_json()?);
+
+    build.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn it_picks_best_matching_route_by_name() -> Result<()> {
+    let mut build = BuildSurroundings::new()?;
+    let destination = build.make(QuickThing::Place("Place"))?;
+    let gid = destination.borrow().gid().unwrap();
+    let (session, surroundings) = build.build()?;
+
+    let action = try_parsing(RouteActionParser {}, &format!("@route #{} north", gid))?.unwrap();
+    action.perform(session.clone(), &surroundings)?;
+    let action = try_parsing(RouteActionParser {}, &format!("@route #{} south", gid))?.unwrap();
+    action.perform(session.clone(), &surroundings)?;
+    let action = try_parsing(RouteActionParser {}, &format!("@route #{} northwest", gid))?.unwrap();
+    action.perform(session.clone(), &surroundings)?;
+
+    let action = try_parsing(GoActionParser {}, "go east")?.unwrap();
+    let reply = action.perform(session.clone(), &surroundings)?;
+
+    let reply: SimpleReply = reply.json_as()?;
+    assert_eq!(reply, SimpleReply::NotFound);
+
+    build.close()?;
+
+    Ok(())
+}

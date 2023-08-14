@@ -110,6 +110,12 @@ impl Route {
             Route::Simple(simple) => simple.name.starts_with(name),
         }
     }
+
+    fn destination(&self) -> &EntityRef {
+        match self {
+            Route::Simple(simple) => &simple.to,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -159,6 +165,24 @@ impl Occupyable {
         routes.push(route);
 
         Ok(())
+    }
+
+    pub fn find_route(&self, item: &Item) -> Result<Option<EntityPtr>> {
+        let Some(routes) = &self.routes else {
+            return Ok(None);
+        };
+
+        match item {
+            Item::Route(name) => {
+                for route in routes {
+                    if route.matching_name(&name) {
+                        return Ok(Some(route.destination().to_entity()?));
+                    }
+                }
+                Ok(None)
+            }
+            _ => panic!("Occupyable::find_route expecting Item::Route"),
+        }
     }
 }
 

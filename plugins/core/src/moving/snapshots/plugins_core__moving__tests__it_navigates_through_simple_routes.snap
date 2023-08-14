@@ -1,0 +1,35 @@
+---
+source: plugins/core/src/moving/tests.rs
+expression: reply.to_debug_json()?
+---
+{
+  "reply": {
+    "taggedJson": {
+      "areaObservation": {
+        "area": {
+          "desc": null,
+          "key": "E-1",
+          "name": "Place",
+          "qualified": "Place"
+        },
+        "carrying": [],
+        "items": [],
+        "living": [
+          {
+            "desc": null,
+            "key": "E-2",
+            "name": "Living",
+            "qualified": "Living"
+          }
+        ],
+        "person": {
+          "desc": null,
+          "key": "E-2",
+          "name": "Living",
+          "qualified": "Living"
+        },
+        "routes": []
+      }
+    }
+  }
+}
