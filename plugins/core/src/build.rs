@@ -10,7 +10,12 @@ use kernel::{
     session::ActiveSession,
 };
 
-use crate::{fashion::model::Wearable, helping::model::Wiki, tools, DefaultFinder};
+use crate::{
+    fashion::model::Wearable,
+    helping::model::Wiki,
+    moving::model::{Occupyable, Route, SimpleRoute},
+    tools, DefaultFinder,
+};
 
 pub struct BuildEntityPtr {
     entity: EntityPtr,
@@ -53,6 +58,16 @@ impl BuildEntityPtr {
 
     pub fn leads_to(&mut self, area: EntityPtr) -> Result<&mut Self> {
         tools::leads_to(&self.entity, &area)?;
+
+        Ok(self)
+    }
+
+    pub fn routes(&mut self, routes: Vec<Route>) -> Result<&mut Self> {
+        {
+            let mut occupyable = self.entity.scope_mut::<Occupyable>()?;
+            occupyable.routes = Some(routes);
+            occupyable.save()?;
+        }
 
         Ok(self)
     }
@@ -175,9 +190,14 @@ impl QuickThing {
     }
 }
 
+pub enum QuickRoute {
+    Simple(&'static str, EntityPtr),
+}
+
 pub struct BuildSurroundings {
     hands: Vec<QuickThing>,
     ground: Vec<QuickThing>,
+    routes: Vec<QuickRoute>,
     wearing: Vec<QuickThing>,
     world: EntityPtr,
     #[allow(dead_code)] // TODO Combine with Rc<Session>?
@@ -213,6 +233,7 @@ impl BuildSurroundings {
         Ok(Self {
             hands: Vec::new(),
             ground: Vec::new(),
+            routes: Vec::new(),
             wearing: Vec::new(),
             session,
             world,
@@ -230,6 +251,7 @@ impl BuildSurroundings {
             hands: Vec::new(),
             ground: Vec::new(),
             wearing: Vec::new(),
+            routes: Vec::new(),
             session,
             world,
             set,
@@ -274,6 +296,13 @@ impl BuildSurroundings {
         self.ground(vec![QuickThing::Route(route_name, Box::new(destination))])
     }
 
+    pub fn new_route(&mut self, route_name: &'static str, destination: EntityPtr) -> &mut Self {
+        self.routes
+            .extend(vec![QuickRoute::Simple(route_name, destination)]);
+
+        self
+    }
+
     pub fn build(&mut self) -> Result<(SessionRef, Surroundings)> {
         let person = Build::new(&self.session)?
             .named("Living")?
@@ -300,6 +329,18 @@ impl BuildSurroundings {
             .named("Welcome Area")?
             .save()?
             .occupying(&vec![person.clone()])?
+            .routes(
+                self.routes
+                    .iter()
+                    .map(|i| -> Result<_> {
+                        match i {
+                            QuickRoute::Simple(name, destination) => {
+                                Ok(Route::Simple(SimpleRoute::new(name, destination.key())))
+                            }
+                        }
+                    })
+                    .collect::<Result<Vec<_>>>()?,
+            )?
             .holding(
                 &self
                     .ground

@@ -84,6 +84,15 @@ pub struct SimpleRoute {
     to: EntityKey,
 }
 
+impl SimpleRoute {
+    pub fn new(name: &str, to: EntityKey) -> Self {
+        Self {
+            name: name.to_owned(),
+            to,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Route {
     Simple(SimpleRoute),

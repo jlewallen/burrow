@@ -276,7 +276,7 @@ expression: domain.snapshot().await?
         },
         "occupancy": 0,
         "occupied": [],
-        "routes": null
+        "routes": []
       },
       "props": {
         "core": {

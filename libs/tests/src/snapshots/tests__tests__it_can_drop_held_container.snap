@@ -267,7 +267,7 @@ expression: domain.snapshot().await?
             "name": "Living"
           }
         ],
-        "routes": null
+        "routes": []
       },
       "props": {
         "core": {
