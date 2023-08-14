@@ -235,29 +235,3 @@ impl<'a> SavesEntities<'a> {
         Ok(modified.into_iter().flatten().collect::<Vec<_>>())
     }
 }
-
-#[allow(dead_code)]
-pub struct ActionPerformer {
-    session: SessionRef,
-    surroundings: Surroundings,
-    // action: Rc<dyn Action>,
-}
-
-#[allow(unused_variables)]
-impl Performer for ActionPerformer {
-    fn perform(&self, perform: Perform) -> Result<Effect> {
-        match perform {
-            Perform::Living { living, action } => todo!(),
-            Perform::Surroundings {
-                surroundings,
-                action,
-            } => todo!(),
-            Perform::Chain(_) => todo!(),
-            Perform::Delivery(_) => todo!(),
-            Perform::Raised(_) => todo!(),
-            Perform::Schedule(_) => todo!(),
-            Perform::Ping(_) => todo!(),
-            _ => todo!(),
-        }
-    }
-}

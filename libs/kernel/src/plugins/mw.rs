@@ -63,10 +63,13 @@ where
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
+    use replies::{TaggedJson, ToTaggedJson};
+    use serde::Serialize;
 
     use super::*;
-    use crate::actions::TracePath;
+    use crate::actions::{Action, PerformAction};
 
+    #[allow(dead_code)]
     pub struct Middle {
         token: String,
     }
@@ -89,32 +92,49 @@ mod tests {
 
     impl Middleware for Middle {
         fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
-            match value {
-                Perform::Ping(value) => {
-                    match next.handle(Perform::Ping(value.push(self.token.clone())))? {
-                        Effect::Pong(value) => Ok(Effect::Pong(value.push(self.token.clone()))),
-                        _ => todo!(),
-                    }
-                }
-                _ => todo!(),
-            }
+            next.handle(value)
+        }
+    }
+
+    #[derive(Default, Serialize, Debug)]
+    struct ExampleAction {}
+
+    impl ToTaggedJson for ExampleAction {
+        fn to_tagged_json(
+            &self,
+        ) -> std::result::Result<replies::TaggedJson, replies::TaggedJsonError> {
+            Ok(TaggedJson::new(
+                "exampleAction".to_owned(),
+                serde_json::to_value(self)?.into(),
+            ))
+        }
+    }
+
+    impl Action for ExampleAction {
+        fn is_read_only() -> bool
+        where
+            Self: Sized,
+        {
+            true
+        }
+
+        fn perform(
+            &self,
+            _session: crate::session::SessionRef,
+            _surroundings: &crate::surround::Surroundings,
+        ) -> crate::actions::ReplyResult {
+            todo!()
         }
     }
 
     #[test]
     fn should_call_handle_with_no_middleware() -> Result<()> {
         let all: Vec<Rc<dyn Middleware>> = Vec::new();
-        let request_fn = Box::new(|value: Perform| -> Result<Effect, anyhow::Error> {
-            match value {
-                Perform::Ping(value) => Ok(Effect::Pong(value.push("$".to_owned()))),
-                _ => todo!(),
-            }
-        });
-        let pong = match apply_middleware(&all, Perform::Ping(TracePath::default()), request_fn)? {
-            Effect::Pong(pong) => format!("{:?}", pong),
-            _ => panic!(),
-        };
-        assert_eq!(pong, "$");
+        let request_fn =
+            Box::new(|_value: Perform| -> Result<Effect, anyhow::Error> { Ok(Effect::Ok) });
+        let perform = Perform::Chain(PerformAction::Instance(Rc::new(ExampleAction::default())));
+        let effect = apply_middleware(&all, perform, request_fn)?;
+        assert_eq!(effect, Effect::Ok);
         Ok(())
     }
 
@@ -122,17 +142,11 @@ mod tests {
     fn should_middleware_in_expected_order() -> Result<()> {
         let all: Vec<Rc<dyn Middleware>> =
             vec![Rc::new(Middle::from("A")), Rc::new(Middle::from("B"))];
-        let request_fn = Box::new(|value: Perform| -> Result<Effect, anyhow::Error> {
-            match value {
-                Perform::Ping(value) => Ok(Effect::Pong(value.push("$".to_owned()))),
-                _ => todo!(),
-            }
-        });
-        let pong = match apply_middleware(&all, Perform::Ping(Default::default()), request_fn)? {
-            Effect::Pong(pong) => format!("{:?}", pong),
-            _ => panic!(),
-        };
-        assert_eq!(pong, "AB$BA");
+        let request_fn =
+            Box::new(|_value: Perform| -> Result<Effect, anyhow::Error> { Ok(Effect::Ok) });
+        let perform = Perform::Chain(PerformAction::Instance(Rc::new(ExampleAction::default())));
+        let effect = apply_middleware(&all, perform, request_fn)?;
+        assert_eq!(effect, Effect::Ok);
         Ok(())
     }
 }

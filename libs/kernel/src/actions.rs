@@ -84,7 +84,6 @@ pub enum Perform {
     Delivery(Incoming),
     Raised(Raised),
     Schedule(Scheduling),
-    Ping(TracePath),
 }
 
 impl Perform {
@@ -102,7 +101,6 @@ impl Perform {
             Perform::Delivery(_) => "Delivery",
             Perform::Raised(_) => "Raised",
             Perform::Schedule(_) => "Schedule",
-            Perform::Ping(_) => "Ping",
         }
     }
 }
@@ -145,34 +143,11 @@ pub enum Effect {
     Ok,
     Prevented,
     Reply(EffectReply),
-    Pong(TracePath),
 }
 
 impl From<EffectReply> for Effect {
     fn from(value: EffectReply) -> Self {
         Effect::Reply(value)
-    }
-}
-
-#[derive(Clone, Serialize, Deserialize, PartialEq, Default)]
-pub struct TracePath(Vec<String>);
-
-impl TracePath {
-    pub fn push(self, v: String) -> Self {
-        Self(self.0.into_iter().chain([v]).collect())
-    }
-}
-
-impl std::fmt::Debug for TracePath {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let value: String = self.clone().into();
-        f.write_str(&value)
-    }
-}
-
-impl From<TracePath> for String {
-    fn from(value: TracePath) -> Self {
-        value.0.join("")
     }
 }
 
