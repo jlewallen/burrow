@@ -152,7 +152,11 @@ pub mod model {
     }
 
     fn is_kind(entity: &EntityPtr, kind: &Kind) -> Result<bool> {
-        Ok(*entity.scope::<Carryable>()?.unwrap().kind() == *kind)
+        if let Some(carryable) = entity.scope::<Carryable>()? {
+            Ok(*carryable.kind() == *kind)
+        } else {
+            Ok(false)
+        }
     }
 
     impl Default for Carryable {
