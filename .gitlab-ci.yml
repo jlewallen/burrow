@@ -47,6 +47,7 @@ build:web:
     - rustup target add wasm32-unknown-unknown
     - cargo install trunk
   script:
+    - cp .env.default .env
     - cd web
     - trunk build
   artifacts:
