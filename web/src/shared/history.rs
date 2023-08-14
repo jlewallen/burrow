@@ -50,13 +50,18 @@ fn entity_name_desc(entity: &ObservedEntity) -> (Html, Html) {
     (name, desc)
 }
 
-fn entity_observation(entity: &ObservedEntity) -> Html {
-    let (name, desc) = entity_name_desc(entity);
+fn entity_observation(observation: &EntityObservation) -> Html {
+    let (name, desc) = entity_name_desc(&observation.entity);
 
     html! {
         <div class="entry observation entity">
             { name }
             { desc }
+            if let Some(wearing) = &observation.wearing {
+                <div class="wearing">
+                    { "They are wearing "} { simple_entities_list(&wearing) } { "." }
+                </div>
+            }
         </div>
     }
 }
@@ -148,7 +153,7 @@ impl Render for AllKnownItems {
             Self::AreaObservation(reply) => Some(area_observation(&reply)),
             Self::InsideObservation(reply) => Some(inside_observation(&reply)),
             Self::SimpleReply(reply) => Some(simple_reply(&reply)),
-            Self::EntityObservation(entity) => Some(entity_observation(&entity.entity)),
+            Self::EntityObservation(entity) => Some(entity_observation(&entity)),
             Self::MarkdownReply(value) => Some(markdown_reply(&value)),
 
             Self::EditorReply(_) => None,
