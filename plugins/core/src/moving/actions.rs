@@ -91,8 +91,18 @@ impl Action for ShowRoutesAction {
         false
     }
 
-    fn perform(&self, _session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
-        todo!()
+    fn perform(&self, _session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+        let (_, _, area) = surroundings.unpack();
+        let Some(occupyable) = area.scope::<Occupyable>()? else {
+            return Ok(SimpleReply::NotFound.try_into()?);
+        };
+        let Some(routes) = &occupyable.routes else {
+            return Ok(SimpleReply::NotFound.try_into()?);
+        };
+
+        let reply = TaggedJson::new("routes".to_owned(), serde_json::to_value(routes)?.into());
+
+        Ok(Effect::Reply(EffectReply::TaggedJson(reply)))
     }
 }
 
