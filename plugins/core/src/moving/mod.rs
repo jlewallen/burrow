@@ -230,6 +230,13 @@ pub mod actions {
                                         h.after_move(surroundings, &area)
                                     })?;
 
+                                    let excluding = living.key();
+                                    let hearing_arrive: Vec<_> =
+                                        tools::get_occupant_keys(&to_area)?
+                                            .into_iter()
+                                            .filter(|v| *v != excluding)
+                                            .collect();
+
                                     session.raise(
                                         Audience::Area(area.key().clone()),
                                         Raising::TaggedJson(
@@ -245,7 +252,7 @@ pub mod actions {
                                         ),
                                     )?;
                                     session.raise(
-                                        Audience::Area(to_area.key().clone()),
+                                        Audience::Individuals(hearing_arrive),
                                         Raising::TaggedJson(
                                             MovingEvent::Arrived {
                                                 living: (&living)
