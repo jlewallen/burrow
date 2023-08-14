@@ -82,9 +82,40 @@ impl Action for GoAction {
 }
 
 #[action]
-pub struct RouteAction {}
+pub struct ShowRoutesAction {}
 
-impl Action for RouteAction {
+impl Action for ShowRoutesAction {
+    fn is_read_only() -> bool {
+        false
+    }
+
+    fn perform(&self, _session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
+        todo!()
+    }
+}
+
+#[action]
+pub struct AddRouteAction {
+    pub name: String,
+    pub destination: Item,
+}
+
+impl Action for AddRouteAction {
+    fn is_read_only() -> bool {
+        false
+    }
+
+    fn perform(&self, _session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
+        todo!()
+    }
+}
+
+#[action]
+pub struct RemoveRouteAction {
+    pub name: String,
+}
+
+impl Action for RemoveRouteAction {
     fn is_read_only() -> bool {
         false
     }

@@ -2,6 +2,7 @@ use super::parser::*;
 use super::*;
 use crate::library::tests::*;
 use crate::looking::model::new_area_observation;
+use crate::moving::actions::{AddRouteAction, RemoveRouteAction, ShowRoutesAction};
 
 #[test]
 fn it_goes_ignores_bad_matches() -> Result<()> {
@@ -116,7 +117,39 @@ fn it_fails_to_go_non_routes() -> Result<()> {
 #[test]
 fn it_parses_show_routes() -> Result<()> {
     let action = try_parsing(RouteActionParser {}, "@route")?;
-    assert!(action.is_some());
+    assert_eq!(
+        action.unwrap().to_tagged_json()?,
+        ShowRoutesAction {}.to_tagged_json()?
+    );
+
+    Ok(())
+}
+
+#[test]
+fn it_parses_add_or_set_route() -> Result<()> {
+    let action = try_parsing(RouteActionParser {}, "@route #5 north")?;
+    assert_eq!(
+        action.unwrap().to_tagged_json()?,
+        AddRouteAction {
+            name: "north".to_owned(),
+            destination: Item::Gid(EntityGid::new(5)),
+        }
+        .to_tagged_json()?
+    );
+
+    Ok(())
+}
+
+#[test]
+fn it_parses_remove_route() -> Result<()> {
+    let action = try_parsing(RouteActionParser {}, "@route rm north")?;
+    assert_eq!(
+        action.unwrap().to_tagged_json()?,
+        RemoveRouteAction {
+            name: "north".to_owned()
+        }
+        .to_tagged_json()?
+    );
 
     Ok(())
 }
