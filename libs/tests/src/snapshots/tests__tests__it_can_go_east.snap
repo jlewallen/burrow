@@ -70,7 +70,8 @@ expression: domain.snapshot().await?
             "key": "E-3",
             "name": "Living"
           }
-        ]
+        ],
+        "routes": null
       },
       "props": {
         "core": {
@@ -274,7 +275,8 @@ expression: domain.snapshot().await?
           "rules": []
         },
         "occupancy": 0,
-        "occupied": []
+        "occupied": [],
+        "routes": null
       },
       "props": {
         "core": {

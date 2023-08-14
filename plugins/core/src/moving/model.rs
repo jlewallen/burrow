@@ -78,11 +78,23 @@ impl Scope for Occupying {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SimpleRoute {
+    name: String,
+    to: EntityKey,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Route {
+    Simple(SimpleRoute),
+}
+
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Occupyable {
     pub acls: Acls,
     pub occupied: Vec<EntityRef>,
     pub occupancy: u32,
+    pub routes: Option<Vec<Route>>,
 }
 
 impl Occupyable {
@@ -118,21 +130,5 @@ pub struct Exit {
 impl Scope for Exit {
     fn scope_key() -> &'static str {
         "exit"
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct AreaRoute {
-    pub area: EntityRef,
-}
-
-#[derive(Debug, Serialize, Deserialize, Default)]
-pub struct Movement {
-    pub routes: Vec<AreaRoute>,
-}
-
-impl Scope for Movement {
-    fn scope_key() -> &'static str {
-        "movement"
     }
 }

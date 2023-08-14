@@ -80,3 +80,16 @@ impl Action for GoAction {
         }
     }
 }
+
+#[action]
+pub struct RouteAction {}
+
+impl Action for RouteAction {
+    fn is_read_only() -> bool {
+        false
+    }
+
+    fn perform(&self, _session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
+        todo!()
+    }
+}

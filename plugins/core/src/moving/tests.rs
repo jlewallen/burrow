@@ -112,3 +112,11 @@ fn it_fails_to_go_non_routes() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn it_parses_show_routes() -> Result<()> {
+    let action = try_parsing(RouteActionParser {}, "@route")?;
+    assert!(action.is_some());
+
+    Ok(())
+}

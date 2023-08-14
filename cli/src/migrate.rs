@@ -5,7 +5,7 @@ use plugins_core::{
     fashion::model::{Wearable, Wearing},
     location::Location,
     memory::model::Memory,
-    moving::model::{Exit, Movement, Occupyable, Occupying},
+    moving::model::{Exit, Occupyable, Occupying},
 };
 use plugins_rune::Behaviors;
 use tracing::info;
@@ -93,7 +93,6 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
                     load_and_save_scope::<Occupyable>(&entity)?;
                     load_and_save_scope::<Occupying>(&entity)?;
                     load_and_save_scope::<Exit>(&entity)?;
-                    load_and_save_scope::<Movement>(&entity)?;
                     load_and_save_scope::<Containing>(&entity)?;
                     load_and_save_scope::<Wearable>(&entity)?;
                     load_and_save_scope::<Wearing>(&entity)?;
