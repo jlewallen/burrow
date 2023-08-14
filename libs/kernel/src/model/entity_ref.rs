@@ -16,6 +16,12 @@ pub struct EntityRef {
     entity: Option<Weak<RefCell<Entity>>>,
 }
 
+impl PartialEq for EntityRef {
+    fn eq(&self, other: &Self) -> bool {
+        self.key == other.key && self.class == other.class && self.gid == other.gid
+    }
+}
+
 impl Default for EntityRef {
     fn default() -> Self {
         Self {

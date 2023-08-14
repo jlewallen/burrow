@@ -334,9 +334,9 @@ impl BuildSurroundings {
                     .iter()
                     .map(|i| -> Result<_> {
                         match i {
-                            QuickRoute::Simple(name, destination) => {
-                                Ok(Route::Simple(SimpleRoute::new(name, destination.key())))
-                            }
+                            QuickRoute::Simple(name, destination) => Ok(Route::Simple(
+                                SimpleRoute::new(name, destination.entity_ref()),
+                            )),
                         }
                     })
                     .collect::<Result<Vec<_>>>()?,

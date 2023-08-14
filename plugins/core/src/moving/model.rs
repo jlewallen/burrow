@@ -78,14 +78,14 @@ impl Scope for Occupying {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct SimpleRoute {
     name: String,
-    to: EntityKey,
+    to: EntityRef,
 }
 
 impl SimpleRoute {
-    pub fn new(name: &str, to: EntityKey) -> Self {
+    pub fn new(name: &str, to: EntityRef) -> Self {
         Self {
             name: name.to_owned(),
             to,
@@ -93,9 +93,23 @@ impl SimpleRoute {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub enum Route {
     Simple(SimpleRoute),
+}
+
+impl Route {
+    fn conflicts_with(&self, other: &Route) -> bool {
+        match (self, other) {
+            (Route::Simple(a), Route::Simple(b)) => a.name == b.name,
+        }
+    }
+
+    fn matching_name(&self, name: &str) -> bool {
+        match self {
+            Route::Simple(simple) => simple.name.starts_with(name),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -122,6 +136,29 @@ impl Occupyable {
         self.occupied.push(item.entity_ref());
 
         Ok(DomainOutcome::Ok)
+    }
+
+    pub fn remove_route(&mut self, name: &str) -> Result<bool> {
+        if let Some(routes) = &mut self.routes {
+            if let Some(found) = routes.iter().position(|r| r.matching_name(name)) {
+                routes.remove(found);
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
+    }
+
+    pub fn add_route(&mut self, route: Route) -> Result<()> {
+        let routes = self.routes.get_or_insert_with(|| Vec::new());
+
+        if let Some(conflict) = routes.iter().position(|r| r.conflicts_with(&route)) {
+            routes.remove(conflict);
+        }
+
+        routes.push(route);
+
+        Ok(())
     }
 }
 

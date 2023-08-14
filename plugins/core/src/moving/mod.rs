@@ -54,5 +54,6 @@ impl Plugin for MovingPlugin {
 impl ParsesActions for MovingPlugin {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
         try_parsing(parser::GoActionParser {}, i)
+            .or_else(|_| try_parsing(parser::RouteActionParser {}, i))
     }
 }

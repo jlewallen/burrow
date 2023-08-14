@@ -1,7 +1,9 @@
 use crate::library::actions::*;
 use crate::looking::actions::*;
 use crate::looking::model::Observe;
-use crate::moving::model::{AfterMoveHook, BeforeMovingHook, CanMove, MovingHooks};
+use crate::moving::model::{AfterMoveHook, BeforeMovingHook, CanMove, MovingHooks, SimpleRoute};
+
+use super::model::{Occupyable, Route};
 
 #[action]
 pub struct GoAction {
@@ -105,8 +107,21 @@ impl Action for AddRouteAction {
         false
     }
 
-    fn perform(&self, _session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
-        todo!()
+    fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+        let (_, _living, area) = surroundings.unpack();
+
+        let Some(destination) = session.find_item(surroundings, &self.destination)? else {
+             return Ok(SimpleReply::NotFound.try_into()?);
+        };
+
+        let mut occupyable = area.scope_mut::<Occupyable>()?;
+        occupyable.add_route(Route::Simple(SimpleRoute::new(
+            &self.name,
+            destination.entity_ref(),
+        )))?;
+        occupyable.save()?;
+
+        Ok(SimpleReply::Done.try_into()?)
     }
 }
 
@@ -120,7 +135,15 @@ impl Action for RemoveRouteAction {
         false
     }
 
-    fn perform(&self, _session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
-        todo!()
+    fn perform(&self, _session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+        let (_, _living, area) = surroundings.unpack();
+        let mut occupyable = area.scope_mut::<Occupyable>()?;
+        if !occupyable.remove_route(&self.name)? {
+            return Ok(SimpleReply::NotFound.try_into()?);
+        }
+
+        occupyable.save()?;
+
+        Ok(SimpleReply::Done.try_into()?)
     }
 }
