@@ -58,8 +58,6 @@ impl ParsesActions for FashionPlugin {
 pub mod model {
     use crate::library::model::*;
 
-    pub type CarryingResult = Result<DomainOutcome>;
-
     #[derive(Debug, Serialize, ToTaggedJson)]
     #[serde(rename_all = "camelCase")]
     pub enum FashionEvent {
@@ -108,9 +106,9 @@ pub mod model {
     }
 
     impl Wearing {
-        pub fn start_wearing(&mut self, item: &EntityPtr) -> Result<DomainOutcome, DomainError> {
+        pub fn start_wearing(&mut self, item: &EntityPtr) -> Result<bool, DomainError> {
             let Some(wearable) = item.scope::<Wearable>()? else {
-                return Ok(DomainOutcome::Nope);
+                return Ok(false);
             };
 
             let wearing = self
@@ -123,24 +121,23 @@ pub mod model {
 
             for held in wearing {
                 if is_kind(&held, &wearable.kind)? {
-                    return Ok(DomainOutcome::Ok);
+                    return Ok(true);
                 }
             }
 
             self.wearing.push(Article::Just(item.entity_ref()));
 
-            Ok(DomainOutcome::Ok)
+            Ok(true)
         }
 
-        pub fn is_wearing(&self, item: &EntityPtr) -> Result<bool> {
-            Ok(self
-                .wearing
+        pub fn is_wearing(&self, item: &EntityPtr) -> bool {
+            self.wearing
                 .iter()
                 .flat_map(|i| i.keys())
-                .any(|i| *i.key() == item.key()))
+                .any(|i| *i.key() == item.key())
         }
 
-        fn remove_item(&mut self, item: &EntityPtr) -> CarryingResult {
+        fn remove_item(&mut self, item: &EntityPtr) -> Result<bool, DomainError> {
             self.wearing = self
                 .wearing
                 .iter()
@@ -154,11 +151,11 @@ pub mod model {
                 .collect::<Vec<_>>()
                 .to_vec();
 
-            Ok(DomainOutcome::Ok)
+            Ok(true)
         }
 
-        pub fn stop_wearing(&mut self, item: &EntityPtr) -> Result<Option<EntityPtr>> {
-            if !self.is_wearing(item)? {
+        pub fn stop_wearing(&mut self, item: &EntityPtr) -> Result<Option<EntityPtr>, DomainError> {
+            if !self.is_wearing(item) {
                 return Ok(None);
             }
 
@@ -178,7 +175,7 @@ pub mod model {
         kind: Kind,
     }
 
-    fn is_kind(entity: &EntityPtr, kind: &Kind) -> Result<bool> {
+    fn is_kind(entity: &EntityPtr, kind: &Kind) -> Result<bool, DomainError> {
         Ok(*entity.scope::<Wearable>()?.unwrap().kind() == *kind)
     }
 
@@ -231,7 +228,7 @@ pub mod actions {
                 Some(wearing) => {
                     let location = Location::get(&wearing)?.expect("No location").to_entity()?;
                     match tools::wear_article(&location, &user, &wearing)? {
-                        DomainOutcome::Ok => Ok(reply_ok(
+                        true => Ok(reply_ok(
                             Audience::Area(area.key().clone()),
                             FashionEvent::Worn {
                                 living: user.entity_ref(),
@@ -239,7 +236,7 @@ pub mod actions {
                                 area: area.entity_ref(),
                             },
                         )?),
-                        DomainOutcome::Nope => Ok(SimpleReply::NotFound.try_into()?),
+                        false => Ok(SimpleReply::NotFound.try_into()?),
                     }
                 }
                 None => Ok(SimpleReply::NotFound.try_into()?),
@@ -265,7 +262,7 @@ pub mod actions {
             match &self.maybe_item {
                 Some(item) => match session.find_item(surroundings, item)? {
                     Some(removing) => match tools::remove_article(&user, &user, &removing)? {
-                        DomainOutcome::Ok => Ok(reply_ok(
+                        true => Ok(reply_ok(
                             Audience::Area(area.key().clone()),
                             FashionEvent::Removed {
                                 living: user.entity_ref(),
@@ -273,7 +270,7 @@ pub mod actions {
                                 area: area.entity_ref(),
                             },
                         )?),
-                        DomainOutcome::Nope => Ok(SimpleReply::NotFound.try_into()?),
+                        false => Ok(SimpleReply::NotFound.try_into()?),
                     },
                     None => Ok(SimpleReply::NotFound.try_into()?),
                 },

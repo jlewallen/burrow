@@ -21,7 +21,7 @@ pub fn wear_article(
     from: &EntityPtr,
     to: &EntityPtr,
     item: &EntityPtr,
-) -> Result<DomainOutcome, DomainError> {
+) -> Result<bool, DomainError> {
     change_location(
         from,
         to,
@@ -38,7 +38,7 @@ pub fn remove_article(
     from: &EntityPtr,
     to: &EntityPtr,
     item: &EntityPtr,
-) -> Result<DomainOutcome, DomainError> {
+) -> Result<bool, DomainError> {
     change_location(
         from,
         to,
@@ -55,7 +55,7 @@ pub fn move_between(
     from: &EntityPtr,
     to: &EntityPtr,
     item: &EntityPtr,
-) -> Result<DomainOutcome, DomainError> {
+) -> Result<bool, DomainError> {
     change_location(
         from,
         to,
@@ -72,14 +72,14 @@ pub fn navigate_between(
     from: &EntityPtr,
     to: &EntityPtr,
     item: &EntityPtr,
-) -> Result<DomainOutcome, DomainError> {
+) -> Result<bool, DomainError> {
     info!("navigating {:?}", item);
 
     let mut from = from.scope_mut::<Occupyable>()?;
     let mut into = to.scope_mut::<Occupyable>()?;
 
     match from.stop_occupying(item)? {
-        DomainOutcome::Ok => {
+        true => {
             let mut location = item.scope_mut::<Occupying>()?;
             location.area = to.entity_ref();
 
@@ -88,9 +88,9 @@ pub fn navigate_between(
             from.save()?;
             location.save()?;
 
-            Ok(DomainOutcome::Ok)
+            Ok(true)
         }
-        DomainOutcome::Nope => Ok(DomainOutcome::Nope),
+        false => Ok(false),
     }
 }
 
@@ -176,7 +176,7 @@ pub fn get_occupant_keys(area: &EntityPtr) -> Result<Vec<EntityKey>> {
         .collect::<Vec<EntityKey>>())
 }
 
-pub fn new_entity_from_template_ptr(template: &EntityPtr) -> Result<EntityPtr> {
+pub fn new_entity_from_template_ptr(template: &EntityPtr) -> Result<EntityPtr, DomainError> {
     let key = get_my_session()?.new_key();
     let entity = build_entity()
         .with_key(key)
@@ -185,12 +185,12 @@ pub fn new_entity_from_template_ptr(template: &EntityPtr) -> Result<EntityPtr> {
     get_my_session()?.add_entity(entity)
 }
 
-pub fn quantity(entity: &EntityPtr) -> Result<f32> {
+pub fn quantity(entity: &EntityPtr) -> Result<f32, DomainError> {
     let carryable = entity.scope::<Carryable>()?.unwrap();
     Ok(carryable.quantity())
 }
 
-pub fn set_quantity(entity: &EntityPtr, quantity: f32) -> Result<&EntityPtr> {
+pub fn set_quantity(entity: &EntityPtr, quantity: f32) -> Result<&EntityPtr, DomainError> {
     let mut carryable = entity.scope_mut::<Carryable>()?;
     carryable.set_quantity(quantity)?;
     carryable.save()?;

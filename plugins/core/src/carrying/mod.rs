@@ -62,11 +62,9 @@ pub mod model {
 
     pub use kernel::common::CarryingEvent;
 
-    pub type CarryingResult = Result<DomainOutcome>;
-
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Containing {
-        pub holding: Vec<EntityRef>,
+        pub(crate) holding: Vec<EntityRef>,
         pub(crate) capacity: Option<u32>,
         pub(crate) produces: HashMap<String, String>,
     }
@@ -78,7 +76,7 @@ pub mod model {
     }
 
     impl Containing {
-        pub fn start_carrying(&mut self, item: &EntityPtr) -> CarryingResult {
+        pub fn start_carrying(&mut self, item: &EntityPtr) -> Result<bool, DomainError> {
             if let Some(carryable) = item.scope::<Carryable>()? {
                 let holding = self
                     .holding
@@ -96,21 +94,21 @@ pub mod model {
 
                         get_my_session()?.obliterate(item)?;
 
-                        return Ok(DomainOutcome::Ok);
+                        return Ok(true);
                     }
                 }
             }
 
             self.holding.push(item.entity_ref());
 
-            Ok(DomainOutcome::Ok)
+            Ok(false)
         }
 
-        pub fn is_holding(&self, item: &EntityPtr) -> Result<bool> {
-            Ok(self.holding.iter().any(|i| *i.key() == item.key()))
+        pub fn is_holding(&self, item: &EntityPtr) -> bool {
+            self.holding.iter().any(|i| *i.key() == item.key())
         }
 
-        fn remove_item(&mut self, item: &EntityPtr) -> CarryingResult {
+        fn remove_item(&mut self, item: &EntityPtr) -> Result<bool, DomainError> {
             self.holding = self
                 .holding
                 .iter()
@@ -124,11 +122,14 @@ pub mod model {
                 .collect::<Vec<EntityRef>>()
                 .to_vec();
 
-            Ok(DomainOutcome::Ok)
+            Ok(true)
         }
 
-        pub fn stop_carrying(&mut self, item: &EntityPtr) -> Result<Option<EntityPtr>> {
-            if !self.is_holding(item)? {
+        pub fn stop_carrying(
+            &mut self,
+            item: &EntityPtr,
+        ) -> Result<Option<EntityPtr>, DomainError> {
+            if !self.is_holding(item) {
                 return Ok(None);
             }
 
@@ -156,7 +157,7 @@ pub mod model {
         quantity: f32,
     }
 
-    fn is_kind(entity: &EntityPtr, kind: &Kind) -> Result<bool> {
+    fn is_kind(entity: &EntityPtr, kind: &Kind) -> Result<bool, DomainError> {
         if let Some(carryable) = entity.scope::<Carryable>()? {
             Ok(*carryable.kind() == *kind)
         } else {
@@ -191,7 +192,7 @@ pub mod model {
             }
         }
 
-        pub fn increase_quantity(&mut self, q: f32) -> Result<&mut Self> {
+        pub fn increase_quantity(&mut self, q: f32) -> Result<&mut Self, DomainError> {
             self.sanity_check_quantity();
 
             self.quantity += q;
@@ -199,7 +200,7 @@ pub mod model {
             Ok(self)
         }
 
-        pub fn set_quantity(&mut self, q: f32) -> Result<&mut Self> {
+        pub fn set_quantity(&mut self, q: f32) -> Result<&mut Self, DomainError> {
             self.quantity = q;
 
             Ok(self)
@@ -248,7 +249,7 @@ pub mod actions {
 
             match session.find_item(surroundings, &self.item)? {
                 Some(holding) => match tools::move_between(&area, &user, &holding)? {
-                    DomainOutcome::Ok => Ok(reply_ok(
+                    true => Ok(reply_ok(
                         Audience::Area(area.key().clone()),
                         CarryingEvent::Held {
                             living: (&user).observe(&user)?.expect("No observed entity"),
@@ -256,7 +257,7 @@ pub mod actions {
                             area: (&area).observe(&user)?.expect("No observed entity"),
                         },
                     )?),
-                    DomainOutcome::Nope => Ok(SimpleReply::NotFound.try_into()?),
+                    false => Ok(SimpleReply::NotFound.try_into()?),
                 },
                 None => Ok(SimpleReply::NotFound.try_into()?),
             }
@@ -281,7 +282,7 @@ pub mod actions {
             match &self.maybe_item {
                 Some(item) => match session.find_item(surroundings, item)? {
                     Some(dropping) => match tools::move_between(&user, &area, &dropping)? {
-                        DomainOutcome::Ok => Ok(reply_ok(
+                        true => Ok(reply_ok(
                             Audience::Area(area.key().clone()),
                             CarryingEvent::Dropped {
                                 living: (&user).observe(&user)?.expect("No observed entity"),
@@ -289,7 +290,7 @@ pub mod actions {
                                 area: (&area).observe(&user)?.expect("No observed entity"),
                             },
                         )?),
-                        DomainOutcome::Nope => Ok(SimpleReply::NotFound.try_into()?),
+                        false => Ok(SimpleReply::NotFound.try_into()?),
                     },
                     None => Ok(SimpleReply::NotFound.try_into()?),
                 },
@@ -320,8 +321,8 @@ pub mod actions {
                         if tools::is_container(&vessel)? {
                             let from = tools::container_of(&item)?;
                             match tools::move_between(&from, &vessel, &item)? {
-                                DomainOutcome::Ok => Ok(SimpleReply::Done.try_into()?),
-                                DomainOutcome::Nope => Ok(SimpleReply::NotFound.try_into()?),
+                                true => Ok(SimpleReply::Done.try_into()?),
+                                false => Ok(SimpleReply::NotFound.try_into()?),
                             }
                         } else {
                             Ok(SimpleReply::Impossible.try_into()?)
@@ -355,8 +356,8 @@ pub mod actions {
                     if tools::is_container(&vessel)? {
                         match session.find_item(surroundings, &self.item)? {
                             Some(item) => match tools::move_between(&vessel, &user, &item)? {
-                                DomainOutcome::Ok => Ok(SimpleReply::Done.try_into()?),
-                                DomainOutcome::Nope => Ok(SimpleReply::NotFound.try_into()?),
+                                true => Ok(SimpleReply::Done.try_into()?),
+                                false => Ok(SimpleReply::NotFound.try_into()?),
                             },
                             None => Ok(SimpleReply::NotFound.try_into()?),
                         }

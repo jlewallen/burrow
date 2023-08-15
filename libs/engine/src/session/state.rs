@@ -18,7 +18,7 @@ pub struct State {
 }
 
 impl State {
-    pub fn obliterate(&self, entity: &EntityPtr) -> Result<()> {
+    pub fn obliterate(&self, entity: &EntityPtr) -> Result<(), DomainError> {
         {
             let destroying = entity;
             let mut destroying = destroying.borrow_mut();
@@ -130,7 +130,7 @@ impl State {
 }
 
 impl Performer for State {
-    fn perform(&self, perform: Perform) -> Result<Effect> {
+    fn perform(&self, perform: Perform) -> Result<Effect, DomainError> {
         match perform {
             Perform::Surroundings {
                 surroundings,
@@ -146,7 +146,7 @@ impl Performer for State {
                     } else {
                         warn!("action:error {:?}", res);
                     }
-                    res
+                    Ok(res?)
                 }
             },
             Perform::Raised(raised) => {

@@ -202,24 +202,28 @@ fn default_priority(e: &EntityRelationship) -> u32 {
 pub struct DefaultFinder {}
 
 impl Finder for DefaultFinder {
-    fn find_world(&self) -> anyhow::Result<EntityPtr> {
+    fn find_world(&self) -> Result<EntityPtr, DomainError> {
         Ok(get_my_session()?.world()?.expect("No world"))
     }
 
-    fn find_location(&self, entity: &EntityPtr) -> Result<EntityPtr> {
+    fn find_location(&self, entity: &EntityPtr) -> Result<EntityPtr, DomainError> {
         let occupying = entity.scope::<Occupying>()?.unwrap();
         Ok(occupying.area.to_entity()?)
     }
 
-    fn find_item(&self, surroundings: &Surroundings, item: &Item) -> Result<Option<EntityPtr>> {
+    fn find_item(
+        &self,
+        surroundings: &Surroundings,
+        item: &Item,
+    ) -> Result<Option<EntityPtr>, DomainError> {
         let haystack = EntityRelationshipSet::new_from_surroundings(surroundings).expand()?;
-        haystack.find_item(item)
+        Ok(haystack.find_item(item)?)
     }
 
     fn find_audience(
         &self,
         audience: &kernel::prelude::Audience,
-    ) -> Result<Vec<kernel::prelude::EntityKey>> {
+    ) -> Result<Vec<kernel::prelude::EntityKey>, DomainError> {
         match audience {
             Audience::Nobody => Ok(Vec::new()),
             Audience::Everybody => todo![],
@@ -231,7 +235,7 @@ impl Finder for DefaultFinder {
                 let area = session
                     .entity(&kernel::prelude::LookupBy::Key(area))?
                     .ok_or(DomainError::EntityNotFound(here!().into()))?;
-                tools::get_occupant_keys(&area)
+                Ok(tools::get_occupant_keys(&area)?)
             }
         }
     }

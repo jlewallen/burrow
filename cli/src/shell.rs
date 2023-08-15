@@ -172,10 +172,10 @@ impl Middleware for InteractiveEditor {
                                             .entity(&kernel::prelude::LookupBy::Key(&self.living))?
                                         {
                                             Some(living) => {
-                                                return session.perform(Perform::Living {
+                                                return Ok(session.perform(Perform::Living {
                                                     living,
                                                     action: PerformAction::Instance(action),
-                                                });
+                                                })?);
                                             }
                                             None => break,
                                         }

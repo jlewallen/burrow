@@ -30,12 +30,12 @@ pub fn change_location<A, B, C, D>(
     item: &EntityPtr,
     do_from: C,
     do_into: D,
-) -> Result<DomainOutcome, DomainError>
+) -> Result<bool, DomainError>
 where
     A: Scope + Serialize,
     B: Scope + Serialize,
-    C: FnOnce(&mut A, EntityPtr) -> Result<Option<EntityPtr>>,
-    D: FnOnce(&mut B, EntityPtr) -> Result<Option<EntityPtr>>,
+    C: FnOnce(&mut A, EntityPtr) -> Result<Option<EntityPtr>, DomainError>,
+    D: FnOnce(&mut B, EntityPtr) -> Result<Option<EntityPtr>, DomainError>,
 {
     info!("moving {:?} {:?} {:?}", item, from, to);
 
@@ -49,11 +49,11 @@ where
                 from.save()?;
                 into.save()?;
 
-                Ok(DomainOutcome::Ok)
+                Ok(true)
             }
-            None => Ok(DomainOutcome::Nope),
+            None => Ok(false),
         },
-        None => Ok(DomainOutcome::Nope),
+        None => Ok(false),
     }
 }
 

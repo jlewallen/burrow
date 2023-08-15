@@ -183,10 +183,10 @@ impl Services for SessionServices {
 
     fn raise(&self, audience: Audience, raised: JsonValue) -> Result<()> {
         let session = get_my_session().with_context(|| "SessionServer::raise")?;
-        session.raise(
+        Ok(session.raise(
             audience,
             Raising::TaggedJson(RpcDomainEvent { value: raised }.to_tagged_json()?),
-        )
+        )?)
     }
 
     fn schedule(&self, key: &str, millis: i64, serialized: Json) -> Result<()> {
@@ -200,11 +200,11 @@ impl Services for SessionServices {
             .as_ref()
             .ok_or_else(|| anyhow!("session prefix required"))?;
 
-        session.schedule(
+        Ok(session.schedule(
             &format!("{}/{}", prefix, key),
             When::Time(time.and_utc()),
             &serialized,
-        )
+        )?)
     }
 
     fn produced(&self, effect: Effect) -> Result<()> {

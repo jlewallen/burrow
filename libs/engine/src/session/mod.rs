@@ -92,7 +92,11 @@ impl Session {
         Ok(SetSession::new(self.weak.upgrade().unwrap()))
     }
 
-    pub fn evaluate_and_perform(&self, user_name: &str, text: &str) -> Result<Option<Effect>> {
+    pub fn evaluate_and_perform(
+        &self,
+        user_name: &str,
+        text: &str,
+    ) -> Result<Option<Effect>, DomainError> {
         self.evaluate_and_perform_as(EvaluateAs::Name(user_name), text)
     }
 
@@ -100,7 +104,7 @@ impl Session {
         &self,
         evaluate_as: EvaluateAs,
         text: &str,
-    ) -> Result<Option<Effect>> {
+    ) -> Result<Option<Effect>, DomainError> {
         if !self.open.load(Ordering::Relaxed) {
             return Err(DomainError::SessionClosed.into());
         }
@@ -249,18 +253,17 @@ impl Session {
 }
 
 impl Performer for Session {
-    fn perform(&self, perform: Perform) -> Result<Effect> {
+    fn perform(&self, perform: Perform) -> Result<Effect, DomainError> {
         let _span = span!(Level::DEBUG, "P").entered();
 
         debug!("perform {:?}", perform);
 
         let target = self.state.clone();
-        let request_fn = Box::new(move |value: Perform| -> Result<Effect, anyhow::Error> {
-            target.perform(value)
-        });
+        let request_fn =
+            Box::new(move |value: Perform| -> Result<Effect> { Ok(target.perform(value)?) });
 
         let middleware = self.middleware.borrow();
-        apply_middleware(&middleware, perform, request_fn)
+        Ok(apply_middleware(&middleware, perform, request_fn)?)
     }
 }
 
@@ -286,7 +289,11 @@ impl ActiveSession for Session {
         self.identities.following()
     }
 
-    fn find_item(&self, surroundings: &Surroundings, item: &Item) -> Result<Option<EntityPtr>> {
+    fn find_item(
+        &self,
+        surroundings: &Surroundings,
+        item: &Item,
+    ) -> Result<Option<EntityPtr>, DomainError> {
         let _loading_span = span!(Level::INFO, "finding", i = format!("{:?}", item)).entered();
 
         info!("finding");
@@ -297,7 +304,7 @@ impl ActiveSession for Session {
         }
     }
 
-    fn add_entity(&self, entity: Entity) -> Result<EntityPtr> {
+    fn add_entity(&self, entity: Entity) -> Result<EntityPtr, DomainError> {
         if let Some(gid) = entity.gid() {
             let key = &entity.key();
             warn!(key = ?key, gid = ?gid, "unnecessary add-entity");
@@ -325,17 +332,22 @@ impl ActiveSession for Session {
             .expect("Bug: Newly added entity has no EntityPtr"))
     }
 
-    fn obliterate(&self, entity: &EntityPtr) -> Result<()> {
+    fn obliterate(&self, entity: &EntityPtr) -> Result<(), DomainError> {
         self.state.obliterate(entity)
     }
 
-    fn raise(&self, audience: Audience, raising: Raising) -> Result<()> {
+    fn raise(&self, audience: Audience, raising: Raising) -> Result<(), DomainError> {
         let perform = Perform::Raised(Raised::new(audience.clone(), "".to_owned(), raising.into()));
 
         self.perform(perform).map(|_| ())
     }
 
-    fn schedule(&self, key: &str, when: When, message: &dyn ToTaggedJson) -> Result<()> {
+    fn schedule(
+        &self,
+        key: &str,
+        when: When,
+        message: &dyn ToTaggedJson,
+    ) -> Result<(), DomainError> {
         let key = key.to_owned();
         let message = message.to_tagged_json()?;
         let scheduling = Scheduling { key, when, message };
