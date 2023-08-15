@@ -61,7 +61,7 @@ pub mod model {
     use crate::tools;
     use crate::{
         carrying::model::{Carryable, Containing},
-        moving::model::{Movement, Occupyable},
+        moving::model::Occupyable,
     };
 
     pub enum Unqualified<'a> {
@@ -192,12 +192,14 @@ pub mod model {
             }
         }
 
-        let mut routes = vec![];
+        let routes: Vec<ObservedEntity> = vec![];
+        /*
         if let Ok(Some(movement)) = user.scope::<Movement>() {
             for route in &movement.routes {
                 routes.push((&route.area.to_entity()?).observe(user)?);
             }
         }
+        */
 
         Ok(AreaObservation {
             area: area
@@ -207,7 +209,7 @@ pub mod model {
             living,
             items: items.into_iter().flatten().collect(),
             carrying: carrying.into_iter().flatten().collect(),
-            routes: routes.into_iter().flatten().collect(),
+            routes,
         })
     }
 

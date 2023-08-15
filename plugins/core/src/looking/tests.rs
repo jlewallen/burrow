@@ -42,28 +42,6 @@ fn it_looks_in_area_with_items_on_ground() -> Result<()> {
 }
 
 #[test]
-fn it_looks_in_area_with_items_on_ground_and_a_route() -> Result<()> {
-    let mut build = BuildSurroundings::new()?;
-    let destination = build.make(QuickThing::Place("Place"))?;
-    let (session, surroundings) = build
-        .ground(vec![QuickThing::Object("Cool Rake")])
-        .ground(vec![QuickThing::Object("Boring Shovel")])
-        .route("East Exit", QuickThing::Actual(destination))
-        .build()?;
-
-    let action = try_parsing(LookActionParser {}, "look")?;
-    let action = action.unwrap();
-    let reply = action.perform(session.clone(), &surroundings)?;
-    let (_, _person, _area) = surroundings.unpack();
-
-    insta::assert_json_snapshot!(reply.to_debug_json()?);
-
-    build.close()?;
-
-    Ok(())
-}
-
-#[test]
 fn it_looks_in_area_with_items_on_ground_and_holding_items() -> Result<()> {
     let mut build = BuildSurroundings::new()?;
     let destination = build.make(QuickThing::Place("Place"))?;

@@ -1,9 +1,6 @@
 use std::str::FromStr;
 
-use crate::{
-    building::model::QuickEdit, carrying::model::Carryable, library::actions::*,
-    looking::actions::LookAction,
-};
+use crate::{building::model::QuickEdit, library::actions::*, looking::actions::LookAction};
 
 #[action]
 pub struct AddScopeAction {
@@ -201,29 +198,9 @@ impl Action for BidirectionalDigAction {
             .try_into()?;
         let new_area = session.add_entity(new_area)?;
 
-        let returning: Entity = build_entity()
-            .exit()
-            .default_scope::<Carryable>()?
-            .name(&self.returning)
-            .desc(&self.returning)
-            .try_into()?;
-        let returning = session.add_entity(returning)?;
+        tools::add_route(&area, &self.outgoing, &new_area)?;
+        tools::add_route(&new_area, &self.returning, &area)?;
 
-        let outgoing: Entity = build_entity()
-            .exit()
-            .default_scope::<Carryable>()?
-            .name(&self.outgoing)
-            .desc(&self.outgoing)
-            .try_into()?;
-        let outgoing = session.add_entity(outgoing)?;
-
-        tools::leads_to(&returning, &area)?;
-        tools::set_container(&new_area, &vec![returning])?;
-
-        tools::leads_to(&outgoing, &new_area)?;
-        tools::set_container(&area, &vec![outgoing])?;
-
-        // TODO Chain to GoAction?
         match tools::navigate_between(&area, &new_area, &living)? {
             DomainOutcome::Ok => session.perform(Perform::Living {
                 living,

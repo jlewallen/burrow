@@ -1,5 +1,5 @@
-use anyhow::{anyhow, Result};
-use tracing::{debug, info};
+use anyhow::Result;
+use tracing::debug;
 
 use crate::{moving::model::Occupying, tools};
 use kernel::prelude::{
@@ -31,7 +31,6 @@ pub enum EntityRelationship {
     Occupying(EntityPtr),
     Ground(EntityPtr),
     Contained(EntityPtr),
-    Exit(String, EntityPtr),
     Wearing(EntityPtr),
 }
 
@@ -45,7 +44,6 @@ impl EntityRelationship {
             EntityRelationship::Occupying(e) => e,
             EntityRelationship::Ground(e) => e,
             EntityRelationship::Contained(e) => e,
-            EntityRelationship::Exit(_, e) => e,
             EntityRelationship::Wearing(e) => e,
         })
     }
@@ -126,27 +124,6 @@ impl EntityRelationshipSet {
         Ok(Self { entities: expanded })
     }
 
-    // Why not just do this in expand?
-    pub fn routes(&self) -> Result<Self> {
-        use crate::moving::model::Exit;
-
-        let mut expanded = self.entities.clone();
-
-        for entity in &self.entities {
-            if let EntityRelationship::Ground(item) = entity {
-                if let Some(exit) = item.scope::<Exit>()? {
-                    expanded.push(EntityRelationship::Exit(
-                        item.name()?
-                            .ok_or_else(|| anyhow!("Route name is required"))?,
-                        exit.area.to_entity()?,
-                    ));
-                }
-            }
-        }
-
-        Ok(Self { entities: expanded })
-    }
-
     pub fn find_item(&self, item: &Item) -> Result<Option<EntityPtr>> {
         debug!("haystack {:?}", self);
 
@@ -187,22 +164,6 @@ impl EntityRelationshipSet {
 
                 Ok(None)
             }
-            Item::Route(name) => {
-                let haystack = self.routes()?;
-
-                debug!("route:haystack {:?}", haystack);
-
-                for entity in &haystack.entities {
-                    if let EntityRelationship::Exit(route_name, area) = entity {
-                        if matches_string(route_name, name) {
-                            info!("found: {:?} -> {:?}", route_name, area);
-                            return Ok(Some(area.clone()));
-                        }
-                    }
-                }
-
-                Ok(None)
-            }
             Item::Contained(contained) => self.expand()?.find_item(contained),
             Item::Held(held) => self
                 .prioritize(&|e| match e {
@@ -232,7 +193,6 @@ fn default_priority(e: &EntityRelationship) -> u32 {
         EntityRelationship::Contained(_) => 4,
         EntityRelationship::Occupying(_) => 5,
         EntityRelationship::Wearing(_) => 6,
-        EntityRelationship::Exit(_, _) => 7,
         EntityRelationship::User(_) => 8,
         EntityRelationship::World(_) => 9,
     }

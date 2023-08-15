@@ -10,7 +10,12 @@ use kernel::{
     session::ActiveSession,
 };
 
-use crate::{fashion::model::Wearable, helping::model::Wiki, tools, DefaultFinder};
+use crate::{
+    fashion::model::Wearable,
+    helping::model::Wiki,
+    moving::model::{Occupyable, Route, SimpleRoute},
+    tools, DefaultFinder,
+};
 
 pub struct BuildEntityPtr {
     entity: EntityPtr,
@@ -51,8 +56,12 @@ impl BuildEntityPtr {
         Ok(self)
     }
 
-    pub fn leads_to(&mut self, area: EntityPtr) -> Result<&mut Self> {
-        tools::leads_to(&self.entity, &area)?;
+    pub fn routes(&mut self, routes: Vec<Route>) -> Result<&mut Self> {
+        {
+            let mut occupyable = self.entity.scope_mut::<Occupyable>()?;
+            occupyable.routes = Some(routes);
+            occupyable.save()?;
+        }
 
         Ok(self)
     }
@@ -134,7 +143,6 @@ pub enum QuickThing {
     Wearable(&'static str),
     Multiple(&'static str, f32),
     Place(&'static str),
-    Route(&'static str, Box<QuickThing>),
     Actual(EntityPtr),
 }
 
@@ -160,24 +168,19 @@ impl QuickThing {
             QuickThing::Place(name) => {
                 Ok(Build::new(session)?.named(name)?.save()?.into_entity()?)
             }
-            QuickThing::Route(name, area) => {
-                let area = area.make(session)?;
-
-                Ok(Build::new(session)?
-                    .named(name)?
-                    .save()?
-                    .carryable()?
-                    .leads_to(area)?
-                    .into_entity()?)
-            }
             QuickThing::Actual(ep) => Ok(ep.clone()),
         }
     }
 }
 
+pub enum QuickRoute {
+    Simple(&'static str, EntityPtr),
+}
+
 pub struct BuildSurroundings {
     hands: Vec<QuickThing>,
     ground: Vec<QuickThing>,
+    routes: Vec<QuickRoute>,
     wearing: Vec<QuickThing>,
     world: EntityPtr,
     #[allow(dead_code)] // TODO Combine with Rc<Session>?
@@ -196,7 +199,6 @@ impl BuildSurroundings {
         let session = domain.open_session()?;
         let set = session.set_session()?;
 
-        // TODO One problem at a time.
         let world = Build::new_world(&session)?
             .named("World")?
             .save()?
@@ -213,6 +215,7 @@ impl BuildSurroundings {
         Ok(Self {
             hands: Vec::new(),
             ground: Vec::new(),
+            routes: Vec::new(),
             wearing: Vec::new(),
             session,
             world,
@@ -223,13 +226,13 @@ impl BuildSurroundings {
     pub fn new_in_session(session: Rc<Session>) -> Result<Self> {
         let set = session.set_session()?;
 
-        // TODO One problem at a time.
         let world = Build::new_world(&session)?.named("World")?.into_entity()?;
 
         Ok(Self {
             hands: Vec::new(),
             ground: Vec::new(),
             wearing: Vec::new(),
+            routes: Vec::new(),
             session,
             world,
             set,
@@ -271,7 +274,15 @@ impl BuildSurroundings {
     }
 
     pub fn route(&mut self, route_name: &'static str, destination: QuickThing) -> &mut Self {
-        self.ground(vec![QuickThing::Route(route_name, Box::new(destination))])
+        self.routes.push(QuickRoute::Simple(
+            route_name,
+            match destination {
+                QuickThing::Actual(actual) => actual,
+                _ => todo!(),
+            },
+        ));
+
+        self
     }
 
     pub fn build(&mut self) -> Result<(SessionRef, Surroundings)> {
@@ -300,6 +311,18 @@ impl BuildSurroundings {
             .named("Welcome Area")?
             .save()?
             .occupying(&vec![person.clone()])?
+            .routes(
+                self.routes
+                    .iter()
+                    .map(|i| -> Result<_> {
+                        match i {
+                            QuickRoute::Simple(name, destination) => Ok(Route::Simple(
+                                SimpleRoute::new(name, destination.entity_ref()),
+                            )),
+                        }
+                    })
+                    .collect::<Result<Vec<_>>>()?,
+            )?
             .holding(
                 &self
                     .ground
