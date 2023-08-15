@@ -1,8 +1,12 @@
 use std::str::FromStr;
 
+use chrono::Utc;
+
 use crate::{
-    building::model::QuickEdit, carrying::model::Containing, library::actions::*,
-    looking::actions::LookAction, moving::model::Occupyable,
+    building::model::QuickEdit,
+    library::actions::*,
+    looking::actions::LookAction,
+    memory::model::{remember, EntityEvent, MemoryEvent},
 };
 
 #[action]
@@ -168,7 +172,17 @@ impl Action for MakeItemAction {
         let new_item = session.add_entity(new_item)?;
 
         tools::set_quantity(&new_item, 1f32)?;
-        tools::set_container(creator, &vec![new_item])?;
+        tools::set_container(creator, &vec![new_item.clone()])?;
+
+        remember(
+            &creator,
+            Utc::now(),
+            MemoryEvent::Created(EntityEvent {
+                key: new_item.key().clone(),
+                gid: new_item.gid(),
+                name: new_item.name()?.unwrap(),
+            }),
+        )?;
 
         Ok(SimpleReply::Done.try_into()?)
     }
