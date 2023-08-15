@@ -4,9 +4,11 @@ use chrono::Utc;
 
 use crate::{
     building::model::QuickEdit,
+    carrying::model::{Carryable, Containing},
     library::actions::*,
     looking::actions::LookAction,
     memory::model::{remember, EntityEvent, MemoryEvent},
+    moving::model::Occupyable,
 };
 
 #[action]
@@ -336,7 +338,7 @@ impl Action for BuildAreaAction {
 
         let creator = surroundings.living();
 
-        let new_item: Entity = build_entity()
+        let new_area: Entity = build_entity()
             .area()
             .default_scope::<Containing>()?
             .default_scope::<Occupyable>()?
@@ -344,13 +346,23 @@ impl Action for BuildAreaAction {
             .name(&self.name)
             .try_into()?;
 
-        let new_item = session.add_entity(new_item)?;
+        let new_area = session.add_entity(new_area)?;
 
-        info!("created {:?}", new_item);
+        remember(
+            &creator,
+            Utc::now(),
+            MemoryEvent::Constructed(EntityEvent {
+                key: new_area.key().clone(),
+                gid: new_area.gid(),
+                name: new_area.name()?.unwrap(),
+            }),
+        )?;
+
+        info!("created {:?}", new_area);
 
         Ok(Effect::Reply(EffectReply::TaggedJson(TaggedJson::new(
             "area".to_owned(),
-            new_item.to_json_value()?.into(),
+            new_area.to_json_value()?.into(),
         ))))
     }
 }

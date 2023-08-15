@@ -109,6 +109,7 @@ pub mod model {
     pub enum MemoryEvent {
         Created(EntityEvent),
         Destroyed(EntityEvent),
+        Constructed(EntityEvent),
     }
 
     #[derive(Debug, Serialize, Deserialize, Clone)]
