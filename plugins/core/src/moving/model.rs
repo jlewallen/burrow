@@ -109,7 +109,7 @@ impl Route {
 
     fn matching_name(&self, name: &str) -> bool {
         match self {
-            Route::Simple(simple) => simple.name.starts_with(name),
+            Route::Simple(simple) => simple.name.to_lowercase().contains(&name.to_lowercase()),
         }
     }
 
