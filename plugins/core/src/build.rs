@@ -149,7 +149,6 @@ pub enum QuickThing {
     Wearable(&'static str),
     Multiple(&'static str, f32),
     Place(&'static str),
-    Route(&'static str, Box<QuickThing>),
     Actual(EntityPtr),
 }
 
@@ -174,16 +173,6 @@ impl QuickThing {
                 .into_entity()?),
             QuickThing::Place(name) => {
                 Ok(Build::new(session)?.named(name)?.save()?.into_entity()?)
-            }
-            QuickThing::Route(name, area) => {
-                let area = area.make(session)?;
-
-                Ok(Build::new(session)?
-                    .named(name)?
-                    .save()?
-                    .carryable()?
-                    .leads_to(area)?
-                    .into_entity()?)
             }
             QuickThing::Actual(ep) => Ok(ep.clone()),
         }
@@ -216,7 +205,6 @@ impl BuildSurroundings {
         let session = domain.open_session()?;
         let set = session.set_session()?;
 
-        // TODO One problem at a time.
         let world = Build::new_world(&session)?
             .named("World")?
             .save()?
@@ -244,7 +232,6 @@ impl BuildSurroundings {
     pub fn new_in_session(session: Rc<Session>) -> Result<Self> {
         let set = session.set_session()?;
 
-        // TODO One problem at a time.
         let world = Build::new_world(&session)?.named("World")?.into_entity()?;
 
         Ok(Self {
@@ -293,12 +280,13 @@ impl BuildSurroundings {
     }
 
     pub fn route(&mut self, route_name: &'static str, destination: QuickThing) -> &mut Self {
-        self.ground(vec![QuickThing::Route(route_name, Box::new(destination))])
-    }
-
-    pub fn new_route(&mut self, route_name: &'static str, destination: EntityPtr) -> &mut Self {
-        self.routes
-            .extend(vec![QuickRoute::Simple(route_name, destination)]);
+        self.routes.push(QuickRoute::Simple(
+            route_name,
+            match destination {
+                QuickThing::Actual(actual) => actual,
+                _ => todo!(),
+            },
+        ));
 
         self
     }

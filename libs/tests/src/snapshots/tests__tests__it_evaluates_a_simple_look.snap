@@ -22,7 +22,7 @@ expression: domain.snapshot().await?
         "acls": {
           "rules": []
         },
-        "gid": 6
+        "gid": 5
       },
       "props": {
         "core": {
@@ -245,14 +245,7 @@ expression: domain.snapshot().await?
     "scopes": {
       "containing": {
         "capacity": null,
-        "holding": [
-          {
-            "class": "scopes.ItemClass",
-            "gid": 6,
-            "key": "E-5",
-            "name": "East"
-          }
-        ],
+        "holding": [],
         "produces": {}
       },
       "occupyable": {
@@ -268,7 +261,19 @@ expression: domain.snapshot().await?
             "name": "Living"
           }
         ],
-        "routes": []
+        "routes": [
+          {
+            "simple": {
+              "name": "East",
+              "to": {
+                "class": "scopes.ItemClass",
+                "gid": 1,
+                "key": "E-0",
+                "name": "Place"
+              }
+            }
+          }
+        ]
       },
       "props": {
         "core": {
@@ -279,60 +284,6 @@ expression: domain.snapshot().await?
           "name": {
             "acls": null,
             "value": "Welcome Area"
-          }
-        }
-      }
-    }
-  },
-  {
-    "acls": {
-      "rules": []
-    },
-    "class": {
-      "name": "scopes.ItemClass"
-    },
-    "creator": null,
-    "identity": {
-      "private": "Private#8",
-      "public": "Public#8"
-    },
-    "key": "E-5",
-    "parent": null,
-    "scopes": {
-      "carryable": {
-        "kind": {
-          "identity": {
-            "private": "Private#9",
-            "public": "Public#9"
-          }
-        },
-        "quantity": 1.0
-      },
-      "exit": {
-        "area": {
-          "class": "scopes.ItemClass",
-          "gid": 1,
-          "key": "E-0",
-          "name": "Place"
-        }
-      },
-      "location": {
-        "container": {
-          "class": "scopes.ItemClass",
-          "gid": 5,
-          "key": "E-4",
-          "name": "Welcome Area"
-        }
-      },
-      "props": {
-        "core": {
-          "gid": {
-            "acls": null,
-            "value": 6
-          },
-          "name": {
-            "acls": null,
-            "value": "East"
           }
         }
       }

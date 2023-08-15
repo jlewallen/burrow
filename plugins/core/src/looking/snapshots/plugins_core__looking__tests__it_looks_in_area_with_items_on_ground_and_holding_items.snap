@@ -26,12 +26,6 @@ expression: reply.to_debug_json()?
             "key": "E-5",
             "name": "Boring Shovel",
             "qualified": "a Boring Shovel"
-          },
-          {
-            "desc": null,
-            "key": "E-6",
-            "name": "East Exit",
-            "qualified": "an East Exit"
           }
         ],
         "living": [
