@@ -1,0 +1,1 @@
+{{ memories | json_encode(pretty=true) }}

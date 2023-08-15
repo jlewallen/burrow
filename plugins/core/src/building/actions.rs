@@ -1,8 +1,14 @@
 use std::str::FromStr;
 
+use chrono::Utc;
+
 use crate::{
-    building::model::QuickEdit, carrying::model::Containing, library::actions::*,
-    looking::actions::LookAction, moving::model::Occupyable,
+    building::model::QuickEdit,
+    carrying::model::{Carryable, Containing},
+    library::actions::*,
+    looking::actions::LookAction,
+    memory::model::{remember, EntityEvent, MemoryEvent},
+    moving::model::Occupyable,
 };
 
 #[action]
@@ -161,6 +167,7 @@ impl Action for MakeItemAction {
         let creator = surroundings.living();
 
         let new_item: Entity = build_entity()
+            .default_scope::<Carryable>()?
             .creator(creator.entity_ref())
             .name(&self.name)
             .try_into()?;
@@ -168,7 +175,17 @@ impl Action for MakeItemAction {
         let new_item = session.add_entity(new_item)?;
 
         tools::set_quantity(&new_item, 1f32)?;
-        tools::set_container(creator, &vec![new_item])?;
+        tools::set_container(creator, &vec![new_item.clone()])?;
+
+        remember(
+            &creator,
+            Utc::now(),
+            MemoryEvent::Created(EntityEvent {
+                key: new_item.key().clone(),
+                gid: new_item.gid(),
+                name: new_item.name()?.unwrap(),
+            }),
+        )?;
 
         Ok(SimpleReply::Done.try_into()?)
     }
@@ -196,6 +213,8 @@ impl Action for BidirectionalDigAction {
 
         let new_area: Entity = build_entity()
             .area()
+            .default_scope::<Occupyable>()?
+            .default_scope::<Containing>()?
             .name(&self.new_area)
             .desc(&self.new_area)
             .try_into()?;
@@ -319,7 +338,7 @@ impl Action for BuildAreaAction {
 
         let creator = surroundings.living();
 
-        let new_item: Entity = build_entity()
+        let new_area: Entity = build_entity()
             .area()
             .default_scope::<Containing>()?
             .default_scope::<Occupyable>()?
@@ -327,13 +346,23 @@ impl Action for BuildAreaAction {
             .name(&self.name)
             .try_into()?;
 
-        let new_item = session.add_entity(new_item)?;
+        let new_area = session.add_entity(new_area)?;
 
-        info!("created {:?}", new_item);
+        remember(
+            &creator,
+            Utc::now(),
+            MemoryEvent::Constructed(EntityEvent {
+                key: new_area.key().clone(),
+                gid: new_area.gid(),
+                name: new_area.name()?.unwrap(),
+            }),
+        )?;
+
+        info!("created {:?}", new_area);
 
         Ok(Effect::Reply(EffectReply::TaggedJson(TaggedJson::new(
             "area".to_owned(),
-            new_item.to_json_value()?.into(),
+            new_area.to_json_value()?.into(),
         ))))
     }
 }

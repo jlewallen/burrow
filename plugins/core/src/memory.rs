@@ -65,16 +65,17 @@ pub mod model {
 
     impl From<SpecificMemory> for RecalledMemory {
         fn from(value: SpecificMemory) -> Self {
-            let item = match value.event {
+            let entity = match value.event {
                 MemoryEvent::Created(e) => e,
                 MemoryEvent::Destroyed(e) => e,
+                MemoryEvent::Constructed(e) => e,
             };
 
             Self {
                 time: value.time,
-                key: item.key,
-                gid: item.gid,
-                name: item.name,
+                key: entity.key,
+                gid: entity.gid,
+                name: entity.name,
             }
         }
     }
@@ -98,7 +99,7 @@ pub mod model {
     }
 
     #[derive(Debug, Serialize, Deserialize, Clone)]
-    pub struct ItemEvent {
+    pub struct EntityEvent {
         pub(crate) key: EntityKey,
         pub(crate) gid: EntityGid,
         pub(crate) name: String,
@@ -106,8 +107,9 @@ pub mod model {
 
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub enum MemoryEvent {
-        Created(ItemEvent),
-        Destroyed(ItemEvent),
+        Created(EntityEvent),
+        Destroyed(EntityEvent),
+        Constructed(EntityEvent),
     }
 
     #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -224,7 +226,7 @@ mod tests {
         remember(
             &living,
             time,
-            MemoryEvent::Created(ItemEvent {
+            MemoryEvent::Created(EntityEvent {
                 key: session.new_key(),
                 gid: EntityGid::new(3),
                 name: "Doesn't actually exist".to_owned(),
