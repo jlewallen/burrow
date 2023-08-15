@@ -1,9 +1,9 @@
 use crate::library::actions::*;
 use crate::looking::actions::*;
 use crate::looking::model::Observe;
-use crate::moving::model::{AfterMoveHook, BeforeMovingHook, CanMove, MovingHooks, SimpleRoute};
+use crate::moving::model::{AfterMoveHook, BeforeMovingHook, CanMove, MovingHooks};
 
-use super::model::{Occupyable, Route};
+use super::model::Occupyable;
 
 #[action]
 pub struct GoAction {
@@ -133,12 +133,7 @@ impl Action for AddRouteAction {
              return Ok(SimpleReply::NotFound.try_into()?);
         };
 
-        let mut occupyable = area.scope_mut::<Occupyable>()?;
-        occupyable.add_route(Route::Simple(SimpleRoute::new(
-            &self.name,
-            destination.entity_ref(),
-        )))?;
-        occupyable.save()?;
+        tools::add_route(&area, &self.name, &destination)?;
 
         Ok(SimpleReply::Done.try_into()?)
     }

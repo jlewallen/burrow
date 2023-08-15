@@ -1,6 +1,8 @@
 use anyhow::Result;
 use tracing::info;
 
+use crate::moving::model::{Route, SimpleRoute};
+
 use super::{
     carrying::model::{Carryable, Containing},
     fashion::model::Wearing,
@@ -146,6 +148,12 @@ pub fn contained_by(container: &EntityPtr) -> Result<Vec<EntityPtr>, DomainError
     }
 
     Ok(entities)
+}
+
+pub fn add_route(area: &EntityPtr, name: &str, to: &EntityPtr) -> Result<(), DomainError> {
+    let mut occupyable = area.scope_mut::<Occupyable>()?;
+    occupyable.add_route(Route::Simple(SimpleRoute::new(&name, to.entity_ref())))?;
+    occupyable.save()
 }
 
 pub fn leads_to<'a>(route: &'a EntityPtr, area: &'a EntityPtr) -> Result<&'a EntityPtr> {
