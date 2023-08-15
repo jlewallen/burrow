@@ -1,4 +1,5 @@
 use chrono::{DateTime, Duration, Utc};
+use replies::TaggedJsonError;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{Debug, Display},
@@ -132,12 +133,6 @@ pub enum Audience {
     Everybody,
     Individuals(Vec<EntityKey>),
     Area(EntityKey),
-}
-
-#[derive(Debug, PartialEq)]
-pub enum DomainOutcome {
-    Ok,
-    Nope,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]

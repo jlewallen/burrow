@@ -202,11 +202,11 @@ impl Action for BidirectionalDigAction {
         tools::add_route(&new_area, &self.returning, &area)?;
 
         match tools::navigate_between(&area, &new_area, &living)? {
-            DomainOutcome::Ok => session.perform(Perform::Living {
+            true => Ok(session.perform(Perform::Living {
                 living,
                 action: PerformAction::Instance(Rc::new(LookAction {})),
-            }),
-            DomainOutcome::Nope => Ok(SimpleReply::NotFound.try_into()?),
+            })?),
+            false => Ok(SimpleReply::NotFound.try_into()?),
         }
     }
 }

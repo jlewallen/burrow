@@ -21,7 +21,7 @@ pub fn wear_article(
     from: &EntityPtr,
     to: &EntityPtr,
     item: &EntityPtr,
-) -> Result<DomainOutcome, DomainError> {
+) -> Result<bool, DomainError> {
     change_location(
         from,
         to,
@@ -38,7 +38,7 @@ pub fn remove_article(
     from: &EntityPtr,
     to: &EntityPtr,
     item: &EntityPtr,
-) -> Result<DomainOutcome, DomainError> {
+) -> Result<bool, DomainError> {
     change_location(
         from,
         to,
@@ -55,7 +55,7 @@ pub fn move_between(
     from: &EntityPtr,
     to: &EntityPtr,
     item: &EntityPtr,
-) -> Result<DomainOutcome, DomainError> {
+) -> Result<bool, DomainError> {
     change_location(
         from,
         to,
@@ -72,14 +72,14 @@ pub fn navigate_between(
     from: &EntityPtr,
     to: &EntityPtr,
     item: &EntityPtr,
-) -> Result<DomainOutcome, DomainError> {
+) -> Result<bool, DomainError> {
     info!("navigating {:?}", item);
 
     let mut from = from.scope_mut::<Occupyable>()?;
     let mut into = to.scope_mut::<Occupyable>()?;
 
     match from.stop_occupying(item)? {
-        DomainOutcome::Ok => {
+        true => {
             let mut location = item.scope_mut::<Occupying>()?;
             location.area = to.entity_ref();
 
@@ -88,9 +88,9 @@ pub fn navigate_between(
             from.save()?;
             location.save()?;
 
-            Ok(DomainOutcome::Ok)
+            Ok(true)
         }
-        DomainOutcome::Nope => Ok(DomainOutcome::Nope),
+        false => Ok(false),
     }
 }
 

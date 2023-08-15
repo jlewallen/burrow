@@ -25,7 +25,7 @@ impl GoAction {
 
         match can {
             CanMove::Allow => match tools::navigate_between(&area, &to_area, &living)? {
-                DomainOutcome::Ok => {
+                true => {
                     session
                         .hooks()
                         .invoke::<MovingHooks, (), _>(|h| h.after_move(surroundings, &area))?;
@@ -57,12 +57,12 @@ impl GoAction {
                         ),
                     )?;
 
-                    session.perform(Perform::Living {
+                    Ok(session.perform(Perform::Living {
                         living,
                         action: PerformAction::Instance(Rc::new(LookAction {})),
-                    })
+                    })?)
                 }
-                DomainOutcome::Nope => Ok(SimpleReply::NotFound.try_into()?),
+                false => Ok(SimpleReply::NotFound.try_into()?),
             },
             CanMove::Prevent => Ok(SimpleReply::Prevented.try_into()?),
         }

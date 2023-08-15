@@ -129,24 +129,24 @@ pub struct Occupyable {
 }
 
 impl Occupyable {
-    pub fn stop_occupying(&mut self, item: &EntityPtr) -> Result<DomainOutcome> {
+    pub fn stop_occupying(&mut self, item: &EntityPtr) -> Result<bool, DomainError> {
         let before = self.occupied.len();
         self.occupied.retain(|i| *i.key() != item.key());
         let after = self.occupied.len();
         if before == after {
-            return Ok(DomainOutcome::Nope);
+            return Ok(false);
         }
 
-        Ok(DomainOutcome::Ok)
+        Ok(true)
     }
 
-    pub fn start_occupying(&mut self, item: &EntityPtr) -> Result<DomainOutcome> {
+    pub fn start_occupying(&mut self, item: &EntityPtr) -> Result<(), DomainError> {
         self.occupied.push(item.entity_ref());
 
-        Ok(DomainOutcome::Ok)
+        Ok(())
     }
 
-    pub fn remove_route(&mut self, name: &str) -> Result<bool> {
+    pub fn remove_route(&mut self, name: &str) -> Result<bool, DomainError> {
         if let Some(routes) = &mut self.routes {
             if let Some(found) = routes.iter().position(|r| r.matching_name(name)) {
                 routes.remove(found);
