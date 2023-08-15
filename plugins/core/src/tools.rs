@@ -7,7 +7,7 @@ use super::{
     carrying::model::{Carryable, Containing},
     fashion::model::Wearing,
     location::{change_location, Location},
-    moving::model::{Exit, Occupyable, Occupying},
+    moving::model::{Occupyable, Occupying},
 };
 use kernel::prelude::*;
 
@@ -156,14 +156,6 @@ pub fn add_route(area: &EntityPtr, name: &str, to: &EntityPtr) -> Result<(), Dom
     occupyable.save()
 }
 
-pub fn leads_to<'a>(route: &'a EntityPtr, area: &'a EntityPtr) -> Result<&'a EntityPtr> {
-    let mut exit = route.scope_mut::<Exit>()?;
-    exit.area = area.entity_ref();
-    exit.save()?;
-
-    Ok(route)
-}
-
 pub fn occupied_by(area: &EntityPtr) -> Result<Vec<EntityPtr>> {
     let occupyable = area.scope::<Occupyable>()?.unwrap();
 
@@ -256,25 +248,17 @@ pub fn obliterate(obliterating: &EntityPtr) -> Result<()> {
 }
 
 pub fn get_adjacent_keys(entity: &EntityPtr) -> Result<Vec<EntityKey>> {
-    let containing = entity.scope::<Containing>()?.unwrap();
+    let Some(occupyable) = entity.scope::<Occupyable>()? else {
+        return Ok(Vec::new());
+    };
+    let Some(routes) = &occupyable.routes else {
+        return Ok(Vec::new());
+    };
 
-    Ok(containing
-        .holding
-        .iter()
-        .map(|e| e.to_entity())
-        .collect::<Result<Vec<EntityPtr>, kernel::prelude::DomainError>>()?
+    Ok(routes
         .into_iter()
-        .map(|e| {
-            if let Some(exit) = e.scope::<Exit>()? {
-                Ok(vec![exit.area.key().clone()])
-            } else {
-                Ok(vec![])
-            }
-        })
-        .collect::<Result<Vec<Vec<EntityKey>>>>()?
-        .into_iter()
-        .flat_map(|v| v.into_iter())
-        .collect::<Vec<_>>())
+        .map(|r| r.destination().key().clone())
+        .collect())
 }
 
 pub fn worn_by(wearer: &EntityPtr) -> Result<Option<Vec<EntityPtr>>, DomainError> {

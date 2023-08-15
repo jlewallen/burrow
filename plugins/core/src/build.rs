@@ -56,12 +56,6 @@ impl BuildEntityPtr {
         Ok(self)
     }
 
-    pub fn leads_to(&mut self, area: EntityPtr) -> Result<&mut Self> {
-        tools::leads_to(&self.entity, &area)?;
-
-        Ok(self)
-    }
-
     pub fn routes(&mut self, routes: Vec<Route>) -> Result<&mut Self> {
         {
             let mut occupyable = self.entity.scope_mut::<Occupyable>()?;

@@ -5,21 +5,16 @@ use plugins_core::{
     fashion::model::{Wearable, Wearing},
     location::Location,
     memory::model::Memory,
-    moving::model::{Exit, Occupyable, Occupying, Route, SimpleRoute},
-    tools,
+    moving::model::{Occupyable, Occupying},
 };
 use plugins_rune::Behaviors;
 use tracing::info;
 
 use crate::DomainBuilder;
-use engine::{
-    prelude::DevNullNotifier,
-    prelude::{HasWellKnownEntities, SessionOpener},
-    storage::StorageFactory,
-};
+use engine::{prelude::DevNullNotifier, prelude::SessionOpener, storage::StorageFactory};
 use kernel::prelude::{
-    DomainError, DomainOutcome, EntityKey, EntityPtr, EntityPtrResolver, IntoEntityPtr,
-    LoadAndStoreScope, LookupBy, OpenScope, OpenScopeRefMut, Properties, Scope,
+    DomainError, EntityKey, EntityPtr, EntityPtrResolver, LoadAndStoreScope, LookupBy, OpenScope,
+    OpenScopeRefMut, Properties, Scope,
 };
 
 #[derive(Debug, Args, Clone)]
@@ -34,8 +29,6 @@ pub struct Command {
     erase: bool,
     #[arg(long)]
     rename: Option<String>,
-    #[arg(long)]
-    routes: bool,
 }
 
 impl Command {
@@ -67,7 +60,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
     let factory = builder.storage_factory()?;
     let storage = factory.create_storage()?;
 
-    if cmd.scopes || cmd.scope.is_some() || cmd.routes {
+    if cmd.scopes || cmd.scope.is_some() {
         info!("loading keys...");
 
         let entities = storage.query_all()?;
@@ -84,39 +77,6 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
 
             let entity = session.entity(&LookupBy::Key(key))?;
             if let Some(entity) = entity {
-                if cmd.routes {
-                    if let Some(containing) = entity.scope::<Containing>()? {
-                        let mut occupyable = entity.scope_mut::<Occupyable>()?;
-                        for item in containing.holding.iter() {
-                            let item = item.to_entity()?;
-                            if let Some(exit) = item.scope::<Exit>()? {
-                                let world = session.world()?.unwrap();
-                                let limbo_key = world.get_limbo()?.unwrap();
-                                let limbo = session.entity(&LookupBy::Key(&limbo_key))?.unwrap();
-
-                                if limbo_key != entity.key() {
-                                    info!("found legacy exit {:?}", item.name()?.unwrap());
-
-                                    let simple =
-                                        SimpleRoute::new(&item.name()?.unwrap(), exit.area.clone());
-                                    occupyable.add_route(Route::Simple(simple))?;
-                                    occupyable.save()?;
-
-                                    {
-                                        let mut item = item.borrow_mut();
-                                        item.remove_scope(Carryable::scope_key());
-                                    }
-
-                                    assert_eq!(
-                                        tools::move_between(&entity, &limbo, &item)?,
-                                        DomainOutcome::Ok
-                                    );
-                                }
-                            }
-                        }
-                    }
-                }
-
                 if let Some(key) = &cmd.scope {
                     let mut entity = entity.borrow_mut();
                     if cmd.erase {
@@ -132,7 +92,6 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
                     load_and_save_scope::<Carryable>(&entity)?;
                     load_and_save_scope::<Occupyable>(&entity)?;
                     load_and_save_scope::<Occupying>(&entity)?;
-                    load_and_save_scope::<Exit>(&entity)?;
                     load_and_save_scope::<Containing>(&entity)?;
                     load_and_save_scope::<Wearable>(&entity)?;
                     load_and_save_scope::<Wearing>(&entity)?;

@@ -113,7 +113,7 @@ impl Route {
         }
     }
 
-    fn destination(&self) -> &EntityRef {
+    pub fn destination(&self) -> &EntityRef {
         match self {
             Route::Simple(simple) => &simple.to,
         }
@@ -191,16 +191,5 @@ impl Occupyable {
 impl Scope for Occupyable {
     fn scope_key() -> &'static str {
         "occupyable"
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Default)]
-pub struct Exit {
-    pub area: EntityRef,
-}
-
-impl Scope for Exit {
-    fn scope_key() -> &'static str {
-        "exit"
     }
 }
