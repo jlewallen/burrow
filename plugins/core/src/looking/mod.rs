@@ -195,13 +195,6 @@ pub mod model {
         }
 
         let routes: Vec<ObservedEntity> = vec![];
-        /*
-        if let Ok(Some(movement)) = user.scope::<Movement>() {
-            for route in &movement.routes {
-                routes.push((&route.area.to_entity()?).observe(user)?);
-            }
-        }
-        */
 
         Ok(AreaObservation {
             area: area

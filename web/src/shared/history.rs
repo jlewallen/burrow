@@ -20,20 +20,21 @@ fn md_string(s: &str) -> Html {
 }
 
 fn simple_entities_list(entities: &Vec<ObservedEntity>) -> Html {
-    let names = entities
+    let entities = entities
         .iter()
-        .map(|e| e.qualified.clone().or(Some(NO_NAME.into())).unwrap())
+        .map(|e| (e.qualified.clone().or(Some(NO_NAME.into())).unwrap(), e.gid))
+        .map(|(name, gid)| format!("{} (#{})", name, gid))
         .collect::<Vec<_>>()
         .join(", ");
 
     html! {
-        <span class="entities">{ names }</span>
+        <span class="entities">{ entities }</span>
     }
 }
 
 fn entity_name_desc(entity: &ObservedEntity) -> (Html, Html) {
     let name: Html = if let Some(name) = &entity.name {
-        html! { <h3> { name } </h3> }
+        html! { <h3> { name } { "(#" }{ entity.gid }{ ")" } </h3> }
     } else {
         html! { <h3> { NO_NAME } </h3> }
     };
@@ -180,17 +181,20 @@ pub fn history_entry_item(props: &Props) -> Html {
     };
 
     let value = &props.entry.value;
-    log::info!("{:?}", value);
-    if let Ok(item) = serde_json::from_value::<AllKnownItems>(value.clone()) {
-        match item.render(&myself) {
+    match serde_json::from_value::<AllKnownItems>(value.clone()) {
+        Ok(item) => match item.render(&myself) {
             Some(html) => html,
             None => html! {},
-        }
-    } else {
-        html! {
-            <div class="entry unknown">
-                { value.to_string() }
-            </div>
+        },
+        Err(e) => {
+            log::warn!("{:?}", e);
+            log::warn!("{:?}", value);
+
+            html! {
+                <div class="entry unknown">
+                    { value.to_string() }
+                </div>
+            }
         }
     }
 }
