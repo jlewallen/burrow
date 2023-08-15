@@ -165,6 +165,7 @@ impl Action for MakeItemAction {
         let creator = surroundings.living();
 
         let new_item: Entity = build_entity()
+            .default_scope::<Carryable>()?
             .creator(creator.entity_ref())
             .name(&self.name)
             .try_into()?;
@@ -210,6 +211,8 @@ impl Action for BidirectionalDigAction {
 
         let new_area: Entity = build_entity()
             .area()
+            .default_scope::<Occupyable>()?
+            .default_scope::<Containing>()?
             .name(&self.new_area)
             .desc(&self.new_area)
             .try_into()?;
