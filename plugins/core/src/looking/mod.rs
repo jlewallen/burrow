@@ -121,6 +121,7 @@ pub mod model {
         fn observe(&self, _user: &EntityPtr) -> Result<Option<ObservedEntity>> {
             let quantity = self.scope::<Carryable>()?.map(|c| c.quantity());
             let key = self.key().to_string();
+            let gid = self.gid().into();
             let observing = self.entity().borrow();
             let name = observing.name();
             let desc = observing.desc();
@@ -133,6 +134,7 @@ pub mod model {
                 .map(|u| u.qualify());
             Ok(Some(ObservedEntity {
                 key,
+                gid,
                 name,
                 qualified,
                 desc,

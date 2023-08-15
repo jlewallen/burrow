@@ -8,6 +8,7 @@ expression: reply.to_debug_json()?
       "areaObservation": {
         "area": {
           "desc": null,
+          "gid": 5,
           "key": "E-4",
           "name": "Welcome Area",
           "qualified": "Welcome Area"
@@ -15,6 +16,7 @@ expression: reply.to_debug_json()?
         "carrying": [
           {
             "desc": null,
+            "gid": 4,
             "key": "E-3",
             "name": "Cool Rake",
             "qualified": "a Cool Rake"
@@ -23,6 +25,7 @@ expression: reply.to_debug_json()?
         "items": [
           {
             "desc": null,
+            "gid": 6,
             "key": "E-5",
             "name": "Boring Shovel",
             "qualified": "a Boring Shovel"
@@ -31,6 +34,7 @@ expression: reply.to_debug_json()?
         "living": [
           {
             "desc": null,
+            "gid": 3,
             "key": "E-2",
             "name": "Living",
             "qualified": "Living"
@@ -38,6 +42,7 @@ expression: reply.to_debug_json()?
         ],
         "person": {
           "desc": null,
+          "gid": 3,
           "key": "E-2",
           "name": "Living",
           "qualified": "Living"

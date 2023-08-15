@@ -34,6 +34,10 @@ impl EntityPtr {
         Self(Rc::new(RefCell::new(e)))
     }
 
+    pub fn gid(&self) -> EntityGid {
+        self.0.borrow().gid().clone().unwrap()
+    }
+
     pub fn key(&self) -> EntityKey {
         self.0.borrow().key().clone()
     }
