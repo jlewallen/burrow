@@ -48,21 +48,25 @@ impl EntityPtrResolver for KeysOnlySession {
 }
 
 impl Performer for KeysOnlySession {
-    fn perform(&self, _perform: Perform) -> Result<Effect> {
+    fn perform(&self, _perform: Perform) -> Result<Effect, DomainError> {
         todo!()
     }
 }
 
 impl ActiveSession for KeysOnlySession {
-    fn find_item(&self, _surroundings: &Surroundings, _item: &Item) -> Result<Option<EntityPtr>> {
+    fn find_item(
+        &self,
+        _surroundings: &Surroundings,
+        _item: &Item,
+    ) -> Result<Option<EntityPtr>, DomainError> {
         todo!()
     }
 
-    fn add_entity(&self, _entity: Entity) -> Result<EntityPtr> {
+    fn add_entity(&self, _entity: Entity) -> Result<EntityPtr, DomainError> {
         todo!()
     }
 
-    fn obliterate(&self, _entity: &EntityPtr) -> Result<()> {
+    fn obliterate(&self, _entity: &EntityPtr) -> Result<(), DomainError> {
         todo!()
     }
 
@@ -77,7 +81,7 @@ impl ActiveSession for KeysOnlySession {
         Identity::default()
     }
 
-    fn raise(&self, _audience: Audience, _raising: Raising) -> Result<()> {
+    fn raise(&self, _audience: Audience, _raising: Raising) -> Result<(), DomainError> {
         todo!()
     }
 
@@ -85,7 +89,12 @@ impl ActiveSession for KeysOnlySession {
         todo!()
     }
 
-    fn schedule(&self, _key: &str, _when: When, _message: &dyn ToTaggedJson) -> Result<()> {
+    fn schedule(
+        &self,
+        _key: &str,
+        _when: When,
+        _message: &dyn ToTaggedJson,
+    ) -> Result<(), DomainError> {
         todo!()
     }
 }

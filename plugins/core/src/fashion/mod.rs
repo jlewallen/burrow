@@ -157,8 +157,8 @@ pub mod model {
             Ok(DomainOutcome::Ok)
         }
 
-        pub fn stop_wearing(&mut self, item: &EntityPtr) -> Result<Option<EntityPtr>> {
-            if !self.is_wearing(item)? {
+        pub fn stop_wearing(&mut self, item: &EntityPtr) -> Result<Option<EntityPtr>, DomainError> {
+            if !self.is_wearing(item) {
                 return Ok(None);
             }
 
@@ -178,7 +178,7 @@ pub mod model {
         kind: Kind,
     }
 
-    fn is_kind(entity: &EntityPtr, kind: &Kind) -> Result<bool> {
+    fn is_kind(entity: &EntityPtr, kind: &Kind) -> Result<bool, DomainError> {
         Ok(*entity.scope::<Wearable>()?.unwrap().kind() == *kind)
     }
 

@@ -7,7 +7,9 @@ use replies::{TaggedJson, ToTaggedJson};
 use crate::actions::Performer;
 use crate::hooks::ManagedHooks;
 use crate::model::Entity;
-use crate::model::{Audience, DomainError, EntityKey, EntityPtr, EntityPtrResolver, Identity, Item, When};
+use crate::model::{
+    Audience, DomainError, EntityKey, EntityPtr, EntityPtrResolver, Identity, Item, When,
+};
 use crate::surround::Surroundings;
 
 pub type SessionRef = Rc<dyn ActiveSession>;
@@ -25,22 +27,31 @@ impl From<Raising> for TaggedJson {
 }
 
 pub trait ActiveSession: Performer + EntityPtrResolver {
-    fn find_item(&self, surroundings: &Surroundings, item: &Item) -> Result<Option<EntityPtr>>;
+    fn find_item(
+        &self,
+        surroundings: &Surroundings,
+        item: &Item,
+    ) -> Result<Option<EntityPtr>, DomainError>;
 
-    fn add_entity(&self, entity: Entity) -> Result<EntityPtr>;
+    fn add_entity(&self, entity: Entity) -> Result<EntityPtr, DomainError>;
 
-    fn obliterate(&self, entity: &EntityPtr) -> Result<()>;
+    fn obliterate(&self, entity: &EntityPtr) -> Result<(), DomainError>;
 
     fn new_key(&self) -> EntityKey;
 
     fn new_identity(&self) -> Identity;
 
-    fn raise(&self, audience: Audience, raising: Raising) -> Result<()>;
+    fn raise(&self, audience: Audience, raising: Raising) -> Result<(), DomainError>;
 
     fn hooks(&self) -> &ManagedHooks;
 
     // We may want to just make `when` be something that can be Into'd a DateTime<Utc>?
-    fn schedule(&self, key: &str, when: When, message: &dyn ToTaggedJson) -> Result<()>;
+    fn schedule(
+        &self,
+        key: &str,
+        when: When,
+        message: &dyn ToTaggedJson,
+    ) -> Result<(), DomainError>;
 }
 
 thread_local! {

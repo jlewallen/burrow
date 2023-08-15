@@ -114,11 +114,11 @@ pub mod model {
     }
 
     pub trait Observe<T> {
-        fn observe(&self, user: &EntityPtr) -> Result<Option<T>>;
+        fn observe(&self, user: &EntityPtr) -> Result<Option<T>, DomainError>;
     }
 
     impl Observe<ObservedEntity> for &EntityPtr {
-        fn observe(&self, _user: &EntityPtr) -> Result<Option<ObservedEntity>> {
+        fn observe(&self, _user: &EntityPtr) -> Result<Option<ObservedEntity>, DomainError> {
             let quantity = self.scope::<Carryable>()?.map(|c| c.quantity());
             let key = self.key().to_string();
             let gid = self.gid().into();
@@ -145,7 +145,7 @@ pub mod model {
     pub fn new_entity_observation(
         user: &EntityPtr,
         entity: &EntityPtr,
-    ) -> Result<Option<EntityObservation>> {
+    ) -> Result<Option<EntityObservation>, DomainError> {
         let wearing = observe_all(tools::worn_by(entity)?, user)?;
         Ok(entity
             .observe(user)?
@@ -155,7 +155,7 @@ pub mod model {
     pub fn new_inside_observation(
         user: &EntityPtr,
         vessel: &EntityPtr,
-    ) -> Result<Option<InsideObservation>> {
+    ) -> Result<Option<InsideObservation>, DomainError> {
         let mut items = Vec::new();
         if let Ok(Some(containing)) = vessel.scope::<Containing>() {
             for lazy_entity in &containing.holding {

@@ -176,7 +176,7 @@ pub fn get_occupant_keys(area: &EntityPtr) -> Result<Vec<EntityKey>> {
         .collect::<Vec<EntityKey>>())
 }
 
-pub fn new_entity_from_template_ptr(template: &EntityPtr) -> Result<EntityPtr> {
+pub fn new_entity_from_template_ptr(template: &EntityPtr) -> Result<EntityPtr, DomainError> {
     let key = get_my_session()?.new_key();
     let entity = build_entity()
         .with_key(key)
@@ -185,12 +185,12 @@ pub fn new_entity_from_template_ptr(template: &EntityPtr) -> Result<EntityPtr> {
     get_my_session()?.add_entity(entity)
 }
 
-pub fn quantity(entity: &EntityPtr) -> Result<f32> {
+pub fn quantity(entity: &EntityPtr) -> Result<f32, DomainError> {
     let carryable = entity.scope::<Carryable>()?.unwrap();
     Ok(carryable.quantity())
 }
 
-pub fn set_quantity(entity: &EntityPtr, quantity: f32) -> Result<&EntityPtr> {
+pub fn set_quantity(entity: &EntityPtr, quantity: f32) -> Result<&EntityPtr, DomainError> {
     let mut carryable = entity.scope_mut::<Carryable>()?;
     carryable.set_quantity(quantity)?;
     carryable.save()?;

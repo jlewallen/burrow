@@ -253,6 +253,8 @@ pub enum DomainError {
     NoSuchScope(EntityKey, String),
     #[error("Parse failed")]
     ParseFailed(#[source] serde_json::Error),
+    #[error("Tagged JSON error")]
+    TaggedJsonError(#[source] TaggedJsonError),
     #[error("Dangling entity")]
     DanglingEntity,
     #[error(transparent)]
@@ -273,6 +275,20 @@ pub enum DomainError {
     Overflow,
     #[error("Invalid key")]
     InvalidKey,
+    #[error("Evaluation error")]
+    EvaluationError,
+}
+
+impl From<EvaluationError> for DomainError {
+    fn from(_value: EvaluationError) -> Self {
+        DomainError::EvaluationError
+    }
+}
+
+impl From<TaggedJsonError> for DomainError {
+    fn from(value: TaggedJsonError) -> Self {
+        DomainError::TaggedJsonError(value)
+    }
 }
 
 impl From<serde_json::Error> for DomainError {

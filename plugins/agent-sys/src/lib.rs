@@ -93,7 +93,7 @@ impl AgentSession {
 }
 
 impl Performer for AgentSession {
-    fn perform(&self, _perform: Perform) -> Result<Effect> {
+    fn perform(&self, _perform: Perform) -> Result<Effect, DomainError> {
         unimplemented!("AgentSession:perform")
     }
 }
@@ -117,11 +117,11 @@ impl ActiveSession for AgentSession {
         &self,
         _surroundings: &kernel::prelude::Surroundings,
         _item: &kernel::prelude::Item,
-    ) -> Result<Option<EntityPtr>> {
+    ) -> Result<Option<EntityPtr>, DomainError> {
         unimplemented!("AgentSession:find-item")
     }
 
-    fn add_entity(&self, entity: kernel::prelude::Entity) -> Result<EntityPtr> {
+    fn add_entity(&self, entity: kernel::prelude::Entity) -> Result<EntityPtr, DomainError> {
         let key = entity.key().clone();
         let json_value = entity.to_json_value()?;
         let entity = EntityPtr::new_from_entity(entity);
@@ -130,7 +130,7 @@ impl ActiveSession for AgentSession {
         Ok(entity)
     }
 
-    fn obliterate(&self, _entity: &EntityPtr) -> Result<()> {
+    fn obliterate(&self, _entity: &EntityPtr) -> Result<(), DomainError> {
         unimplemented!("AgentSession:obliterate")
     }
 
@@ -142,7 +142,7 @@ impl ActiveSession for AgentSession {
         unimplemented!("AgentSession:new-identity")
     }
 
-    fn raise(&self, audience: Audience, raising: Raising) -> Result<()> {
+    fn raise(&self, audience: Audience, raising: Raising) -> Result<(), DomainError> {
         self.raised
             .borrow_mut()
             .push(RaisedEvent { audience, raising });
@@ -159,7 +159,7 @@ impl ActiveSession for AgentSession {
         key: &str,
         time: kernel::prelude::When,
         message: &dyn kernel::prelude::ToTaggedJson,
-    ) -> Result<()> {
+    ) -> Result<(), DomainError> {
         let mut futures = self.futures.borrow_mut();
         futures.push(ScheduledFuture {
             key: key.to_owned(),
@@ -324,7 +324,7 @@ where
 struct AgentPerformer {}
 
 impl Performer for AgentPerformer {
-    fn perform(&self, _perform: kernel::prelude::Perform) -> Result<Effect> {
+    fn perform(&self, _perform: kernel::prelude::Perform) -> Result<Effect, DomainError> {
         todo!()
     }
 }

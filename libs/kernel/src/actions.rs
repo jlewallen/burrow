@@ -4,6 +4,7 @@ use std::{fmt::Debug, rc::Rc};
 
 pub use replies::{JsonValue, TaggedJson, TaggedJsonError, ToTaggedJson};
 
+use crate::model::DomainError;
 use crate::session::SessionRef;
 use crate::{
     model::{Audience, EntityPtr, When},
@@ -106,7 +107,7 @@ impl Perform {
 }
 
 pub trait Performer {
-    fn perform(&self, perform: Perform) -> Result<Effect>;
+    fn perform(&self, perform: Perform) -> Result<Effect, DomainError>;
 }
 
 #[derive(Clone, Debug)]

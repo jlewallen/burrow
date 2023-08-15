@@ -157,7 +157,7 @@ impl Occupyable {
         Ok(false)
     }
 
-    pub fn add_route(&mut self, route: Route) -> Result<()> {
+    pub fn add_route(&mut self, route: Route) -> Result<(), DomainError> {
         let routes = self.routes.get_or_insert_with(|| Vec::new());
 
         if let Some(conflict) = routes.iter().position(|r| r.conflicts_with(&route)) {
@@ -169,7 +169,7 @@ impl Occupyable {
         Ok(())
     }
 
-    pub fn find_route(&self, item: &Item) -> Result<Option<EntityPtr>> {
+    pub fn find_route(&self, item: &Item) -> Result<Option<EntityPtr>, DomainError> {
         let Some(routes) = &self.routes else {
             return Ok(None);
         };
