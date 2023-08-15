@@ -1,8 +1,8 @@
-{{ entityObservation.entity.name }}
+{{ entityObservation.entity.name }} (#{{ entityObservation.entity.gid }})
 
 {{ entityObservation.entity.desc }}
 
 {% if entityObservation.wearing -%}
 They are wearing {% for item in entityObservation.wearing -%}
-{%- if loop.first %}{%- else -%}{%- if loop.last %} and {% else %}, {% endif -%}{%- endif -%} {{ item.qualified }} {%- endfor -%}.
+{%- if loop.first %}{%- else -%}{%- if loop.last %} and {% else %}, {% endif -%}{%- endif -%} {{ item.qualified }} (#{{ item.gid }}) {%- endfor -%}.
 {%- endif %}
