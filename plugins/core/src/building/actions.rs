@@ -1,6 +1,9 @@
 use std::str::FromStr;
 
-use crate::{building::model::QuickEdit, library::actions::*, looking::actions::LookAction};
+use crate::{
+    building::model::QuickEdit, carrying::model::Containing, library::actions::*,
+    looking::actions::LookAction, moving::model::Occupyable,
+};
 
 #[action]
 pub struct AddScopeAction {
@@ -298,5 +301,39 @@ impl Action for SaveEntityJsonAction {
             },
             None => Ok(SimpleReply::NotFound.try_into()?),
         }
+    }
+}
+
+#[action]
+pub struct BuildAreaAction {
+    pub name: String,
+}
+
+impl Action for BuildAreaAction {
+    fn is_read_only() -> bool {
+        false
+    }
+
+    fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+        info!("build-area {:?}", self.name);
+
+        let creator = surroundings.living();
+
+        let new_item: Entity = build_entity()
+            .area()
+            .default_scope::<Containing>()?
+            .default_scope::<Occupyable>()?
+            .creator(creator.entity_ref())
+            .name(&self.name)
+            .try_into()?;
+
+        let new_item = session.add_entity(new_item)?;
+
+        info!("created {:?}", new_item);
+
+        Ok(Effect::Reply(EffectReply::TaggedJson(TaggedJson::new(
+            "area".to_owned(),
+            new_item.to_json_value()?.into(),
+        ))))
     }
 }

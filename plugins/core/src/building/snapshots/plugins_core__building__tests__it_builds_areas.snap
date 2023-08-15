@@ -1,0 +1,57 @@
+---
+source: plugins/core/src/building/tests.rs
+expression: reply.to_debug_json()?
+---
+{
+  "reply": {
+    "taggedJson": {
+      "area": {
+        "acls": {
+          "rules": []
+        },
+        "class": {
+          "name": "scopes.AreaClass"
+        },
+        "creator": {
+          "class": "scopes.ItemClass",
+          "gid": 2,
+          "key": "E-1",
+          "name": "Living"
+        },
+        "identity": {
+          "private": "Private#4",
+          "public": "Public#4"
+        },
+        "key": "E-3",
+        "parent": null,
+        "scopes": {
+          "containing": {
+            "capacity": null,
+            "holding": [],
+            "produces": {}
+          },
+          "occupyable": {
+            "acls": {
+              "rules": []
+            },
+            "occupancy": 0,
+            "occupied": [],
+            "routes": null
+          },
+          "props": {
+            "core": {
+              "gid": {
+                "acls": null,
+                "value": 4
+              },
+              "name": {
+                "acls": null,
+                "value": "Green Room"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

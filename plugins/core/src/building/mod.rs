@@ -58,7 +58,7 @@ impl ParsesActions for BuildingPlugin {
             .or_else(|_| try_parsing(parser::BidirectionalDigActionParser {}, i))
             .or_else(|_| try_parsing(parser::ObliterateActionParser {}, i))
             .or_else(|_| try_parsing(parser::MakeItemParser {}, i))
-            .or_else(|_| try_parsing(parser::ScopeActionParser  {}, i))
-
+            .or_else(|_| try_parsing(parser::BuildAreaParser {}, i))
+            .or_else(|_| try_parsing(parser::ScopeActionParser {}, i))
     }
 }

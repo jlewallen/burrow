@@ -1,8 +1,8 @@
 use crate::library::parser::*;
 
 use super::actions::{
-    AddScopeAction, BidirectionalDigAction, DuplicateAction, EditAction, EditRawAction,
-    MakeItemAction, ObliterateAction,
+    AddScopeAction, BidirectionalDigAction, BuildAreaAction, DuplicateAction, EditAction,
+    EditRawAction, MakeItemAction, ObliterateAction,
 };
 
 pub struct EditActionParser {}
@@ -96,6 +96,19 @@ impl ParsesActions for ScopeActionParser {
             |scope_key| AddScopeAction {
                 scope_key: scope_key.to_owned(),
             },
+        )(i)?;
+
+        Ok(Some(Box::new(action)))
+    }
+}
+
+pub struct BuildAreaParser {}
+
+impl ParsesActions for BuildAreaParser {
+    fn try_parse_action(&self, i: &str) -> EvaluationResult {
+        let (_, action) = map(
+            preceded(tuple((tag("@build"), spaces)), string_literal),
+            |name| BuildAreaAction { name: name.into() },
         )(i)?;
 
         Ok(Some(Box::new(action)))

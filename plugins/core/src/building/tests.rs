@@ -313,3 +313,18 @@ fn it_adds_scopes_to_solo_held_items() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn it_builds_areas() -> Result<()> {
+    let mut build = BuildSurroundings::new()?;
+    let (session, surroundings) = build.plain().build()?;
+
+    let action = try_parsing(BuildAreaParser {}, r#"@build "Green Room""#)?;
+    let action = action.unwrap();
+    let reply = action.perform(session.clone(), &surroundings)?;
+    let (_, _living, _area) = surroundings.unpack();
+
+    insta::assert_json_snapshot!(reply.to_debug_json()?);
+
+    Ok(())
+}
