@@ -26,7 +26,10 @@ pub mod model {
         }
     }
 
-    fn username_to_key(world: &EntityPtr, username: &str) -> Result<Option<EntityKey>, DomainError> {
+    fn username_to_key(
+        world: &EntityPtr,
+        username: &str,
+    ) -> Result<Option<EntityKey>, DomainError> {
         let usernames = world.scope::<Usernames>()?.expect("No usernames scope");
         Ok(usernames.find(username).cloned())
     }
@@ -79,7 +82,6 @@ pub mod model {
         }
     }
 
-    #[allow(dead_code)]
     const LIMBO: &str = "limbo";
     const ENCYCLOPEDIA: &str = "encyclopedia";
     const WELCOME_AREA: &str = "welcomeArea";
@@ -124,6 +126,10 @@ pub mod model {
 
         fn set_encyclopedia(&self, key: &EntityKey) -> Result<(), DomainError> {
             self.set_well_known(ENCYCLOPEDIA, key)
+        }
+
+        fn get_limbo(&self) -> Result<Option<EntityKey>, DomainError> {
+            self.get_well_known(LIMBO)
         }
     }
 

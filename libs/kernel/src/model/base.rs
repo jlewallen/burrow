@@ -134,7 +134,7 @@ pub enum Audience {
     Area(EntityKey),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum DomainOutcome {
     Ok,
     Nope,

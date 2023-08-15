@@ -66,7 +66,7 @@ pub mod model {
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Containing {
-        pub(crate) holding: Vec<EntityRef>,
+        pub holding: Vec<EntityRef>,
         pub(crate) capacity: Option<u32>,
         pub(crate) produces: HashMap<String, String>,
     }
@@ -79,25 +79,25 @@ pub mod model {
 
     impl Containing {
         pub fn start_carrying(&mut self, item: &EntityPtr) -> CarryingResult {
-            let carryable = item.scope::<Carryable>()?.unwrap();
+            if let Some(carryable) = item.scope::<Carryable>()? {
+                let holding = self
+                    .holding
+                    .iter()
+                    .map(|h| h.to_entity())
+                    .collect::<Result<Vec<_>, _>>()?;
 
-            let holding = self
-                .holding
-                .iter()
-                .map(|h| h.to_entity())
-                .collect::<Result<Vec<_>, _>>()?;
+                for held in holding {
+                    if is_kind(&held, &carryable.kind)? {
+                        let mut combining = held.scope_mut::<Carryable>()?;
 
-            for held in holding {
-                if is_kind(&held, &carryable.kind)? {
-                    let mut combining = held.scope_mut::<Carryable>()?;
+                        combining.increase_quantity(carryable.quantity)?;
 
-                    combining.increase_quantity(carryable.quantity)?;
+                        combining.save()?;
 
-                    combining.save()?;
+                        get_my_session()?.obliterate(item)?;
 
-                    get_my_session()?.obliterate(item)?;
-
-                    return Ok(DomainOutcome::Ok);
+                        return Ok(DomainOutcome::Ok);
+                    }
                 }
             }
 
@@ -132,11 +132,16 @@ pub mod model {
                 return Ok(None);
             }
 
-            let carryable = item.scope::<Carryable>()?.unwrap_or_default();
-            if carryable.quantity > 1.0 {
-                let (_original, separated) = tools::separate(item, 1.0)?;
+            if let Some(carryable) = item.scope::<Carryable>()? {
+                if carryable.quantity > 1.0 {
+                    let (_original, separated) = tools::separate(item, 1.0)?;
 
-                Ok(Some(separated))
+                    Ok(Some(separated))
+                } else {
+                    self.remove_item(item)?;
+
+                    Ok(Some(item.clone()))
+                }
             } else {
                 self.remove_item(item)?;
 
