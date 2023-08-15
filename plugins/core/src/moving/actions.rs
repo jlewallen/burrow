@@ -80,14 +80,22 @@ impl Action for GoAction {
         let (_, living, area) = surroundings.unpack();
 
         if let Some(occupyable) = area.scope::<Occupyable>()? {
-            if let Some(to_area) = occupyable.find_route(&self.item)? {
-                return self.navigate(session, living, area, to_area, surroundings);
+            match &self.item {
+                Item::Route(route) => {
+                    if let Some(to_area) = occupyable.find_route(&route)? {
+                        return self.navigate(session, living, area, to_area, surroundings);
+                    } else {
+                        Ok(SimpleReply::NotFound.try_into()?)
+                    }
+                }
+                Item::Gid(_) => match session.find_item(surroundings, &self.item)? {
+                    Some(to_area) => self.navigate(session, living, area, to_area, surroundings),
+                    None => Ok(SimpleReply::NotFound.try_into()?),
+                },
+                _ => panic!("Occupyable::find_route expecting Item::Route or Item::Gid"),
             }
-        }
-
-        match session.find_item(surroundings, &self.item)? {
-            Some(to_area) => self.navigate(session, living, area, to_area, surroundings),
-            None => Ok(SimpleReply::NotFound.try_into()?),
+        } else {
+            Ok(SimpleReply::NotFound.try_into()?)
         }
     }
 }
