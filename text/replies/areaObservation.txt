@@ -1,4 +1,4 @@
-{{ areaObservation.area.name }}
+{{ areaObservation.area.name }} (#{{ areaObservation.area.gid }})
 
 {% if areaObservation.area.desc != areaObservation.area.name -%}
 {{ areaObservation.area.desc }}
@@ -8,9 +8,9 @@
 {%- set described_here = all_here %}
 
 Also here is {% for item in all_here -%}
-{%- if loop.first %}{%- else -%}{%- if loop.last %} and {% else %}, {% endif -%}{%- endif -%} {{ item.qualified }} {%- endfor -%}.
+{%- if loop.first %}{%- else -%}{%- if loop.last %} and {% else %}, {% endif -%}{%- endif -%} {{ item.qualified }} (#{{ item.gid }}) {%- endfor -%}.
 
 {% if areaObservation.carrying -%}
 You are carrying {% for item in areaObservation.carrying -%}
-{%- if loop.first %}{%- else -%}{%- if loop.last %} and {% else %}, {% endif -%}{%- endif -%} {{ item.qualified }} {%- endfor -%}.
+{%- if loop.first %}{%- else -%}{%- if loop.last %} and {% else %}, {% endif -%}{%- endif -%} {{ item.qualified }} (#{{ item.gid }}) {%- endfor -%}.
 {%- endif %}

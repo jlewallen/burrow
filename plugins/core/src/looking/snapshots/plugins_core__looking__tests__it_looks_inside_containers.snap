@@ -9,6 +9,7 @@ expression: reply.to_debug_json()?
         "items": [
           {
             "desc": null,
+            "gid": 3,
             "key": "E-2",
             "name": "Key",
             "qualified": "a Key"
@@ -16,6 +17,7 @@ expression: reply.to_debug_json()?
         ],
         "vessel": {
           "desc": null,
+          "gid": 2,
           "key": "E-1",
           "name": "Vessel",
           "qualified": "a Vessel"

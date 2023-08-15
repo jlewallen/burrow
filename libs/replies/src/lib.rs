@@ -138,6 +138,7 @@ pub enum SimpleReply {
 #[serde(rename_all = "camelCase")]
 pub struct ObservedEntity {
     pub key: String,
+    pub gid: u64,
     pub name: Option<String>,
     pub qualified: Option<String>,
     pub desc: Option<String>,

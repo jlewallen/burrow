@@ -19,21 +19,47 @@ fn md_string(s: &str) -> Html {
     Html::from_html_unchecked(AttrValue::from(after_markdown))
 }
 
+fn join_html(v: Vec<Html>, separator: Html) -> Vec<Html> {
+    // I'm so frustrated, why can't we use join here?
+    let last_index = v.len() - 1;
+    v.into_iter()
+        .enumerate()
+        .map(|(i, item)| {
+            if i == last_index {
+                vec![item]
+            } else {
+                vec![item, separator.clone()]
+            }
+        })
+        .flatten()
+        .collect()
+}
+
 fn simple_entities_list(entities: &Vec<ObservedEntity>) -> Html {
-    let names = entities
+    let entities = entities
         .iter()
-        .map(|e| e.qualified.clone().or(Some(NO_NAME.into())).unwrap())
-        .collect::<Vec<_>>()
-        .join(", ");
+        .map(|e| (e.qualified.clone().or(Some(NO_NAME.into())).unwrap(), e.gid))
+        .map(|(name, gid)| html!(<>{ name }{ NBSP }{ gid_span(gid) }</>))
+        .collect::<Vec<_>>();
+    let separator = html! { { ", " } };
 
     html! {
-        <span class="entities">{ names }</span>
+        <span class="entities">{ join_html(entities, separator) }</span>
     }
 }
 
+fn gid_span(gid: u64) -> Html {
+    html! {
+        <span class="gid">{ "(#" }{ gid }{ ")" }</span>
+    }
+}
+
+const NBSP: &str = "\u{00a0}";
+
 fn entity_name_desc(entity: &ObservedEntity) -> (Html, Html) {
+    let gid = gid_span(entity.gid);
     let name: Html = if let Some(name) = &entity.name {
-        html! { <h3> { name } </h3> }
+        html! { <h3> { name }{ NBSP }{ gid } </h3> }
     } else {
         html! { <h3> { NO_NAME } </h3> }
     };
@@ -180,17 +206,20 @@ pub fn history_entry_item(props: &Props) -> Html {
     };
 
     let value = &props.entry.value;
-    log::info!("{:?}", value);
-    if let Ok(item) = serde_json::from_value::<AllKnownItems>(value.clone()) {
-        match item.render(&myself) {
+    match serde_json::from_value::<AllKnownItems>(value.clone()) {
+        Ok(item) => match item.render(&myself) {
             Some(html) => html,
             None => html! {},
-        }
-    } else {
-        html! {
-            <div class="entry unknown">
-                { value.to_string() }
-            </div>
+        },
+        Err(e) => {
+            log::warn!("{:?}", e);
+            log::warn!("{:?}", value);
+
+            html! {
+                <div class="entry unknown">
+                    { value.to_string() }
+                </div>
+            }
         }
     }
 }

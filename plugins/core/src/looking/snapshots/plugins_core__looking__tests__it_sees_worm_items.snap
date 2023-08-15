@@ -8,6 +8,7 @@ expression: reply.to_debug_json()?
       "entityObservation": {
         "entity": {
           "desc": null,
+          "gid": 3,
           "key": "E-2",
           "name": "Living",
           "qualified": "Living"
@@ -15,6 +16,7 @@ expression: reply.to_debug_json()?
         "wearing": [
           {
             "desc": null,
+            "gid": 2,
             "key": "E-1",
             "name": "Jacket",
             "qualified": "a Jacket"
