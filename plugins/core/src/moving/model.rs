@@ -79,6 +79,7 @@ impl Scope for Occupying {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct SimpleRoute {
     name: String,
     to: EntityRef,
@@ -94,6 +95,7 @@ impl SimpleRoute {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
 pub enum Route {
     Simple(SimpleRoute),
 }
