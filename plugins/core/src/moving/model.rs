@@ -169,22 +169,18 @@ impl Occupyable {
         Ok(())
     }
 
-    pub fn find_route(&self, item: &Item) -> Result<Option<EntityPtr>, DomainError> {
+    pub fn find_route(&self, name: &str) -> Result<Option<EntityPtr>, DomainError> {
         let Some(routes) = &self.routes else {
             return Ok(None);
         };
 
-        match item {
-            Item::Route(name) => {
-                for route in routes {
-                    if route.matching_name(&name) {
-                        return Ok(Some(route.destination().to_entity()?));
-                    }
-                }
-                Ok(None)
+        for route in routes {
+            if route.matching_name(name) {
+                return Ok(Some(route.destination().to_entity()?));
             }
-            _ => panic!("Occupyable::find_route expecting Item::Route"),
         }
+
+        Ok(None)
     }
 }
 
