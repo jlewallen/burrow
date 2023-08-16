@@ -36,7 +36,7 @@ impl ParsesActions for EmotePlugin {
 }
 
 pub mod model {
-    pub use kernel::common::EmotingEvent;
+    pub use kernel::common::Emoting;
 }
 
 pub mod actions {
@@ -56,7 +56,7 @@ pub mod actions {
             session.raise(
                 Audience::Area(area.key().clone()),
                 Raising::TaggedJson(
-                    EmotingEvent::Laugh(Emoted::new(
+                    Emoting::Laugh(Emoted::new(
                         (&living).observe(&living)?.expect("No observed entity"),
                     ))
                     .to_tagged_json()?,

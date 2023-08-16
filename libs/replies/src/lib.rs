@@ -367,11 +367,11 @@ impl Emoted {
 
 #[derive(Serialize, Deserialize, ToTaggedJson, Debug)]
 #[serde(rename_all = "camelCase")]
-pub enum EmotingEvent {
+pub enum Emoting {
     Laugh(Emoted),
 }
 
-impl DomainEvent for EmotingEvent {}
+impl DomainEvent for Emoting {}
 
 #[cfg(test)]
 mod tests {
