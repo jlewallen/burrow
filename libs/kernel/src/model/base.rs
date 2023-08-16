@@ -127,7 +127,7 @@ impl When {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Audience {
     Nobody,
     Everybody,
@@ -135,7 +135,7 @@ pub enum Audience {
     Area(EntityKey),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Item {
     Area,
     Myself,
@@ -146,7 +146,7 @@ pub enum Item {
     Held(Box<Item>),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct Identity {
     private: String,
     public: String,
@@ -158,7 +158,7 @@ impl Identity {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct Kind {
     identity: Identity,
 }
@@ -169,7 +169,7 @@ impl Kind {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct EntityClass {
     pub name: String,
 }
