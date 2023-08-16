@@ -54,6 +54,13 @@ impl Performer for KeysOnlySession {
 }
 
 impl ActiveSession for KeysOnlySession {
+    fn try_deserialize_action(
+        &self,
+        _value: &JsonValue,
+    ) -> Result<Box<dyn Action>, EvaluationError> {
+        todo!()
+    }
+
     fn find_item(
         &self,
         _surroundings: &Surroundings,

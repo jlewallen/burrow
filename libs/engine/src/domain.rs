@@ -61,12 +61,10 @@ impl Domain {
                 for future in futures {
                     info!(key = %future.key, time = %future.time, "delivering");
 
-                    // TODO We should build a list of known prefixes so we don't need to
-                    // iterate over all plugins.
-                    session.deliver(Incoming::new(
-                        future.key,
-                        serde_json::from_str(&future.serialized)?,
-                    ))?;
+                    let value = serde_json::from_str(&future.serialized)?;
+                    if let Ok(action) = session.try_deserialize_action(&value) {
+                        session.perform(Perform::Chain(PerformAction::Instance(action.into())))?;
+                    }
                 }
 
                 session.close(notifier)?;

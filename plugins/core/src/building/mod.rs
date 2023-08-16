@@ -1,3 +1,5 @@
+use serde::Deserialize;
+
 use crate::library::plugin::*;
 
 pub mod actions;
@@ -34,20 +36,8 @@ impl Plugin for BuildingPlugin {
         Self::plugin_key()
     }
 
-    fn initialize(&mut self) -> Result<()> {
-        Ok(())
-    }
-
-    fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>> {
-        Ok(Vec::default())
-    }
-
-    fn deliver(&self, _incoming: &Incoming) -> Result<()> {
-        Ok(())
-    }
-
-    fn stop(&self) -> Result<()> {
-        Ok(())
+    fn sources(&self) -> Vec<Box<dyn ActionSource>> {
+        vec![Box::new(SaveActionSource::default())]
     }
 }
 
@@ -60,5 +50,30 @@ impl ParsesActions for BuildingPlugin {
             .or_else(|_| try_parsing(parser::MakeItemParser {}, i))
             .or_else(|_| try_parsing(parser::BuildAreaParser {}, i))
             .or_else(|_| try_parsing(parser::ScopeActionParser {}, i))
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(clippy::enum_variant_names)]
+enum SaveActions {
+    SaveEntityJsonAction(actions::SaveEntityJsonAction),
+    SaveQuickEditAction(actions::SaveQuickEditAction),
+}
+
+#[derive(Default)]
+pub struct SaveActionSource {}
+
+impl ActionSource for SaveActionSource {
+    fn try_deserialize_action(
+        &self,
+        value: &JsonValue,
+    ) -> Result<Box<dyn Action>, EvaluationError> {
+        serde_json::from_value::<SaveActions>(value.clone())
+            .map(|a| match a {
+                SaveActions::SaveEntityJsonAction(action) => Box::new(action) as Box<dyn Action>,
+                SaveActions::SaveQuickEditAction(action) => Box::new(action) as Box<dyn Action>,
+            })
+            .map_err(|_| EvaluationError::ParseFailed)
     }
 }

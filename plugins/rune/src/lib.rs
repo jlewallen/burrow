@@ -82,22 +82,43 @@ impl Plugin for RunePlugin {
         Ok(())
     }
 
+    fn sources(&self) -> Vec<Box<dyn ActionSource>> {
+        vec![Box::new(SaveScriptActionSource::default())]
+    }
+
     fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>> {
         Ok(vec![Rc::new(RuneMiddleware {
             runners: Arc::clone(&self.runners),
         })])
     }
+}
 
-    fn deliver(&self, incoming: &Incoming) -> Result<()> {
-        for (_, runner) in self.runners.borrow_mut().iter_mut() {
-            runner.deliver(incoming)?;
-        }
-
-        Ok(())
+impl ParsesActions for RunePlugin {
+    fn try_parse_action(&self, i: &str) -> EvaluationResult {
+        try_parsing(parser::EditActionParser {}, i)
     }
+}
 
-    fn stop(&self) -> Result<()> {
-        Ok(())
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(clippy::enum_variant_names)]
+enum SaveScriptActions {
+    SaveScriptAction(actions::SaveScriptAction),
+}
+
+#[derive(Default)]
+pub struct SaveScriptActionSource {}
+
+impl ActionSource for SaveScriptActionSource {
+    fn try_deserialize_action(
+        &self,
+        value: &JsonValue,
+    ) -> Result<Box<dyn Action>, EvaluationError> {
+        serde_json::from_value::<SaveScriptActions>(value.clone())
+            .map(|a| match a {
+                SaveScriptActions::SaveScriptAction(action) => Box::new(action) as Box<dyn Action>,
+            })
+            .map_err(|_| EvaluationError::ParseFailed)
     }
 }
 
@@ -139,12 +160,6 @@ impl Middleware for RuneMiddleware {
         } else {
             Ok(Effect::Prevented)
         }
-    }
-}
-
-impl ParsesActions for RunePlugin {
-    fn try_parse_action(&self, i: &str) -> EvaluationResult {
-        try_parsing(parser::EditActionParser {}, i)
     }
 }
 

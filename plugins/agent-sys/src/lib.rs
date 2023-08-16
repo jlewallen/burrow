@@ -113,6 +113,13 @@ impl EntityPtrResolver for AgentSession {
 }
 
 impl ActiveSession for AgentSession {
+    fn try_deserialize_action(
+        &self,
+        _value: &JsonValue,
+    ) -> Result<Box<dyn Action>, EvaluationError> {
+        unimplemented!("AgentSession:try-deserialize-action")
+    }
+
     fn find_item(
         &self,
         _surroundings: &kernel::prelude::Surroundings,

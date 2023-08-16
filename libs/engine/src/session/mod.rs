@@ -148,16 +148,6 @@ impl Session {
         }
     }
 
-    pub fn deliver(&self, incoming: Incoming) -> Result<()> {
-        let _activated = self.set_session()?;
-
-        let plugins = self.plugins.borrow();
-
-        plugins.deliver(incoming)?;
-
-        Ok(())
-    }
-
     pub fn initialize(&self) -> Result<()> {
         let _activated = self.set_session()?;
 
@@ -281,6 +271,14 @@ impl EntityPtrResolver for Session {
 }
 
 impl ActiveSession for Session {
+    fn try_deserialize_action(
+        &self,
+        value: &JsonValue,
+    ) -> Result<Box<dyn Action>, EvaluationError> {
+        let plugins = self.plugins.borrow();
+        plugins.try_deserialize_action(value)
+    }
+
     fn new_key(&self) -> EntityKey {
         self.keys.following()
     }

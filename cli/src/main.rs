@@ -26,7 +26,6 @@ mod dump;
 mod eval;
 mod hacking;
 mod migrate;
-mod rpc;
 mod serve;
 mod shell;
 mod terminal;
@@ -149,9 +148,7 @@ impl DomainBuilder {
     }
 
     pub fn storage_factory(&self) -> Result<sqlite::Factory> {
-        Factory::new(
-            self.path.as_ref().unwrap_or(&"world.sqlite3".to_owned()),
-        )
+        Factory::new(self.path.as_ref().unwrap_or(&"world.sqlite3".to_owned()))
     }
 
     pub async fn build(&self) -> Result<Domain> {

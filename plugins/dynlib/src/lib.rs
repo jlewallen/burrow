@@ -204,6 +204,7 @@ impl DynamicPlugin {
         self.push_messages_with(move |_ll| Some(pushing.to_vec()))
     }
 
+    #[allow(dead_code)]
     fn push_messages_to_prefix<F>(&self, prefix: &str, mut f: F) -> Result<()>
     where
         F: FnMut(&LoadedLibrary) -> Vec<DynMessage>,
@@ -347,22 +348,6 @@ impl Plugin for DynamicPlugin {
         Ok(vec![Rc::new(DynamicMiddleware {
             children: Rc::clone(&self.middleware),
         })])
-    }
-
-    fn deliver(&self, incoming: &Incoming) -> Result<()> {
-        self.push_messages_to_prefix(&incoming.key, |_ll| {
-            vec![DynMessage::Payload(Payload::Deliver(
-                IncomingMessage::from(incoming),
-            ))]
-        })?;
-
-        self.tick()?;
-
-        Ok(())
-    }
-
-    fn stop(&self) -> Result<()> {
-        Ok(())
     }
 }
 

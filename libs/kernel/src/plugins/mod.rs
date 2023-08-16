@@ -4,7 +4,7 @@ use tracing::*;
 
 pub use std::rc::Rc;
 
-use crate::actions::{Action, Incoming};
+use crate::actions::Action;
 use crate::model::*;
 
 mod mw;
@@ -61,14 +61,21 @@ pub trait Plugin: ParsesActions {
 
     fn key(&self) -> &'static str;
 
-    fn initialize(&mut self) -> Result<()>;
+    fn initialize(&mut self) -> Result<()> {
+        Ok(())
+    }
 
-    fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>>;
+    fn sources(&self) -> Vec<Box<dyn ActionSource>> {
+        vec![]
+    }
 
-    // If we can get this working alongside Perform and Evaluator we can remove this.
-    fn deliver(&self, incoming: &Incoming) -> Result<()>;
+    fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>> {
+        Ok(vec![])
+    }
 
-    fn stop(&self) -> Result<()>;
+    fn stop(&self) -> Result<()> {
+        Ok(())
+    }
 }
 
 #[derive(Default)]
@@ -107,25 +114,6 @@ impl SessionPlugins {
             .collect())
     }
 
-    /*
-    pub fn hooks(&self) -> Result<ManagedHooks> {
-        let hooks = ManagedHooks::default();
-        for plugin in self.plugins.iter() {
-            let _span = span!(Level::INFO, "H", plugin = plugin.key()).entered();
-            plugin.register_hooks(&hooks)?;
-        }
-        Ok(hooks)
-    }
-    */
-
-    pub fn deliver(&self, incoming: Incoming) -> Result<()> {
-        for plugin in self.plugins.iter() {
-            let _span = span!(Level::INFO, "D", plugin = plugin.key()).entered();
-            plugin.deliver(&incoming)?;
-        }
-        Ok(())
-    }
-
     pub fn stop(&self) -> Result<()> {
         for plugin in self.plugins.iter() {
             plugin.stop()?;
@@ -147,5 +135,32 @@ impl ParsesActions for SessionPlugins {
             Some(Some(e)) => Ok(Some(e)),
             _ => Ok(None),
         }
+    }
+}
+
+pub trait ActionSource {
+    fn try_deserialize_action(&self, value: &JsonValue)
+        -> Result<Box<dyn Action>, EvaluationError>;
+}
+
+impl ActionSource for SessionPlugins {
+    fn try_deserialize_action(
+        &self,
+        value: &JsonValue,
+    ) -> Result<Box<dyn Action>, EvaluationError> {
+        let sources: Vec<_> = self
+            .plugins
+            .iter()
+            .map(|plugin| plugin.sources())
+            .flatten()
+            .collect();
+
+        sources
+            .iter()
+            .map(|source| source.try_deserialize_action(value))
+            .filter_map(|r| r.ok())
+            .take(1)
+            .last()
+            .ok_or(EvaluationError::ParseFailed)
     }
 }
