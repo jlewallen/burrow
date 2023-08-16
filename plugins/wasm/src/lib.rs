@@ -305,14 +305,6 @@ impl Plugin for WasmPlugin {
 
         Ok(())
     }
-
-    fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>> {
-        Ok(Vec::default())
-    }
-
-    fn stop(&self) -> Result<()> {
-        Ok(())
-    }
 }
 
 mod hooks {

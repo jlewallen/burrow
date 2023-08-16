@@ -36,20 +36,8 @@ impl Plugin for BuildingPlugin {
         Self::plugin_key()
     }
 
-    fn initialize(&mut self) -> Result<()> {
-        Ok(())
-    }
-
     fn sources(&self) -> Vec<Box<dyn ActionSource>> {
         vec![Box::new(SaveActionSource::default())]
-    }
-
-    fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>> {
-        Ok(Vec::default())
-    }
-
-    fn stop(&self) -> Result<()> {
-        Ok(())
     }
 }
 

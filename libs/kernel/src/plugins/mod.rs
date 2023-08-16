@@ -61,15 +61,21 @@ pub trait Plugin: ParsesActions {
 
     fn key(&self) -> &'static str;
 
-    fn initialize(&mut self) -> Result<()>;
+    fn initialize(&mut self) -> Result<()> {
+        Ok(())
+    }
 
     fn sources(&self) -> Vec<Box<dyn ActionSource>> {
         vec![]
     }
 
-    fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>>;
+    fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>> {
+        Ok(vec![])
+    }
 
-    fn stop(&self) -> Result<()>;
+    fn stop(&self) -> Result<()> {
+        Ok(())
+    }
 }
 
 #[derive(Default)]

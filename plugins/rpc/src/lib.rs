@@ -177,17 +177,6 @@ impl Plugin for RpcPlugin {
     fn initialize(&mut self) -> Result<()> {
         self.server.initialize()
     }
-
-    #[tracing::instrument(name = "rpc-middleware", skip(self))]
-    fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>> {
-        Ok(Vec::default())
-    }
-
-    fn stop(&self) -> Result<()> {
-        // Server is stopped by the plugin factory.
-        // self.server.stop()
-        Ok(())
-    }
 }
 
 impl ParsesActions for RpcPlugin {
@@ -195,11 +184,3 @@ impl ParsesActions for RpcPlugin {
         Err(EvaluationError::ParseFailed)
     }
 }
-
-/*
-#[cfg(test)]
-#[ctor::ctor]
-fn initialize_tests() {
-    plugins_core::log_test();
-}
-*/

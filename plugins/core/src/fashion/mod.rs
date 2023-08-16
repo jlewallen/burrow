@@ -30,18 +30,6 @@ impl Plugin for FashionPlugin {
     fn key(&self) -> &'static str {
         Self::plugin_key()
     }
-
-    fn initialize(&mut self) -> Result<()> {
-        Ok(())
-    }
-
-    fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>> {
-        Ok(Vec::default())
-    }
-
-    fn stop(&self) -> Result<()> {
-        Ok(())
-    }
 }
 
 impl ParsesActions for FashionPlugin {

@@ -91,10 +91,6 @@ impl Plugin for RunePlugin {
             runners: Arc::clone(&self.runners),
         })])
     }
-
-    fn stop(&self) -> Result<()> {
-        Ok(())
-    }
 }
 
 impl ParsesActions for RunePlugin {
