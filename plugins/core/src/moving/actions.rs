@@ -39,7 +39,7 @@ impl GoAction {
                     session.raise(
                         Audience::Area(area.key().clone()),
                         Raising::TaggedJson(
-                            MovingEvent::Left {
+                            Moving::Left {
                                 living: (&living).observe(&living)?.expect("No observed entity"),
                                 area: (&area).observe(&living)?.expect("No observed entity"),
                             }
@@ -49,7 +49,7 @@ impl GoAction {
                     session.raise(
                         Audience::Individuals(hearing_arrive),
                         Raising::TaggedJson(
-                            MovingEvent::Arrived {
+                            Moving::Arrived {
                                 living: (&living).observe(&living)?.expect("No observed entity"),
                                 area: (&to_area).observe(&living)?.expect("No observed entity"),
                             }

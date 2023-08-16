@@ -185,9 +185,9 @@ impl Render for AllKnownItems {
             Self::EditorReply(_) => None,
             Self::JsonReply(_) => todo!(),
 
-            Self::CarryingEvent(event) => event.render(myself),
-            Self::MovingEvent(event) => event.render(myself),
-            Self::TalkingEvent(event) => event.render(myself),
+            Self::Carrying(event) => event.render(myself),
+            Self::Moving(event) => event.render(myself),
+            Self::Talking(event) => event.render(myself),
         }
     }
 }
@@ -232,17 +232,17 @@ fn thing(e: &ObservedEntity) -> Html {
     html! { <span>{ e.qualified.as_ref().unwrap() }</span> }
 }
 
-impl Render for CarryingEvent {
+impl Render for Carrying {
     fn render(&self, _myself: &Myself) -> Option<Html> {
         match self {
-            CarryingEvent::Held {
+            Carrying::Held {
                 living,
                 item,
                 area: _,
             } => Some(
                 html! { <div class="entry"> { subject(living) } { " picked up " } { thing(item) }</div> },
             ),
-            CarryingEvent::Dropped {
+            Carrying::Dropped {
                 living,
                 item,
                 area: _,
@@ -253,26 +253,26 @@ impl Render for CarryingEvent {
     }
 }
 
-impl Render for MovingEvent {
+impl Render for Moving {
     fn render(&self, _myself: &Myself) -> Option<Html> {
         match self {
-            MovingEvent::Left { living, area: _ } => {
+            Moving::Left { living, area: _ } => {
                 Some(html! { <div class="entry"> { subject(living) } { " left." } </div> })
             }
-            MovingEvent::Arrived { living, area: _ } => {
+            Moving::Arrived { living, area: _ } => {
                 Some(html! { <div class="entry"> { subject(living) } { " arrived." } </div> })
             }
         }
     }
 }
 
-impl Render for TalkingEvent {
+impl Render for Talking {
     fn render(&self, _myself: &Myself) -> Option<Html> {
         match self {
-            TalkingEvent::Conversation(s) => Some(
+            Talking::Conversation(s) => Some(
                 html! { <div class="entry"> <span class="speaker">{ s.who.name.as_ref().unwrap() }</span>{ ": " } { &s.message } </div> },
             ),
-            TalkingEvent::Whispering(_) => todo!(),
+            Talking::Whispering(_) => todo!(),
         }
     }
 }

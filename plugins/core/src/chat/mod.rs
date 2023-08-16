@@ -39,7 +39,7 @@ impl ParsesActions for ChatPlugin {
 }
 
 pub mod model {
-    pub use kernel::common::TalkingEvent;
+    pub use kernel::common::Talking;
 }
 
 pub mod actions {
@@ -63,7 +63,7 @@ pub mod actions {
                 session.raise(
                     Audience::Area(area.key().clone()),
                     Raising::TaggedJson(
-                        TalkingEvent::Conversation(Spoken::new(
+                        Talking::Conversation(Spoken::new(
                             (&living).observe(&living)?.expect("No observed entity"),
                             message,
                         ))

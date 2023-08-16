@@ -1,1 +1,0 @@
-{{ talkingEvent.conversation.who.name }}: {{ talkingEvent.conversation.message }}

@@ -44,7 +44,7 @@ impl ParsesActions for CarryingPlugin {
 pub mod model {
     use crate::{library::model::*, tools};
 
-    pub use kernel::common::CarryingEvent;
+    pub use kernel::common::Carrying;
 
     #[derive(Debug, Serialize, Deserialize, Default)]
     pub struct Containing {
@@ -214,7 +214,7 @@ pub mod model {
 }
 
 pub mod actions {
-    use crate::{carrying::model::CarryingEvent, library::actions::*, looking::model::Observe};
+    use crate::{carrying::model::Carrying, library::actions::*, looking::model::Observe};
 
     #[action]
     pub struct HoldAction {
@@ -235,7 +235,7 @@ pub mod actions {
                 Some(holding) => match tools::move_between(&area, &user, &holding)? {
                     true => Ok(reply_ok(
                         Audience::Area(area.key().clone()),
-                        CarryingEvent::Held {
+                        Carrying::Held {
                             living: (&user).observe(&user)?.expect("No observed entity"),
                             item: (&holding).observe(&user)?.expect("No observed entity"),
                             area: (&area).observe(&user)?.expect("No observed entity"),
@@ -268,7 +268,7 @@ pub mod actions {
                     Some(dropping) => match tools::move_between(&user, &area, &dropping)? {
                         true => Ok(reply_ok(
                             Audience::Area(area.key().clone()),
-                            CarryingEvent::Dropped {
+                            Carrying::Dropped {
                                 living: (&user).observe(&user)?.expect("No observed entity"),
                                 item: (&dropping).observe(&user)?.expect("No observed entity"),
                                 area: (&area).observe(&user)?.expect("No observed entity"),

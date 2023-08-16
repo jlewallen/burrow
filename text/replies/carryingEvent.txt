@@ -1,6 +1,0 @@
-{%- if carryingEvent.held -%}
-{{ carryingEvent.held.living.name }} held {{ carryingEvent.held.item.qualified }}
-{%- endif  -%}
-{%- if carryingEvent.dropped -%}
-{{ carryingEvent.dropped.living.name }} dropped {{ carryingEvent.dropped.item.qualified }}
-{%- endif  -%}

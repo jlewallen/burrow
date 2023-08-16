@@ -1,0 +1,6 @@
+{%- if carrying.held -%}
+{{ carrying.held.living.name }} held {{ carrying.held.item.qualified }}
+{%- endif  -%}
+{%- if carrying.dropped -%}
+{{ carrying.dropped.living.name }} dropped {{ carrying.dropped.item.qualified }}
+{%- endif  -%}
