@@ -300,7 +300,7 @@ pub trait DomainEvent {}
 
 #[derive(Serialize, Deserialize, ToTaggedJson, Debug)]
 #[serde(rename_all = "camelCase")]
-pub enum CarryingEvent {
+pub enum Carrying {
     Held {
         living: ObservedEntity,
         item: ObservedEntity,
@@ -313,11 +313,11 @@ pub enum CarryingEvent {
     },
 }
 
-impl DomainEvent for CarryingEvent {}
+impl DomainEvent for Carrying {}
 
 #[derive(Serialize, Deserialize, ToTaggedJson, Debug)]
 #[serde(rename_all = "camelCase")]
-pub enum MovingEvent {
+pub enum Moving {
     Left {
         living: ObservedEntity,
         area: ObservedEntity,
@@ -328,7 +328,7 @@ pub enum MovingEvent {
     },
 }
 
-impl DomainEvent for MovingEvent {}
+impl DomainEvent for Moving {}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Spoken {
@@ -347,12 +347,12 @@ impl Spoken {
 
 #[derive(Serialize, Deserialize, ToTaggedJson, Debug)]
 #[serde(rename_all = "camelCase")]
-pub enum TalkingEvent {
+pub enum Talking {
     Conversation(Spoken),
     Whispering(Spoken),
 }
 
-impl DomainEvent for TalkingEvent {}
+impl DomainEvent for Talking {}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Emoted {

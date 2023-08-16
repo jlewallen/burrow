@@ -54,9 +54,9 @@ pub enum AllKnownItems {
     EditorReply(EditorReply),
     MarkdownReply(MarkdownReply),
     JsonReply(JsonReply),
-    CarryingEvent(CarryingEvent),
-    MovingEvent(MovingEvent),
-    TalkingEvent(TalkingEvent),
+    Carrying(Carrying),
+    Moving(Moving),
+    Talking(Talking),
 }
 
 #[derive(Debug, Serialize, Clone, Eq, PartialEq)]
