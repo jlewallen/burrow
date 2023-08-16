@@ -183,11 +183,6 @@ impl Plugin for RpcPlugin {
         Ok(Vec::default())
     }
 
-    #[tracing::instrument(name = "rpc-deliver", skip_all)]
-    fn deliver(&self, _incoming: &Incoming) -> Result<()> {
-        Ok(())
-    }
-
     fn stop(&self) -> Result<()> {
         // Server is stopped by the plugin factory.
         // self.server.stop()

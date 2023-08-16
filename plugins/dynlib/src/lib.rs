@@ -204,6 +204,7 @@ impl DynamicPlugin {
         self.push_messages_with(move |_ll| Some(pushing.to_vec()))
     }
 
+    #[allow(dead_code)]
     fn push_messages_to_prefix<F>(&self, prefix: &str, mut f: F) -> Result<()>
     where
         F: FnMut(&LoadedLibrary) -> Vec<DynMessage>,
@@ -349,6 +350,7 @@ impl Plugin for DynamicPlugin {
         })])
     }
 
+    /*
     fn deliver(&self, incoming: &Incoming) -> Result<()> {
         self.push_messages_to_prefix(&incoming.key, |_ll| {
             vec![DynMessage::Payload(Payload::Deliver(
@@ -360,6 +362,7 @@ impl Plugin for DynamicPlugin {
 
         Ok(())
     }
+    */
 
     fn stop(&self) -> Result<()> {
         Ok(())

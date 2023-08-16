@@ -310,10 +310,6 @@ impl Plugin for WasmPlugin {
         Ok(Vec::default())
     }
 
-    fn deliver(&self, _incoming: &Incoming) -> Result<()> {
-        Ok(())
-    }
-
     fn stop(&self) -> Result<()> {
         Ok(())
     }
@@ -341,7 +337,11 @@ mod hooks {
     }
 
     impl BeforeMovingHook for WasmMovingHooks {
-        fn before_moving(&self, _surroundings: &Surroundings, _to_area: &EntityPtr) -> Result<CanMove> {
+        fn before_moving(
+            &self,
+            _surroundings: &Surroundings,
+            _to_area: &EntityPtr,
+        ) -> Result<CanMove> {
             Ok(CanMove::Allow)
         }
     }

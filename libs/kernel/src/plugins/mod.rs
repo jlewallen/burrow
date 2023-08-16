@@ -4,7 +4,7 @@ use tracing::*;
 
 pub use std::rc::Rc;
 
-use crate::actions::{Action, Incoming};
+use crate::actions::Action;
 use crate::model::*;
 
 mod mw;
@@ -69,8 +69,6 @@ pub trait Plugin: ParsesActions {
 
     fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>>;
 
-    fn deliver(&self, incoming: &Incoming) -> Result<()>;
-
     fn stop(&self) -> Result<()>;
 }
 
@@ -108,14 +106,6 @@ impl SessionPlugins {
             .into_iter()
             .flatten()
             .collect())
-    }
-
-    pub fn deliver(&self, incoming: Incoming) -> Result<()> {
-        for plugin in self.plugins.iter() {
-            let _span = span!(Level::INFO, "D", plugin = plugin.key()).entered();
-            plugin.deliver(&incoming)?;
-        }
-        Ok(())
     }
 
     pub fn stop(&self) -> Result<()> {

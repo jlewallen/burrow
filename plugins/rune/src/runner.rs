@@ -170,12 +170,6 @@ impl RuneRunner {
         Ok(())
     }
 
-    pub fn deliver(&mut self, incoming: &kernel::prelude::Incoming) -> Result<()> {
-        self.evaluate_optional_function("deliver", (Incoming(incoming.clone()),))?;
-
-        Ok(())
-    }
-
     pub fn before(
         &mut self,
         perform: kernel::prelude::Perform,

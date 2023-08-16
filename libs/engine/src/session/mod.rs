@@ -148,16 +148,6 @@ impl Session {
         }
     }
 
-    pub fn deliver(&self, incoming: Incoming) -> Result<()> {
-        let _activated = self.set_session()?;
-
-        let plugins = self.plugins.borrow();
-
-        plugins.deliver(incoming)?;
-
-        Ok(())
-    }
-
     pub fn initialize(&self) -> Result<()> {
         let _activated = self.set_session()?;
 
