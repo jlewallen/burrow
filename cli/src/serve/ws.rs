@@ -12,15 +12,12 @@ use tokio::task::JoinHandle;
 use tracing::{info, trace, warn};
 
 use engine::prelude::{EvaluateAs, Notifier, Session, SessionOpener};
-use kernel::common::SimpleReply;
 use kernel::prelude::{
     Effect, EntityKey, EntityPtrResolver, JsonValue, LookupBy, Perform, PerformAction, Performer,
 };
+use kernel::{common::SimpleReply, session::ActiveSession};
 
-use crate::{
-    rpc::try_parse_action,
-    serve::{handlers::TokenClaims, ClientSession},
-};
+use crate::serve::{handlers::TokenClaims, ClientSession};
 
 use super::AppState;
 
@@ -145,8 +142,8 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
 
                             move || {
                                 let session = domain.open_session().expect("Error opening session");
-                                // TODO This could be a PerformAction
-                                let action: Rc<_> = try_parse_action(value)
+                                let action: Rc<_> = session
+                                    .try_deserialize_action(&value)
                                     .expect("try parse action failed")
                                     .into();
                                 let living = session

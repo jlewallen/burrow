@@ -281,6 +281,14 @@ impl EntityPtrResolver for Session {
 }
 
 impl ActiveSession for Session {
+    fn try_deserialize_action(
+        &self,
+        value: &JsonValue,
+    ) -> Result<Box<dyn Action>, EvaluationError> {
+        let plugins = self.plugins.borrow();
+        plugins.try_deserialize_action(value)
+    }
+
     fn new_key(&self) -> EntityKey {
         self.keys.following()
     }

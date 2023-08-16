@@ -1,3 +1,5 @@
+use serde::Deserialize;
+
 use crate::library::plugin::*;
 
 #[cfg(test)]
@@ -35,6 +37,10 @@ impl Plugin for HelpingPlugin {
         Ok(())
     }
 
+    fn sources(&self) -> Vec<Box<dyn ActionSource>> {
+        vec![Box::new(SaveHelpActionSource::default())]
+    }
+
     fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>> {
         Ok(Vec::default())
     }
@@ -52,6 +58,29 @@ impl ParsesActions for HelpingPlugin {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
         try_parsing(parser::HelpWithParser {}, i)
             .or_else(|_| try_parsing(parser::ReadHelpParser {}, i))
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(clippy::enum_variant_names)]
+enum SaveHelpActions {
+    SaveHelpAction(actions::SaveHelpAction),
+}
+
+#[derive(Default)]
+pub struct SaveHelpActionSource {}
+
+impl ActionSource for SaveHelpActionSource {
+    fn try_deserialize_action(
+        &self,
+        value: &JsonValue,
+    ) -> Result<Box<dyn Action>, EvaluationError> {
+        serde_json::from_value::<SaveHelpActions>(value.clone())
+            .map(|a| match a {
+                SaveHelpActions::SaveHelpAction(action) => Box::new(action) as Box<dyn Action>,
+            })
+            .map_err(|_| EvaluationError::ParseFailed)
     }
 }
 

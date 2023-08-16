@@ -2,14 +2,14 @@ use anyhow::Result;
 use std::ops::Deref;
 use std::{cell::RefCell, rc::Rc};
 
-use replies::{TaggedJson, ToTaggedJson};
+use replies::{JsonValue, TaggedJson, ToTaggedJson};
 
-use crate::actions::Performer;
+use crate::actions::{Action, Performer};
 use crate::hooks::ManagedHooks;
-use crate::model::Entity;
 use crate::model::{
     Audience, DomainError, EntityKey, EntityPtr, EntityPtrResolver, Identity, Item, When,
 };
+use crate::model::{Entity, EvaluationError};
 use crate::surround::Surroundings;
 
 pub type SessionRef = Rc<dyn ActiveSession>;
@@ -27,6 +27,9 @@ impl From<Raising> for TaggedJson {
 }
 
 pub trait ActiveSession: Performer + EntityPtrResolver {
+    fn try_deserialize_action(&self, value: &JsonValue)
+        -> Result<Box<dyn Action>, EvaluationError>;
+
     fn find_item(
         &self,
         surroundings: &Surroundings,
@@ -45,7 +48,6 @@ pub trait ActiveSession: Performer + EntityPtrResolver {
 
     fn hooks(&self) -> &ManagedHooks;
 
-    // We may want to just make `when` be something that can be Into'd a DateTime<Utc>?
     fn schedule(
         &self,
         key: &str,

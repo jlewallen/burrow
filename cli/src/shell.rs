@@ -9,7 +9,6 @@ use tokio::task::JoinHandle;
 use tokio::time::sleep;
 use tracing::*;
 
-use crate::rpc::try_parse_action;
 use crate::terminal::Renderer;
 use crate::{terminal::default_external_editor, DomainBuilder};
 
@@ -163,11 +162,13 @@ impl Middleware for InteractiveEditor {
 
                                         let value = reply.save().clone().instantiate(&value);
 
-                                        let action: Rc<_> = try_parse_action(value)
+                                        let session = get_my_session()?;
+
+                                        let action: Rc<_> = session
+                                            .try_deserialize_action(&value)
                                             .expect("try parse action failed")
                                             .into();
 
-                                        let session = get_my_session()?;
                                         match session
                                             .entity(&kernel::prelude::LookupBy::Key(&self.living))?
                                         {
