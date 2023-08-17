@@ -298,4 +298,56 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    pub fn test_missing_handler() -> Result<()> {
+        let source = r#"
+            pub fn handlers() {
+                #{ }
+            }
+        "#;
+
+        let mut runner = RuneRunner::new([ScriptSource::System(source.to_owned())].into())?;
+
+        runner.before(Perform::Raised(Raised::new(
+            Audience::Nobody, // Unused
+            "UNUSED".to_owned(),
+            TaggedJson::new_from(json!({
+                "carrying": {
+                    "dropped": {
+                        "item": {
+                            "name": "Dropped Item",
+                            "key": "E-0"
+                        }
+                    }
+                }
+            }))?,
+        )))?;
+
+        Ok(())
+    }
+
+    #[test]
+    pub fn test_missing_handlers_completely() -> Result<()> {
+        let source = r#" "#;
+
+        let mut runner = RuneRunner::new([ScriptSource::System(source.to_owned())].into())?;
+
+        runner.before(Perform::Raised(Raised::new(
+            Audience::Nobody, // Unused
+            "UNUSED".to_owned(),
+            TaggedJson::new_from(json!({
+                "carrying": {
+                    "dropped": {
+                        "item": {
+                            "name": "Dropped Item",
+                            "key": "E-0"
+                        }
+                    }
+                }
+            }))?,
+        )))?;
+
+        Ok(())
+    }
 }
