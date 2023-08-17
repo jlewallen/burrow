@@ -4,7 +4,7 @@ use clap::{Parser, Subcommand};
 use ed25519_dalek::Keypair;
 use nanoid::nanoid;
 use rand::rngs::OsRng;
-use std::{error::Error, path::PathBuf, sync::Arc};
+use std::{error::Error, sync::Arc};
 use tracing::*;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -19,7 +19,6 @@ use plugins_core::{
 use plugins_dynlib::DynamicPluginFactory;
 use plugins_rpc::RpcPluginFactory;
 use plugins_rune::RunePluginFactory;
-use plugins_wasm::WasmPluginFactory;
 use sqlite::Factory;
 
 mod dump;
@@ -121,7 +120,6 @@ impl Sequence<Identity> for Ed25519Identities {
 
 struct DomainBuilder {
     path: Option<String>,
-    wasm: bool,
     dynlib: bool,
     rune: bool,
     rpc: bool,
@@ -131,7 +129,6 @@ impl Default for DomainBuilder {
     fn default() -> Self {
         Self {
             path: None,
-            wasm: false,
             dynlib: true,
             rune: true,
             rpc: false,
@@ -159,9 +156,6 @@ impl DomainBuilder {
         if self.rune {
             registered_plugins.register(RunePluginFactory::default());
         }
-        if self.wasm {
-            registered_plugins.register(WasmPluginFactory::new(&get_assets_path()?)?);
-        }
         if self.rpc {
             registered_plugins.register(RpcPluginFactory::start().await?);
         }
@@ -186,24 +180,6 @@ impl DomainBuilder {
             Arc::new(Ed25519Identities {}),
         ))
     }
-}
-
-fn get_assets_path() -> Result<PathBuf> {
-    let mut cwd = std::env::current_dir()?;
-    loop {
-        if cwd.join(".git").exists() {
-            break;
-        }
-
-        cwd = match cwd.parent() {
-            Some(cwd) => cwd.to_path_buf(),
-            None => {
-                return Err(anyhow::anyhow!("Error locating assets path"));
-            }
-        };
-    }
-
-    Ok(cwd.join("plugins/wasm/assets"))
 }
 
 struct RandomKeys {}

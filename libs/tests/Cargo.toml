@@ -36,9 +36,6 @@ path = "../../plugins/core"
 [dependencies.plugins-rune]
 path = "../../plugins/rune"
 
-[dependencies.plugins-wasm]
-path = "../../plugins/wasm"
-
 [dependencies.plugins-rpc]
 path = "../../plugins/rpc"
 
