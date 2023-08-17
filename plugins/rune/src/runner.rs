@@ -14,11 +14,10 @@ use kernel::{
 
 use crate::sources::*;
 
-#[allow(dead_code)]
 pub struct RuneRunner {
-    scripts: HashSet<ScriptSource>,
-    ctx: Context,
-    runtime: Arc<RuntimeContext>,
+    _scripts: HashSet<ScriptSource>,
+    _ctx: Context,
+    _runtime: Arc<RuntimeContext>,
     vm: Option<Vm>,
 }
 
@@ -74,9 +73,9 @@ impl RuneRunner {
         };
 
         Ok(Self {
-            scripts,
-            ctx,
-            runtime,
+            _scripts: scripts,
+            _ctx: ctx,
+            _runtime: runtime,
             vm,
         })
     }
