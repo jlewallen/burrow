@@ -2,9 +2,9 @@ use anyhow::Result;
 use rune::{
     runtime::{Object, Protocol, RuntimeContext, Shared},
     termcolor::{ColorChoice, StandardStream},
-    Context, Diagnostics, Source, Sources, Value, Vm,
+    Context, Diagnostics, Sources, Value, Vm,
 };
-use std::{collections::HashSet, sync::Arc, time::Instant};
+use std::{sync::Arc, time::Instant};
 use tracing::*;
 
 use kernel::{
@@ -15,41 +15,27 @@ use kernel::{
 use crate::sources::*;
 
 pub struct RuneRunner {
-    _scripts: HashSet<ScriptSource>,
     _ctx: Context,
     _runtime: Arc<RuntimeContext>,
     vm: Option<Vm>,
 }
 
 impl RuneRunner {
-    pub fn new(scripts: HashSet<ScriptSource>) -> Result<Self> {
+    pub fn new(script: Script) -> Result<Self> {
         debug!("runner:loading");
         let started = Instant::now();
-        let sources = scripts
-            .iter()
-            .map(|script| match script {
-                ScriptSource::File(path) => Ok(Source::from_path(path.as_path())?),
-                ScriptSource::Entity(key, source) => Ok(Source::new(key.to_string(), source)),
-                ScriptSource::System(source) => Ok(Source::new("system".to_string(), source)),
-            })
-            .collect::<Result<Vec<_>>>()?;
 
-        let mut sources = sources
-            .into_iter()
-            .fold(Sources::new(), |mut sources, source| {
-                sources.insert(source);
-                sources
-            });
+        let mut sources = Sources::new();
+        sources.insert(script.source()?);
 
         debug!("runner:compiling");
         let mut ctx = Context::with_default_modules()?;
         ctx.install(rune_modules::time::module(true)?)?;
         ctx.install(rune_modules::json::module(true)?)?;
         ctx.install(rune_modules::rand::module(true)?)?;
-        ctx.install(glue::create_integration_module()?)?;
+        ctx.install(glue::create_integration_module(script.owner)?)?;
 
         let mut diagnostics = Diagnostics::new();
-        let runtime: Arc<RuntimeContext> = Arc::new(ctx.runtime());
         let compiled = rune::prepare(&mut sources)
             .with_context(&ctx)
             .with_diagnostics(&mut diagnostics)
@@ -59,6 +45,7 @@ impl RuneRunner {
             diagnostics.emit(&mut writer, &sources)?;
         }
 
+        let runtime: Arc<RuntimeContext> = Arc::new(ctx.runtime());
         let vm = match compiled {
             Ok(compiled) => {
                 let vm = Vm::new(runtime.clone(), Arc::new(compiled));
@@ -73,7 +60,6 @@ impl RuneRunner {
         };
 
         Ok(Self {
-            _scripts: scripts,
             _ctx: ctx,
             _runtime: runtime,
             vm,
@@ -278,8 +264,9 @@ mod glue {
         }
     }
 
-    pub(super) fn create_integration_module() -> Result<rune::Module> {
+    pub(super) fn create_integration_module(owner: Option<Owner>) -> Result<rune::Module> {
         let mut module = rune::Module::default();
+        module.function(["owner"], move || -> Option<Owner> { owner.clone() })?;
         module.function(["info"], |s: &str| {
             info!(target: "RUNE", "{}", s);
         })?;
@@ -299,6 +286,11 @@ mod glue {
         module.inst_fn(Protocol::STRING_DEBUG, LocalEntity::string_debug)?;
         module.inst_fn("key", LocalEntity::key)?;
         module.inst_fn("name", LocalEntity::name)?;
+        module.ty::<Owner>()?;
+        module.inst_fn(Protocol::STRING_DEBUG, Owner::string_debug)?;
+        module.inst_fn("key", Owner::key)?;
+        module.inst_fn("relation", Owner::relation)?;
+        module.ty::<Relation>()?;
         Ok(module)
     }
 
@@ -327,7 +319,7 @@ mod glue {
 
 #[cfg(test)]
 mod tests {
-    use kernel::prelude::{Audience, Raised};
+    use kernel::prelude::{Audience, EntityKey, Raised};
     use serde_json::json;
 
     use super::*;
@@ -357,7 +349,10 @@ mod tests {
             }
         "#;
 
-        let mut runner = RuneRunner::new([ScriptSource::System(source.to_owned())].into())?;
+        let mut runner = RuneRunner::new(Script {
+            source: ScriptSource::System(source.to_owned()),
+            owner: None,
+        })?;
 
         runner.before(Perform::Raised(Raised::new(
             Audience::Nobody, // Unused
@@ -385,7 +380,10 @@ mod tests {
             }
         "#;
 
-        let mut runner = RuneRunner::new([ScriptSource::System(source.to_owned())].into())?;
+        let mut runner = RuneRunner::new(Script {
+            source: ScriptSource::System(source.to_owned()),
+            owner: None,
+        })?;
 
         runner.before(Perform::Raised(Raised::new(
             Audience::Nobody, // Unused
@@ -409,7 +407,10 @@ mod tests {
     pub fn test_missing_handlers_completely() -> Result<()> {
         let source = r#" "#;
 
-        let mut runner = RuneRunner::new([ScriptSource::System(source.to_owned())].into())?;
+        let mut runner = RuneRunner::new(Script {
+            source: ScriptSource::System(source.to_owned()),
+            owner: None,
+        })?;
 
         runner.before(Perform::Raised(Raised::new(
             Audience::Nobody, // Unused
@@ -417,6 +418,84 @@ mod tests {
             TaggedJson::new_from(json!({
                 "carrying": {
                     "dropped": {
+                        "item": {
+                            "name": "Dropped Item",
+                            "key": "E-0"
+                        }
+                    }
+                }
+            }))?,
+        )))?;
+
+        Ok(())
+    }
+
+    #[test]
+    pub fn test_calling_owner_with_one() -> Result<()> {
+        let source = r#"
+            pub fn held(bag) {
+                info(format!("{:?}", owner()))
+            }
+
+            pub fn handlers() {
+                #{
+                    "carrying": #{
+                        "held": held,
+                    },
+                }
+            }
+        "#;
+
+        let mut runner = RuneRunner::new(Script {
+            source: ScriptSource::System(source.to_owned()),
+            owner: Some(Owner::new(EntityKey::new("E-0"), Relation::Ground)),
+        })?;
+
+        runner.before(Perform::Raised(Raised::new(
+            Audience::Nobody, // Unused
+            "UNUSED".to_owned(),
+            TaggedJson::new_from(json!({
+                "carrying": {
+                    "held": {
+                        "item": {
+                            "name": "Dropped Item",
+                            "key": "E-0"
+                        }
+                    }
+                }
+            }))?,
+        )))?;
+
+        Ok(())
+    }
+
+    #[test]
+    pub fn test_calling_owner_with_none() -> Result<()> {
+        let source = r#"
+            pub fn held(bag) {
+                info(format!("{:?}", owner()))
+            }
+
+            pub fn handlers() {
+                #{
+                    "carrying": #{
+                        "held": held,
+                    },
+                }
+            }
+        "#;
+
+        let mut runner = RuneRunner::new(Script {
+            source: ScriptSource::System(source.to_owned()),
+            owner: None,
+        })?;
+
+        runner.before(Perform::Raised(Raised::new(
+            Audience::Nobody, // Unused
+            "UNUSED".to_owned(),
+            TaggedJson::new_from(json!({
+                "carrying": {
+                    "held": {
                         "item": {
                             "name": "Dropped Item",
                             "key": "E-0"

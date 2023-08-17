@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
+use sources::Script;
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use plugins_core::library::plugin::*;
@@ -28,15 +29,13 @@ impl PluginFactory for RunePluginFactory {
 }
 
 #[derive(Clone, Default)]
-pub struct Runners(Arc<RefCell<HashMap<ScriptSource, RuneRunner>>>);
+pub struct Runners(Arc<RefCell<Vec<RuneRunner>>>);
 
 impl Runners {
-    fn add_runners_for(&self, sources: impl Iterator<Item = ScriptSource>) -> Result<()> {
+    fn add_runners_for(&self, scripts: impl Iterator<Item = Script>) -> Result<()> {
         let mut runners = self.0.borrow_mut();
-        for source in sources {
-            if !runners.contains_key(&source) {
-                runners.insert(source.clone(), RuneRunner::new(HashSet::from([source]))?);
-            }
+        for script in scripts {
+            runners.push(RuneRunner::new(script)?);
         }
 
         Ok(())
@@ -49,8 +48,8 @@ pub struct RunePlugin {
 }
 
 impl RunePlugin {
-    fn add_runners_for(&self, sources: impl Iterator<Item = ScriptSource>) -> Result<()> {
-        self.runners.add_runners_for(sources)
+    fn add_runners_for(&self, scripts: impl Iterator<Item = Script>) -> Result<()> {
+        self.runners.add_runners_for(scripts)
     }
 }
 
@@ -69,7 +68,7 @@ impl Plugin for RunePlugin {
     fn initialize(&mut self) -> Result<()> {
         self.add_runners_for(sources::load_user_sources()?.into_iter())?;
 
-        for (_, runner) in self.runners.0.borrow_mut().iter_mut() {
+        for runner in self.runners.0.borrow_mut().iter_mut() {
             runner.user()?;
         }
 
@@ -143,11 +142,9 @@ impl Middleware for RuneMiddleware {
         let before = {
             let mut runners = self.runners.0.borrow_mut();
 
-            runners
-                .iter_mut()
-                .fold(Some(value), |perform, (_, runner)| {
-                    perform.and_then(|perform| runner.before(perform).expect("Error in before"))
-                })
+            runners.iter_mut().fold(Some(value), |perform, runner| {
+                perform.and_then(|perform| runner.before(perform).expect("Error in before"))
+            })
         };
 
         if let Some(value) = before {
@@ -155,7 +152,7 @@ impl Middleware for RuneMiddleware {
 
             let mut runners = self.runners.0.borrow_mut();
 
-            let after = runners.iter_mut().fold(after, |effect, (_, runner)| {
+            let after = runners.iter_mut().fold(after, |effect, runner| {
                 runner.after(effect).expect("Error in after")
             });
 
