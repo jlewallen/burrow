@@ -5,51 +5,26 @@ expression: reply.to_debug_json()?
 {
   "reply": {
     "taggedJson": {
-      "area": {
-        "acls": {
-          "rules": []
-        },
-        "class": {
-          "name": "scopes.AreaClass"
-        },
-        "creator": {
-          "class": "scopes.ItemClass",
-          "gid": 2,
-          "key": "E-1",
-          "name": "Living"
-        },
-        "identity": {
-          "private": "Private#4",
-          "public": "Public#4"
-        },
-        "key": "E-3",
-        "parent": null,
-        "scopes": {
-          "containing": {
-            "capacity": null,
-            "holding": [],
-            "produces": {}
+      "constructed": {
+        "area": {
+          "area": {
+            "desc": null,
+            "gid": 4,
+            "key": "E-3",
+            "name": "Green Room",
+            "qualified": "Green Room"
           },
-          "occupyable": {
-            "acls": {
-              "rules": []
-            },
-            "occupancy": 0,
-            "occupied": [],
-            "routes": null
+          "carrying": [],
+          "items": [],
+          "living": [],
+          "person": {
+            "desc": null,
+            "gid": 2,
+            "key": "E-1",
+            "name": "Living",
+            "qualified": "Living"
           },
-          "props": {
-            "core": {
-              "gid": {
-                "acls": null,
-                "value": 4
-              },
-              "name": {
-                "acls": null,
-                "value": "Green Room"
-              }
-            }
-          }
+          "routes": []
         }
       }
     }

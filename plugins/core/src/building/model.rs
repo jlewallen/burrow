@@ -2,6 +2,20 @@ use crate::library::model::*;
 
 use std::str::FromStr;
 
+#[derive(Clone, Serialize, Deserialize, PartialEq, ToTaggedJson, Reply, Debug)]
+#[serde(rename_all = "camelCase")]
+pub enum Constructed {
+    Area(AreaObservation),
+}
+
+impl TryFrom<Constructed> for Effect {
+    type Error = TaggedJsonError;
+
+    fn try_from(value: Constructed) -> std::result::Result<Self, Self::Error> {
+        Ok(Self::Reply(value.to_tagged_json()?.into()))
+    }
+}
+
 #[derive(Debug, Serialize, ToTaggedJson)]
 #[serde(rename_all = "camelCase")]
 struct EditorReply {}
