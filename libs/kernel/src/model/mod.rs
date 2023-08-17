@@ -1,4 +1,5 @@
 use anyhow::Result;
+use serde::Serialize;
 use std::{
     cell::RefCell,
     collections::HashMap,
@@ -106,6 +107,15 @@ impl IntoEntityPtr for EntityRef {
         get_my_session()?
             .entity(&LookupBy::Key(self.key()))?
             .ok_or(DomainError::DanglingEntity)
+    }
+}
+
+impl Serialize for EntityPtr {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.entity_ref().serialize(serializer)
     }
 }
 

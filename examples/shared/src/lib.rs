@@ -1,5 +1,4 @@
 use anyhow::Result;
-use chrono::Duration;
 use tracing::*;
 
 use dynlib_sys::prelude::*;
@@ -24,14 +23,6 @@ struct ExampleAgent {}
 
 impl Agent for ExampleAgent {
     fn initialize(&mut self) -> Result<()> {
-        if false {
-            get_my_session()?.schedule(
-                "example-test",
-                When::Interval(Duration::minutes(1)),
-                &ExampleFuture::Wakeup,
-            )?;
-        }
-
         Ok(())
     }
 

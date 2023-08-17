@@ -21,7 +21,7 @@ pub trait Action: ToTaggedJson + Debug {
     fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Raised {
     pub key: String,
     pub audience: Audience,
@@ -42,7 +42,7 @@ impl Raised {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Incoming {
     pub key: String,
     pub value: TaggedJson,
@@ -58,7 +58,7 @@ impl Incoming {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Scheduling {
     pub key: String,
     pub when: When,
@@ -70,7 +70,22 @@ pub enum PerformAction {
     Instance(Rc<dyn Action>),
 }
 
-#[derive(Clone, Debug)]
+impl Serialize for PerformAction {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            PerformAction::Instance(action) => action
+                .to_tagged_json()
+                .unwrap()
+                .into_tagged()
+                .serialize(serializer),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
 #[non_exhaustive]
 pub enum Perform {
     Living {

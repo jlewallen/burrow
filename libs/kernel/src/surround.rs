@@ -1,6 +1,8 @@
+use serde::Serialize;
+
 use crate::model::EntityPtr;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum Surroundings {
     Living {
         world: EntityPtr,
