@@ -4,6 +4,7 @@ stages:
 
 workflow:
   rules:
+    - if: $CI_PIPELINE_SOURCE == 'web'
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
 
 cache:
