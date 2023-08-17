@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use crate::*;
 
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use prelude::*;
 
 #[test]
@@ -99,7 +100,7 @@ impl ActiveSession for KeysOnlySession {
     fn schedule(
         &self,
         _key: &str,
-        _when: When,
+        _when: DateTime<Utc>,
         _message: &dyn ToTaggedJson,
     ) -> Result<(), DomainError> {
         todo!()

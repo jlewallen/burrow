@@ -200,11 +200,7 @@ impl Services for SessionServices {
             .as_ref()
             .ok_or_else(|| anyhow!("session prefix required"))?;
 
-        Ok(session.schedule(
-            &format!("{}/{}", prefix, key),
-            When::Time(time.and_utc()),
-            &serialized,
-        )?)
+        Ok(session.schedule(&format!("{}/{}", prefix, key), time.and_utc(), &serialized)?)
     }
 
     fn produced(&self, effect: Effect) -> Result<()> {

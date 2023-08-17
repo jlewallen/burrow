@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use chrono::{DateTime, Utc};
 use std::rc::Weak;
 use std::sync::Arc;
 use std::time::Instant;
@@ -345,7 +346,7 @@ impl ActiveSession for Session {
     fn schedule(
         &self,
         key: &str,
-        when: When,
+        when: DateTime<Utc>,
         message: &dyn ToTaggedJson,
     ) -> Result<(), DomainError> {
         let key = key.to_owned();

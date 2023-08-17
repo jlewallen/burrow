@@ -1,4 +1,3 @@
-use chrono::{DateTime, Utc};
 use replies::TaggedJsonError;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -108,19 +107,6 @@ impl From<&EntityGid> for u64 {
 pub enum LookupBy<'a> {
     Key(&'a EntityKey),
     Gid(&'a EntityGid),
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub enum When {
-    Time(DateTime<Utc>),
-}
-
-impl When {
-    pub fn to_utc_time(&self) -> std::result::Result<DateTime<Utc>, DomainError> {
-        match self {
-            When::Time(time) => Ok(*time),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

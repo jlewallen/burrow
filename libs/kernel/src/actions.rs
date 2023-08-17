@@ -1,4 +1,5 @@
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{fmt::Debug, rc::Rc};
 
@@ -7,7 +8,7 @@ pub use replies::{JsonValue, TaggedJson, TaggedJsonError, ToTaggedJson};
 use crate::model::DomainError;
 use crate::session::SessionRef;
 use crate::{
-    model::{Audience, EntityPtr, When},
+    model::{Audience, EntityPtr},
     surround::Surroundings,
 };
 
@@ -61,7 +62,7 @@ impl Incoming {
 #[derive(Clone, Debug, Serialize)]
 pub struct Scheduling {
     pub key: String,
-    pub when: When,
+    pub when: DateTime<Utc>,
     pub message: TaggedJson,
 }
 

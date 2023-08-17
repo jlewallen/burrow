@@ -1,4 +1,5 @@
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use std::ops::Deref;
 use std::{cell::RefCell, rc::Rc};
 
@@ -7,7 +8,7 @@ use replies::{JsonValue, TaggedJson, ToTaggedJson};
 use crate::actions::{Action, Performer};
 use crate::hooks::ManagedHooks;
 use crate::model::{
-    Audience, DomainError, EntityKey, EntityPtr, EntityPtrResolver, Identity, Item, When,
+    Audience, DomainError, EntityKey, EntityPtr, EntityPtrResolver, Identity, Item,
 };
 use crate::model::{Entity, EvaluationError};
 use crate::surround::Surroundings;
@@ -51,7 +52,7 @@ pub trait ActiveSession: Performer + EntityPtrResolver {
     fn schedule(
         &self,
         key: &str,
-        when: When,
+        when: DateTime<Utc>,
         message: &dyn ToTaggedJson,
     ) -> Result<(), DomainError>;
 }

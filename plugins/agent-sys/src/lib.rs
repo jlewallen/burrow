@@ -164,13 +164,13 @@ impl ActiveSession for AgentSession {
     fn schedule(
         &self,
         key: &str,
-        time: kernel::prelude::When,
+        time: DateTime<Utc>,
         message: &dyn kernel::prelude::ToTaggedJson,
     ) -> Result<(), DomainError> {
         let mut futures = self.futures.borrow_mut();
         futures.push(ScheduledFuture {
             key: key.to_owned(),
-            time: time.to_utc_time()?,
+            time,
             serialized: message.to_tagged_json()?.into_tagged(),
         });
         Ok(())
