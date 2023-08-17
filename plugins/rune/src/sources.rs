@@ -17,6 +17,7 @@ pub static RUNE_EXTENSION: &str = "rn";
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum ScriptSource {
     File(PathBuf),
+    System(String),
     Entity(EntityKey, String),
 }
 

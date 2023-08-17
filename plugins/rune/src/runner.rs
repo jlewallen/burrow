@@ -1,13 +1,16 @@
 use anyhow::Result;
 use rune::{
-    runtime::{Protocol, RuntimeContext},
+    runtime::{Object, Protocol, RuntimeContext, Shared},
     termcolor::{ColorChoice, StandardStream},
     Context, Diagnostics, Source, Sources, Value, Vm,
 };
 use std::{collections::HashSet, sync::Arc, time::Instant};
 use tracing::*;
 
-use kernel::prelude::Surroundings;
+use kernel::{
+    common::Json,
+    prelude::{Surroundings, TaggedJson},
+};
 
 use crate::sources::*;
 
@@ -109,6 +112,7 @@ impl RuneRunner {
             .map(|script| match script {
                 ScriptSource::File(path) => Ok(Source::from_path(path.as_path())?),
                 ScriptSource::Entity(key, source) => Ok(Source::new(key.to_string(), source)),
+                ScriptSource::System(source) => Ok(Source::new("system".to_string(), source)),
             })
             .collect::<Result<Vec<_>>>()?;
 
