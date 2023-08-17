@@ -2,9 +2,9 @@ use anyhow::Result;
 use rune::{
     runtime::{Object, Protocol, RuntimeContext, Shared},
     termcolor::{ColorChoice, StandardStream},
-    Context, Diagnostics, Source, Sources, Value, Vm,
+    Context, Diagnostics, Sources, Value, Vm,
 };
-use std::{collections::HashSet, sync::Arc, time::Instant};
+use std::{sync::Arc, time::Instant};
 use tracing::*;
 
 use kernel::{
@@ -15,23 +15,18 @@ use kernel::{
 use crate::sources::*;
 
 pub struct RuneRunner {
-    _scripts: HashSet<ScriptSource>,
     _ctx: Context,
     _runtime: Arc<RuntimeContext>,
     vm: Option<Vm>,
 }
 
 impl RuneRunner {
-    pub fn new(scripts: HashSet<ScriptSource>) -> Result<Self> {
+    pub fn new(scripts: &[Script]) -> Result<Self> {
         debug!("runner:loading");
         let started = Instant::now();
         let sources = scripts
             .iter()
-            .map(|script| match script {
-                ScriptSource::File(path) => Ok(Source::from_path(path.as_path())?),
-                ScriptSource::Entity(key, source) => Ok(Source::new(key.to_string(), source)),
-                ScriptSource::System(source) => Ok(Source::new("system".to_string(), source)),
-            })
+            .map(|s| s.source())
             .collect::<Result<Vec<_>>>()?;
 
         let mut sources = sources
@@ -73,7 +68,6 @@ impl RuneRunner {
         };
 
         Ok(Self {
-            _scripts: scripts,
             _ctx: ctx,
             _runtime: runtime,
             vm,
@@ -357,7 +351,10 @@ mod tests {
             }
         "#;
 
-        let mut runner = RuneRunner::new([ScriptSource::System(source.to_owned())].into())?;
+        let mut runner = RuneRunner::new(&[Script {
+            source: ScriptSource::System(source.to_owned()),
+            scope: None,
+        }])?;
 
         runner.before(Perform::Raised(Raised::new(
             Audience::Nobody, // Unused
@@ -385,7 +382,10 @@ mod tests {
             }
         "#;
 
-        let mut runner = RuneRunner::new([ScriptSource::System(source.to_owned())].into())?;
+        let mut runner = RuneRunner::new(&[Script {
+            source: ScriptSource::System(source.to_owned()),
+            scope: None,
+        }])?;
 
         runner.before(Perform::Raised(Raised::new(
             Audience::Nobody, // Unused
@@ -409,7 +409,10 @@ mod tests {
     pub fn test_missing_handlers_completely() -> Result<()> {
         let source = r#" "#;
 
-        let mut runner = RuneRunner::new([ScriptSource::System(source.to_owned())].into())?;
+        let mut runner = RuneRunner::new(&[Script {
+            source: ScriptSource::System(source.to_owned()),
+            scope: None,
+        }])?;
 
         runner.before(Perform::Raised(Raised::new(
             Audience::Nobody, // Unused

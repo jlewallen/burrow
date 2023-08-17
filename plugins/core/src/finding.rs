@@ -1,4 +1,5 @@
 use anyhow::Result;
+use serde::Serialize;
 use tracing::debug;
 
 use crate::{moving::model::Occupying, tools};
@@ -22,7 +23,7 @@ pub fn matches_string(haystack: &str, desc: &str) -> bool {
     haystack.to_lowercase().contains(&desc.to_lowercase())
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum EntityRelationship {
     World(EntityPtr),
     User(EntityPtr),
