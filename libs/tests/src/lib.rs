@@ -5,7 +5,6 @@ use plugins_core::fashion::FashionPluginFactory;
 use plugins_core::helping::HelpingPluginFactory;
 use plugins_core::memory::MemoryPluginFactory;
 use plugins_core::security::SecurityPluginFactory;
-use std::env::temp_dir;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -23,7 +22,6 @@ use plugins_core::DefaultFinder;
 use plugins_core::{BuildSurroundings, QuickThing};
 use plugins_dynlib::DynamicPluginFactory;
 use plugins_rune::RunePluginFactory;
-use plugins_wasm::WasmPluginFactory;
 
 pub const USERNAME: &str = "burrow";
 
@@ -129,10 +127,7 @@ where
 {
     let storage_factory = Arc::new(storage);
     let mut registered_plugins = RegisteredPlugins::default();
-    if false {
-        registered_plugins.register(RunePluginFactory::default());
-        registered_plugins.register(WasmPluginFactory::new(&temp_dir())?);
-    }
+    registered_plugins.register(RunePluginFactory::default());
     registered_plugins.register(DynamicPluginFactory::default());
     registered_plugins.register(LookingPluginFactory::default());
     registered_plugins.register(ChatPluginFactory::default());

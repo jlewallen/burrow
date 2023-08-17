@@ -22,6 +22,7 @@ variables:
 
 before_script:
   - export PATH="$CI_PROJECT_DIR/cargo/bin:$PATH"
+  - rustup target add wasm32-unknown-unknown
 
 tests:
   stage: test
@@ -46,6 +47,7 @@ build:web:
   before_script:
     - export PATH="$CI_PROJECT_DIR/cargo/bin:$PATH"
     - cargo install trunk
+    - rustup target add wasm32-unknown-unknown
   script:
     - cp .env.default .env
     - cd web
