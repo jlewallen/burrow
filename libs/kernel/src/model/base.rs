@@ -128,6 +128,7 @@ impl When {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum Audience {
     Nobody,
     Everybody,
@@ -136,6 +137,7 @@ pub enum Audience {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub enum Item {
     Area,
     Myself,
