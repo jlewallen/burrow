@@ -45,7 +45,6 @@ build:web:
   image: rust:latest
   before_script:
     - export PATH="$CI_PROJECT_DIR/cargo/bin:$PATH"
-    - rustup target add wasm32-unknown-unknown
     - cargo install trunk
   script:
     - cp .env.default .env

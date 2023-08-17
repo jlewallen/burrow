@@ -16,17 +16,8 @@ members = [
     "plugins/dynlib",
     "plugins/dynlib-sys",
     "examples/shared",
-    "examples/wasm",
     "libs/tests",
     "cli",
     "web",
 ]
-default-members = [ "cli" ]
-
-[profile.release-wasm]
-debug = false
-inherits = "release"
-lto = true
-opt-level = 's'
-panic = "abort"
-strip = true
+default-members = ["cli"]
