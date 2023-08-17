@@ -3,10 +3,10 @@ use std::str::FromStr;
 use chrono::Utc;
 
 use crate::{
-    building::model::QuickEdit,
+    building::model::{Constructed, QuickEdit},
     carrying::model::{Carryable, Containing},
     library::actions::*,
-    looking::actions::LookAction,
+    looking::{actions::LookAction, model::new_area_observation},
     memory::model::{remember, EntityEvent, MemoryEvent},
     moving::model::Occupyable,
 };
@@ -360,9 +360,8 @@ impl Action for BuildAreaAction {
 
         info!("created {:?}", new_area);
 
-        Ok(Effect::Reply(EffectReply::TaggedJson(TaggedJson::new(
-            "area".to_owned(),
-            new_area.to_json_value()?.into(),
-        ))))
+        let observed = new_area_observation(creator, &new_area)?;
+        let reply = Constructed::Area(observed);
+        Ok(reply.try_into()?)
     }
 }
