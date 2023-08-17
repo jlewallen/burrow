@@ -4,9 +4,9 @@ pub fn held(bag) {
 
 pub fn dropped(bag) {
     info(format!("dropped {:?}", bag));
-    info(format!("dropped {:?}", bag.item()));
-    info(format!("dropped {:?}", bag.area()));
-    info(format!("dropped {:?}", bag.living()));
+    info(format!("dropped {:?} {:?}", bag.item(), bag.item().unwrap().name()));
+    info(format!("dropped {:?} {:?}", bag.area(), bag.area().unwrap().name()));
+    info(format!("dropped {:?} {:?}", bag.living(), bag.living().unwrap().name()));
 }
 
 pub fn left(bag) {

@@ -268,6 +268,14 @@ mod glue {
             use std::fmt::Write;
             write!(s, "{:?}", self.0)
         }
+
+        fn key(&self) -> String {
+            self.0.key().key_to_string().to_owned()
+        }
+
+        fn name(&self) -> String {
+            self.0.name().expect("Error getting name").unwrap()
+        }
     }
 
     pub(super) fn create_integration_module() -> Result<rune::Module> {
@@ -289,6 +297,8 @@ mod glue {
         module.inst_fn("living", Bag::living)?;
         module.ty::<LocalEntity>()?;
         module.inst_fn(Protocol::STRING_DEBUG, LocalEntity::string_debug)?;
+        module.inst_fn("key", LocalEntity::key)?;
+        module.inst_fn("name", LocalEntity::name)?;
         Ok(module)
     }
 
