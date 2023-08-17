@@ -166,7 +166,11 @@ impl Handlers {
 
     fn apply(&self, json: TaggedJson) -> Result<()> {
         let handlers = self.handlers.borrow_ref()?;
-        let child = handlers.get(json.tag()).unwrap();
+        let Some(child) = handlers.get(json.tag()) else {
+            info!("no-handler");
+            return Ok(());
+        };
+
         let json = json.value().clone();
 
         match child {
