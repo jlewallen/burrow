@@ -12,6 +12,8 @@ use runner::*;
 
 pub use sources::{ScriptSource, RUNE_EXTENSION};
 
+use crate::sources::load_sources_from_surroundings;
+
 #[derive(Default)]
 pub struct RunePluginFactory {}
 
@@ -25,7 +27,21 @@ impl PluginFactory for RunePluginFactory {
     }
 }
 
-pub type Runners = Arc<RefCell<HashMap<ScriptSource, RuneRunner>>>;
+#[derive(Clone, Default)]
+pub struct Runners(Arc<RefCell<HashMap<ScriptSource, RuneRunner>>>);
+
+impl Runners {
+    fn add_runners_for(&self, sources: impl Iterator<Item = ScriptSource>) -> Result<()> {
+        let mut runners = self.0.borrow_mut();
+        for source in sources {
+            if !runners.contains_key(&source) {
+                runners.insert(source.clone(), RuneRunner::new(HashSet::from([source]))?);
+            }
+        }
+
+        Ok(())
+    }
+}
 
 #[derive(Default)]
 pub struct RunePlugin {
@@ -34,29 +50,7 @@ pub struct RunePlugin {
 
 impl RunePlugin {
     fn add_runners_for(&self, sources: impl Iterator<Item = ScriptSource>) -> Result<()> {
-        let mut runners = self.runners.borrow_mut();
-        for source in sources {
-            if !runners.contains_key(&source) {
-                runners.insert(source.clone(), self.create_runner(source)?);
-            }
-        }
-
-        Ok(())
-    }
-
-    fn create_runner(&self, source: ScriptSource) -> Result<RuneRunner> {
-        RuneRunner::new(HashSet::from([source]))
-    }
-
-    #[allow(dead_code)]
-    fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
-        self.add_runners_for(sources::load_sources_from_surroundings(surroundings)?.into_iter())?;
-
-        for (_, runner) in self.runners.borrow_mut().iter_mut() {
-            runner.have_surroundings(surroundings)?;
-        }
-
-        Ok(())
+        self.runners.add_runners_for(sources)
     }
 }
 
@@ -75,7 +69,7 @@ impl Plugin for RunePlugin {
     fn initialize(&mut self) -> Result<()> {
         self.add_runners_for(sources::load_user_sources()?.into_iter())?;
 
-        for (_, runner) in self.runners.borrow_mut().iter_mut() {
+        for (_, runner) in self.runners.0.borrow_mut().iter_mut() {
             runner.user()?;
         }
 
@@ -88,7 +82,7 @@ impl Plugin for RunePlugin {
 
     fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>> {
         Ok(vec![Rc::new(RuneMiddleware {
-            runners: Arc::clone(&self.runners),
+            runners: self.runners.clone(),
         })])
     }
 }
@@ -135,8 +129,19 @@ impl Middleware for RuneMiddleware {
 
         info!("before");
 
+        match &value {
+            Perform::Surroundings {
+                surroundings,
+                action: _,
+            } => {
+                let sources = load_sources_from_surroundings(surroundings)?;
+                self.runners.add_runners_for(sources.into_iter())?;
+            }
+            _ => {}
+        }
+
         let before = {
-            let mut runners = self.runners.borrow_mut();
+            let mut runners = self.runners.0.borrow_mut();
 
             runners
                 .iter_mut()
@@ -148,7 +153,7 @@ impl Middleware for RuneMiddleware {
         if let Some(value) = before {
             let after = next.handle(value)?;
 
-            let mut runners = self.runners.borrow_mut();
+            let mut runners = self.runners.0.borrow_mut();
 
             let after = runners.iter_mut().fold(after, |effect, (_, runner)| {
                 runner.after(effect).expect("Error in after")

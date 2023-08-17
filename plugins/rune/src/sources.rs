@@ -17,6 +17,7 @@ pub static RUNE_EXTENSION: &str = "rn";
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum ScriptSource {
     File(PathBuf),
+    System(String),
     Entity(EntityKey, String),
 }
 
@@ -35,6 +36,7 @@ pub fn load_user_sources() -> Result<HashSet<ScriptSource>> {
     Ok(scripts)
 }
 
+#[allow(dead_code)]
 pub fn load_sources_from_surroundings(
     surroundings: &Surroundings,
 ) -> Result<HashSet<ScriptSource>> {
