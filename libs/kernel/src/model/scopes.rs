@@ -42,7 +42,7 @@ impl ScopeValue {
             | ScopeValue::Intermediate {
                 value: v,
                 previous: _,
-            } => v.value(),
+            } => v.inner(),
         }
     }
 }

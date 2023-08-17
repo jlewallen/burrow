@@ -8,8 +8,21 @@ pub use serde_json::Value as JsonValue;
 pub struct Json(JsonValue);
 
 impl Json {
-    pub fn value(&self) -> &JsonValue {
+    pub fn inner(&self) -> &JsonValue {
         &self.0
+    }
+
+    pub fn into_inner(self) -> JsonValue {
+        self.0
+    }
+
+    pub fn tagged(&self, tag: &str) -> Option<TaggedJson> {
+        match &self.0 {
+            JsonValue::Object(object) => object
+                .get(tag)
+                .map(|v| TaggedJson::new(tag.to_owned(), v.clone().into())),
+            _ => None,
+        }
     }
 }
 

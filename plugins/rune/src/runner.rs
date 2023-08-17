@@ -9,16 +9,15 @@ use tracing::*;
 
 use kernel::{
     common::Json,
-    prelude::{Effect, Perform, TaggedJson},
+    prelude::{Effect, JsonValue, Perform, TaggedJson},
 };
 
 use crate::sources::*;
 
-#[allow(dead_code)]
 pub struct RuneRunner {
-    scripts: HashSet<ScriptSource>,
-    ctx: Context,
-    runtime: Arc<RuntimeContext>,
+    _scripts: HashSet<ScriptSource>,
+    _ctx: Context,
+    _runtime: Arc<RuntimeContext>,
     vm: Option<Vm>,
 }
 
@@ -74,9 +73,9 @@ impl RuneRunner {
         };
 
         Ok(Self {
-            scripts,
-            ctx,
-            runtime,
+            _scripts: scripts,
+            _ctx: ctx,
+            _runtime: runtime,
             vm,
         })
     }
@@ -194,6 +193,12 @@ impl Handlers {
 }
 
 mod glue {
+    use kernel::{
+        prelude::{DomainError, EntityKey, EntityPtr, IntoEntityPtr, LookupBy},
+        session::get_my_session,
+    };
+    use serde::Deserialize;
+
     use super::*;
 
     #[derive(rune::Any, Debug)]
@@ -227,6 +232,50 @@ mod glue {
             use std::fmt::Write;
             write!(s, "{:?}", self)
         }
+
+        fn get(&self, key: &str) -> Option<LocalEntity> {
+            self.0
+                .tagged(key)
+                .map(|r| r.value().clone().into_inner())
+                // Just return NONE here instead of unwrapping.
+                .and_then(|r| KeyOnly::from_json(r).ok())
+                .map(|r| r.to_entity())
+                // Right now we can be reasonable sure that there are no dangling EntityRef's
+                // nearby. This is still a bummer, though.
+                .map(|r| r.unwrap())
+                .map(|r| LocalEntity(r))
+        }
+
+        fn item(&self) -> Option<LocalEntity> {
+            self.get("item")
+        }
+
+        fn area(&self) -> Option<LocalEntity> {
+            self.get("area")
+        }
+
+        fn living(&self) -> Option<LocalEntity> {
+            self.get("living")
+        }
+    }
+
+    #[derive(Debug, rune::Any)]
+    pub(super) struct LocalEntity(EntityPtr);
+
+    impl LocalEntity {
+        #[inline]
+        fn string_debug(&self, s: &mut String) -> std::fmt::Result {
+            use std::fmt::Write;
+            write!(s, "{:?}", self.0)
+        }
+
+        fn key(&self) -> String {
+            self.0.key().key_to_string().to_owned()
+        }
+
+        fn name(&self) -> String {
+            self.0.name().expect("Error getting name").unwrap()
+        }
     }
 
     pub(super) fn create_integration_module() -> Result<rune::Module> {
@@ -243,7 +292,36 @@ mod glue {
         module.inst_fn(Protocol::STRING_DEBUG, AfterEffect::string_debug)?;
         module.ty::<Bag>()?;
         module.inst_fn(Protocol::STRING_DEBUG, Bag::string_debug)?;
+        module.inst_fn("area", Bag::area)?;
+        module.inst_fn("item", Bag::item)?;
+        module.inst_fn("living", Bag::living)?;
+        module.ty::<LocalEntity>()?;
+        module.inst_fn(Protocol::STRING_DEBUG, LocalEntity::string_debug)?;
+        module.inst_fn("key", LocalEntity::key)?;
+        module.inst_fn("name", LocalEntity::name)?;
         Ok(module)
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct KeyOnly {
+        key: EntityKey,
+    }
+
+    impl KeyOnly {
+        fn from_json(value: JsonValue) -> Result<Self, serde_json::Error> {
+            serde_json::from_value(value)
+        }
+    }
+
+    impl IntoEntityPtr for KeyOnly {
+        fn to_entity(&self) -> Result<EntityPtr, DomainError> {
+            if !self.key.valid() {
+                return Err(DomainError::InvalidKey);
+            }
+            get_my_session()?
+                .entity(&LookupBy::Key(&self.key))?
+                .ok_or(DomainError::DanglingEntity)
+        }
     }
 }
 
