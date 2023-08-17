@@ -1,26 +1,30 @@
-pub fn user() {
-    let thing = Thing::new();
-    info(format!("thing={:?}", thing));
+pub fn held(bag) {
+    info(format!("held {:?}", bag));
 }
 
-pub fn have_surroundings() {
-    info(format!("surroundings"));
+pub fn dropped(bag) {
+    info(format!("dropped {:?}", bag));
 }
 
-enum Example {
-    Wakeup,
+pub fn left(bag) {
+    info(format!("left"));
 }
 
-impl Example {
-
+pub fn arrived(bag) {
+    info(format!("arrived"));
 }
 
-pub fn deliver(incoming) {
-    info(format!("incoming {:?}", incoming.key()));
-    info(format!("incoming {:?}", incoming.value()?));
-
-    // from_json(incoming.serialized()?);
-    // from_json(Example::Wakeup);
+pub fn handlers() {
+    #{
+        "carrying": #{
+            "held": held,
+            "dropped": dropped
+        },
+        "moving": #{
+            "left": left,
+            "arrived": arrived
+        }
+    }
 }
 
 pub fn before(perform) {
@@ -29,6 +33,6 @@ pub fn before(perform) {
 }
 
 pub fn after(effect) {
-    info("after!");
+    // info("after!");
     return effect;
 }
