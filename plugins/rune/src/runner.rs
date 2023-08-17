@@ -353,7 +353,7 @@ mod tests {
 
         let mut runner = RuneRunner::new(&[Script {
             source: ScriptSource::System(source.to_owned()),
-            scope: None,
+            owner: None,
         }])?;
 
         runner.before(Perform::Raised(Raised::new(
@@ -384,7 +384,7 @@ mod tests {
 
         let mut runner = RuneRunner::new(&[Script {
             source: ScriptSource::System(source.to_owned()),
-            scope: None,
+            owner: None,
         }])?;
 
         runner.before(Perform::Raised(Raised::new(
@@ -411,7 +411,7 @@ mod tests {
 
         let mut runner = RuneRunner::new(&[Script {
             source: ScriptSource::System(source.to_owned()),
-            scope: None,
+            owner: None,
         }])?;
 
         runner.before(Perform::Raised(Raised::new(

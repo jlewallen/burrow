@@ -31,15 +31,15 @@ impl ScriptSource {
 }
 
 #[derive(Clone)]
-pub struct SimpleScope {
-    owner: EntityKey,
+pub struct Owner {
+    key: EntityKey,
     relation: Relation,
 }
 
 #[derive(Clone)]
 pub struct Script {
     pub(super) source: ScriptSource,
-    pub(super) scope: Option<SimpleScope>,
+    pub(super) owner: Option<Owner>,
 }
 
 impl Script {
@@ -56,7 +56,7 @@ pub fn load_user_sources() -> Result<Vec<Script>> {
                 info!("script {}", path.display());
                 scripts.push(Script {
                     source: ScriptSource::File(path),
-                    scope: None,
+                    owner: None,
                 });
             }
             Err(e) => warn!("{:?}", e),
@@ -106,9 +106,9 @@ pub fn load_sources_from_surroundings(surroundings: &Surroundings) -> Result<Vec
             let source = ScriptSource::Entity(entity.key().clone(), script);
             scripts.push(Script {
                 source,
-                scope: Some(SimpleScope {
-                    owner: entity.key(),
-                    relation: relation,
+                owner: Some(Owner {
+                    key: entity.key(),
+                    relation,
                 }),
             });
         }
