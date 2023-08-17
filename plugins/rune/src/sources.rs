@@ -30,10 +30,30 @@ impl ScriptSource {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, rune::Any)]
 pub struct Owner {
     key: EntityKey,
     relation: Relation,
+}
+
+impl Owner {
+    pub fn new(key: EntityKey, relation: Relation) -> Self {
+        Self { key, relation }
+    }
+
+    #[inline]
+    pub fn string_debug(&self, s: &mut String) -> std::fmt::Result {
+        use std::fmt::Write;
+        write!(s, "{:?}", self)
+    }
+
+    pub fn key(&self) -> &str {
+        self.key.key_to_string()
+    }
+
+    pub fn relation(&self) -> Relation {
+        self.relation.clone()
+    }
 }
 
 #[derive(Clone)]
@@ -66,7 +86,7 @@ pub fn load_user_sources() -> Result<Vec<Script>> {
     Ok(scripts)
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, rune::Any)]
 pub enum Relation {
     World,
     User,

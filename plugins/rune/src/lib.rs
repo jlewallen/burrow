@@ -35,7 +35,7 @@ impl Runners {
     fn add_runners_for(&self, scripts: impl Iterator<Item = Script>) -> Result<()> {
         let mut runners = self.0.borrow_mut();
         for script in scripts {
-            runners.push(RuneRunner::new(&[script])?);
+            runners.push(RuneRunner::new(script)?);
         }
 
         Ok(())
