@@ -47,17 +47,6 @@ impl RunePlugin {
     fn create_runner(&self, source: ScriptSource) -> Result<RuneRunner> {
         RuneRunner::new(HashSet::from([source]))
     }
-
-    #[allow(dead_code)]
-    fn have_surroundings(&self, surroundings: &Surroundings) -> Result<()> {
-        self.add_runners_for(sources::load_sources_from_surroundings(surroundings)?.into_iter())?;
-
-        for (_, runner) in self.runners.borrow_mut().iter_mut() {
-            runner.have_surroundings(surroundings)?;
-        }
-
-        Ok(())
-    }
 }
 
 impl Plugin for RunePlugin {

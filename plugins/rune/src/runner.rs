@@ -9,93 +9,10 @@ use tracing::*;
 
 use kernel::{
     common::Json,
-    prelude::{Surroundings, TaggedJson},
+    prelude::{Effect, Perform, TaggedJson},
 };
 
 use crate::sources::*;
-
-#[derive(rune::Any, Debug, Default)]
-struct Thing {
-    #[rune(get)]
-    value: u32,
-}
-
-impl Thing {
-    fn new() -> Self {
-        Self { value: 0 }
-    }
-
-    #[inline]
-    fn string_debug(&self, s: &mut String) -> std::fmt::Result {
-        use std::fmt::Write;
-        write!(s, "Thing({:?})", self.value)
-    }
-}
-
-#[derive(rune::Any, Debug)]
-struct Perform(kernel::prelude::Perform);
-
-impl Perform {
-    #[inline]
-    fn string_debug(&self, s: &mut String) -> std::fmt::Result {
-        use std::fmt::Write;
-        write!(s, "{:?}", self.0)
-    }
-}
-
-#[derive(rune::Any, Debug)]
-struct Effect(kernel::prelude::Effect);
-
-impl Effect {
-    #[inline]
-    fn string_debug(&self, s: &mut String) -> std::fmt::Result {
-        use std::fmt::Write;
-        write!(s, "{:?}", self.0)
-    }
-}
-
-#[derive(rune::Any, Debug)]
-struct Incoming(kernel::prelude::Incoming);
-
-impl Incoming {
-    fn key(&self) -> &str {
-        &self.0.key
-    }
-
-    fn value(&self) -> Result<Value> {
-        Ok(serde_json::from_value(self.0.value.clone().into())?)
-    }
-
-    #[inline]
-    fn string_debug(&self, s: &mut String) -> std::fmt::Result {
-        use std::fmt::Write;
-        write!(s, "Incoming()")
-    }
-}
-
-fn create_integration_module() -> Result<rune::Module> {
-    let mut module = rune::Module::default();
-    module.function(["info"], |s: &str| {
-        info!(target: "RUNE", "{}", s);
-    })?;
-    module.function(["debug"], |s: &str| {
-        debug!(target: "RUNE", "{}", s);
-    })?;
-    module.ty::<Bag>()?;
-    module.inst_fn(Protocol::STRING_DEBUG, Bag::string_debug)?;
-    module.ty::<Thing>()?;
-    module.function(["Thing", "new"], Thing::new)?;
-    module.inst_fn(Protocol::STRING_DEBUG, Thing::string_debug)?;
-    module.ty::<Incoming>()?;
-    module.inst_fn(Protocol::STRING_DEBUG, Incoming::string_debug)?;
-    module.inst_fn("key", Incoming::key)?;
-    module.inst_fn("value", Incoming::value)?;
-    module.ty::<Perform>()?;
-    module.inst_fn(Protocol::STRING_DEBUG, Perform::string_debug)?;
-    module.ty::<Effect>()?;
-    module.inst_fn(Protocol::STRING_DEBUG, Effect::string_debug)?;
-    Ok(module)
-}
 
 #[allow(dead_code)]
 pub struct RuneRunner {
@@ -130,7 +47,7 @@ impl RuneRunner {
         ctx.install(rune_modules::time::module(true)?)?;
         ctx.install(rune_modules::json::module(true)?)?;
         ctx.install(rune_modules::rand::module(true)?)?;
-        ctx.install(create_integration_module()?)?;
+        ctx.install(glue::create_integration_module()?)?;
 
         let mut diagnostics = Diagnostics::new();
         let runtime: Arc<RuntimeContext> = Arc::new(ctx.runtime());
@@ -170,18 +87,9 @@ impl RuneRunner {
         Ok(())
     }
 
-    pub fn have_surroundings(&mut self, _surroundings: &Surroundings) -> Result<()> {
-        self.evaluate_optional_function("have_surroundings", ())?;
-
-        Ok(())
-    }
-
-    pub fn before(
-        &mut self,
-        perform: kernel::prelude::Perform,
-    ) -> Result<Option<kernel::prelude::Perform>> {
+    pub fn before(&mut self, perform: Perform) -> Result<Option<Perform>> {
         match &perform {
-            kernel::prelude::Perform::Raised(raised) => {
+            Perform::Raised(raised) => {
                 if let Some(handlers) = self.handlers()? {
                     handlers.apply(raised.event.clone())?;
                 }
@@ -189,13 +97,13 @@ impl RuneRunner {
             _ => {}
         }
 
-        self.evaluate_optional_function("before", (Perform(perform.clone()),))?;
+        self.evaluate_optional_function("before", (glue::BeforePerform(perform.clone()),))?;
 
         Ok(Some(perform))
     }
 
-    pub fn after(&mut self, effect: kernel::prelude::Effect) -> Result<kernel::prelude::Effect> {
-        self.evaluate_optional_function("after", (Effect(effect.clone()),))?;
+    pub fn after(&mut self, effect: Effect) -> Result<Effect> {
+        self.evaluate_optional_function("after", (glue::AfterEffect(effect.clone()),))?;
 
         Ok(effect)
     }
@@ -270,7 +178,7 @@ impl Handlers {
                 }
             }
             Value::Function(func) => {
-                let bag = Bag(json);
+                let bag = glue::Bag(json);
 
                 func.borrow_ref().unwrap().call::<_, rune::Value>((bag,))?;
 
@@ -281,20 +189,63 @@ impl Handlers {
     }
 }
 
-#[derive(Debug, rune::Any)]
-struct Bag(Json);
+mod glue {
+    use super::*;
 
-impl Bag {
-    #[inline]
-    fn string_debug(&self, s: &mut String) -> std::fmt::Result {
-        use std::fmt::Write;
-        write!(s, "{:?}", self)
+    #[derive(rune::Any, Debug)]
+    pub(super) struct BeforePerform(pub(super) Perform);
+
+    impl BeforePerform {
+        #[inline]
+        fn string_debug(&self, s: &mut String) -> std::fmt::Result {
+            use std::fmt::Write;
+            write!(s, "{:?}", self.0)
+        }
+    }
+
+    #[derive(rune::Any, Debug)]
+    pub(super) struct AfterEffect(pub(super) Effect);
+
+    impl AfterEffect {
+        #[inline]
+        fn string_debug(&self, s: &mut String) -> std::fmt::Result {
+            use std::fmt::Write;
+            write!(s, "{:?}", self.0)
+        }
+    }
+
+    #[derive(Debug, rune::Any)]
+    pub(super) struct Bag(pub(super) Json);
+
+    impl Bag {
+        #[inline]
+        fn string_debug(&self, s: &mut String) -> std::fmt::Result {
+            use std::fmt::Write;
+            write!(s, "{:?}", self)
+        }
+    }
+
+    pub(super) fn create_integration_module() -> Result<rune::Module> {
+        let mut module = rune::Module::default();
+        module.function(["info"], |s: &str| {
+            info!(target: "RUNE", "{}", s);
+        })?;
+        module.function(["debug"], |s: &str| {
+            debug!(target: "RUNE", "{}", s);
+        })?;
+        module.ty::<BeforePerform>()?;
+        module.inst_fn(Protocol::STRING_DEBUG, BeforePerform::string_debug)?;
+        module.ty::<AfterEffect>()?;
+        module.inst_fn(Protocol::STRING_DEBUG, AfterEffect::string_debug)?;
+        module.ty::<Bag>()?;
+        module.inst_fn(Protocol::STRING_DEBUG, Bag::string_debug)?;
+        Ok(module)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use kernel::prelude::Raised;
+    use kernel::prelude::{Audience, Raised};
     use serde_json::json;
 
     use super::*;
@@ -326,9 +277,9 @@ mod tests {
 
         let mut runner = RuneRunner::new([ScriptSource::System(source.to_owned())].into())?;
 
-        runner.before(kernel::prelude::Perform::Raised(Raised::new(
-            kernel::prelude::Audience::Nobody, // Unused
-            "unused".to_owned(),
+        runner.before(Perform::Raised(Raised::new(
+            Audience::Nobody, // Unused
+            "UNUSED".to_owned(),
             TaggedJson::new_from(json!({
                 "carrying": {
                     "dropped": {

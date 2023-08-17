@@ -28,11 +28,9 @@ pub fn handlers() {
 }
 
 pub fn before(perform) {
-    // info(format!("before! {:?}", perform));
     return Some(perform)
 }
 
 pub fn after(effect) {
-    // info("after!");
     return effect;
 }

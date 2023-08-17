@@ -36,6 +36,7 @@ pub fn load_user_sources() -> Result<HashSet<ScriptSource>> {
     Ok(scripts)
 }
 
+#[allow(dead_code)]
 pub fn load_sources_from_surroundings(
     surroundings: &Surroundings,
 ) -> Result<HashSet<ScriptSource>> {
