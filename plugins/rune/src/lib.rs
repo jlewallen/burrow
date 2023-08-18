@@ -9,6 +9,9 @@ use plugins_core::library::plugin::*;
 mod runner;
 mod sources;
 
+#[cfg(test)]
+mod tests;
+
 use runner::*;
 
 pub use sources::{ScriptSource, RUNE_EXTENSION};
