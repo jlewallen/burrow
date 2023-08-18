@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use plugins_core::library::plugin::*;
 
+mod module;
 mod runner;
 mod sources;
 
