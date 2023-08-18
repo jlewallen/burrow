@@ -71,16 +71,20 @@ impl RuneRunner {
         })
     }
 
-    pub fn before(&mut self, perform: Perform) -> Result<Option<Perform>> {
+    pub fn call_handlers(&mut self, perform: Perform) -> Result<Option<rune::runtime::Value>> {
         match &perform {
             Perform::Raised(raised) => {
                 if let Some(handlers) = self.handlers()? {
-                    handlers.apply(raised.event.clone())?;
+                    handlers.apply(raised.event.clone())
+                } else {
+                    Ok(None)
                 }
             }
-            _ => {}
+            _ => Ok(None),
         }
+    }
 
+    pub fn before(&mut self, perform: Perform) -> Result<Option<Perform>> {
         self.invoke("before", (BeforePerform(perform.clone()),))?;
 
         Ok(Some(perform))
@@ -148,11 +152,11 @@ impl Handlers {
         Self { handlers }
     }
 
-    fn apply(&self, json: TaggedJson) -> Result<()> {
+    fn apply(&self, json: TaggedJson) -> Result<Option<rune::runtime::Value>> {
         let handlers = self.handlers.borrow_ref()?;
         let Some(child) = handlers.get(json.tag()) else {
             info!("no-handler");
-            return Ok(());
+            return Ok(None);
         };
 
         let json = json.value().clone();
@@ -168,9 +172,9 @@ impl Handlers {
             Value::Function(func) => {
                 let bag = Bag(json);
 
-                func.borrow_ref().unwrap().call::<_, rune::Value>((bag,))?;
-
-                Ok(())
+                Ok(Some(
+                    func.borrow_ref().unwrap().call::<_, rune::Value>((bag,))?,
+                ))
             }
             _ => todo!(),
         }

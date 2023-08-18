@@ -139,6 +139,19 @@ impl Middleware for RuneMiddleware {
             _ => {}
         }
 
+        let handler_rvs: Vec<_> = {
+            let mut runners = self.runners.0.borrow_mut();
+
+            runners
+                .iter_mut()
+                .map(|runner| runner.call_handlers(value.clone()))
+                .collect::<Result<Vec<_>>>()?
+        };
+
+        for value in handler_rvs.into_iter().flatten() {
+            info!("handler return value = {:#?}", value);
+        }
+
         let before = {
             let mut runners = self.runners.0.borrow_mut();
 
