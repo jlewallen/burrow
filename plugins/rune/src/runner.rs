@@ -71,12 +71,6 @@ impl RuneRunner {
         })
     }
 
-    pub fn user(&mut self) -> Result<()> {
-        self.evaluate_optional_function("user", ())?;
-
-        Ok(())
-    }
-
     pub fn before(&mut self, perform: Perform) -> Result<Option<Perform>> {
         match &perform {
             Perform::Raised(raised) => {
@@ -87,18 +81,18 @@ impl RuneRunner {
             _ => {}
         }
 
-        self.evaluate_optional_function("before", (BeforePerform(perform.clone()),))?;
+        self.invoke("before", (BeforePerform(perform.clone()),))?;
 
         Ok(Some(perform))
     }
 
     pub fn after(&mut self, effect: Effect) -> Result<Effect> {
-        self.evaluate_optional_function("after", (AfterEffect(effect.clone()),))?;
+        self.invoke("after", (AfterEffect(effect.clone()),))?;
 
         Ok(effect)
     }
 
-    fn evaluate_optional_function<A>(&mut self, name: &str, args: A) -> Result<Option<rune::Value>>
+    fn invoke<A>(&mut self, name: &str, args: A) -> Result<Option<rune::Value>>
     where
         A: rune::runtime::Args,
     {

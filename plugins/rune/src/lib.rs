@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
-use sources::Script;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use plugins_core::library::plugin::*;
+use sources::Script;
 
 mod module;
 mod runner;
@@ -71,10 +71,6 @@ impl Plugin for RunePlugin {
 
     fn initialize(&mut self) -> Result<()> {
         self.add_runners_for(sources::load_user_sources()?.into_iter())?;
-
-        for runner in self.runners.0.borrow_mut().iter_mut() {
-            runner.user()?;
-        }
 
         Ok(())
     }
