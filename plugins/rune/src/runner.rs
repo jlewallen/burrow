@@ -223,7 +223,6 @@ mod glue {
             self.0
                 .tagged(key)
                 .map(|r| r.value().clone().into_inner())
-                // Just return NONE here instead of unwrapping.
                 .and_then(|r| KeyOnly::from_json(r).ok())
                 .map(|r| r.to_entity())
                 // Right now we can be reasonable sure that there are no dangling EntityRef's

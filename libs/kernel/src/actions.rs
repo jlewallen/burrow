@@ -69,6 +69,7 @@ pub struct Scheduling {
 #[derive(Clone, Debug)]
 pub enum PerformAction {
     Instance(Rc<dyn Action>),
+    TaggedJson(TaggedJson),
 }
 
 impl Serialize for PerformAction {
@@ -82,6 +83,7 @@ impl Serialize for PerformAction {
                 .unwrap()
                 .into_tagged()
                 .serialize(serializer),
+            PerformAction::TaggedJson(tagged) => tagged.serialize(serializer),
         }
     }
 }

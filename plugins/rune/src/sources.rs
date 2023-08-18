@@ -113,7 +113,6 @@ impl Relation {
     }
 }
 
-#[allow(dead_code)]
 pub fn load_sources_from_surroundings(surroundings: &Surroundings) -> Result<Vec<Script>> {
     let mut scripts = Vec::new();
     let haystack = EntityRelationshipSet::new_from_surroundings(surroundings).expand()?;
