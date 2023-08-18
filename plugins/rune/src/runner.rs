@@ -25,8 +25,13 @@ impl RuneRunner {
         debug!("runner:loading");
         let started = Instant::now();
 
+        let library_sources = load_library_sources()?;
+
         let mut sources = Sources::new();
         sources.insert(script.source()?);
+        for source in library_sources {
+            sources.insert(source.source()?);
+        }
 
         debug!("runner:compiling");
         let mut ctx = Context::with_default_modules()?;

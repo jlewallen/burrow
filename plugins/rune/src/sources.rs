@@ -68,9 +68,17 @@ impl Script {
     }
 }
 
+pub fn load_library_sources() -> Result<Vec<Script>> {
+    load_directory_sources("user/lib/*.rn")
+}
+
 pub fn load_user_sources() -> Result<Vec<Script>> {
+    load_directory_sources("user/*.rn")
+}
+
+pub fn load_directory_sources(path: &str) -> Result<Vec<Script>> {
     let mut scripts = Vec::new();
-    for file in glob("user/*.rn")? {
+    for file in glob(path)? {
         match file {
             Ok(path) => {
                 info!("script {}", path.display());

@@ -1,5 +1,12 @@
+use json::*;
+use rand::*;
+
+use carrying::*;
+
 pub fn held(bag) {
     info(format!("held {:?} {:?}", bag, owner()));
+
+    #{ "lookAction": #{} }
 }
 
 pub fn dropped(bag) {
