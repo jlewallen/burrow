@@ -149,7 +149,18 @@ impl Middleware for RuneMiddleware {
         };
 
         for value in handler_rvs.into_iter().flatten() {
-            info!("handler return value = {:#?}", value);
+            // Annoying that Object doesn't impl Serialize so this clone.
+            match value.clone() {
+                rune::Value::Object(object) => {
+                    info!("{:#?}", object);
+                    let session = get_my_session()?;
+                    let value = serde_json::to_value(value)?;
+                    let tagged = TaggedJson::new_from(value)?;
+                    session.perform(Perform::Chain(PerformAction::TaggedJson(tagged)))?;
+                }
+                rune::Value::Unit => {}
+                _ => warn!("unexpected handler answer: {:#?}", value),
+            }
         }
 
         let before = {

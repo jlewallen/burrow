@@ -151,7 +151,10 @@ impl Performer for State {
                 PerformAction::TaggedJson(tagged) => {
                     let action =
                         get_my_session()?.try_deserialize_action(&tagged.clone().into_tagged())?;
-                    self.perform(Perform::Chain(PerformAction::Instance(action.into())))
+                    self.perform(Perform::Surroundings {
+                        surroundings,
+                        action: PerformAction::Instance(action.into()),
+                    })
                 }
             },
             Perform::Raised(raised) => {

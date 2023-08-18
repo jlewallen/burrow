@@ -1,4 +1,5 @@
 use kernel::prelude::{Audience, EntityKey, Raised};
+use plugins_core::build;
 use serde_json::json;
 
 use crate::sources::{Owner, Relation};
@@ -185,6 +186,25 @@ pub fn test_calling_owner_with_none() -> Result<()> {
             }
         }))?,
     )))?;
+
+    Ok(())
+}
+
+#[test]
+pub fn test_chain() -> Result<()> {
+    let living = build_entity()
+        .living()
+        .with_key(EntityKey::new("E-0"))
+        .identity(Identity::new("".to_lowercase(), "".to_owned()))
+        .try_into()?;
+    let perform = Perform::Living {
+        living: EntityPtr::new_from_entity(living),
+        action: PerformAction::TaggedJson(TaggedJson::new_from(json!({
+            "lookAction": { }
+        }))?),
+    };
+
+    println!("{:#?}", perform);
 
     Ok(())
 }
