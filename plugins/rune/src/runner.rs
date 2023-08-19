@@ -45,7 +45,7 @@ impl RuneRunner {
             .with_context(&ctx)
             .with_diagnostics(&mut diagnostics)
             .build();
-        if !diagnostics.is_empty() {
+        if diagnostics.has_error() {
             let mut writer = StandardStream::stderr(ColorChoice::Always);
             diagnostics.emit(&mut writer, &sources)?;
         }
