@@ -119,7 +119,7 @@ impl Session {
 
         match action {
             Some(action) => {
-                info!("{:#?}", action.to_tagged_json()?.into_tagged());
+                debug!("{:#?}", action.to_tagged_json()?.into_tagged());
 
                 let key = match evaluate_as {
                     EvaluateAs::Name(user_name) => user_name_to_key(self, user_name)?,
