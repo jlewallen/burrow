@@ -62,8 +62,9 @@ impl Domain {
                     info!(key = %future.key, time = %future.time, "delivering");
 
                     let value = serde_json::from_str(&future.serialized)?;
-                    if let Ok(action) = session.try_deserialize_action(&value) {
-                        session.perform(Perform::Chain(PerformAction::Instance(action.into())))?;
+                    if let Ok(_action) = session.try_deserialize_action(&value) {
+                        todo!("Migrate to Perform::Living or an alternative with new Surroundings variant.")
+                        // session.perform(Perform::Chain(PerformAction::Instance(action.into())))?;
                     }
                 }
 

@@ -156,7 +156,7 @@ impl Middleware for RuneMiddleware {
                     let session = get_my_session()?;
                     let value = serde_json::to_value(value)?;
                     let tagged = TaggedJson::new_from(value)?;
-                    session.perform(Perform::Chain(PerformAction::TaggedJson(tagged)))?;
+                    // session.perform(Perform::Chain(PerformAction::TaggedJson(tagged)))?;
                 }
                 rune::Value::Unit => {}
                 _ => warn!("unexpected handler answer: {:#?}", value),
