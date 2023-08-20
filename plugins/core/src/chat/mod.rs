@@ -27,6 +27,10 @@ impl Plugin for ChatPlugin {
         "chat"
     }
 
+    fn schema(&self) -> Schema {
+        Schema::empty().action::<actions::SpeakAction>()
+    }
+
     fn key(&self) -> &'static str {
         Self::plugin_key()
     }

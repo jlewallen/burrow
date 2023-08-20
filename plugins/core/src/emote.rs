@@ -24,6 +24,10 @@ impl Plugin for EmotePlugin {
         "emote"
     }
 
+    fn schema(&self) -> Schema {
+        Schema::empty().action::<actions::LaughAction>()
+    }
+
     fn key(&self) -> &'static str {
         Self::plugin_key()
     }

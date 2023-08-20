@@ -27,6 +27,14 @@ impl Plugin for CarryingPlugin {
         "carrying"
     }
 
+    fn schema(&self) -> Schema {
+        Schema::empty()
+            .action::<actions::DropAction>()
+            .action::<actions::HoldAction>()
+            .action::<actions::PutInsideAction>()
+            .action::<actions::TakeOutAction>()
+    }
+
     fn key(&self) -> &'static str {
         Self::plugin_key()
     }

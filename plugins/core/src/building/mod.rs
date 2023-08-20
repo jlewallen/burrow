@@ -34,6 +34,17 @@ impl Plugin for BuildingPlugin {
         Self::plugin_key()
     }
 
+    fn schema(&self) -> Schema {
+        Schema::empty()
+            .action::<actions::EditAction>()
+            .action::<actions::DuplicateAction>()
+            .action::<actions::BidirectionalDigAction>()
+            .action::<actions::ObliterateAction>()
+            .action::<actions::MakeItemAction>()
+            .action::<actions::BuildAreaAction>()
+            .action::<actions::AddScopeAction>()
+    }
+
     fn sources(&self) -> Vec<Box<dyn ActionSource>> {
         vec![Box::new(SaveActionSource::default())]
     }

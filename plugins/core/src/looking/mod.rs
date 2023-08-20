@@ -31,6 +31,10 @@ impl Plugin for LookingPlugin {
         Self::plugin_key()
     }
 
+    fn schema(&self) -> Schema {
+        Schema::empty().action::<actions::LookAction>()
+    }
+
     fn sources(&self) -> Vec<Box<dyn ActionSource>> {
         vec![Box::new(LookActionSource::default())]
     }

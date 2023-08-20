@@ -55,12 +55,46 @@ pub trait ParsesActions {
     fn try_parse_action(&self, i: &str) -> EvaluationResult;
 }
 
+#[derive(Default)]
+pub struct Schema {
+    actions: Vec<String>,
+}
+
+impl Schema {
+    pub fn empty() -> Self {
+        Self::default()
+    }
+
+    pub fn action<A: Action>(mut self) -> Self {
+        self.actions.push(<A>::tag().to_string());
+        self
+    }
+}
+
+pub struct SchemaCollection(Vec<Schema>);
+
+impl From<Vec<Schema>> for SchemaCollection {
+    fn from(value: Vec<Schema>) -> Self {
+        Self(value)
+    }
+}
+
+impl Into<Vec<Schema>> for SchemaCollection {
+    fn into(self) -> Vec<Schema> {
+        self.0
+    }
+}
+
 pub trait Plugin: ParsesActions {
     fn plugin_key() -> &'static str
     where
         Self: Sized;
 
     fn key(&self) -> &'static str;
+
+    fn schema(&self) -> Schema {
+        Schema::empty()
+    }
 
     fn initialize(&mut self) -> Result<()> {
         Ok(())

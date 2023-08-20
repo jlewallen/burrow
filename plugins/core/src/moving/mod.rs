@@ -30,6 +30,13 @@ impl Plugin for MovingPlugin {
         "moving"
     }
 
+    fn schema(&self) -> Schema {
+        Schema::empty()
+            .action::<actions::GoAction>()
+            .action::<actions::AddRouteAction>()
+            .action::<actions::RemoveRouteAction>()
+    }
+
     fn key(&self) -> &'static str {
         Self::plugin_key()
     }

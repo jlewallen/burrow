@@ -27,6 +27,12 @@ impl Plugin for FashionPlugin {
         "fashion"
     }
 
+    fn schema(&self) -> Schema {
+        Schema::empty()
+            .action::<actions::WearAction>()
+            .action::<actions::RemoveAction>()
+    }
+
     fn key(&self) -> &'static str {
         Self::plugin_key()
     }
