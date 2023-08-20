@@ -86,9 +86,28 @@ impl LocalEntity {
     }
 }
 
+fn actions() -> Vec<(&'static str, Vec<&'static str>)> {
+    vec![("looking", vec!["look"])].into()
+}
+
+#[derive(rune::Any, Debug)]
+struct RuneActions {}
+
 pub(super) fn create(owner: Option<Owner>) -> Result<rune::Module> {
     let mut module = rune::Module::default();
-    module.function(["owner"], move || -> Option<Owner> { owner.clone() })?;
+    module.ty::<RuneActions>()?;
+    for actions in actions() {
+        for child in actions.1 {
+            info!("declaring 'actions.{}.{}'", actions.0, child);
+            module.function(
+                ["actions", actions.0, child],
+                move || -> std::result::Result<rune::Value, anyhow::Error> {
+                    Ok(rune::Value::Unit)
+                },
+            )?;
+        }
+    }
+    module.function(["owner"], move || owner.clone())?;
     module.function(["info"], |s: &str| {
         info!(target: "RUNE", "{}", s);
     })?;
