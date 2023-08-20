@@ -165,7 +165,7 @@ impl Middleware for InteractiveEditor {
                                         let session = get_my_session()?;
 
                                         let action: Rc<_> = session
-                                            .try_deserialize_action(&value)
+                                            .try_deserialize_action(&value.try_into()?)
                                             .expect("try parse action failed")
                                             .unwrap()
                                             .into();

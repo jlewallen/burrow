@@ -81,7 +81,7 @@ impl TaggedJson {
     }
 
     pub fn try_deserialize<T: DeserializeOwned>(self) -> Result<T, serde_json::Error> {
-        todo!()
+        serde_json::from_value(self.into_untagged())
     }
 }
 

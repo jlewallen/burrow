@@ -1,4 +1,5 @@
 use anyhow::Result;
+use replies::TaggedJson;
 use serde::Deserialize;
 use std::rc::Rc;
 use std::time::Instant;
@@ -141,14 +142,14 @@ impl ParsesActions for SessionPlugins {
 pub trait ActionSource {
     fn try_deserialize_action(
         &self,
-        value: &JsonValue,
+        tagged: &TaggedJson,
     ) -> Result<Option<Box<dyn Action>>, serde_json::Error>;
 }
 
 impl ActionSource for SessionPlugins {
     fn try_deserialize_action(
         &self,
-        value: &JsonValue,
+        tagged: &TaggedJson,
     ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
         let sources: Vec<_> = self
             .plugins
@@ -159,7 +160,7 @@ impl ActionSource for SessionPlugins {
 
         Ok(sources
             .iter()
-            .map(|source| source.try_deserialize_action(value))
+            .map(|source| source.try_deserialize_action(tagged))
             .collect::<Result<Vec<_>, serde_json::Error>>()?
             .into_iter()
             .flatten()

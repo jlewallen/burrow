@@ -93,28 +93,16 @@ impl ParsesActions for RunePlugin {
     }
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[allow(clippy::enum_variant_names)]
-enum SaveScriptActions {
-    SaveScriptAction(actions::SaveScriptAction),
-}
-
 #[derive(Default)]
 pub struct SaveScriptActionSource {}
 
 impl ActionSource for SaveScriptActionSource {
     fn try_deserialize_action(
         &self,
-        value: &JsonValue,
+        tagged: &TaggedJson,
     ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
-        type Target = MaybeUnknown<SaveScriptActions, serde_json::Value>;
-        serde_json::from_value::<Target>(value.clone()).map(|a| match a {
-            MaybeUnknown::Known(SaveScriptActions::SaveScriptAction(action)) => {
-                Some(Box::new(action) as Box<dyn Action>)
-            }
-            MaybeUnknown::Unknown(_) => None,
-        })
+        actions::SaveScriptAction::from_tagged_json(tagged.clone())
+            .map(|res| res.map(|a| Box::new(a) as Box<dyn Action>))
     }
 }
 

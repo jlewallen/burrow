@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use std::ops::Deref;
 use std::{cell::RefCell, rc::Rc};
 
-use replies::{JsonValue, TaggedJson, ToTaggedJson};
+use replies::{TaggedJson, ToTaggedJson};
 
 use crate::actions::{Action, Performer};
 use crate::hooks::ManagedHooks;
@@ -28,10 +28,11 @@ impl From<Raising> for TaggedJson {
 }
 
 pub trait ActiveSession: Performer + EntityPtrResolver {
-    fn try_deserialize_action(
-        &self,
-        value: &JsonValue,
-    ) -> Result<Option<Box<dyn Action>>, serde_json::Error>;
+    fn new_key(&self) -> EntityKey;
+
+    fn new_identity(&self) -> Identity;
+
+    fn add_entity(&self, entity: Entity) -> Result<EntityPtr, DomainError>;
 
     fn find_item(
         &self,
@@ -39,13 +40,7 @@ pub trait ActiveSession: Performer + EntityPtrResolver {
         item: &Item,
     ) -> Result<Option<EntityPtr>, DomainError>;
 
-    fn add_entity(&self, entity: Entity) -> Result<EntityPtr, DomainError>;
-
     fn obliterate(&self, entity: &EntityPtr) -> Result<(), DomainError>;
-
-    fn new_key(&self) -> EntityKey;
-
-    fn new_identity(&self) -> Identity;
 
     fn raise(
         &self,
@@ -54,14 +49,19 @@ pub trait ActiveSession: Performer + EntityPtrResolver {
         raising: Raising,
     ) -> Result<(), DomainError>;
 
-    fn hooks(&self) -> &ManagedHooks;
-
     fn schedule(
         &self,
         key: &str,
         when: DateTime<Utc>,
         message: &dyn ToTaggedJson,
     ) -> Result<(), DomainError>;
+
+    fn try_deserialize_action(
+        &self,
+        value: &TaggedJson,
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error>;
+
+    fn hooks(&self) -> &ManagedHooks;
 }
 
 thread_local! {

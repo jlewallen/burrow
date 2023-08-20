@@ -36,11 +36,10 @@ impl Plugin for LookingPlugin {
     }
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[allow(clippy::enum_variant_names)]
-enum PluginActions {
-    LookAction(actions::LookAction),
+impl ParsesActions for LookingPlugin {
+    fn try_parse_action(&self, i: &str) -> EvaluationResult {
+        try_parsing(parser::LookActionParser {}, i)
+    }
 }
 
 #[derive(Default)]
@@ -49,17 +48,10 @@ pub struct LookActionSource {}
 impl ActionSource for LookActionSource {
     fn try_deserialize_action(
         &self,
-        value: &JsonValue,
+        tagged: &TaggedJson,
     ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
-        serde_json::from_value::<PluginActions>(value.clone()).map(|a| match a {
-            PluginActions::LookAction(action) => Some(Box::new(action) as Box<dyn Action>),
-        })
-    }
-}
-
-impl ParsesActions for LookingPlugin {
-    fn try_parse_action(&self, i: &str) -> EvaluationResult {
-        try_parsing(parser::LookActionParser {}, i)
+        actions::LookAction::from_tagged_json(tagged.clone())
+            .map(|res| res.map(|a| Box::new(a) as Box<dyn Action>))
     }
 }
 

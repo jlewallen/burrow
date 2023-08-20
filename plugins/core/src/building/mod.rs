@@ -1,5 +1,3 @@
-use serde::Deserialize;
-
 use crate::library::plugin::*;
 
 pub mod actions;
@@ -53,31 +51,20 @@ impl ParsesActions for BuildingPlugin {
     }
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[allow(clippy::enum_variant_names)]
-enum SaveActions {
-    SaveEntityJsonAction(actions::SaveEntityJsonAction),
-    SaveQuickEditAction(actions::SaveQuickEditAction),
-}
-
 #[derive(Default)]
 pub struct SaveActionSource {}
 
 impl ActionSource for SaveActionSource {
     fn try_deserialize_action(
         &self,
-        value: &JsonValue,
+        tagged: &TaggedJson,
     ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
-        type Target = MaybeUnknown<SaveActions, serde_json::Value>;
-        serde_json::from_value::<Target>(value.clone()).map(|a| match a {
-            MaybeUnknown::Known(SaveActions::SaveEntityJsonAction(action)) => {
-                Some(Box::new(action) as Box<dyn Action>)
-            }
-            MaybeUnknown::Known(SaveActions::SaveQuickEditAction(action)) => {
-                Some(Box::new(action) as Box<dyn Action>)
-            }
-            MaybeUnknown::Unknown(_) => None,
-        })
+        if let Some(a) = actions::SaveQuickEditAction::from_tagged_json(tagged.clone())? {
+            return Ok(Some(Box::new(a)));
+        }
+        if let Some(a) = actions::SaveEntityJsonAction::from_tagged_json(tagged.clone())? {
+            return Ok(Some(Box::new(a)));
+        }
+        Ok(None)
     }
 }

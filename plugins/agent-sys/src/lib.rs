@@ -116,7 +116,7 @@ impl EntityPtrResolver for AgentSession {
 impl ActiveSession for AgentSession {
     fn try_deserialize_action(
         &self,
-        _value: &JsonValue,
+        _tagged: &TaggedJson,
     ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
         unimplemented!("AgentSession:try-deserialize-action")
     }

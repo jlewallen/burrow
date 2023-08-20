@@ -276,10 +276,10 @@ impl EntityPtrResolver for Session {
 impl ActiveSession for Session {
     fn try_deserialize_action(
         &self,
-        value: &JsonValue,
+        tagged: &TaggedJson,
     ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
         let plugins = self.plugins.borrow();
-        plugins.try_deserialize_action(value)
+        plugins.try_deserialize_action(tagged)
     }
 
     fn new_key(&self) -> EntityKey {

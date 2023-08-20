@@ -4,6 +4,7 @@ pub mod plugin {
     pub use tracing::*;
 
     pub use super::parser::try_parsing;
+    pub use kernel::common::DeserializeTagged;
     pub use kernel::prelude::*;
 }
 
