@@ -34,10 +34,13 @@ pub fn test_handlers_apply() -> Result<()> {
             }
         "#;
 
-    let mut runner = RuneRunner::new(Script {
-        source: ScriptSource::System(source.to_owned()),
-        owner: None,
-    })?;
+    let mut runner = RuneRunner::new(
+        &SchemaCollection::default(),
+        Script {
+            source: ScriptSource::System(source.to_owned()),
+            owner: None,
+        },
+    )?;
 
     runner.before(Perform::Raised(Raised::new(
         Audience::Nobody, // Unused
@@ -66,10 +69,13 @@ pub fn test_missing_handler() -> Result<()> {
             }
         "#;
 
-    let mut runner = RuneRunner::new(Script {
-        source: ScriptSource::System(source.to_owned()),
-        owner: None,
-    })?;
+    let mut runner = RuneRunner::new(
+        &SchemaCollection::default(),
+        Script {
+            source: ScriptSource::System(source.to_owned()),
+            owner: None,
+        },
+    )?;
 
     runner.before(Perform::Raised(Raised::new(
         Audience::Nobody, // Unused
@@ -94,10 +100,13 @@ pub fn test_missing_handler() -> Result<()> {
 pub fn test_missing_handlers_completely() -> Result<()> {
     let source = r#" "#;
 
-    let mut runner = RuneRunner::new(Script {
-        source: ScriptSource::System(source.to_owned()),
-        owner: None,
-    })?;
+    let mut runner = RuneRunner::new(
+        &SchemaCollection::default(),
+        Script {
+            source: ScriptSource::System(source.to_owned()),
+            owner: None,
+        },
+    )?;
 
     runner.before(Perform::Raised(Raised::new(
         Audience::Nobody, // Unused
@@ -134,10 +143,13 @@ pub fn test_calling_owner_with_one() -> Result<()> {
             }
         "#;
 
-    let mut runner = RuneRunner::new(Script {
-        source: ScriptSource::System(source.to_owned()),
-        owner: Some(Owner::new(EntityKey::new("E-0"), Relation::Ground)),
-    })?;
+    let mut runner = RuneRunner::new(
+        &SchemaCollection::default(),
+        Script {
+            source: ScriptSource::System(source.to_owned()),
+            owner: Some(Owner::new(EntityKey::new("E-0"), Relation::Ground)),
+        },
+    )?;
 
     runner.before(Perform::Raised(Raised::new(
         Audience::Nobody, // Unused
@@ -174,10 +186,13 @@ pub fn test_calling_owner_with_none() -> Result<()> {
             }
         "#;
 
-    let mut runner = RuneRunner::new(Script {
-        source: ScriptSource::System(source.to_owned()),
-        owner: None,
-    })?;
+    let mut runner = RuneRunner::new(
+        &SchemaCollection::default(),
+        Script {
+            source: ScriptSource::System(source.to_owned()),
+            owner: None,
+        },
+    )?;
 
     runner.before(Perform::Raised(Raised::new(
         Audience::Nobody, // Unused

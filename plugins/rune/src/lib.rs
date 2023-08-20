@@ -33,28 +33,42 @@ impl PluginFactory for RunePluginFactory {
     }
 }
 
-#[derive(Clone, Default)]
-pub struct Runners(Arc<RefCell<Vec<RuneRunner>>>);
+#[derive(Default)]
+pub struct Runners {
+    schema: Option<SchemaCollection>,
+    runners: Vec<RuneRunner>,
+}
 
 impl Runners {
-    fn add_runners_for(&self, scripts: impl Iterator<Item = Script>) -> Result<()> {
-        let mut runners = self.0.borrow_mut();
+    fn add_runners_for(&mut self, scripts: impl Iterator<Item = Script>) -> Result<()> {
         for script in scripts {
-            runners.push(RuneRunner::new(script)?);
+            self.runners
+                .push(RuneRunner::new(self.schema.as_ref().unwrap(), script)?);
         }
 
         Ok(())
     }
 }
 
+#[derive(Clone, Default)]
+pub struct SharedRunners(Arc<RefCell<Runners>>);
+
+impl SharedRunners {
+    fn initialize(&self, schema: &SchemaCollection) {
+        let mut slf = self.0.borrow_mut();
+        slf.schema = Some(schema.clone())
+    }
+}
+
 #[derive(Default)]
 pub struct RunePlugin {
-    runners: Runners,
+    runners: SharedRunners,
 }
 
 impl RunePlugin {
     fn add_runners_for(&self, scripts: impl Iterator<Item = Script>) -> Result<()> {
-        self.runners.add_runners_for(scripts)
+        let mut runners = self.runners.0.borrow_mut();
+        runners.add_runners_for(scripts)
     }
 }
 
@@ -71,7 +85,7 @@ impl Plugin for RunePlugin {
     }
 
     fn initialize(&mut self, schema: &SchemaCollection) -> Result<()> {
-        warn!("{:#?}", schema);
+        self.runners.initialize(schema);
 
         self.add_runners_for(sources::load_user_sources()?.into_iter())?;
 
@@ -111,7 +125,7 @@ impl ActionSource for SaveScriptActionSource {
 
 #[derive(Default)]
 struct RuneMiddleware {
-    runners: Runners,
+    runners: SharedRunners,
 }
 
 impl RuneMiddleware {}
@@ -128,7 +142,8 @@ impl Middleware for RuneMiddleware {
                 action: _,
             } => {
                 let sources = load_sources_from_surroundings(surroundings)?;
-                self.runners.add_runners_for(sources.into_iter())?;
+                let mut runners = self.runners.0.borrow_mut();
+                runners.add_runners_for(sources.into_iter())?;
             }
             _ => {}
         }
@@ -137,6 +152,7 @@ impl Middleware for RuneMiddleware {
             let mut runners = self.runners.0.borrow_mut();
 
             runners
+                .runners
                 .iter_mut()
                 .map(|runner| runner.call_handlers(value.clone()))
                 .collect::<Result<Vec<_>>>()?
@@ -169,9 +185,12 @@ impl Middleware for RuneMiddleware {
         let before = {
             let mut runners = self.runners.0.borrow_mut();
 
-            runners.iter_mut().fold(Some(value), |perform, runner| {
-                perform.and_then(|perform| runner.before(perform).expect("Error in before"))
-            })
+            runners
+                .runners
+                .iter_mut()
+                .fold(Some(value), |perform, runner| {
+                    perform.and_then(|perform| runner.before(perform).expect("Error in before"))
+                })
         };
 
         if let Some(value) = before {
@@ -179,7 +198,7 @@ impl Middleware for RuneMiddleware {
 
             let mut runners = self.runners.0.borrow_mut();
 
-            let after = runners.iter_mut().fold(after, |effect, runner| {
+            let after = runners.runners.iter_mut().fold(after, |effect, runner| {
                 runner.after(effect).expect("Error in after")
             });
 

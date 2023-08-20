@@ -7,7 +7,7 @@ use rune::{
 use std::{sync::Arc, time::Instant};
 use tracing::*;
 
-use kernel::prelude::{Effect, Perform, TaggedJson};
+use kernel::prelude::{Effect, Perform, SchemaCollection, TaggedJson};
 
 use crate::{
     module::{AfterEffect, Bag, BeforePerform},
@@ -21,7 +21,7 @@ pub struct RuneRunner {
 }
 
 impl RuneRunner {
-    pub fn new(script: Script) -> Result<Self> {
+    pub fn new(schema: &SchemaCollection, script: Script) -> Result<Self> {
         debug!("runner:loading");
         let started = Instant::now();
 
@@ -38,7 +38,7 @@ impl RuneRunner {
         ctx.install(rune_modules::time::module(true)?)?;
         ctx.install(rune_modules::json::module(true)?)?;
         ctx.install(rune_modules::rand::module(true)?)?;
-        ctx.install(super::module::create(script.owner)?)?;
+        ctx.install(super::module::create(schema, script.owner)?)?;
 
         let mut diagnostics = Diagnostics::new();
         let compiled = rune::prepare(&mut sources)

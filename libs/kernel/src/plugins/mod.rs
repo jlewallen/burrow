@@ -75,6 +75,15 @@ impl Schema {
 #[derive(Debug, Default, Clone)]
 pub struct SchemaCollection(HashMap<String, Schema>);
 
+impl SchemaCollection {
+    pub fn actions(&self) -> impl Iterator<Item = (&String, &String)> {
+        self.0
+            .iter()
+            .map(|(p, acs)| acs.actions.iter().map(move |a| (p, a)))
+            .flatten()
+    }
+}
+
 impl From<HashMap<String, Schema>> for SchemaCollection {
     fn from(value: HashMap<String, Schema>) -> Self {
         Self(value)
