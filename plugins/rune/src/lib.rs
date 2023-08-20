@@ -323,17 +323,11 @@ trait TryFindLiving {
 impl TryFindLiving for Perform {
     fn find_living(&self) -> Result<Option<EntityPtr>> {
         match self {
-            Perform::Living {
-                living: _,
-                action: _,
-            } => todo!(),
             Perform::Surroundings {
                 surroundings,
                 action: _,
-            } => surroundings.find_actor(),
-            Perform::Delivery(_) => todo!(),
+            } => surroundings.find_living(),
             Perform::Raised(raised) => Ok(raised.living.clone()),
-            Perform::Schedule(_) => todo!(),
             _ => todo!(),
         }
     }
