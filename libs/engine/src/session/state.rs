@@ -149,6 +149,7 @@ impl Performer for State {
                     Ok(res?)
                 }
                 PerformAction::TaggedJson(tagged) => {
+                    info!("tagged: {:?}", &tagged);
                     let action =
                         get_my_session()?.try_deserialize_action(&tagged.clone().into_tagged())?;
                     self.perform(Perform::Surroundings {

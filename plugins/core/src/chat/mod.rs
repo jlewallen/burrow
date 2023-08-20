@@ -61,6 +61,7 @@ pub mod actions {
 
             if let Some(message) = &self.here {
                 session.raise(
+                    Some(living.clone()),
                     Audience::Area(area.key().clone()),
                     Raising::TaggedJson(
                         Talking::Conversation(Spoken::new(

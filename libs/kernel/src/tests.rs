@@ -89,7 +89,12 @@ impl ActiveSession for KeysOnlySession {
         Identity::default()
     }
 
-    fn raise(&self, _audience: Audience, _raising: Raising) -> Result<(), DomainError> {
+    fn raise(
+        &self,
+        _living: Option<EntityPtr>,
+        _audience: Audience,
+        _raising: Raising,
+    ) -> Result<(), DomainError> {
         todo!()
     }
 

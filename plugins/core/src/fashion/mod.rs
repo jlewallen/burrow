@@ -206,17 +206,18 @@ pub mod actions {
         fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             info!("wear {:?}!", self.item);
 
-            let (_, user, area) = surroundings.unpack();
+            let (_, living, area) = surroundings.unpack();
 
             match session.find_item(surroundings, &self.item)? {
                 Some(wearing) => {
                     let location = Location::get(&wearing)?.expect("No location").to_entity()?;
-                    match tools::wear_article(&location, &user, &wearing)? {
+                    match tools::wear_article(&location, &living, &wearing)? {
                         true => Ok(reply_ok(
+                            living.clone(),
                             Audience::Area(area.key().clone()),
                             FashionEvent::Worn {
-                                living: user.entity_ref(),
-                                item: (&wearing).observe(&user)?.expect("No observed entity"),
+                                living: living.entity_ref(),
+                                item: (&wearing).observe(&living)?.expect("No observed entity"),
                                 area: area.entity_ref(),
                             },
                         )?),
@@ -241,16 +242,17 @@ pub mod actions {
         fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             info!("remove {:?}!", self.maybe_item);
 
-            let (_, user, area) = surroundings.unpack();
+            let (_, living, area) = surroundings.unpack();
 
             match &self.maybe_item {
                 Some(item) => match session.find_item(surroundings, item)? {
-                    Some(removing) => match tools::remove_article(&user, &user, &removing)? {
+                    Some(removing) => match tools::remove_article(&living, &living, &removing)? {
                         true => Ok(reply_ok(
+                            living.clone(),
                             Audience::Area(area.key().clone()),
                             FashionEvent::Removed {
-                                living: user.entity_ref(),
-                                item: (&removing).observe(&user)?.expect("No observed entity"),
+                                living: living.entity_ref(),
+                                item: (&removing).observe(&living)?.expect("No observed entity"),
                                 area: area.entity_ref(),
                             },
                         )?),

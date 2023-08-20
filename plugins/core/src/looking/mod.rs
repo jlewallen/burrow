@@ -30,6 +30,22 @@ impl Plugin for LookingPlugin {
     fn key(&self) -> &'static str {
         Self::plugin_key()
     }
+
+    fn sources(&self) -> Vec<Box<dyn ActionSource>> {
+        vec![Box::new(LookActionSource::default())]
+    }
+}
+
+#[derive(Default)]
+pub struct LookActionSource {}
+
+impl ActionSource for LookActionSource {
+    fn try_deserialize_action(
+        &self,
+        value: &JsonValue,
+    ) -> Result<Box<dyn Action>, EvaluationError> {
+        todo!()
+    }
 }
 
 impl ParsesActions for LookingPlugin {

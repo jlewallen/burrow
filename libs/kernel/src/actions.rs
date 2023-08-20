@@ -24,16 +24,23 @@ pub trait Action: ToTaggedJson + Debug {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Raised {
-    pub key: String,
     pub audience: Audience,
+    pub key: String,
+    pub living: Option<EntityPtr>,
     pub event: TaggedJson,
 }
 
 impl Raised {
-    pub fn new(audience: Audience, key: String, event: TaggedJson) -> Self {
+    pub fn new(
+        audience: Audience,
+        key: String,
+        living: Option<EntityPtr>,
+        event: TaggedJson,
+    ) -> Self {
         Self {
-            key,
             audience,
+            key,
+            living,
             event,
         }
     }

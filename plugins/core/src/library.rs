@@ -105,17 +105,30 @@ pub mod actions {
     pub use serde::{Deserialize, Serialize};
     pub use tracing::*;
 
-    pub fn reply_ok<T: ToTaggedJson + 'static>(audience: Audience, raise: T) -> Result<Effect> {
-        get_my_session()?.raise(audience, Raising::TaggedJson(raise.to_tagged_json()?))?;
+    pub fn reply_ok<T: ToTaggedJson + 'static>(
+        living: EntityPtr,
+        audience: Audience,
+        raise: T,
+    ) -> Result<Effect> {
+        get_my_session()?.raise(
+            Some(living),
+            audience,
+            Raising::TaggedJson(raise.to_tagged_json()?),
+        )?;
 
         Ok(Effect::Ok)
     }
 
     pub fn reply_done<T: ToTaggedJson + 'static>(
+        living: EntityPtr,
         audience: Audience,
         raise: T,
     ) -> Result<SimpleReply> {
-        get_my_session()?.raise(audience, Raising::TaggedJson(raise.to_tagged_json()?))?;
+        get_my_session()?.raise(
+            Some(living),
+            audience,
+            Raising::TaggedJson(raise.to_tagged_json()?),
+        )?;
 
         Ok(SimpleReply::Done)
     }

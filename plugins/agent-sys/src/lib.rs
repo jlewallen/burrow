@@ -65,6 +65,7 @@ impl WorkingEntities {
 }
 
 struct RaisedEvent {
+    _living: Option<EntityPtr>,
     audience: Audience,
     raising: Raising,
 }
@@ -149,10 +150,17 @@ impl ActiveSession for AgentSession {
         unimplemented!("AgentSession:new-identity")
     }
 
-    fn raise(&self, audience: Audience, raising: Raising) -> Result<(), DomainError> {
-        self.raised
-            .borrow_mut()
-            .push(RaisedEvent { audience, raising });
+    fn raise(
+        &self,
+        living: Option<EntityPtr>,
+        audience: Audience,
+        raising: Raising,
+    ) -> Result<(), DomainError> {
+        self.raised.borrow_mut().push(RaisedEvent {
+            _living: living,
+            audience,
+            raising,
+        });
 
         Ok(())
     }

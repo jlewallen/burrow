@@ -45,7 +45,12 @@ pub trait ActiveSession: Performer + EntityPtrResolver {
 
     fn new_identity(&self) -> Identity;
 
-    fn raise(&self, audience: Audience, raising: Raising) -> Result<(), DomainError>;
+    fn raise(
+        &self,
+        living: Option<EntityPtr>,
+        audience: Audience,
+        raising: Raising,
+    ) -> Result<(), DomainError>;
 
     fn hooks(&self) -> &ManagedHooks;
 

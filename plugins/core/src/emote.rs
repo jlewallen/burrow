@@ -54,6 +54,7 @@ pub mod actions {
             let (_, living, area) = surroundings.unpack();
 
             session.raise(
+                Some(living.clone()),
                 Audience::Area(area.key().clone()),
                 Raising::TaggedJson(
                     Emoting::Laugh(Emoted::new(

@@ -1,3 +1,4 @@
+use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -162,7 +163,9 @@ impl Middleware for RuneMiddleware {
                         let session = get_my_session()?;
                         let action = PerformAction::TaggedJson(tagged);
                         let living = living.clone();
-                        session.perform(Perform::Living { living, action })?;
+                        session
+                            .perform(Perform::Living { living, action })
+                            .with_context(|| format!("Rune perform"))?;
                     }
                     rune::Value::Unit => {}
                     _ => warn!("unexpected handler answer: {:#?}", value),
@@ -318,13 +321,16 @@ trait TryFindActor {
 impl TryFindActor for Perform {
     fn find_actor(&self) -> Result<Option<EntityPtr>> {
         match self {
-            Perform::Living { living, action } => todo!(),
+            Perform::Living {
+                living: _,
+                action: _,
+            } => todo!(),
             Perform::Surroundings {
                 surroundings,
                 action: _,
             } => surroundings.find_actor(),
             Perform::Delivery(_) => todo!(),
-            Perform::Raised(raised) => todo!(),
+            Perform::Raised(raised) => Ok(raised.living.clone()),
             Perform::Schedule(_) => todo!(),
             _ => todo!(),
         }

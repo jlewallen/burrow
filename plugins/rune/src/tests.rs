@@ -5,6 +5,10 @@ use crate::sources::{Owner, Relation};
 
 use super::*;
 
+fn get_living() -> Option<EntityPtr> {
+    None
+}
+
 #[test]
 pub fn test_handlers_apply() -> Result<()> {
     let source = r#"
@@ -38,6 +42,7 @@ pub fn test_handlers_apply() -> Result<()> {
     runner.before(Perform::Raised(Raised::new(
         Audience::Nobody, // Unused
         "UNUSED".to_owned(),
+        get_living(),
         TaggedJson::new_from(json!({
             "carrying": {
                 "dropped": {
@@ -69,6 +74,7 @@ pub fn test_missing_handler() -> Result<()> {
     runner.before(Perform::Raised(Raised::new(
         Audience::Nobody, // Unused
         "UNUSED".to_owned(),
+        get_living(),
         TaggedJson::new_from(json!({
             "carrying": {
                 "dropped": {
@@ -96,6 +102,7 @@ pub fn test_missing_handlers_completely() -> Result<()> {
     runner.before(Perform::Raised(Raised::new(
         Audience::Nobody, // Unused
         "UNUSED".to_owned(),
+        get_living(),
         TaggedJson::new_from(json!({
             "carrying": {
                 "dropped": {
@@ -135,6 +142,7 @@ pub fn test_calling_owner_with_one() -> Result<()> {
     runner.before(Perform::Raised(Raised::new(
         Audience::Nobody, // Unused
         "UNUSED".to_owned(),
+        get_living(),
         TaggedJson::new_from(json!({
             "carrying": {
                 "held": {
@@ -174,6 +182,7 @@ pub fn test_calling_owner_with_none() -> Result<()> {
     runner.before(Perform::Raised(Raised::new(
         Audience::Nobody, // Unused
         "UNUSED".to_owned(),
+        get_living(),
         TaggedJson::new_from(json!({
             "carrying": {
                 "held": {

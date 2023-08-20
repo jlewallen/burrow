@@ -229,16 +229,17 @@ pub mod actions {
         fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             info!("hold {:?}!", self.item);
 
-            let (_, user, area) = surroundings.unpack();
+            let (_, living, area) = surroundings.unpack();
 
             match session.find_item(surroundings, &self.item)? {
-                Some(holding) => match tools::move_between(&area, &user, &holding)? {
+                Some(holding) => match tools::move_between(&area, &living, &holding)? {
                     true => Ok(reply_ok(
+                        living.clone(),
                         Audience::Area(area.key().clone()),
                         Carrying::Held {
-                            living: (&user).observe(&user)?.expect("No observed entity"),
-                            item: (&holding).observe(&user)?.expect("No observed entity"),
-                            area: (&area).observe(&user)?.expect("No observed entity"),
+                            living: (&living).observe(&living)?.expect("No observed entity"),
+                            item: (&holding).observe(&living)?.expect("No observed entity"),
+                            area: (&area).observe(&living)?.expect("No observed entity"),
                         },
                     )?),
                     false => Ok(SimpleReply::NotFound.try_into()?),
@@ -261,17 +262,18 @@ pub mod actions {
         fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             info!("drop {:?}!", self.maybe_item);
 
-            let (_, user, area) = surroundings.unpack();
+            let (_, living, area) = surroundings.unpack();
 
             match &self.maybe_item {
                 Some(item) => match session.find_item(surroundings, item)? {
-                    Some(dropping) => match tools::move_between(&user, &area, &dropping)? {
+                    Some(dropping) => match tools::move_between(&living, &area, &dropping)? {
                         true => Ok(reply_ok(
+                            living.clone(),
                             Audience::Area(area.key().clone()),
                             Carrying::Dropped {
-                                living: (&user).observe(&user)?.expect("No observed entity"),
-                                item: (&dropping).observe(&user)?.expect("No observed entity"),
-                                area: (&area).observe(&user)?.expect("No observed entity"),
+                                living: (&living).observe(&living)?.expect("No observed entity"),
+                                item: (&dropping).observe(&living)?.expect("No observed entity"),
+                                area: (&area).observe(&living)?.expect("No observed entity"),
                             },
                         )?),
                         false => Ok(SimpleReply::NotFound.try_into()?),

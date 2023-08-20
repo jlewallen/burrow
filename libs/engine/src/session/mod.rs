@@ -337,8 +337,18 @@ impl ActiveSession for Session {
         self.state.obliterate(entity)
     }
 
-    fn raise(&self, audience: Audience, raising: Raising) -> Result<(), DomainError> {
-        let perform = Perform::Raised(Raised::new(audience.clone(), "".to_owned(), raising.into()));
+    fn raise(
+        &self,
+        living: Option<EntityPtr>,
+        audience: Audience,
+        raising: Raising,
+    ) -> Result<(), DomainError> {
+        let perform = Perform::Raised(Raised::new(
+            audience.clone(),
+            "".to_owned(),
+            living.clone(),
+            raising.into(),
+        ));
 
         self.perform(perform).map(|_| ())
     }
