@@ -1,6 +1,7 @@
 use anyhow::Result;
 use replies::TaggedJson;
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::rc::Rc;
 use std::time::Instant;
 use tracing::*;
@@ -55,7 +56,7 @@ pub trait ParsesActions {
     fn try_parse_action(&self, i: &str) -> EvaluationResult;
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct Schema {
     actions: Vec<String>,
 }
@@ -71,16 +72,17 @@ impl Schema {
     }
 }
 
-pub struct SchemaCollection(Vec<Schema>);
+#[derive(Debug, Default, Clone)]
+pub struct SchemaCollection(HashMap<String, Schema>);
 
-impl From<Vec<Schema>> for SchemaCollection {
-    fn from(value: Vec<Schema>) -> Self {
+impl From<HashMap<String, Schema>> for SchemaCollection {
+    fn from(value: HashMap<String, Schema>) -> Self {
         Self(value)
     }
 }
 
-impl Into<Vec<Schema>> for SchemaCollection {
-    fn into(self) -> Vec<Schema> {
+impl Into<HashMap<String, Schema>> for SchemaCollection {
+    fn into(self) -> HashMap<String, Schema> {
         self.0
     }
 }
@@ -96,7 +98,7 @@ pub trait Plugin: ParsesActions {
         Schema::empty()
     }
 
-    fn initialize(&mut self) -> Result<()> {
+    fn initialize(&mut self, _schema: &SchemaCollection) -> Result<()> {
         Ok(())
     }
 
@@ -124,10 +126,17 @@ impl SessionPlugins {
     }
 
     pub fn initialize(&mut self) -> anyhow::Result<()> {
+        let all_schema = self
+            .plugins
+            .iter()
+            .map(|p| (p.key().to_owned(), p.schema()))
+            .collect::<HashMap<_, _>>()
+            .into();
+
         for plugin in self.plugins.iter_mut() {
             let _span = span!(Level::INFO, "I", plugin = plugin.key()).entered();
             let started = Instant::now();
-            plugin.initialize()?;
+            plugin.initialize(&all_schema)?;
             let elapsed = Instant::now() - started;
             if elapsed.as_millis() > 200 {
                 warn!("plugin:{} ready {:?}", plugin.key(), elapsed);

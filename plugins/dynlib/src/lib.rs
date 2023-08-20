@@ -316,7 +316,7 @@ impl Plugin for DynamicPlugin {
         Self::plugin_key()
     }
 
-    fn initialize(&mut self) -> Result<()> {
+    fn initialize(&mut self, _schema: &SchemaCollection) -> Result<()> {
         match self.open_dynamic() {
             Ok(v) => trace!("{:?}", v),
             Err(e) => warn!("Error: {:?}", e),

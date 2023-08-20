@@ -70,7 +70,9 @@ impl Plugin for RunePlugin {
         Self::plugin_key()
     }
 
-    fn initialize(&mut self) -> Result<()> {
+    fn initialize(&mut self, schema: &SchemaCollection) -> Result<()> {
+        warn!("{:#?}", schema);
+
         self.add_runners_for(sources::load_user_sources()?.into_iter())?;
 
         Ok(())

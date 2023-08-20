@@ -174,7 +174,7 @@ impl Plugin for RpcPlugin {
     }
 
     #[tracing::instrument(name = "rpc-initialize", skip(self))]
-    fn initialize(&mut self) -> Result<()> {
+    fn initialize(&mut self, _schema: &SchemaCollection) -> Result<()> {
         self.server.initialize()
     }
 }
