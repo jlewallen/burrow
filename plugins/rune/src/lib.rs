@@ -151,7 +151,7 @@ impl Middleware for RuneMiddleware {
                 .collect::<Result<Vec<_>>>()?
         };
 
-        let living: Option<EntityPtr> = value.find_actor()?;
+        let living: Option<EntityPtr> = value.find_living()?;
 
         if let Some(living) = living {
             for value in handler_rvs.into_iter().flatten() {
@@ -316,12 +316,12 @@ mod parser {
     }
 }
 
-trait TryFindActor {
-    fn find_actor(&self) -> Result<Option<EntityPtr>>;
+trait TryFindLiving {
+    fn find_living(&self) -> Result<Option<EntityPtr>>;
 }
 
-impl TryFindActor for Perform {
-    fn find_actor(&self) -> Result<Option<EntityPtr>> {
+impl TryFindLiving for Perform {
+    fn find_living(&self) -> Result<Option<EntityPtr>> {
         match self {
             Perform::Living {
                 living: _,
@@ -339,8 +339,8 @@ impl TryFindActor for Perform {
     }
 }
 
-impl TryFindActor for Surroundings {
-    fn find_actor(&self) -> Result<Option<EntityPtr>> {
+impl TryFindLiving for Surroundings {
+    fn find_living(&self) -> Result<Option<EntityPtr>> {
         match self {
             Surroundings::Living {
                 world: _,
