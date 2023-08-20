@@ -7,6 +7,7 @@ use std::{
 };
 use tracing::*;
 
+use kernel::common::identifier_to_key;
 use kernel::prelude::*;
 use macros::*;
 use plugins_core::tools;
