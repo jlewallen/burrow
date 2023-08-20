@@ -1,4 +1,7 @@
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::{
+    rc::Rc,
+    sync::atomic::{AtomicU64, Ordering},
+};
 
 use crate::*;
 
@@ -58,7 +61,7 @@ impl ActiveSession for KeysOnlySession {
     fn try_deserialize_action(
         &self,
         _value: &JsonValue,
-    ) -> Result<Box<dyn Action>, EvaluationError> {
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
         todo!()
     }
 

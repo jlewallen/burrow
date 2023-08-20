@@ -50,12 +50,10 @@ impl ActionSource for LookActionSource {
     fn try_deserialize_action(
         &self,
         value: &JsonValue,
-    ) -> Result<Box<dyn Action>, EvaluationError> {
-        serde_json::from_value::<PluginActions>(value.clone())
-            .map(|a| match a {
-                PluginActions::LookAction(action) => Box::new(action) as Box<dyn Action>,
-            })
-            .map_err(|_| EvaluationError::ParseFailed)
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
+        serde_json::from_value::<PluginActions>(value.clone()).map(|a| match a {
+            PluginActions::LookAction(action) => Some(Box::new(action) as Box<dyn Action>),
+        })
     }
 }
 

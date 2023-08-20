@@ -277,7 +277,7 @@ impl ActiveSession for Session {
     fn try_deserialize_action(
         &self,
         value: &JsonValue,
-    ) -> Result<Box<dyn Action>, EvaluationError> {
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
         let plugins = self.plugins.borrow();
         plugins.try_deserialize_action(value)
     }

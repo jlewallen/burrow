@@ -145,6 +145,7 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
                                 let action: Rc<_> = session
                                     .try_deserialize_action(&value)
                                     .expect("try parse action failed")
+                                    .unwrap()
                                     .into();
                                 let living = session
                                     .entity(&LookupBy::Key(&EntityKey::new(&our_key)))

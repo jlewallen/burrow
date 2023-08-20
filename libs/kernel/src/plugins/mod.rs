@@ -1,8 +1,8 @@
 use anyhow::Result;
+use serde::Deserialize;
+use std::rc::Rc;
 use std::time::Instant;
 use tracing::*;
-
-pub use std::rc::Rc;
 
 use crate::actions::Action;
 use crate::model::*;
@@ -139,15 +139,17 @@ impl ParsesActions for SessionPlugins {
 }
 
 pub trait ActionSource {
-    fn try_deserialize_action(&self, value: &JsonValue)
-        -> Result<Box<dyn Action>, EvaluationError>;
+    fn try_deserialize_action(
+        &self,
+        value: &JsonValue,
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error>;
 }
 
 impl ActionSource for SessionPlugins {
     fn try_deserialize_action(
         &self,
         value: &JsonValue,
-    ) -> Result<Box<dyn Action>, EvaluationError> {
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
         let sources: Vec<_> = self
             .plugins
             .iter()
@@ -155,12 +157,20 @@ impl ActionSource for SessionPlugins {
             .flatten()
             .collect();
 
-        sources
+        Ok(sources
             .iter()
             .map(|source| source.try_deserialize_action(value))
-            .filter_map(|r| r.ok())
+            .collect::<Result<Vec<_>, serde_json::Error>>()?
+            .into_iter()
+            .flatten()
             .take(1)
-            .last()
-            .ok_or(EvaluationError::ParseFailed)
+            .last())
     }
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(untagged)]
+pub enum MaybeUnknown<T, U> {
+    Known(T),
+    Unknown(U),
 }

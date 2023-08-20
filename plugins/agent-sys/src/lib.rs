@@ -117,7 +117,7 @@ impl ActiveSession for AgentSession {
     fn try_deserialize_action(
         &self,
         _value: &JsonValue,
-    ) -> Result<Box<dyn Action>, EvaluationError> {
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
         unimplemented!("AgentSession:try-deserialize-action")
     }
 

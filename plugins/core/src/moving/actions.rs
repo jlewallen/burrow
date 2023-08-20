@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::library::actions::*;
 use crate::looking::actions::*;
 use crate::looking::model::Observe;

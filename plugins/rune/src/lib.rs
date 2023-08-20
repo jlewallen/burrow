@@ -1,8 +1,8 @@
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::{cell::RefCell, rc::Rc};
 
 use plugins_core::library::plugin::*;
 use sources::Script;
@@ -107,12 +107,14 @@ impl ActionSource for SaveScriptActionSource {
     fn try_deserialize_action(
         &self,
         value: &JsonValue,
-    ) -> Result<Box<dyn Action>, EvaluationError> {
-        serde_json::from_value::<SaveScriptActions>(value.clone())
-            .map(|a| match a {
-                SaveScriptActions::SaveScriptAction(action) => Box::new(action) as Box<dyn Action>,
-            })
-            .map_err(|_| EvaluationError::ParseFailed)
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
+        type Target = MaybeUnknown<SaveScriptActions, serde_json::Value>;
+        serde_json::from_value::<Target>(value.clone()).map(|a| match a {
+            MaybeUnknown::Known(SaveScriptActions::SaveScriptAction(action)) => {
+                Some(Box::new(action) as Box<dyn Action>)
+            }
+            MaybeUnknown::Unknown(_) => None,
+        })
     }
 }
 

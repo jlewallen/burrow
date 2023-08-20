@@ -7,10 +7,10 @@ use replies::{JsonValue, TaggedJson, ToTaggedJson};
 
 use crate::actions::{Action, Performer};
 use crate::hooks::ManagedHooks;
+use crate::model::Entity;
 use crate::model::{
     Audience, DomainError, EntityKey, EntityPtr, EntityPtrResolver, Identity, Item,
 };
-use crate::model::{Entity, EvaluationError};
 use crate::surround::Surroundings;
 
 pub type SessionRef = Rc<dyn ActiveSession>;
@@ -28,8 +28,10 @@ impl From<Raising> for TaggedJson {
 }
 
 pub trait ActiveSession: Performer + EntityPtrResolver {
-    fn try_deserialize_action(&self, value: &JsonValue)
-        -> Result<Box<dyn Action>, EvaluationError>;
+    fn try_deserialize_action(
+        &self,
+        value: &JsonValue,
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error>;
 
     fn find_item(
         &self,

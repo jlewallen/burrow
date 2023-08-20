@@ -68,12 +68,16 @@ impl ActionSource for SaveActionSource {
     fn try_deserialize_action(
         &self,
         value: &JsonValue,
-    ) -> Result<Box<dyn Action>, EvaluationError> {
-        serde_json::from_value::<SaveActions>(value.clone())
-            .map(|a| match a {
-                SaveActions::SaveEntityJsonAction(action) => Box::new(action) as Box<dyn Action>,
-                SaveActions::SaveQuickEditAction(action) => Box::new(action) as Box<dyn Action>,
-            })
-            .map_err(|_| EvaluationError::ParseFailed)
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
+        type Target = MaybeUnknown<SaveActions, serde_json::Value>;
+        serde_json::from_value::<Target>(value.clone()).map(|a| match a {
+            MaybeUnknown::Known(SaveActions::SaveEntityJsonAction(action)) => {
+                Some(Box::new(action) as Box<dyn Action>)
+            }
+            MaybeUnknown::Known(SaveActions::SaveQuickEditAction(action)) => {
+                Some(Box::new(action) as Box<dyn Action>)
+            }
+            MaybeUnknown::Unknown(_) => None,
+        })
     }
 }
