@@ -59,10 +59,10 @@ impl ActionSource for SaveActionSource {
         &self,
         tagged: &TaggedJson,
     ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
-        if let Some(a) = actions::SaveQuickEditAction::from_tagged_json(tagged.clone())? {
+        if let Some(a) = actions::SaveQuickEditAction::from_tagged_json(tagged)? {
             return Ok(Some(Box::new(a)));
         }
-        if let Some(a) = actions::SaveEntityJsonAction::from_tagged_json(tagged.clone())? {
+        if let Some(a) = actions::SaveEntityJsonAction::from_tagged_json(tagged)? {
             return Ok(Some(Box::new(a)));
         }
         Ok(None)

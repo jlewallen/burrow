@@ -140,7 +140,7 @@ pub trait ToTaggedJson {
 }
 
 pub trait DeserializeTagged {
-    fn from_tagged_json(tagged: TaggedJson) -> Result<Option<Self>, serde_json::Error>
+    fn from_tagged_json(tagged: &TaggedJson) -> Result<Option<Self>, serde_json::Error>
     where
         Self: Sized;
 }

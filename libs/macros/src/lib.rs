@@ -39,13 +39,13 @@ pub fn json_derive_deserialize_tagged(input: TokenStream) -> TokenStream {
 
     let done = quote! {
         impl DeserializeTagged for #name {
-            fn from_tagged_json(tagged: TaggedJson) -> Result<Option<Self>, serde_json::Error> {
+            fn from_tagged_json(tagged: &TaggedJson) -> Result<Option<Self>, serde_json::Error> {
                 let tag = identifier_to_key(stringify!(#name));
                 if tag != tagged.tag() {
                     return Ok(None);
                 }
 
-                Ok(Some(tagged.try_deserialize()?))
+                Ok(Some(tagged.clone().try_deserialize()?))
             }
         }
     };

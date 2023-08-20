@@ -51,7 +51,7 @@ impl ActionSource for SaveHelpActionSource {
         &self,
         tagged: &TaggedJson,
     ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
-        actions::SaveHelpAction::from_tagged_json(tagged.clone())
+        actions::SaveHelpAction::from_tagged_json(tagged)
             .map(|res| res.map(|a| Box::new(a) as Box<dyn Action>))
     }
 }

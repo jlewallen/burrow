@@ -50,7 +50,7 @@ impl ActionSource for LookActionSource {
         &self,
         tagged: &TaggedJson,
     ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
-        actions::LookAction::from_tagged_json(tagged.clone())
+        actions::LookAction::from_tagged_json(tagged)
             .map(|res| res.map(|a| Box::new(a) as Box<dyn Action>))
     }
 }
