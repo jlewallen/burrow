@@ -148,18 +148,25 @@ impl Middleware for RuneMiddleware {
                 .collect::<Result<Vec<_>>>()?
         };
 
-        for value in handler_rvs.into_iter().flatten() {
-            // Annoying that Object doesn't impl Serialize so this clone.
-            match value.clone() {
-                rune::Value::Object(object) => {
-                    info!("{:#?}", object);
-                    let session = get_my_session()?;
-                    let value = serde_json::to_value(value)?;
-                    let tagged = TaggedJson::new_from(value)?;
-                    // session.perform(Perform::Chain(PerformAction::TaggedJson(tagged)))?;
+        let living: Option<EntityPtr> = value.find_actor()?;
+
+        if let Some(living) = living {
+            for value in handler_rvs.into_iter().flatten() {
+                // Annoying that Object doesn't impl Serialize so this clone.
+                match value.clone() {
+                    rune::Value::Object(object) => {
+                        info!("{:#?}", object);
+                        let value = serde_json::to_value(value)?;
+                        let tagged = TaggedJson::new_from(value)?;
+
+                        let session = get_my_session()?;
+                        let action = PerformAction::TaggedJson(tagged);
+                        let living = living.clone();
+                        session.perform(Perform::Living { living, action })?;
+                    }
+                    rune::Value::Unit => {}
+                    _ => warn!("unexpected handler answer: {:#?}", value),
                 }
-                rune::Value::Unit => {}
-                _ => warn!("unexpected handler answer: {:#?}", value),
             }
         }
 
@@ -300,6 +307,38 @@ mod parser {
             )(i)?;
 
             action
+        }
+    }
+}
+
+trait TryFindActor {
+    fn find_actor(&self) -> Result<Option<EntityPtr>>;
+}
+
+impl TryFindActor for Perform {
+    fn find_actor(&self) -> Result<Option<EntityPtr>> {
+        match self {
+            Perform::Living { living, action } => todo!(),
+            Perform::Surroundings {
+                surroundings,
+                action: _,
+            } => surroundings.find_actor(),
+            Perform::Delivery(_) => todo!(),
+            Perform::Raised(raised) => todo!(),
+            Perform::Schedule(_) => todo!(),
+            _ => todo!(),
+        }
+    }
+}
+
+impl TryFindActor for Surroundings {
+    fn find_actor(&self) -> Result<Option<EntityPtr>> {
+        match self {
+            Surroundings::Living {
+                world: _,
+                living,
+                area: _,
+            } => Ok(Some(living.clone())),
         }
     }
 }
