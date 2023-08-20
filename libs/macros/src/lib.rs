@@ -20,11 +20,20 @@ pub fn json_derive_to_tagged_json(input: TokenStream) -> TokenStream {
     let name = input.ident;
 
     let done = quote! {
+        impl HasTag for #name {
+            fn tag() -> std::borrow::Cow<'static, str>
+            where
+                Self: Sized,
+            {
+                identifier_to_key(stringify!(#name))
+            }
+        }
+
         impl ToTaggedJson for #name {
             fn to_tagged_json(&self) -> std::result::Result<TaggedJson, TaggedJsonError> {
                 let tag = identifier_to_key(stringify!(#name));
                 let value = serde_json::to_value(self)?;
-                Ok(TaggedJson::new(tag, value.into()))
+                Ok(TaggedJson::new(tag.to_string(), value.into()))
             }
         }
     };

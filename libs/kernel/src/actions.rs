@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{fmt::Debug, rc::Rc};
 
-pub use replies::{JsonValue, TaggedJson, TaggedJsonError, ToTaggedJson};
+pub use replies::{HasTag, JsonValue, TaggedJson, TaggedJsonError, ToTaggedJson};
 
 use crate::model::DomainError;
 use crate::session::SessionRef;
@@ -14,7 +14,7 @@ use crate::{
 
 pub type ReplyResult = anyhow::Result<Effect>;
 
-pub trait Action: ToTaggedJson + Debug {
+pub trait Action: HasTag + ToTaggedJson + Debug {
     fn is_read_only() -> bool
     where
         Self: Sized;

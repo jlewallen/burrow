@@ -135,6 +135,12 @@ impl From<serde_json::Error> for TaggedJsonError {
     }
 }
 
+pub trait HasTag {
+    fn tag() -> std::borrow::Cow<'static, str>
+    where
+        Self: Sized;
+}
+
 pub trait ToTaggedJson {
     fn to_tagged_json(&self) -> Result<TaggedJson, TaggedJsonError>;
 }
@@ -145,12 +151,15 @@ pub trait DeserializeTagged {
         Self: Sized;
 }
 
-pub fn identifier_to_key(id: &str) -> String {
+use std::borrow::Cow;
+
+pub fn identifier_to_key(id: &'static str) -> Cow<'static, str> {
     let mut c = id.chars();
     match c.next() {
         Some(f) => f.to_lowercase().collect::<String>() + c.as_str(),
         None => panic!("Empty key in tagged JSON."),
     }
+    .into()
 }
 
 pub trait Reply {}

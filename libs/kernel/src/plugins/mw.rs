@@ -68,7 +68,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        actions::{Action, PerformAction},
+        actions::{Action, HasTag, PerformAction},
         model::{build_entity, EntityKey, EntityPtr, Identity},
     };
 
@@ -102,12 +102,21 @@ mod tests {
     #[derive(Default, Serialize, Debug)]
     struct ExampleAction {}
 
+    impl HasTag for ExampleAction {
+        fn tag() -> std::borrow::Cow<'static, str>
+        where
+            Self: Sized,
+        {
+            "exampleAction".into()
+        }
+    }
+
     impl ToTaggedJson for ExampleAction {
         fn to_tagged_json(
             &self,
         ) -> std::result::Result<replies::TaggedJson, replies::TaggedJsonError> {
             Ok(TaggedJson::new(
-                "exampleAction".to_owned(),
+                Self::tag().to_string(),
                 serde_json::to_value(self)?.into(),
             ))
         }
