@@ -1,5 +1,6 @@
 pub mod plugin {
     pub use anyhow::Result;
+    pub use serde::Deserialize;
     pub use tracing::*;
 
     pub use super::parser::try_parsing;
