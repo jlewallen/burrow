@@ -25,7 +25,7 @@ pub fn arrived(bag) {
 }
 
 pub fn handlers() {
-    info(format!("look = {:?}", actions::looking::lookAction()));
+    info(format!("look = {:?}", actions::looking::look()));
 
     #{
         "carrying": #{

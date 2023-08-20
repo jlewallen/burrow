@@ -93,7 +93,8 @@ pub(super) fn create(schema: &SchemaCollection, owner: Option<Owner>) -> Result<
     let mut module = rune::Module::default();
     module.ty::<RuneActions>()?;
     for (plugin, action) in schema.actions() {
-        info!("declaring 'actions.{}.{}'", plugin, action);
+        let action = action.trim_end_matches("Action");
+        trace!("declaring 'actions.{}.{}'", plugin, action);
         module.function(
             ["actions", plugin, action],
             move || -> std::result::Result<rune::Value, anyhow::Error> { Ok(rune::Value::Unit) },
