@@ -65,6 +65,21 @@ impl ActionSource for SaveActionSource {
         if let Some(a) = actions::SaveEntityJsonAction::from_tagged_json(tagged)? {
             return Ok(Some(Box::new(a)));
         }
+        if let Some(a) = actions::DuplicateAction::from_tagged_json(tagged)? {
+            return Ok(Some(Box::new(a)));
+        }
+        if let Some(a) = actions::MakeItemAction::from_tagged_json(tagged)? {
+            return Ok(Some(Box::new(a)));
+        }
+        if let Some(a) = actions::BuildAreaAction::from_tagged_json(tagged)? {
+            return Ok(Some(Box::new(a)));
+        }
+        if let Some(a) = actions::AddScopeAction::from_tagged_json(tagged)? {
+            return Ok(Some(Box::new(a)));
+        }
+        if let Some(a) = actions::ObliterateAction::from_tagged_json(tagged)? {
+            return Ok(Some(Box::new(a)));
+        }
         Ok(None)
     }
 }

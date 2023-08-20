@@ -30,6 +30,10 @@ impl Plugin for CarryingPlugin {
     fn key(&self) -> &'static str {
         Self::plugin_key()
     }
+
+    fn sources(&self) -> Vec<Box<dyn ActionSource>> {
+        vec![Box::new(ActionSources::default())]
+    }
 }
 
 impl ParsesActions for CarryingPlugin {
@@ -38,6 +42,30 @@ impl ParsesActions for CarryingPlugin {
             .or_else(|_| try_parsing(parser::HoldActionParser {}, i))
             .or_else(|_| try_parsing(parser::PutInsideActionParser {}, i))
             .or_else(|_| try_parsing(parser::TakeOutActionParser {}, i))
+    }
+}
+
+#[derive(Default)]
+pub struct ActionSources {}
+
+impl ActionSource for ActionSources {
+    fn try_deserialize_action(
+        &self,
+        tagged: &TaggedJson,
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
+        if let Some(a) = actions::DropAction::from_tagged_json(tagged)? {
+            return Ok(Some(Box::new(a)));
+        }
+        if let Some(a) = actions::HoldAction::from_tagged_json(tagged)? {
+            return Ok(Some(Box::new(a)));
+        }
+        if let Some(a) = actions::PutInsideAction::from_tagged_json(tagged)? {
+            return Ok(Some(Box::new(a)));
+        }
+        if let Some(a) = actions::TakeOutAction::from_tagged_json(tagged)? {
+            return Ok(Some(Box::new(a)));
+        }
+        Ok(None)
     }
 }
 
