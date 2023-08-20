@@ -6,6 +6,7 @@ pub mod plugin {
     pub use super::parser::try_parsing;
     pub use kernel::common::DeserializeTagged;
     pub use kernel::prelude::*;
+    pub use kernel::try_deserialize_all;
 }
 
 pub mod parser {

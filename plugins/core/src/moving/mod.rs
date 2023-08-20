@@ -54,15 +54,13 @@ impl ActionSource for ActionSources {
         &self,
         tagged: &TaggedJson,
     ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
-        if let Some(a) = actions::GoAction::from_tagged_json(tagged)? {
-            return Ok(Some(Box::new(a)));
-        }
-        if let Some(a) = actions::AddRouteAction::from_tagged_json(tagged)? {
-            return Ok(Some(Box::new(a)));
-        }
-        if let Some(a) = actions::RemoveRouteAction::from_tagged_json(tagged)? {
-            return Ok(Some(Box::new(a)));
-        }
+        try_deserialize_all!(
+            tagged,
+            actions::GoAction,
+            actions::AddRouteAction,
+            actions::RemoveRouteAction
+        );
+
         Ok(None)
     }
 }

@@ -139,6 +139,17 @@ impl ParsesActions for SessionPlugins {
     }
 }
 
+#[macro_export]
+macro_rules! try_deserialize_all {
+    ( $tagged:expr, $( $x:ty ),* ) => {{
+        $(
+            if let Some(action) = <$x>::from_tagged_json($tagged)? {
+                return Ok(Some(Box::new(action)));
+            }
+        )*
+    }};
+}
+
 pub trait ActionSource {
     fn try_deserialize_action(
         &self,

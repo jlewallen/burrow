@@ -101,8 +101,9 @@ impl ActionSource for SaveScriptActionSource {
         &self,
         tagged: &TaggedJson,
     ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
-        actions::SaveScriptAction::from_tagged_json(tagged)
-            .map(|res| res.map(|a| Box::new(a) as Box<dyn Action>))
+        try_deserialize_all!(tagged, actions::SaveScriptAction);
+
+        Ok(None)
     }
 }
 

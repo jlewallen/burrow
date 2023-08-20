@@ -59,27 +59,17 @@ impl ActionSource for SaveActionSource {
         &self,
         tagged: &TaggedJson,
     ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
-        if let Some(a) = actions::SaveQuickEditAction::from_tagged_json(tagged)? {
-            return Ok(Some(Box::new(a)));
-        }
-        if let Some(a) = actions::SaveEntityJsonAction::from_tagged_json(tagged)? {
-            return Ok(Some(Box::new(a)));
-        }
-        if let Some(a) = actions::DuplicateAction::from_tagged_json(tagged)? {
-            return Ok(Some(Box::new(a)));
-        }
-        if let Some(a) = actions::MakeItemAction::from_tagged_json(tagged)? {
-            return Ok(Some(Box::new(a)));
-        }
-        if let Some(a) = actions::BuildAreaAction::from_tagged_json(tagged)? {
-            return Ok(Some(Box::new(a)));
-        }
-        if let Some(a) = actions::AddScopeAction::from_tagged_json(tagged)? {
-            return Ok(Some(Box::new(a)));
-        }
-        if let Some(a) = actions::ObliterateAction::from_tagged_json(tagged)? {
-            return Ok(Some(Box::new(a)));
-        }
+        try_deserialize_all!(
+            tagged,
+            actions::SaveQuickEditAction,
+            actions::SaveEntityJsonAction,
+            actions::DuplicateAction,
+            actions::MakeItemAction,
+            actions::BuildAreaAction,
+            actions::AddScopeAction,
+            actions::ObliterateAction
+        );
+
         Ok(None)
     }
 }

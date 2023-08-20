@@ -47,9 +47,8 @@ impl ActionSource for ActionSources {
         &self,
         tagged: &TaggedJson,
     ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
-        if let Some(a) = actions::LaughAction::from_tagged_json(tagged)? {
-            return Ok(Some(Box::new(a)));
-        }
+        try_deserialize_all!(tagged, actions::LaughAction);
+
         Ok(None)
     }
 }
