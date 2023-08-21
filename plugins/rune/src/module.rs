@@ -3,7 +3,7 @@ use kernel::{
     prelude::{DomainError, EntityKey, EntityPtr, IntoEntityPtr, LookupBy},
     session::get_my_session,
 };
-use rune::runtime::Protocol;
+use rune::runtime::{Object, Protocol};
 use serde::Deserialize;
 
 use crate::sources::{Owner, Relation};
@@ -89,16 +89,50 @@ impl LocalEntity {
 #[derive(rune::Any, Debug)]
 struct RuneActions {}
 
+pub trait ToRuneObject {
+    fn to_rune_object(&self) -> Result<rune::runtime::Object>;
+}
+
+impl RuneActions {}
+
+impl ToRuneObject for ActionArgs {
+    fn to_rune_object(&self) -> Result<rune::runtime::Object> {
+        match &self.here {
+            Some(here) => {
+                let mut obj = Object::new();
+                obj.insert("here".to_owned(), here.to_owned().into());
+                Ok(obj)
+            }
+            None => Ok(Object::new().into()),
+        }
+    }
+}
+
+fn action_factory(
+    _plugin_name: &str,
+    action_name: &str,
+    value: rune::Value,
+) -> Result<Object, anyhow::Error> {
+    let args: ActionArgs = rune::from_value(value)?;
+    let mut action = Object::new();
+    action.insert(action_name.to_owned(), args.to_rune_object()?.into());
+    // Not prepared to handle plugin tag/namespace right now.
+    // let mut obj = Object::new();
+    // obj.insert(plugin_name.to_owned(), action.into());
+    Ok(action)
+}
+
 pub(super) fn create(schema: &SchemaCollection, owner: Option<Owner>) -> Result<rune::Module> {
     let mut module = rune::Module::default();
     module.ty::<RuneActions>()?;
     for (plugin, action) in schema.actions() {
-        let action = action.trim_end_matches("Action");
-        trace!("declaring 'actions.{}.{}'", plugin, action);
-        module.function(
-            ["actions", plugin, action],
-            move || -> std::result::Result<rune::Value, anyhow::Error> { Ok(rune::Value::Unit) },
-        )?;
+        let function_name = action.trim_end_matches("Action");
+        trace!("declaring 'actions.{}.{}'", plugin, function_name);
+        module.function(["actions", &plugin, &function_name], {
+            let plugin = plugin.to_owned();
+            let action = action.to_owned();
+            move |v: rune::Value| action_factory(&plugin, &action, v)
+        })?;
     }
     module.function(["owner"], move || owner.clone())?;
     module.function(["info"], |s: &str| {
@@ -107,6 +141,7 @@ pub(super) fn create(schema: &SchemaCollection, owner: Option<Owner>) -> Result<
     module.function(["debug"], |s: &str| {
         debug!(target: "RUNE", "{}", s);
     })?;
+    module.ty::<ActionArgs>()?;
     module.associated_function(Protocol::STRING_DEBUG, ActionArgs::string_debug)?;
     module.ty::<BeforePerform>()?;
     module.associated_function(Protocol::STRING_DEBUG, BeforePerform::string_debug)?;
@@ -148,5 +183,20 @@ impl IntoEntityPtr for KeyOnly {
         get_my_session()?
             .entity(&LookupBy::Key(&self.key))?
             .ok_or(DomainError::DanglingEntity)
+    }
+}
+
+#[derive(Default, rune::Any, Debug, Serialize)]
+#[rune(constructor)]
+pub struct ActionArgs {
+    #[rune(get, set)]
+    here: Option<String>,
+}
+
+impl ActionArgs {
+    #[inline]
+    fn string_debug(&self, s: &mut String) -> std::fmt::Result {
+        use std::fmt::Write;
+        write!(s, "{:?}", self)
     }
 }

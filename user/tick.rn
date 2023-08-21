@@ -6,7 +6,7 @@ use carrying::*;
 pub fn held(bag) {
     info(format!("held {:?} {:?}", bag, owner()));
 
-    #{ "lookAction": #{} }
+    //  #{ "lookAction": #{} }
 }
 
 pub fn dropped(bag) {
@@ -25,7 +25,9 @@ pub fn arrived(bag) {
 }
 
 pub fn handlers() {
-    info(format!("look = {:?}", actions::looking::look()));
+    let args = ActionArgs { here: Some("Whoa there!") };
+    info(format!("args = {:?}", args));
+    info(format!("speak = {:?}", actions::chat::speak(args)));
 
     #{
         "carrying": #{
