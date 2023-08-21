@@ -107,23 +107,24 @@ pub(super) fn create(schema: &SchemaCollection, owner: Option<Owner>) -> Result<
     module.function(["debug"], |s: &str| {
         debug!(target: "RUNE", "{}", s);
     })?;
+    module.associated_function(Protocol::STRING_DEBUG, ActionArgs::string_debug)?;
     module.ty::<BeforePerform>()?;
-    module.inst_fn(Protocol::STRING_DEBUG, BeforePerform::string_debug)?;
+    module.associated_function(Protocol::STRING_DEBUG, BeforePerform::string_debug)?;
     module.ty::<AfterEffect>()?;
-    module.inst_fn(Protocol::STRING_DEBUG, AfterEffect::string_debug)?;
+    module.associated_function(Protocol::STRING_DEBUG, AfterEffect::string_debug)?;
     module.ty::<Bag>()?;
-    module.inst_fn(Protocol::STRING_DEBUG, Bag::string_debug)?;
-    module.inst_fn("area", Bag::area)?;
-    module.inst_fn("item", Bag::item)?;
-    module.inst_fn("living", Bag::living)?;
+    module.associated_function(Protocol::STRING_DEBUG, Bag::string_debug)?;
+    module.associated_function("area", Bag::area)?;
+    module.associated_function("item", Bag::item)?;
+    module.associated_function("living", Bag::living)?;
     module.ty::<LocalEntity>()?;
-    module.inst_fn(Protocol::STRING_DEBUG, LocalEntity::string_debug)?;
-    module.inst_fn("key", LocalEntity::key)?;
-    module.inst_fn("name", LocalEntity::name)?;
+    module.associated_function(Protocol::STRING_DEBUG, LocalEntity::string_debug)?;
+    module.associated_function("key", LocalEntity::key)?;
+    module.associated_function("name", LocalEntity::name)?;
     module.ty::<Owner>()?;
-    module.inst_fn(Protocol::STRING_DEBUG, Owner::string_debug)?;
-    module.inst_fn("key", Owner::key)?;
-    module.inst_fn("relation", Owner::relation)?;
+    module.associated_function(Protocol::STRING_DEBUG, Owner::string_debug)?;
+    module.associated_function("key", Owner::key)?;
+    module.associated_function("relation", Owner::relation)?;
     module.ty::<Relation>()?;
     Ok(module)
 }

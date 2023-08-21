@@ -103,8 +103,8 @@ impl RuneRunner {
         match &mut self.vm {
             Some(vm) => match vm.lookup_function([name]) {
                 Ok(func) => match func.call::<A, rune::Value>(args) {
-                    Ok(v) => Ok(Some(v)),
-                    Err(e) => {
+                    rune::runtime::VmResult::Ok(v) => Ok(Some(v)),
+                    rune::runtime::VmResult::Err(e) => {
                         error!("rune: {}", e);
                         Ok(None)
                     }
@@ -123,14 +123,15 @@ impl RuneRunner {
             return Ok(None);
         };
 
-        let Ok(obj)  = func.call::<_, rune::Value>(()) else {
-            warn!("handlers-error");
-            return Ok(None);
-        };
-
-        match obj {
-            Value::Object(obj) => Ok(Some(Handlers::new(obj))),
-            _ => Ok(None),
+        match func.call::<_, rune::Value>(()) {
+            rune::runtime::VmResult::Ok(obj) => match obj {
+                Value::Object(obj) => Ok(Some(Handlers::new(obj))),
+                _ => Ok(None),
+            },
+            rune::runtime::VmResult::Err(e) => {
+                warn!("handlers-error {}", e);
+                Ok(None)
+            }
         }
     }
 }
@@ -173,7 +174,10 @@ impl Handlers {
                 let bag = Bag(json);
 
                 Ok(Some(
-                    func.borrow_ref().unwrap().call::<_, rune::Value>((bag,))?,
+                    match func.borrow_ref().unwrap().call::<_, rune::Value>((bag,)) {
+                        rune::runtime::VmResult::Ok(v) => v,
+                        rune::runtime::VmResult::Err(_) => todo!(),
+                    },
                 ))
             }
             _ => todo!(),

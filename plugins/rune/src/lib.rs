@@ -176,7 +176,7 @@ impl Middleware for RuneMiddleware {
                             .perform(Perform::Living { living, action })
                             .with_context(|| format!("Rune perform"))?;
                     }
-                    rune::Value::Unit => {}
+                    rune::Value::EmptyTuple => {}
                     _ => warn!("unexpected handler answer: {:#?}", value),
                 }
             }

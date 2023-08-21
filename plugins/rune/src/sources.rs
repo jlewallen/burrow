@@ -47,8 +47,8 @@ impl Owner {
         write!(s, "{:?}", self)
     }
 
-    pub fn key(&self) -> &str {
-        self.key.key_to_string()
+    pub fn key(&self) -> String {
+        self.key.key_to_string().to_owned()
     }
 
     pub fn relation(&self) -> Relation {
