@@ -1,4 +1,5 @@
 mod carrying {
+    /*
     pub enum Item {
         Area,
         Myself,
@@ -21,4 +22,5 @@ mod carrying {
             DropAction { maybe_item }
         }
     }
+    */
 }
