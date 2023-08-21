@@ -24,14 +24,36 @@ impl Plugin for EmotePlugin {
         "emote"
     }
 
+    fn schema(&self) -> Schema {
+        Schema::empty().action::<actions::LaughAction>()
+    }
+
     fn key(&self) -> &'static str {
         Self::plugin_key()
+    }
+
+    fn sources(&self) -> Vec<Box<dyn ActionSource>> {
+        vec![Box::new(ActionSources::default())]
     }
 }
 
 impl ParsesActions for EmotePlugin {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
         try_parsing(parser::LaughActionParser {}, i)
+    }
+}
+
+#[derive(Default)]
+pub struct ActionSources {}
+
+impl ActionSource for ActionSources {
+    fn try_deserialize_action(
+        &self,
+        tagged: &TaggedJson,
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
+        try_deserialize_all!(tagged, actions::LaughAction);
+
+        Ok(None)
     }
 }
 
@@ -54,6 +76,7 @@ pub mod actions {
             let (_, living, area) = surroundings.unpack();
 
             session.raise(
+                Some(living.clone()),
                 Audience::Area(area.key().clone()),
                 Raising::TaggedJson(
                     Emoting::Laugh(Emoted::new(

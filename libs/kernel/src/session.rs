@@ -3,14 +3,14 @@ use chrono::{DateTime, Utc};
 use std::ops::Deref;
 use std::{cell::RefCell, rc::Rc};
 
-use replies::{JsonValue, TaggedJson, ToTaggedJson};
+use replies::{TaggedJson, ToTaggedJson};
 
 use crate::actions::{Action, Performer};
 use crate::hooks::ManagedHooks;
+use crate::model::Entity;
 use crate::model::{
     Audience, DomainError, EntityKey, EntityPtr, EntityPtrResolver, Identity, Item,
 };
-use crate::model::{Entity, EvaluationError};
 use crate::surround::Surroundings;
 
 pub type SessionRef = Rc<dyn ActiveSession>;
@@ -28,8 +28,11 @@ impl From<Raising> for TaggedJson {
 }
 
 pub trait ActiveSession: Performer + EntityPtrResolver {
-    fn try_deserialize_action(&self, value: &JsonValue)
-        -> Result<Box<dyn Action>, EvaluationError>;
+    fn new_key(&self) -> EntityKey;
+
+    fn new_identity(&self) -> Identity;
+
+    fn add_entity(&self, entity: Entity) -> Result<EntityPtr, DomainError>;
 
     fn find_item(
         &self,
@@ -37,17 +40,14 @@ pub trait ActiveSession: Performer + EntityPtrResolver {
         item: &Item,
     ) -> Result<Option<EntityPtr>, DomainError>;
 
-    fn add_entity(&self, entity: Entity) -> Result<EntityPtr, DomainError>;
-
     fn obliterate(&self, entity: &EntityPtr) -> Result<(), DomainError>;
 
-    fn new_key(&self) -> EntityKey;
-
-    fn new_identity(&self) -> Identity;
-
-    fn raise(&self, audience: Audience, raising: Raising) -> Result<(), DomainError>;
-
-    fn hooks(&self) -> &ManagedHooks;
+    fn raise(
+        &self,
+        living: Option<EntityPtr>,
+        audience: Audience,
+        raising: Raising,
+    ) -> Result<(), DomainError>;
 
     fn schedule(
         &self,
@@ -55,6 +55,13 @@ pub trait ActiveSession: Performer + EntityPtrResolver {
         when: DateTime<Utc>,
         message: &dyn ToTaggedJson,
     ) -> Result<(), DomainError>;
+
+    fn try_deserialize_action(
+        &self,
+        value: &TaggedJson,
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error>;
+
+    fn hooks(&self) -> &ManagedHooks;
 }
 
 thread_local! {

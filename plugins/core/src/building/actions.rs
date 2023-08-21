@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{rc::Rc, str::FromStr};
 
 use chrono::Utc;
 
@@ -233,7 +233,7 @@ impl Action for BidirectionalDigAction {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, ToTaggedJson)]
+#[derive(Debug, Serialize, Deserialize, ToTaggedJson, DeserializeTagged)]
 pub struct SaveQuickEditAction {
     pub key: EntityKey,
     pub copy: WorkingCopy,
@@ -281,7 +281,7 @@ impl Action for SaveQuickEditAction {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, ToTaggedJson)]
+#[derive(Debug, Serialize, Deserialize, ToTaggedJson, DeserializeTagged)]
 pub struct SaveEntityJsonAction {
     pub key: EntityKey,
     pub copy: WorkingCopy,

@@ -1,0 +1,24 @@
+mod carrying {
+    pub enum Item {
+        Area,
+        Myself,
+        Named(String),
+        Route(String),
+        Gid(u64),
+        Contained(Item),
+        Held(Item),
+    }
+
+    impl Item {
+    }
+
+    pub struct DropAction {
+        maybe_item,
+    }
+
+    impl DropAction {
+        pub fn new(maybe_item) {
+            DropAction { maybe_item }
+        }
+    }
+}

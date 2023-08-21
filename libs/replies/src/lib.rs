@@ -1,4 +1,4 @@
-use serde::{ser::SerializeMap, Deserialize, Serialize};
+use serde::{de::DeserializeOwned, ser::SerializeMap, Deserialize, Serialize};
 
 use macros::*;
 
@@ -79,6 +79,10 @@ impl TaggedJson {
     pub fn into_tagged(self) -> JsonValue {
         self.into()
     }
+
+    pub fn try_deserialize<T: DeserializeOwned>(self) -> Result<T, serde_json::Error> {
+        serde_json::from_value(self.into_untagged())
+    }
 }
 
 impl Serialize for TaggedJson {
@@ -131,8 +135,31 @@ impl From<serde_json::Error> for TaggedJsonError {
     }
 }
 
+pub trait HasTag {
+    fn tag() -> std::borrow::Cow<'static, str>
+    where
+        Self: Sized;
+}
+
 pub trait ToTaggedJson {
     fn to_tagged_json(&self) -> Result<TaggedJson, TaggedJsonError>;
+}
+
+pub trait DeserializeTagged {
+    fn from_tagged_json(tagged: &TaggedJson) -> Result<Option<Self>, serde_json::Error>
+    where
+        Self: Sized;
+}
+
+use std::borrow::Cow;
+
+pub fn identifier_to_key(id: &'static str) -> Cow<'static, str> {
+    let mut c = id.chars();
+    match c.next() {
+        Some(f) => f.to_lowercase().collect::<String>() + c.as_str(),
+        None => panic!("Empty key in tagged JSON."),
+    }
+    .into()
 }
 
 pub trait Reply {}

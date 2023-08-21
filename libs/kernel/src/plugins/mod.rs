@@ -1,8 +1,10 @@
 use anyhow::Result;
+use replies::TaggedJson;
+use serde::Deserialize;
+use std::collections::HashMap;
+use std::rc::Rc;
 use std::time::Instant;
 use tracing::*;
-
-pub use std::rc::Rc;
 
 use crate::actions::Action;
 use crate::model::*;
@@ -54,6 +56,46 @@ pub trait ParsesActions {
     fn try_parse_action(&self, i: &str) -> EvaluationResult;
 }
 
+#[derive(Default, Debug, Clone)]
+pub struct Schema {
+    actions: Vec<String>,
+}
+
+impl Schema {
+    pub fn empty() -> Self {
+        Self::default()
+    }
+
+    pub fn action<A: Action>(mut self) -> Self {
+        self.actions.push(<A>::tag().to_string());
+        self
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct SchemaCollection(HashMap<String, Schema>);
+
+impl SchemaCollection {
+    pub fn actions(&self) -> impl Iterator<Item = (&String, &String)> {
+        self.0
+            .iter()
+            .map(|(p, acs)| acs.actions.iter().map(move |a| (p, a)))
+            .flatten()
+    }
+}
+
+impl From<HashMap<String, Schema>> for SchemaCollection {
+    fn from(value: HashMap<String, Schema>) -> Self {
+        Self(value)
+    }
+}
+
+impl Into<HashMap<String, Schema>> for SchemaCollection {
+    fn into(self) -> HashMap<String, Schema> {
+        self.0
+    }
+}
+
 pub trait Plugin: ParsesActions {
     fn plugin_key() -> &'static str
     where
@@ -61,7 +103,11 @@ pub trait Plugin: ParsesActions {
 
     fn key(&self) -> &'static str;
 
-    fn initialize(&mut self) -> Result<()> {
+    fn schema(&self) -> Schema {
+        Schema::empty()
+    }
+
+    fn initialize(&mut self, _schema: &SchemaCollection) -> Result<()> {
         Ok(())
     }
 
@@ -89,10 +135,17 @@ impl SessionPlugins {
     }
 
     pub fn initialize(&mut self) -> anyhow::Result<()> {
+        let all_schema = self
+            .plugins
+            .iter()
+            .map(|p| (p.key().to_owned(), p.schema()))
+            .collect::<HashMap<_, _>>()
+            .into();
+
         for plugin in self.plugins.iter_mut() {
             let _span = span!(Level::INFO, "I", plugin = plugin.key()).entered();
             let started = Instant::now();
-            plugin.initialize()?;
+            plugin.initialize(&all_schema)?;
             let elapsed = Instant::now() - started;
             if elapsed.as_millis() > 200 {
                 warn!("plugin:{} ready {:?}", plugin.key(), elapsed);
@@ -138,16 +191,29 @@ impl ParsesActions for SessionPlugins {
     }
 }
 
+#[macro_export]
+macro_rules! try_deserialize_all {
+    ( $tagged:expr, $( $x:ty ),* ) => {{
+        $(
+            if let Some(action) = <$x>::from_tagged_json($tagged)? {
+                return Ok(Some(Box::new(action)));
+            }
+        )*
+    }};
+}
+
 pub trait ActionSource {
-    fn try_deserialize_action(&self, value: &JsonValue)
-        -> Result<Box<dyn Action>, EvaluationError>;
+    fn try_deserialize_action(
+        &self,
+        tagged: &TaggedJson,
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error>;
 }
 
 impl ActionSource for SessionPlugins {
     fn try_deserialize_action(
         &self,
-        value: &JsonValue,
-    ) -> Result<Box<dyn Action>, EvaluationError> {
+        tagged: &TaggedJson,
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
         let sources: Vec<_> = self
             .plugins
             .iter()
@@ -155,12 +221,20 @@ impl ActionSource for SessionPlugins {
             .flatten()
             .collect();
 
-        sources
+        Ok(sources
             .iter()
-            .map(|source| source.try_deserialize_action(value))
-            .filter_map(|r| r.ok())
+            .map(|source| source.try_deserialize_action(tagged))
+            .collect::<Result<Vec<_>, serde_json::Error>>()?
+            .into_iter()
+            .flatten()
             .take(1)
-            .last()
-            .ok_or(EvaluationError::ParseFailed)
+            .last())
     }
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(untagged)]
+pub enum MaybeUnknown<T, U> {
+    Known(T),
+    Unknown(U),
 }

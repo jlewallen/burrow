@@ -1,4 +1,7 @@
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::{
+    rc::Rc,
+    sync::atomic::{AtomicU64, Ordering},
+};
 
 use crate::*;
 
@@ -55,29 +58,6 @@ impl Performer for KeysOnlySession {
 }
 
 impl ActiveSession for KeysOnlySession {
-    fn try_deserialize_action(
-        &self,
-        _value: &JsonValue,
-    ) -> Result<Box<dyn Action>, EvaluationError> {
-        todo!()
-    }
-
-    fn find_item(
-        &self,
-        _surroundings: &Surroundings,
-        _item: &Item,
-    ) -> Result<Option<EntityPtr>, DomainError> {
-        todo!()
-    }
-
-    fn add_entity(&self, _entity: Entity) -> Result<EntityPtr, DomainError> {
-        todo!()
-    }
-
-    fn obliterate(&self, _entity: &EntityPtr) -> Result<(), DomainError> {
-        todo!()
-    }
-
     fn new_key(&self) -> EntityKey {
         EntityKey::new(&format!(
             "E-{}",
@@ -89,11 +69,28 @@ impl ActiveSession for KeysOnlySession {
         Identity::default()
     }
 
-    fn raise(&self, _audience: Audience, _raising: Raising) -> Result<(), DomainError> {
+    fn add_entity(&self, _entity: Entity) -> Result<EntityPtr, DomainError> {
         todo!()
     }
 
-    fn hooks(&self) -> &ManagedHooks {
+    fn find_item(
+        &self,
+        _surroundings: &Surroundings,
+        _item: &Item,
+    ) -> Result<Option<EntityPtr>, DomainError> {
+        todo!()
+    }
+
+    fn obliterate(&self, _entity: &EntityPtr) -> Result<(), DomainError> {
+        todo!()
+    }
+
+    fn raise(
+        &self,
+        _living: Option<EntityPtr>,
+        _audience: Audience,
+        _raising: Raising,
+    ) -> Result<(), DomainError> {
         todo!()
     }
 
@@ -103,6 +100,17 @@ impl ActiveSession for KeysOnlySession {
         _when: DateTime<Utc>,
         _message: &dyn ToTaggedJson,
     ) -> Result<(), DomainError> {
+        todo!()
+    }
+
+    fn try_deserialize_action(
+        &self,
+        _tagged: &TaggedJson,
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
+        todo!()
+    }
+
+    fn hooks(&self) -> &ManagedHooks {
         todo!()
     }
 }

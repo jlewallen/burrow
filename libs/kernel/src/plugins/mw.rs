@@ -67,7 +67,10 @@ mod tests {
     use serde::Serialize;
 
     use super::*;
-    use crate::actions::{Action, PerformAction};
+    use crate::{
+        actions::{Action, HasTag, PerformAction},
+        model::{build_entity, EntityKey, EntityPtr, Identity},
+    };
 
     #[allow(dead_code)]
     pub struct Middle {
@@ -99,12 +102,21 @@ mod tests {
     #[derive(Default, Serialize, Debug)]
     struct ExampleAction {}
 
+    impl HasTag for ExampleAction {
+        fn tag() -> std::borrow::Cow<'static, str>
+        where
+            Self: Sized,
+        {
+            "exampleAction".into()
+        }
+    }
+
     impl ToTaggedJson for ExampleAction {
         fn to_tagged_json(
             &self,
         ) -> std::result::Result<replies::TaggedJson, replies::TaggedJsonError> {
             Ok(TaggedJson::new(
-                "exampleAction".to_owned(),
+                Self::tag().to_string(),
                 serde_json::to_value(self)?.into(),
             ))
         }
@@ -129,10 +141,19 @@ mod tests {
 
     #[test]
     fn should_call_handle_with_no_middleware() -> Result<()> {
+        let living = EntityPtr::new_from_entity(
+            build_entity()
+                .living()
+                .with_key(EntityKey::new("E-0"))
+                .identity(Identity::new("".to_lowercase(), "".to_owned()))
+                .try_into()?,
+        );
+
         let all: Vec<Rc<dyn Middleware>> = Vec::new();
         let request_fn =
             Box::new(|_value: Perform| -> Result<Effect, anyhow::Error> { Ok(Effect::Ok) });
-        let perform = Perform::Chain(PerformAction::Instance(Rc::new(ExampleAction::default())));
+        let action = PerformAction::Instance(Rc::new(ExampleAction::default()));
+        let perform = Perform::Living { living, action };
         let effect = apply_middleware(&all, perform, request_fn)?;
         assert_eq!(effect, Effect::Ok);
         Ok(())
@@ -140,11 +161,20 @@ mod tests {
 
     #[test]
     fn should_middleware_in_expected_order() -> Result<()> {
+        let living = EntityPtr::new_from_entity(
+            build_entity()
+                .living()
+                .with_key(EntityKey::new("E-0"))
+                .identity(Identity::new("".to_lowercase(), "".to_owned()))
+                .try_into()?,
+        );
+
         let all: Vec<Rc<dyn Middleware>> =
             vec![Rc::new(Middle::from("A")), Rc::new(Middle::from("B"))];
         let request_fn =
             Box::new(|_value: Perform| -> Result<Effect, anyhow::Error> { Ok(Effect::Ok) });
-        let perform = Perform::Chain(PerformAction::Instance(Rc::new(ExampleAction::default())));
+        let action = PerformAction::Instance(Rc::new(ExampleAction::default()));
+        let perform = Perform::Living { living, action };
         let effect = apply_middleware(&all, perform, request_fn)?;
         assert_eq!(effect, Effect::Ok);
         Ok(())

@@ -20,8 +20,8 @@ plugins: setup
 deliver: setup
     cargo run -- eval --deliver
 
-eval: setup
-    cargo run -- eval
+eval *args='': setup
+    cargo run -- eval {{args}}
 
 migrate: setup
     cargo run -- migrate

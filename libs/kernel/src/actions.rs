@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{fmt::Debug, rc::Rc};
 
-pub use replies::{JsonValue, TaggedJson, TaggedJsonError, ToTaggedJson};
+pub use replies::{HasTag, JsonValue, TaggedJson, TaggedJsonError, ToTaggedJson};
 
 use crate::model::DomainError;
 use crate::session::SessionRef;
@@ -14,7 +14,7 @@ use crate::{
 
 pub type ReplyResult = anyhow::Result<Effect>;
 
-pub trait Action: ToTaggedJson + Debug {
+pub trait Action: HasTag + ToTaggedJson + Debug {
     fn is_read_only() -> bool
     where
         Self: Sized;
@@ -24,16 +24,23 @@ pub trait Action: ToTaggedJson + Debug {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Raised {
-    pub key: String,
     pub audience: Audience,
+    pub key: String,
+    pub living: Option<EntityPtr>,
     pub event: TaggedJson,
 }
 
 impl Raised {
-    pub fn new(audience: Audience, key: String, event: TaggedJson) -> Self {
+    pub fn new(
+        audience: Audience,
+        key: String,
+        living: Option<EntityPtr>,
+        event: TaggedJson,
+    ) -> Self {
         Self {
-            key,
             audience,
+            key,
+            living,
             event,
         }
     }
@@ -69,6 +76,7 @@ pub struct Scheduling {
 #[derive(Clone, Debug)]
 pub enum PerformAction {
     Instance(Rc<dyn Action>),
+    TaggedJson(TaggedJson),
 }
 
 impl Serialize for PerformAction {
@@ -82,6 +90,7 @@ impl Serialize for PerformAction {
                 .unwrap()
                 .into_tagged()
                 .serialize(serializer),
+            PerformAction::TaggedJson(tagged) => tagged.serialize(serializer),
         }
     }
 }
@@ -97,7 +106,6 @@ pub enum Perform {
         surroundings: Surroundings,
         action: PerformAction,
     },
-    Chain(PerformAction),
     Delivery(Incoming),
     Raised(Raised),
     Schedule(Scheduling),
@@ -114,7 +122,6 @@ impl Perform {
                 surroundings: _,
                 action: _,
             } => "Surroundings",
-            Perform::Chain(_) => "Chain",
             Perform::Delivery(_) => "Delivery",
             Perform::Raised(_) => "Raised",
             Perform::Schedule(_) => "Schedule",

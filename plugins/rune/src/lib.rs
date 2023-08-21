@@ -1,13 +1,18 @@
+use anyhow::Context;
 use serde::{Deserialize, Serialize};
-use sources::Script;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::{cell::RefCell, rc::Rc};
 
 use plugins_core::library::plugin::*;
+use sources::Script;
 
+mod module;
 mod runner;
 mod sources;
+
+#[cfg(test)]
+mod tests;
 
 use runner::*;
 
@@ -28,28 +33,42 @@ impl PluginFactory for RunePluginFactory {
     }
 }
 
-#[derive(Clone, Default)]
-pub struct Runners(Arc<RefCell<Vec<RuneRunner>>>);
+#[derive(Default)]
+pub struct Runners {
+    schema: Option<SchemaCollection>,
+    runners: Vec<RuneRunner>,
+}
 
 impl Runners {
-    fn add_runners_for(&self, scripts: impl Iterator<Item = Script>) -> Result<()> {
-        let mut runners = self.0.borrow_mut();
+    fn add_runners_for(&mut self, scripts: impl Iterator<Item = Script>) -> Result<()> {
         for script in scripts {
-            runners.push(RuneRunner::new(script)?);
+            self.runners
+                .push(RuneRunner::new(self.schema.as_ref().unwrap(), script)?);
         }
 
         Ok(())
     }
 }
 
+#[derive(Clone, Default)]
+pub struct SharedRunners(Arc<RefCell<Runners>>);
+
+impl SharedRunners {
+    fn initialize(&self, schema: &SchemaCollection) {
+        let mut slf = self.0.borrow_mut();
+        slf.schema = Some(schema.clone())
+    }
+}
+
 #[derive(Default)]
 pub struct RunePlugin {
-    runners: Runners,
+    runners: SharedRunners,
 }
 
 impl RunePlugin {
     fn add_runners_for(&self, scripts: impl Iterator<Item = Script>) -> Result<()> {
-        self.runners.add_runners_for(scripts)
+        let mut runners = self.runners.0.borrow_mut();
+        runners.add_runners_for(scripts)
     }
 }
 
@@ -65,12 +84,10 @@ impl Plugin for RunePlugin {
         Self::plugin_key()
     }
 
-    fn initialize(&mut self) -> Result<()> {
-        self.add_runners_for(sources::load_user_sources()?.into_iter())?;
+    fn initialize(&mut self, schema: &SchemaCollection) -> Result<()> {
+        self.runners.initialize(schema);
 
-        for runner in self.runners.0.borrow_mut().iter_mut() {
-            runner.user()?;
-        }
+        self.add_runners_for(sources::load_user_sources()?.into_iter())?;
 
         Ok(())
     }
@@ -92,32 +109,23 @@ impl ParsesActions for RunePlugin {
     }
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[allow(clippy::enum_variant_names)]
-enum SaveScriptActions {
-    SaveScriptAction(actions::SaveScriptAction),
-}
-
 #[derive(Default)]
 pub struct SaveScriptActionSource {}
 
 impl ActionSource for SaveScriptActionSource {
     fn try_deserialize_action(
         &self,
-        value: &JsonValue,
-    ) -> Result<Box<dyn Action>, EvaluationError> {
-        serde_json::from_value::<SaveScriptActions>(value.clone())
-            .map(|a| match a {
-                SaveScriptActions::SaveScriptAction(action) => Box::new(action) as Box<dyn Action>,
-            })
-            .map_err(|_| EvaluationError::ParseFailed)
+        tagged: &TaggedJson,
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
+        try_deserialize_all!(tagged, actions::SaveScriptAction);
+
+        Ok(None)
     }
 }
 
 #[derive(Default)]
 struct RuneMiddleware {
-    runners: Runners,
+    runners: SharedRunners,
 }
 
 impl RuneMiddleware {}
@@ -134,17 +142,55 @@ impl Middleware for RuneMiddleware {
                 action: _,
             } => {
                 let sources = load_sources_from_surroundings(surroundings)?;
-                self.runners.add_runners_for(sources.into_iter())?;
+                let mut runners = self.runners.0.borrow_mut();
+                runners.add_runners_for(sources.into_iter())?;
             }
             _ => {}
+        }
+
+        let handler_rvs: Vec<_> = {
+            let mut runners = self.runners.0.borrow_mut();
+
+            runners
+                .runners
+                .iter_mut()
+                .map(|runner| runner.call_handlers(value.clone()))
+                .collect::<Result<Vec<_>>>()?
+        };
+
+        let living: Option<EntityPtr> = value.find_living()?;
+
+        if let Some(living) = living {
+            for value in handler_rvs.into_iter().flatten() {
+                // Annoying that Object doesn't impl Serialize so this clone.
+                match value.clone() {
+                    rune::Value::Object(object) => {
+                        info!("{:#?}", object);
+                        let value = serde_json::to_value(value)?;
+                        let tagged = TaggedJson::new_from(value)?;
+
+                        let session = get_my_session()?;
+                        let action = PerformAction::TaggedJson(tagged);
+                        let living = living.clone();
+                        session
+                            .perform(Perform::Living { living, action })
+                            .with_context(|| format!("Rune perform"))?;
+                    }
+                    rune::Value::EmptyTuple => {}
+                    _ => warn!("unexpected handler answer: {:#?}", value),
+                }
+            }
         }
 
         let before = {
             let mut runners = self.runners.0.borrow_mut();
 
-            runners.iter_mut().fold(Some(value), |perform, runner| {
-                perform.and_then(|perform| runner.before(perform).expect("Error in before"))
-            })
+            runners
+                .runners
+                .iter_mut()
+                .fold(Some(value), |perform, runner| {
+                    perform.and_then(|perform| runner.before(perform).expect("Error in before"))
+                })
         };
 
         if let Some(value) = before {
@@ -152,7 +198,7 @@ impl Middleware for RuneMiddleware {
 
             let mut runners = self.runners.0.borrow_mut();
 
-            let after = runners.iter_mut().fold(after, |effect, runner| {
+            let after = runners.runners.iter_mut().fold(after, |effect, runner| {
                 runner.after(effect).expect("Error in after")
             });
 
@@ -276,6 +322,35 @@ mod parser {
             )(i)?;
 
             action
+        }
+    }
+}
+
+trait TryFindLiving {
+    fn find_living(&self) -> Result<Option<EntityPtr>>;
+}
+
+impl TryFindLiving for Perform {
+    fn find_living(&self) -> Result<Option<EntityPtr>> {
+        match self {
+            Perform::Surroundings {
+                surroundings,
+                action: _,
+            } => surroundings.find_living(),
+            Perform::Raised(raised) => Ok(raised.living.clone()),
+            _ => todo!(),
+        }
+    }
+}
+
+impl TryFindLiving for Surroundings {
+    fn find_living(&self) -> Result<Option<EntityPtr>> {
+        match self {
+            Surroundings::Living {
+                world: _,
+                living,
+                area: _,
+            } => Ok(Some(living.clone())),
         }
     }
 }

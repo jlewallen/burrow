@@ -1,12 +1,21 @@
+use json::*;
+use rand::*;
+
+use carrying::*;
+
 pub fn held(bag) {
     info(format!("held {:?} {:?}", bag, owner()));
+
+    actions::chat::speak(ActionArgs {
+        here: Some("Whoa there!")
+    })?
 }
 
 pub fn dropped(bag) {
-    info(format!("dropped {:?}", bag));
+    // info(format!("dropped {:?}", bag));
+    // info(format!("dropped {:?} {:?}", bag.area(), bag.area().unwrap().name()));
+    // info(format!("dropped {:?} {:?}", bag.living(), bag.living().unwrap().name()));
     info(format!("dropped {:?} {:?}", bag.item(), bag.item().unwrap().name()));
-    info(format!("dropped {:?} {:?}", bag.area(), bag.area().unwrap().name()));
-    info(format!("dropped {:?} {:?}", bag.living(), bag.living().unwrap().name()));
 }
 
 pub fn left(bag) {

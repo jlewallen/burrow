@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::library::actions::*;
 use crate::looking::actions::*;
 use crate::looking::model::Observe;
@@ -37,6 +39,7 @@ impl GoAction {
                         .collect();
 
                     session.raise(
+                        Some(living.clone()),
                         Audience::Area(area.key().clone()),
                         Raising::TaggedJson(
                             Moving::Left {
@@ -47,6 +50,7 @@ impl GoAction {
                         ),
                     )?;
                     session.raise(
+                        Some(living.clone()),
                         Audience::Individuals(hearing_arrive),
                         Raising::TaggedJson(
                             Moving::Arrived {

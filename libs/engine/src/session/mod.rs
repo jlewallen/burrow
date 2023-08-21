@@ -119,7 +119,7 @@ impl Session {
 
         match action {
             Some(action) => {
-                info!("{:#?}", action.to_tagged_json()?.into_tagged());
+                debug!("{:#?}", action.to_tagged_json()?.into_tagged());
 
                 let key = match evaluate_as {
                     EvaluateAs::Name(user_name) => user_name_to_key(self, user_name)?,
@@ -276,10 +276,10 @@ impl EntityPtrResolver for Session {
 impl ActiveSession for Session {
     fn try_deserialize_action(
         &self,
-        value: &JsonValue,
-    ) -> Result<Box<dyn Action>, EvaluationError> {
+        tagged: &TaggedJson,
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
         let plugins = self.plugins.borrow();
-        plugins.try_deserialize_action(value)
+        plugins.try_deserialize_action(tagged)
     }
 
     fn new_key(&self) -> EntityKey {
@@ -337,8 +337,18 @@ impl ActiveSession for Session {
         self.state.obliterate(entity)
     }
 
-    fn raise(&self, audience: Audience, raising: Raising) -> Result<(), DomainError> {
-        let perform = Perform::Raised(Raised::new(audience.clone(), "".to_owned(), raising.into()));
+    fn raise(
+        &self,
+        living: Option<EntityPtr>,
+        audience: Audience,
+        raising: Raising,
+    ) -> Result<(), DomainError> {
+        let perform = Perform::Raised(Raised::new(
+            audience.clone(),
+            "".to_owned(),
+            living.clone(),
+            raising.into(),
+        ));
 
         self.perform(perform).map(|_| ())
     }

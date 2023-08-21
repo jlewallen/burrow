@@ -65,6 +65,7 @@ impl WorkingEntities {
 }
 
 struct RaisedEvent {
+    _living: Option<EntityPtr>,
     audience: Audience,
     raising: Raising,
 }
@@ -115,8 +116,8 @@ impl EntityPtrResolver for AgentSession {
 impl ActiveSession for AgentSession {
     fn try_deserialize_action(
         &self,
-        _value: &JsonValue,
-    ) -> Result<Box<dyn Action>, EvaluationError> {
+        _tagged: &TaggedJson,
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
         unimplemented!("AgentSession:try-deserialize-action")
     }
 
@@ -149,10 +150,17 @@ impl ActiveSession for AgentSession {
         unimplemented!("AgentSession:new-identity")
     }
 
-    fn raise(&self, audience: Audience, raising: Raising) -> Result<(), DomainError> {
-        self.raised
-            .borrow_mut()
-            .push(RaisedEvent { audience, raising });
+    fn raise(
+        &self,
+        living: Option<EntityPtr>,
+        audience: Audience,
+        raising: Raising,
+    ) -> Result<(), DomainError> {
+        self.raised.borrow_mut().push(RaisedEvent {
+            _living: living,
+            audience,
+            raising,
+        });
 
         Ok(())
     }

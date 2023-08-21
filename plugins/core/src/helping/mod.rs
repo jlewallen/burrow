@@ -1,5 +1,3 @@
-use serde::Deserialize;
-
 use crate::library::plugin::*;
 
 #[cfg(test)]
@@ -45,26 +43,17 @@ impl ParsesActions for HelpingPlugin {
     }
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[allow(clippy::enum_variant_names)]
-enum SaveHelpActions {
-    SaveHelpAction(actions::SaveHelpAction),
-}
-
 #[derive(Default)]
 pub struct SaveHelpActionSource {}
 
 impl ActionSource for SaveHelpActionSource {
     fn try_deserialize_action(
         &self,
-        value: &JsonValue,
-    ) -> Result<Box<dyn Action>, EvaluationError> {
-        serde_json::from_value::<SaveHelpActions>(value.clone())
-            .map(|a| match a {
-                SaveHelpActions::SaveHelpAction(action) => Box::new(action) as Box<dyn Action>,
-            })
-            .map_err(|_| EvaluationError::ParseFailed)
+        tagged: &TaggedJson,
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
+        try_deserialize_all!(tagged, actions::SaveHelpAction);
+
+        Ok(None)
     }
 }
 

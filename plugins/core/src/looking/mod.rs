@@ -30,11 +30,33 @@ impl Plugin for LookingPlugin {
     fn key(&self) -> &'static str {
         Self::plugin_key()
     }
+
+    fn schema(&self) -> Schema {
+        Schema::empty().action::<actions::LookAction>()
+    }
+
+    fn sources(&self) -> Vec<Box<dyn ActionSource>> {
+        vec![Box::new(LookActionSource::default())]
+    }
 }
 
 impl ParsesActions for LookingPlugin {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
         try_parsing(parser::LookActionParser {}, i)
+    }
+}
+
+#[derive(Default)]
+pub struct LookActionSource {}
+
+impl ActionSource for LookActionSource {
+    fn try_deserialize_action(
+        &self,
+        tagged: &TaggedJson,
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
+        try_deserialize_all!(tagged, actions::LookAction);
+
+        Ok(None)
     }
 }
 

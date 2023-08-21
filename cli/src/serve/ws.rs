@@ -14,6 +14,7 @@ use tracing::{info, trace, warn};
 use engine::prelude::{EvaluateAs, Notifier, Session, SessionOpener};
 use kernel::prelude::{
     Effect, EntityKey, EntityPtrResolver, JsonValue, LookupBy, Perform, PerformAction, Performer,
+    TaggedJson,
 };
 use kernel::{common::SimpleReply, session::ActiveSession};
 
@@ -26,7 +27,7 @@ use super::AppState;
 pub enum ClientMessage {
     Token { token: String },
     Evaluate(String),
-    Perform(JsonValue),
+    Perform(TaggedJson),
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -145,6 +146,7 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
                                 let action: Rc<_> = session
                                     .try_deserialize_action(&value)
                                     .expect("try parse action failed")
+                                    .unwrap()
                                     .into();
                                 let living = session
                                     .entity(&LookupBy::Key(&EntityKey::new(&our_key)))

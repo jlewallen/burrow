@@ -30,8 +30,19 @@ impl Plugin for MovingPlugin {
         "moving"
     }
 
+    fn schema(&self) -> Schema {
+        Schema::empty()
+            .action::<actions::GoAction>()
+            .action::<actions::AddRouteAction>()
+            .action::<actions::RemoveRouteAction>()
+    }
+
     fn key(&self) -> &'static str {
         Self::plugin_key()
+    }
+
+    fn sources(&self) -> Vec<Box<dyn ActionSource>> {
+        vec![Box::new(ActionSources::default())]
     }
 }
 
@@ -39,5 +50,24 @@ impl ParsesActions for MovingPlugin {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
         try_parsing(parser::GoActionParser {}, i)
             .or_else(|_| try_parsing(parser::RouteActionParser {}, i))
+    }
+}
+
+#[derive(Default)]
+pub struct ActionSources {}
+
+impl ActionSource for ActionSources {
+    fn try_deserialize_action(
+        &self,
+        tagged: &TaggedJson,
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
+        try_deserialize_all!(
+            tagged,
+            actions::GoAction,
+            actions::AddRouteAction,
+            actions::RemoveRouteAction
+        );
+
+        Ok(None)
     }
 }

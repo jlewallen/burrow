@@ -47,8 +47,8 @@ impl Owner {
         write!(s, "{:?}", self)
     }
 
-    pub fn key(&self) -> &str {
-        self.key.key_to_string()
+    pub fn key(&self) -> String {
+        self.key.key_to_string().to_owned()
     }
 
     pub fn relation(&self) -> Relation {
@@ -68,9 +68,17 @@ impl Script {
     }
 }
 
+pub fn load_library_sources() -> Result<Vec<Script>> {
+    load_directory_sources("user/lib/*.rn")
+}
+
 pub fn load_user_sources() -> Result<Vec<Script>> {
+    load_directory_sources("user/*.rn")
+}
+
+pub fn load_directory_sources(path: &str) -> Result<Vec<Script>> {
     let mut scripts = Vec::new();
-    for file in glob("user/*.rn")? {
+    for file in glob(path)? {
         match file {
             Ok(path) => {
                 info!("script {}", path.display());
@@ -113,7 +121,6 @@ impl Relation {
     }
 }
 
-#[allow(dead_code)]
 pub fn load_sources_from_surroundings(surroundings: &Surroundings) -> Result<Vec<Script>> {
     let mut scripts = Vec::new();
     let haystack = EntityRelationshipSet::new_from_surroundings(surroundings).expand()?;

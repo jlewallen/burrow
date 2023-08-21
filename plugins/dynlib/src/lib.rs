@@ -256,7 +256,7 @@ struct LibraryMiddleware {
 impl Middleware for LibraryMiddleware {
     fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
         let _span = span!(Level::INFO, "M" /*, lib = self.prefix*/).entered();
-        info!("before");
+        debug!("before");
 
         let v = unsafe {
             let sym = self
@@ -271,7 +271,7 @@ impl Middleware for LibraryMiddleware {
             (decl.middleware)(value, temp)
         };
 
-        info!("after");
+        debug!("after");
         v
     }
 }
@@ -284,7 +284,7 @@ impl Middleware for DynamicMiddleware {
     fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
         let _span = span!(Level::INFO, "M", plugin = "dynlib").entered();
 
-        info!("before");
+        debug!("before");
 
         let children = self.children.borrow();
         let request_fn =
@@ -298,7 +298,7 @@ impl Middleware for DynamicMiddleware {
 
         let v = inner.handle(value);
 
-        info!("after");
+        debug!("after");
 
         v
     }
@@ -316,7 +316,7 @@ impl Plugin for DynamicPlugin {
         Self::plugin_key()
     }
 
-    fn initialize(&mut self) -> Result<()> {
+    fn initialize(&mut self, _schema: &SchemaCollection) -> Result<()> {
         match self.open_dynamic() {
             Ok(v) => trace!("{:?}", v),
             Err(e) => warn!("Error: {:?}", e),

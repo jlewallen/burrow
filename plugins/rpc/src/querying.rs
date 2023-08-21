@@ -38,7 +38,7 @@ impl Querying {
             Query::Bootstrap => replies.send(Payload::Initialize)?,
             Query::Update(update) => services.apply_update(update.clone())?,
             Query::Raise(audience, raised) => services
-                .raise(audience.clone().into(), raised.clone().into())
+                .raise(None, audience.clone().into(), raised.clone().into())
                 .with_context(|| "raising (rpc)")?,
             Query::Schedule(key, millis, serialized) => services
                 .schedule(key, *millis, serialized.clone())

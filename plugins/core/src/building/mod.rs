@@ -1,5 +1,3 @@
-use serde::Deserialize;
-
 use crate::library::plugin::*;
 
 pub mod actions;
@@ -36,6 +34,17 @@ impl Plugin for BuildingPlugin {
         Self::plugin_key()
     }
 
+    fn schema(&self) -> Schema {
+        Schema::empty()
+            .action::<actions::EditAction>()
+            .action::<actions::DuplicateAction>()
+            .action::<actions::BidirectionalDigAction>()
+            .action::<actions::ObliterateAction>()
+            .action::<actions::MakeItemAction>()
+            .action::<actions::BuildAreaAction>()
+            .action::<actions::AddScopeAction>()
+    }
+
     fn sources(&self) -> Vec<Box<dyn ActionSource>> {
         vec![Box::new(SaveActionSource::default())]
     }
@@ -53,27 +62,25 @@ impl ParsesActions for BuildingPlugin {
     }
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[allow(clippy::enum_variant_names)]
-enum SaveActions {
-    SaveEntityJsonAction(actions::SaveEntityJsonAction),
-    SaveQuickEditAction(actions::SaveQuickEditAction),
-}
-
 #[derive(Default)]
 pub struct SaveActionSource {}
 
 impl ActionSource for SaveActionSource {
     fn try_deserialize_action(
         &self,
-        value: &JsonValue,
-    ) -> Result<Box<dyn Action>, EvaluationError> {
-        serde_json::from_value::<SaveActions>(value.clone())
-            .map(|a| match a {
-                SaveActions::SaveEntityJsonAction(action) => Box::new(action) as Box<dyn Action>,
-                SaveActions::SaveQuickEditAction(action) => Box::new(action) as Box<dyn Action>,
-            })
-            .map_err(|_| EvaluationError::ParseFailed)
+        tagged: &TaggedJson,
+    ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
+        try_deserialize_all!(
+            tagged,
+            actions::SaveQuickEditAction,
+            actions::SaveEntityJsonAction,
+            actions::DuplicateAction,
+            actions::MakeItemAction,
+            actions::BuildAreaAction,
+            actions::AddScopeAction,
+            actions::ObliterateAction
+        );
+
+        Ok(None)
     }
 }
