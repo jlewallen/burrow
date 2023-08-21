@@ -86,28 +86,6 @@ impl LocalEntity {
     }
 }
 
-#[derive(rune::Any, Debug)]
-struct RuneActions {}
-
-pub trait ToRuneObject {
-    fn to_rune_object(&self) -> Result<rune::runtime::Object>;
-}
-
-impl RuneActions {}
-
-impl ToRuneObject for ActionArgs {
-    fn to_rune_object(&self) -> Result<rune::runtime::Object> {
-        match &self.here {
-            Some(here) => {
-                let mut obj = Object::new();
-                obj.insert("here".to_owned(), here.to_owned().into());
-                Ok(obj)
-            }
-            None => Ok(Object::new().into()),
-        }
-    }
-}
-
 fn action_factory(
     _plugin_name: &str,
     action_name: &str,
@@ -124,7 +102,6 @@ fn action_factory(
 
 pub(super) fn create(schema: &SchemaCollection, owner: Option<Owner>) -> Result<rune::Module> {
     let mut module = rune::Module::default();
-    module.ty::<RuneActions>()?;
     for (plugin, action) in schema.actions() {
         let function_name = action.trim_end_matches("Action");
         trace!("declaring 'actions.{}.{}'", plugin, function_name);
@@ -198,5 +175,22 @@ impl ActionArgs {
     fn string_debug(&self, s: &mut String) -> std::fmt::Result {
         use std::fmt::Write;
         write!(s, "{:?}", self)
+    }
+}
+
+pub trait ToRuneObject {
+    fn to_rune_object(&self) -> Result<rune::runtime::Object>;
+}
+
+impl ToRuneObject for ActionArgs {
+    fn to_rune_object(&self) -> Result<rune::runtime::Object> {
+        match &self.here {
+            Some(here) => {
+                let mut obj = Object::new();
+                obj.insert("here".to_owned(), here.to_owned().into());
+                Ok(obj)
+            }
+            None => Ok(Object::new().into()),
+        }
     }
 }
