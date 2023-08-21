@@ -150,11 +150,15 @@ impl Performer for State {
                 }
                 PerformAction::TaggedJson(tagged) => {
                     info!("tagged: {:?}", &tagged);
-                    let action = get_my_session()?.try_deserialize_action(&tagged)?;
-                    self.perform(Perform::Surroundings {
-                        surroundings,
-                        action: PerformAction::Instance(action.unwrap().into()),
-                    })
+                    if let Some(action) = get_my_session()?.try_deserialize_action(&tagged)? {
+                        self.perform(Perform::Surroundings {
+                            surroundings,
+                            action: PerformAction::Instance(action.into()),
+                        })
+                    } else {
+                        warn!("failed to deserialize action {:#?}", tagged);
+                        Ok(Effect::Ok)
+                    }
                 }
             },
             Perform::Raised(raised) => {

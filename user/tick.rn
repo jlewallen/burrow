@@ -6,14 +6,16 @@ use carrying::*;
 pub fn held(bag) {
     info(format!("held {:?} {:?}", bag, owner()));
 
-    //  #{ "lookAction": #{} }
+    actions::chat::speak(ActionArgs {
+        here: Some("Whoa there!")
+    })?
 }
 
 pub fn dropped(bag) {
-    info(format!("dropped {:?}", bag));
+    // info(format!("dropped {:?}", bag));
+    // info(format!("dropped {:?} {:?}", bag.area(), bag.area().unwrap().name()));
+    // info(format!("dropped {:?} {:?}", bag.living(), bag.living().unwrap().name()));
     info(format!("dropped {:?} {:?}", bag.item(), bag.item().unwrap().name()));
-    info(format!("dropped {:?} {:?}", bag.area(), bag.area().unwrap().name()));
-    info(format!("dropped {:?} {:?}", bag.living(), bag.living().unwrap().name()));
 }
 
 pub fn left(bag) {
@@ -25,10 +27,6 @@ pub fn arrived(bag) {
 }
 
 pub fn handlers() {
-    let args = ActionArgs { here: Some("Whoa there!") };
-    info(format!("args = {:?}", args));
-    info(format!("speak = {:?}", actions::chat::speak(args)));
-
     #{
         "carrying": #{
             "held": held,
