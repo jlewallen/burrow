@@ -1,5 +1,4 @@
 use anyhow::Result;
-use chrono::{DateTime, Utc};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use tracing::*;
 
@@ -70,17 +69,11 @@ struct RaisedEvent {
     raising: Raising,
 }
 
-pub struct ScheduledFuture {
-    pub key: String,
-    pub time: DateTime<Utc>,
-    pub serialized: JsonValue,
-}
-
 #[derive(Default)]
 pub struct AgentSession {
     entities: Rc<RefCell<WorkingEntities>>,
     raised: Rc<RefCell<Vec<RaisedEvent>>>,
-    futures: Rc<RefCell<Vec<ScheduledFuture>>>,
+    futures: Rc<RefCell<Vec<FutureAction>>>,
 }
 
 impl AgentSession {
@@ -169,18 +162,10 @@ impl ActiveSession for AgentSession {
         unimplemented!("AgentSession:hooks")
     }
 
-    fn schedule(
-        &self,
-        key: &str,
-        time: DateTime<Utc>,
-        message: &dyn kernel::prelude::ToTaggedJson,
-    ) -> Result<(), DomainError> {
+    fn schedule(&self, destined: FutureAction) -> Result<(), DomainError> {
         let mut futures = self.futures.borrow_mut();
-        futures.push(ScheduledFuture {
-            key: key.to_owned(),
-            time,
-            serialized: message.to_tagged_json()?.into_tagged(),
-        });
+        futures.push(destined);
+
         Ok(())
     }
 }
@@ -280,8 +265,9 @@ where
         for future in futures.iter() {
             queries.push(Query::Schedule(
                 future.key.clone(),
+                future.entity.clone().into(),
                 future.time.timestamp_millis(),
-                future.serialized.clone().into(),
+                future.action.clone().into(),
             ));
         }
 

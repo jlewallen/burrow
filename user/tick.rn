@@ -1,14 +1,33 @@
 use json::*;
 use rand::*;
+use time::*;
+
+fn test_stuff(bag) {
+    let args = #{
+        "target": bag.living().unwrap().key(),
+        "tagged": #{
+            "example": #{}
+        }
+    };
+
+    let scheduling = actions::rune::rune(args)?;
+
+    [
+        actions::chat::speak(ActionArgs {
+            here: Some("Whoa there!")
+        })?,
+
+        actions::scheduling::schedule(#{
+            "entity": bag.item().unwrap().key(),
+            "key": "TEST",
+            "time": #{ "delay": 5000 },
+            "action": scheduling
+        })?
+    ]
+}
 
 pub fn held(bag) {
-    // info(format!("held {:?} {:?}", bag, owner()));
-
-    /*
-    actions::chat::speak(ActionArgs {
-        here: Some("Whoa there!")
-    })?
-    */
+    test_stuff(bag)
 }
 
 pub fn dropped(bag) {
@@ -16,6 +35,8 @@ pub fn dropped(bag) {
     // info(format!("dropped {:?} {:?}", bag.area(), bag.area().unwrap().name()));
     // info(format!("dropped {:?} {:?}", bag.living(), bag.living().unwrap().name()));
     // info(format!("dropped {:?} {:?}", bag.item(), bag.item().unwrap().name()));
+
+    test_stuff(bag)
 }
 
 pub fn left(bag) {

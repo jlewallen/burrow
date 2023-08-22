@@ -14,7 +14,7 @@ use plugins_core::{
     building::BuildingPluginFactory, carrying::CarryingPluginFactory, chat::ChatPluginFactory,
     emote::EmotePluginFactory, fashion::FashionPluginFactory, helping::HelpingPluginFactory,
     looking::LookingPluginFactory, memory::MemoryPluginFactory, moving::MovingPluginFactory,
-    security::SecurityPluginFactory, DefaultFinder,
+    sched::SchedulingPluginFactory, security::SecurityPluginFactory, DefaultFinder,
 };
 use plugins_dynlib::DynamicPluginFactory;
 use plugins_rpc::RpcPluginFactory;
@@ -46,6 +46,7 @@ enum Commands {
     Eval(eval::Command),
     Dump(dump::Command),
     Migrate(migrate::Command),
+    Schema,
     Hacking,
 }
 
@@ -169,6 +170,7 @@ impl DomainBuilder {
         registered_plugins.register(SecurityPluginFactory::default());
         registered_plugins.register(HelpingPluginFactory::default());
         registered_plugins.register(BuildingPluginFactory::default());
+        registered_plugins.register(SchedulingPluginFactory::default());
         let finder = Arc::new(DefaultFinder::default());
         let storage_factory = Arc::new(self.storage_factory()?);
         storage_factory.migrate()?;
@@ -226,6 +228,26 @@ fn main() -> Result<(), Box<dyn Error>> {
         Some(Commands::Dump(cmd)) => Ok(dump::execute_command(cmd)?),
         Some(Commands::Migrate(cmd)) => Ok(migrate::execute_command(cmd)?),
         Some(Commands::Hacking) => Ok(hacking::execute_command()?),
+        Some(Commands::Schema) => Ok(schema::execute_command()?),
         None => Ok(()),
+    }
+}
+
+mod schema {
+    use engine::prelude::SessionOpener;
+
+    use crate::DomainBuilder;
+    use anyhow::Result;
+
+    #[tokio::main]
+    pub async fn execute_command() -> Result<()> {
+        let builder = DomainBuilder::default();
+        let domain = builder.build().await?;
+        let session = domain.open_session()?;
+        let schema = session.schema();
+
+        println!("{:#?}", schema);
+
+        Ok(())
     }
 }

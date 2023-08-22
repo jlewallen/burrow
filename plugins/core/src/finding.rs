@@ -2,7 +2,7 @@ use anyhow::Result;
 use serde::Serialize;
 use tracing::debug;
 
-use crate::{moving::model::Occupying, tools};
+use crate::{location::Location, moving::model::Occupying, tools};
 use kernel::prelude::{
     get_my_session, here, Audience, DomainError, EntityPtr, Finder, IntoEntityPtr, Item, OpenScope,
     Surroundings,
@@ -202,14 +202,31 @@ fn default_priority(e: &EntityRelationship) -> u32 {
 #[derive(Default)]
 pub struct DefaultFinder {}
 
+impl DefaultFinder {
+    fn find_top_container(&self, entity: EntityPtr) -> Result<EntityPtr, DomainError> {
+        if let Some(container) = entity.scope::<Location>()? {
+            self.find_top_container(container.container.as_ref().unwrap().to_entity()?)
+        } else {
+            Ok(entity)
+        }
+    }
+}
+
 impl Finder for DefaultFinder {
     fn find_world(&self) -> Result<EntityPtr, DomainError> {
         Ok(get_my_session()?.world()?.expect("No world"))
     }
 
-    fn find_location(&self, entity: &EntityPtr) -> Result<EntityPtr, DomainError> {
-        let occupying = entity.scope::<Occupying>()?.unwrap();
-        Ok(occupying.area.to_entity()?)
+    fn find_area(&self, entity: &EntityPtr) -> Result<EntityPtr, DomainError> {
+        let entity = self.find_top_container(entity.clone())?;
+
+        if let Some(occupying) = entity.scope::<Occupying>()? {
+            return Ok(occupying.area.to_entity()?);
+        }
+
+        Err(DomainError::Anyhow(anyhow::anyhow!(
+            "No location for entity"
+        )))
     }
 
     fn find_item(

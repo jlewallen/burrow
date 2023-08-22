@@ -40,8 +40,8 @@ impl Querying {
             Query::Raise(audience, raised) => services
                 .raise(None, audience.clone().into(), raised.clone().into())
                 .with_context(|| "raising (rpc)")?,
-            Query::Schedule(key, millis, serialized) => services
-                .schedule(key, *millis, serialized.clone())
+            Query::Schedule(key, entity, millis, serialized) => services
+                .schedule(key, entity.clone(), *millis, serialized.clone())
                 .with_context(|| "scheduling (rpc)")?,
             Query::Effect(effect) => services.produced(effect.clone().into())?,
         }

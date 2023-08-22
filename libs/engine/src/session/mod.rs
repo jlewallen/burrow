@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use chrono::{DateTime, Utc};
 use std::rc::Weak;
 use std::sync::Arc;
 use std::time::Instant;
@@ -166,6 +165,11 @@ impl Session {
         plugins.initialize()?;
 
         Ok(())
+    }
+
+    pub fn schema(&self) -> SchemaCollection {
+        let plugins = self.plugins.borrow();
+        plugins.schema()
     }
 
     pub fn flush<T: Notifier>(&self, notifier: &T) -> Result<()> {
@@ -353,16 +357,8 @@ impl ActiveSession for Session {
         self.perform(perform).map(|_| ())
     }
 
-    fn schedule(
-        &self,
-        key: &str,
-        when: DateTime<Utc>,
-        message: &dyn ToTaggedJson,
-    ) -> Result<(), DomainError> {
-        let key = key.to_owned();
-        let message = message.to_tagged_json()?;
-        let scheduling = Scheduling { key, when, message };
-        let perform = Perform::Schedule(scheduling);
+    fn schedule(&self, destined: FutureAction) -> Result<(), DomainError> {
+        let perform = Perform::Schedule(destined);
 
         self.perform(perform).map(|_| ())
     }
@@ -411,7 +407,7 @@ impl TryInto<Surroundings> for MakeSurroundings {
         let living = self.living.clone();
         let area: EntityPtr = self
             .finder
-            .find_location(&living)
+            .find_area(&living)
             .with_context(|| "find-location")?;
 
         Ok(Surroundings::Living {

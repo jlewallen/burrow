@@ -6,7 +6,6 @@ use std::{
 use crate::*;
 
 use anyhow::Result;
-use chrono::{DateTime, Utc};
 use prelude::*;
 
 #[test]
@@ -94,12 +93,7 @@ impl ActiveSession for KeysOnlySession {
         todo!()
     }
 
-    fn schedule(
-        &self,
-        _key: &str,
-        _when: DateTime<Utc>,
-        _message: &dyn ToTaggedJson,
-    ) -> Result<(), DomainError> {
+    fn schedule(&self, _destined: FutureAction) -> Result<(), DomainError> {
         todo!()
     }
 

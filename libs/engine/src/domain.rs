@@ -56,15 +56,18 @@ impl Domain {
         match storage.query_futures_before(now)? {
             PendingFutures::Futures(futures) => {
                 let session = self.open_session()?;
+                let session = session.set_session()?;
                 let processing = futures.len();
 
                 for future in futures {
-                    info!(key = %future.key, time = %future.time, "delivering");
+                    info!(key = %future.key, entity = %future.entity, time = %future.time, "delivering");
 
                     let value = serde_json::from_str(&future.serialized)?;
-                    if let Ok(_action) = session.try_deserialize_action(&value) {
-                        todo!("Migrate to Perform::Living or an alternative with new Surroundings variant.")
-                        // session.perform(Perform::Chain(PerformAction::Instance(action.into())))?;
+                    if let Ok(Some(action)) = session.try_deserialize_action(&value) {
+                        if let Some(living) = session.entity(&LookupBy::Key(&future.entity))? {
+                            let action = PerformAction::Instance(action.into());
+                            session.perform(Perform::Living { living, action })?;
+                        }
                     }
                 }
 

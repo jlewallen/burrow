@@ -1,11 +1,10 @@
 use anyhow::Result;
-use chrono::{DateTime, Utc};
 use std::ops::Deref;
 use std::{cell::RefCell, rc::Rc};
 
-use replies::{TaggedJson, ToTaggedJson};
+use replies::TaggedJson;
 
-use crate::actions::{Action, Performer};
+use crate::actions::{Action, FutureAction, Performer};
 use crate::hooks::ManagedHooks;
 use crate::model::Entity;
 use crate::model::{
@@ -49,12 +48,7 @@ pub trait ActiveSession: Performer + EntityPtrResolver {
         raising: Raising,
     ) -> Result<(), DomainError>;
 
-    fn schedule(
-        &self,
-        key: &str,
-        when: DateTime<Utc>,
-        message: &dyn ToTaggedJson,
-    ) -> Result<(), DomainError>;
+    fn schedule(&self, future: FutureAction) -> Result<(), DomainError>;
 
     fn try_deserialize_action(
         &self,

@@ -13,7 +13,7 @@ use kernel::prelude::*;
 pub struct State {
     entities: Rc<Entities>,
     raised: Rc<RefCell<Vec<Raised>>>,
-    futures: Rc<RefCell<Vec<Scheduling>>>,
+    futures: Rc<RefCell<Vec<FutureAction>>>,
     destroyed: RefCell<Vec<EntityKey>>,
 }
 
@@ -102,8 +102,9 @@ impl State {
         for future in futures.iter() {
             storage.queue(PersistedFuture {
                 key: future.key.clone(),
-                time: future.when,
-                serialized: future.message.clone().into_tagged().to_string(),
+                entity: future.entity.clone(),
+                time: future.time,
+                serialized: future.action.clone().into_tagged().to_string(),
             })?;
         }
 
@@ -120,10 +121,10 @@ impl State {
         Ok(())
     }
 
-    fn queue_scheduled(&self, scheduling: Scheduling) -> Result<()> {
-        trace!("{:?}", scheduling);
+    fn queue_scheduled(&self, destined: FutureAction) -> Result<()> {
+        trace!("{:?}", destined);
 
-        self.futures.borrow_mut().push(scheduling);
+        self.futures.borrow_mut().push(destined);
 
         Ok(())
     }
@@ -166,8 +167,8 @@ impl Performer for State {
 
                 Ok(Effect::Ok)
             }
-            Perform::Schedule(scheduling) => {
-                self.queue_scheduled(scheduling)?;
+            Perform::Schedule(destined) => {
+                self.queue_scheduled(destined)?;
 
                 Ok(Effect::Ok)
             }
