@@ -103,13 +103,13 @@ impl RuneRunner {
         ctx.install(rune_modules::rand::module(true)?)?;
         ctx.install(super::module::create(schema, script.owner)?)?;
 
-        let mut logs: Option<Vec<LogEntry>> = None;
         let mut diagnostics = Diagnostics::new();
         let compiled = rune::prepare(&mut sources)
             .with_context(&ctx)
             .with_diagnostics(&mut diagnostics)
             .build();
-        if diagnostics.has_error() {
+
+        let logs = if diagnostics.has_error() {
             let mut writer = StandardStream::stderr(ColorChoice::Always);
             diagnostics.emit(&mut writer, &sources)?;
             writer.flush()?;
@@ -118,8 +118,10 @@ impl RuneRunner {
             diagnostics.emit(&mut lines, &sources)?;
             lines.flush()?;
 
-            logs = Some(lines.entries());
-        }
+            Some(lines.entries())
+        } else {
+            Some(vec![LogEntry::new_now("compiled!".to_owned())])
+        };
 
         let runtime: Arc<RuntimeContext> = Arc::new(ctx.runtime());
         let vm = match compiled {
