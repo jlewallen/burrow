@@ -302,6 +302,12 @@ pub struct JsonReply {
     value: TaggedJson,
 }
 
+impl JsonReply {
+    pub fn new(value: TaggedJson) -> Self {
+        Self { value }
+    }
+}
+
 impl From<TaggedJson> for JsonReply {
     fn from(value: TaggedJson) -> Self {
         Self { value }

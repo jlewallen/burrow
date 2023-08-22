@@ -1,10 +1,10 @@
 use anyhow::Result;
 use rune::{
     runtime::{Object, RuntimeContext, Shared},
-    termcolor::{ColorChoice, StandardStream},
+    termcolor::{ColorChoice, StandardStream, WriteColor},
     Context, Diagnostics, Sources, Value, Vm,
 };
-use std::{sync::Arc, time::Instant};
+use std::{io::Write, sync::Arc, time::Instant};
 use tracing::*;
 
 use kernel::prelude::{Effect, Perform, SchemaCollection, TaggedJson};
@@ -12,11 +12,72 @@ use kernel::prelude::{Effect, Perform, SchemaCollection, TaggedJson};
 use crate::{
     module::{AfterEffect, Bag, BeforePerform},
     sources::*,
+    LogEntry,
 };
+
+#[derive(Default, Clone)]
+struct Log {
+    entries: Vec<LogEntry>,
+}
+
+#[derive(Default)]
+struct StreamedLines {
+    data: Vec<u8>,
+}
+
+impl StreamedLines {
+    fn entries(self) -> Vec<LogEntry> {
+        vec![LogEntry::new_now(
+            String::from_utf8(self.data)
+                .expect("non-utf8 streamed lines")
+                .trim(),
+        )]
+    }
+}
+
+impl std::io::Write for StreamedLines {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.data.extend(buf);
+
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+impl WriteColor for StreamedLines {
+    fn supports_color(&self) -> bool {
+        false
+    }
+
+    fn set_color(&mut self, _spec: &rune::termcolor::ColorSpec) -> std::io::Result<()> {
+        Ok(())
+    }
+
+    fn reset(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+impl Into<Vec<LogEntry>> for Log {
+    fn into(self) -> Vec<LogEntry> {
+        self.entries
+    }
+}
+
+impl From<Vec<LogEntry>> for Log {
+    fn from(entries: Vec<LogEntry>) -> Self {
+        Self { entries }
+    }
+}
 
 pub struct RuneRunner {
     _ctx: Context,
     _runtime: Arc<RuntimeContext>,
+    owner: Option<Owner>,
+    logs: Option<Vec<LogEntry>>,
     vm: Option<Vm>,
 }
 
@@ -33,6 +94,8 @@ impl RuneRunner {
             sources.insert(source.source()?);
         }
 
+        let owner = script.owner.clone();
+
         debug!("runner:compiling");
         let mut ctx = Context::with_default_modules()?;
         ctx.install(rune_modules::time::module(true)?)?;
@@ -45,10 +108,20 @@ impl RuneRunner {
             .with_context(&ctx)
             .with_diagnostics(&mut diagnostics)
             .build();
-        if diagnostics.has_error() {
+
+        let logs = if diagnostics.has_error() {
             let mut writer = StandardStream::stderr(ColorChoice::Always);
             diagnostics.emit(&mut writer, &sources)?;
-        }
+            writer.flush()?;
+
+            let mut lines = StreamedLines::default();
+            diagnostics.emit(&mut lines, &sources)?;
+            lines.flush()?;
+
+            Some(lines.entries())
+        } else {
+            Some(vec![LogEntry::new_now("compiled!".to_owned())])
+        };
 
         let runtime: Arc<RuntimeContext> = Arc::new(ctx.runtime());
         let vm = match compiled {
@@ -67,8 +140,18 @@ impl RuneRunner {
         Ok(Self {
             _ctx: ctx,
             _runtime: runtime,
+            owner,
+            logs,
             vm,
         })
+    }
+
+    pub fn owner(&self) -> Option<&Owner> {
+        self.owner.as_ref()
+    }
+
+    pub fn logs(&mut self) -> Option<Vec<LogEntry>> {
+        self.logs.take()
     }
 
     pub fn call_handlers(&mut self, perform: Perform) -> Result<Option<rune::runtime::Value>> {
@@ -116,7 +199,9 @@ impl RuneRunner {
     }
 
     fn handlers(&mut self) -> Result<Option<Handlers>> {
-        let vm = self.vm.as_ref().unwrap();
+        let Some(vm) = self.vm.as_ref() else {
+            return Ok(None);
+        };
 
         let Ok(func) = vm.lookup_function(["handlers"]) else {
             debug!("handlers-unavailable");

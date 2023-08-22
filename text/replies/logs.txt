@@ -1,0 +1,1 @@
+{{ logs | json_encode(pretty=true) }}
