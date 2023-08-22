@@ -72,6 +72,7 @@ struct RaisedEvent {
 
 pub struct ScheduledFuture {
     pub key: String,
+    pub entity: EntityKey,
     pub time: DateTime<Utc>,
     pub serialized: JsonValue,
 }
@@ -171,13 +172,15 @@ impl ActiveSession for AgentSession {
 
     fn schedule(
         &self,
-        key: &str,
+        key: String,
+        entity: EntityKey,
         time: DateTime<Utc>,
         message: &dyn kernel::prelude::ToTaggedJson,
     ) -> Result<(), DomainError> {
         let mut futures = self.futures.borrow_mut();
         futures.push(ScheduledFuture {
             key: key.to_owned(),
+            entity,
             time,
             serialized: message.to_tagged_json()?.into_tagged(),
         });
@@ -280,6 +283,7 @@ where
         for future in futures.iter() {
             queries.push(Query::Schedule(
                 future.key.clone(),
+                future.entity.clone().into(),
                 future.time.timestamp_millis(),
                 future.serialized.clone().into(),
             ));

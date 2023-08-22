@@ -29,6 +29,7 @@ pub trait StorageFactory: Send + Sync {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PersistedFuture {
     pub key: String,
+    pub entity: EntityKey,
     pub time: chrono::DateTime<chrono::Utc>,
     pub serialized: String,
 }

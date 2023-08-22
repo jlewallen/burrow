@@ -85,6 +85,12 @@ impl TaggedJson {
     }
 }
 
+impl ToTaggedJson for TaggedJson {
+    fn to_tagged_json(&self) -> Result<TaggedJson, TaggedJsonError> {
+        Ok(self.clone())
+    }
+}
+
 impl Serialize for TaggedJson {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

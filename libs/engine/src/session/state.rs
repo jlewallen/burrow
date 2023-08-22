@@ -102,6 +102,7 @@ impl State {
         for future in futures.iter() {
             storage.queue(PersistedFuture {
                 key: future.key.clone(),
+                entity: future.entity.clone(),
                 time: future.when,
                 serialized: future.message.clone().into_tagged().to_string(),
             })?;

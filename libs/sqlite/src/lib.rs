@@ -71,6 +71,7 @@ impl Migrate for Connection {
             r#"
                 CREATE TABLE IF NOT EXISTS futures (
                     key TEXT NOT NULL PRIMARY KEY,
+                    entity TEXT NOT NULL,
                     time TIMESTAMP NOT NULL,
                     serialized TEXT NOT NULL
                 )"#,
@@ -181,12 +182,17 @@ where
     C: AsConnection,
 {
     fn queue(&self, future: PersistedFuture) -> Result<()> {
-        let mut stmt = self
-            .connection()
-            .prepare("INSERT OR IGNORE INTO futures (key, time, serialized) VALUES (?1, ?2, ?3)")?;
+        let mut stmt = self.connection().prepare(
+            "INSERT OR IGNORE INTO futures (key, entity, time, serialized) VALUES (?1, ?2, ?3, ?4)",
+        )?;
 
         let affected = stmt
-            .execute((&future.key, &future.time, &future.serialized))
+            .execute((
+                &future.key,
+                future.entity.key_to_string(),
+                &future.time,
+                &future.serialized,
+            ))
             .with_context(|| "inserting future")?;
 
         if affected != 1 {
@@ -225,15 +231,16 @@ where
 
         trace!(?upcoming, "query-futures");
 
-        let mut stmt = self
-            .connection()
-            .prepare("SELECT key, time, serialized FROM futures WHERE time <= ?1 ORDER BY time")?;
+        let mut stmt = self.connection().prepare(
+            "SELECT key, entity, time, serialized FROM futures WHERE time <= ?1 ORDER BY time",
+        )?;
 
         let futures = stmt.query_map([&now], |row| {
             Ok(PersistedFuture {
                 key: row.get(0)?,
-                time: row.get(1)?,
-                serialized: row.get(2)?,
+                entity: EntityKey::from_string(row.get(1)?),
+                time: row.get(2)?,
+                serialized: row.get(3)?,
             })
         })?;
 
@@ -589,6 +596,7 @@ mod tests {
 
         s.queue(PersistedFuture {
             key: "test-1".to_owned(),
+            entity: EntityKey::new("E-0"),
             time,
             serialized: "{}".to_owned(),
         })?;
@@ -612,6 +620,7 @@ mod tests {
 
         s.queue(PersistedFuture {
             key: "test-1".to_owned(),
+            entity: EntityKey::new("E-0"),
             time,
             serialized: "{}".to_owned(),
         })?;

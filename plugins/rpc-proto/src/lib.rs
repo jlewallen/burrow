@@ -245,7 +245,7 @@ pub enum Query {
     Bootstrap,
     Update(EntityUpdate),
     Raise(Audience, Json),
-    Schedule(String, i64, Json),
+    Schedule(String, EntityKey, i64, Json),
     Complete,
     Effect(Effect),
     // Lookup(u32, Vec<LookupBy>),

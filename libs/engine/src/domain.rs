@@ -59,7 +59,7 @@ impl Domain {
                 let processing = futures.len();
 
                 for future in futures {
-                    info!(key = %future.key, time = %future.time, "delivering");
+                    info!(key = %future.key, entity = %future.entity, time = %future.time, "delivering");
 
                     let value = serde_json::from_str(&future.serialized)?;
                     if let Ok(_action) = session.try_deserialize_action(&value) {

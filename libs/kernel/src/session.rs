@@ -51,7 +51,8 @@ pub trait ActiveSession: Performer + EntityPtrResolver {
 
     fn schedule(
         &self,
-        key: &str,
+        key: String,
+        entity: EntityKey,
         when: DateTime<Utc>,
         message: &dyn ToTaggedJson,
     ) -> Result<(), DomainError>;

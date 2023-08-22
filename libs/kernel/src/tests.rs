@@ -96,7 +96,8 @@ impl ActiveSession for KeysOnlySession {
 
     fn schedule(
         &self,
-        _key: &str,
+        _key: String,
+        _entity: EntityKey,
         _when: DateTime<Utc>,
         _message: &dyn ToTaggedJson,
     ) -> Result<(), DomainError> {

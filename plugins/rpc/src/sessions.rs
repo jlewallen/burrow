@@ -21,7 +21,7 @@ pub trait Services {
     fn raise(&self, living: Option<EntityPtr>, audience: Audience, raised: JsonValue)
         -> Result<()>;
 
-    fn schedule(&self, key: &str, millis: i64, serialized: Json) -> Result<()>;
+    fn schedule(&self, key: &str, entity: EntityKey, millis: i64, serialized: Json) -> Result<()>;
 
     fn produced(&self, effect: Effect) -> Result<()>;
 }
@@ -49,7 +49,13 @@ impl Services for AlwaysErrorsServices {
         Err(anyhow!("This server always errors (raise)"))
     }
 
-    fn schedule(&self, _key: &str, _millis: i64, _serialized: Json) -> Result<()> {
+    fn schedule(
+        &self,
+        _key: &str,
+        _entity: EntityKey,
+        _millis: i64,
+        _serialized: Json,
+    ) -> Result<()> {
         warn!("AlwaysErrorsServices::schedule");
         Err(anyhow!("This server always errors (schedule)"))
     }
@@ -202,7 +208,7 @@ impl Services for SessionServices {
         )?)
     }
 
-    fn schedule(&self, key: &str, millis: i64, serialized: Json) -> Result<()> {
+    fn schedule(&self, key: &str, entity: EntityKey, millis: i64, serialized: Json) -> Result<()> {
         let session = get_my_session().with_context(|| "SessionServer::schedule")?;
         let time =
             NaiveDateTime::from_timestamp_opt(millis / 1000, ((millis % 1000) * 1_000_000) as u32)
@@ -213,7 +219,12 @@ impl Services for SessionServices {
             .as_ref()
             .ok_or_else(|| anyhow!("session prefix required"))?;
 
-        Ok(session.schedule(&format!("{}/{}", prefix, key), time.and_utc(), &serialized)?)
+        Ok(session.schedule(
+            format!("{}/{}", prefix, key),
+            entity.into(),
+            time.and_utc(),
+            &serialized,
+        )?)
     }
 
     fn produced(&self, effect: Effect) -> Result<()> {

@@ -5,7 +5,7 @@ use std::{fmt::Debug, rc::Rc};
 
 pub use replies::{HasTag, JsonValue, TaggedJson, TaggedJsonError, ToTaggedJson};
 
-use crate::model::DomainError;
+use crate::model::{DomainError, EntityKey};
 use crate::session::SessionRef;
 use crate::{
     model::{Audience, EntityPtr},
@@ -69,6 +69,7 @@ impl Incoming {
 #[derive(Clone, Debug, Serialize)]
 pub struct Scheduling {
     pub key: String,
+    pub entity: EntityKey,
     pub when: DateTime<Utc>,
     pub message: TaggedJson,
 }
