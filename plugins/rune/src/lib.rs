@@ -7,7 +7,7 @@ use std::sync::Arc;
 use std::{cell::RefCell, rc::Rc};
 
 use plugins_core::library::plugin::*;
-use sources::Script;
+use sources::{Owner, Script};
 
 mod module;
 mod runner;
@@ -41,11 +41,53 @@ pub struct Runners {
     runners: Vec<RuneRunner>,
 }
 
+fn flush_logs(owner: Owner, logs: Vec<LogEntry>) -> Result<()> {
+    let Some(owner) = get_my_session()?.entity(&LookupBy::Key(&EntityKey::new(&owner.key())))? else {
+        panic!("error getting owner");
+    };
+
+    let mut behaviors = owner.scope_mut::<Behaviors>()?;
+    let Some (rune) = behaviors
+        .langs
+        .get_or_insert_with(|| panic!("expected langs"))
+        .get_mut(RUNE_EXTENSION) else {
+        panic!("expected rune");
+    };
+
+    let skipping = match rune.logs.last() {
+        Some(last) => match logs.as_slice() {
+            [] => panic!(),
+            [solo] => last.message == solo.message,
+            _ => false,
+        },
+        None => false,
+    };
+
+    if !skipping {
+        rune.logs.extend(logs);
+        behaviors.save()?;
+    }
+
+    Ok(())
+}
+
 impl Runners {
     fn add_runners_for(&mut self, scripts: impl Iterator<Item = Script>) -> Result<()> {
         for script in scripts {
             self.runners
                 .push(RuneRunner::new(self.schema.as_ref().unwrap(), script)?);
+        }
+
+        Ok(())
+    }
+
+    fn flush(&mut self) -> Result<()> {
+        for runner in self.runners.iter_mut() {
+            if let Some(owner) = runner.owner().cloned() {
+                if let Some(logs) = runner.logs() {
+                    flush_logs(owner, logs)?;
+                }
+            }
         }
 
         Ok(())
@@ -153,11 +195,15 @@ impl Middleware for RuneMiddleware {
         let handler_rvs: Vec<_> = {
             let mut runners = self.runners.0.borrow_mut();
 
-            runners
+            let from_handler = runners
                 .runners
                 .iter_mut()
                 .map(|runner| runner.call_handlers(value.clone()))
-                .collect::<Result<Vec<_>>>()?
+                .collect::<Result<Vec<_>>>()?;
+
+            runners.flush()?;
+
+            from_handler
         };
 
         let living: Option<EntityPtr> = value.find_living()?;
@@ -187,12 +233,16 @@ impl Middleware for RuneMiddleware {
         let before = {
             let mut runners = self.runners.0.borrow_mut();
 
-            runners
+            let before = runners
                 .runners
                 .iter_mut()
                 .fold(Some(value), |perform, runner| {
                     perform.and_then(|perform| runner.before(perform).expect("Error in before"))
-                })
+                });
+
+            runners.flush()?;
+
+            before
         };
 
         if let Some(value) = before {
@@ -203,6 +253,8 @@ impl Middleware for RuneMiddleware {
             let after = runners.runners.iter_mut().fold(after, |effect, runner| {
                 runner.after(effect).expect("Error in after")
             });
+
+            runners.flush()?;
 
             info!("after");
 

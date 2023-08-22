@@ -37,7 +37,8 @@ impl From<Vec<LogEntry>> for Log {
 pub struct RuneRunner {
     _ctx: Context,
     _runtime: Arc<RuntimeContext>,
-    logs: Vec<LogEntry>,
+    owner: Option<Owner>,
+    logs: Option<Vec<LogEntry>>,
     vm: Option<Vm>,
 }
 
@@ -54,6 +55,8 @@ impl RuneRunner {
             sources.insert(source.source()?);
         }
 
+        let owner = script.owner.clone();
+
         debug!("runner:compiling");
         let mut ctx = Context::with_default_modules()?;
         ctx.install(rune_modules::time::module(true)?)?;
@@ -61,7 +64,7 @@ impl RuneRunner {
         ctx.install(rune_modules::rand::module(true)?)?;
         ctx.install(super::module::create(schema, script.owner)?)?;
 
-        let mut logs: Vec<LogEntry> = Vec::new();
+        let mut logs: Option<Vec<LogEntry>> = None;
         let mut diagnostics = Diagnostics::new();
         let compiled = rune::prepare(&mut sources)
             .with_context(&ctx)
@@ -71,7 +74,7 @@ impl RuneRunner {
             let mut writer = StandardStream::stderr(ColorChoice::Always);
             diagnostics.emit(&mut writer, &sources)?;
 
-            logs.extend(
+            logs = Some(
                 diagnostics
                     .into_diagnostics()
                     .into_iter()
@@ -102,9 +105,18 @@ impl RuneRunner {
         Ok(Self {
             _ctx: ctx,
             _runtime: runtime,
+            owner,
             logs,
             vm,
         })
+    }
+
+    pub fn owner(&self) -> Option<&Owner> {
+        self.owner.as_ref()
+    }
+
+    pub fn logs(&mut self) -> Option<Vec<LogEntry>> {
+        self.logs.take()
     }
 
     pub fn call_handlers(&mut self, perform: Perform) -> Result<Option<rune::runtime::Value>> {
