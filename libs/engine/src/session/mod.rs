@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use chrono::{DateTime, Utc};
 use std::rc::Weak;
 use std::sync::Arc;
 use std::time::Instant;
@@ -353,21 +352,8 @@ impl ActiveSession for Session {
         self.perform(perform).map(|_| ())
     }
 
-    fn schedule(
-        &self,
-        key: String,
-        entity: EntityKey,
-        when: DateTime<Utc>,
-        message: &dyn ToTaggedJson,
-    ) -> Result<(), DomainError> {
-        let message = message.to_tagged_json()?;
-        let scheduling = Scheduling {
-            key,
-            entity,
-            when,
-            message,
-        };
-        let perform = Perform::Schedule(scheduling);
+    fn schedule(&self, destined: FutureAction) -> Result<(), DomainError> {
+        let perform = Perform::Schedule(destined);
 
         self.perform(perform).map(|_| ())
     }

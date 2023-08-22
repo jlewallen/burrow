@@ -66,14 +66,6 @@ impl Incoming {
     }
 }
 
-#[derive(Clone, Debug, Serialize)]
-pub struct Scheduling {
-    pub key: String,
-    pub entity: EntityKey,
-    pub when: DateTime<Utc>,
-    pub message: TaggedJson,
-}
-
 #[derive(Clone, Debug)]
 pub enum PerformAction {
     Instance(Rc<dyn Action>),
@@ -97,6 +89,25 @@ impl Serialize for PerformAction {
 }
 
 #[derive(Clone, Debug, Serialize)]
+pub struct FutureAction {
+    pub key: String,
+    pub entity: EntityKey,
+    pub time: DateTime<Utc>,
+    pub action: TaggedJson,
+}
+
+impl FutureAction {
+    pub fn new(key: String, entity: EntityKey, time: DateTime<Utc>, action: TaggedJson) -> Self {
+        Self {
+            key,
+            entity,
+            time,
+            action,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
 #[non_exhaustive]
 pub enum Perform {
     Living {
@@ -109,7 +120,7 @@ pub enum Perform {
     },
     Delivery(Incoming),
     Raised(Raised),
-    Schedule(Scheduling),
+    Schedule(FutureAction),
 }
 
 impl Perform {

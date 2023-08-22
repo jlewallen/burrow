@@ -219,12 +219,14 @@ impl Services for SessionServices {
             .as_ref()
             .ok_or_else(|| anyhow!("session prefix required"))?;
 
-        Ok(session.schedule(
+        let serialized: JsonValue = serialized.into();
+
+        Ok(session.schedule(FutureAction::new(
             format!("{}/{}", prefix, key),
             entity.into(),
             time.and_utc(),
-            &serialized,
-        )?)
+            serialized.try_into()?,
+        ))?)
     }
 
     fn produced(&self, effect: Effect) -> Result<()> {

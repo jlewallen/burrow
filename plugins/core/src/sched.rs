@@ -78,12 +78,14 @@ pub mod actions {
         }
 
         fn perform(&self, session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
-            session.schedule(
+            let destined = FutureAction::new(
                 self.key.clone(),
                 self.entity.clone(),
                 self.time,
-                &self.message,
-            )?;
+                self.message.clone(),
+            );
+
+            session.schedule(destined)?;
 
             Ok(Effect::Ok)
         }
