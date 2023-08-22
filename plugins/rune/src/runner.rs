@@ -152,7 +152,9 @@ impl RuneRunner {
     }
 
     fn handlers(&mut self) -> Result<Option<Handlers>> {
-        let vm = self.vm.as_ref().unwrap();
+        let Some(vm) = self.vm.as_ref() else {
+            return Ok(None);
+        };
 
         let Ok(func) = vm.lookup_function(["handlers"]) else {
             debug!("handlers-unavailable");
