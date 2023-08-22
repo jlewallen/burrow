@@ -272,10 +272,10 @@ pub struct LogEntry {
 }
 
 impl LogEntry {
-    pub fn new_now(message: String) -> Self {
+    pub fn new_now(message: impl Into<String>) -> Self {
         Self {
             time: Utc::now(),
-            message,
+            message: message.into(),
         }
     }
 }

@@ -1,10 +1,10 @@
 use anyhow::Result;
 use rune::{
     runtime::{Object, RuntimeContext, Shared},
-    termcolor::{ColorChoice, StandardStream},
+    termcolor::{ColorChoice, StandardStream, WriteColor},
     Context, Diagnostics, Sources, Value, Vm,
 };
-use std::{sync::Arc, time::Instant};
+use std::{io::Write, sync::Arc, time::Instant};
 use tracing::*;
 
 use kernel::prelude::{Effect, Perform, SchemaCollection, TaggedJson};
@@ -20,7 +20,46 @@ struct Log {
     entries: Vec<LogEntry>,
 }
 
-impl Log {}
+#[derive(Default)]
+struct StreamedLines {
+    data: Vec<u8>,
+}
+
+impl StreamedLines {
+    fn entries(self) -> Vec<LogEntry> {
+        vec![LogEntry::new_now(
+            String::from_utf8(self.data)
+                .expect("non-utf8 streamed lines")
+                .trim(),
+        )]
+    }
+}
+
+impl std::io::Write for StreamedLines {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.data.extend(buf);
+
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+impl WriteColor for StreamedLines {
+    fn supports_color(&self) -> bool {
+        false
+    }
+
+    fn set_color(&mut self, _spec: &rune::termcolor::ColorSpec) -> std::io::Result<()> {
+        Ok(())
+    }
+
+    fn reset(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
 
 impl Into<Vec<LogEntry>> for Log {
     fn into(self) -> Vec<LogEntry> {
@@ -73,19 +112,13 @@ impl RuneRunner {
         if diagnostics.has_error() {
             let mut writer = StandardStream::stderr(ColorChoice::Always);
             diagnostics.emit(&mut writer, &sources)?;
+            writer.flush()?;
 
-            logs = Some(
-                diagnostics
-                    .into_diagnostics()
-                    .into_iter()
-                    .map(|d| match d {
-                        rune::diagnostics::Diagnostic::Fatal(fatal) => fatal.to_string(),
-                        rune::diagnostics::Diagnostic::Warning(warning) => warning.to_string(),
-                        _ => todo!("New diagnostic!"),
-                    })
-                    .map(LogEntry::new_now)
-                    .collect::<Vec<_>>(),
-            );
+            let mut lines = StreamedLines::default();
+            diagnostics.emit(&mut lines, &sources)?;
+            lines.flush()?;
+
+            logs = Some(lines.entries());
         }
 
         let runtime: Arc<RuntimeContext> = Arc::new(ctx.runtime());
