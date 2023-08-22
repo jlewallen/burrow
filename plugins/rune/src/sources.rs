@@ -148,7 +148,7 @@ pub fn get_script(entity: &EntityPtr) -> Result<Option<String>> {
     let behaviors = entity.scope::<Behaviors>()?.unwrap_or_default();
     match &behaviors.langs {
         Some(langs) => match langs.get(RUNE_EXTENSION) {
-            Some(script) => Ok(Some(script.clone())),
+            Some(script) => Ok(Some(script.entry.clone())),
             None => Ok(None),
         },
         None => Ok(None),

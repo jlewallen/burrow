@@ -1,4 +1,6 @@
 use anyhow::Context;
+use plugins_core::library::model::DateTime;
+use plugins_core::library::tests::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -212,8 +214,20 @@ impl Middleware for RuneMiddleware {
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
+pub struct LogEntry {
+    pub time: DateTime<Utc>,
+    pub message: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct RuneBehavior {
+    pub entry: String,
+    pub logs: Vec<LogEntry>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Behaviors {
-    pub langs: Option<HashMap<String, String>>,
+    pub langs: Option<HashMap<String, RuneBehavior>>,
 }
 
 impl Scope for Behaviors {
@@ -292,7 +306,8 @@ pub mod actions {
                         WorkingCopy::Script(script) => {
                             let mut behaviors = entity.scope_mut::<Behaviors>()?;
                             let langs = behaviors.langs.get_or_insert_with(HashMap::new);
-                            langs.insert(RUNE_EXTENSION.to_owned(), script.clone());
+                            let ours = langs.entry(RUNE_EXTENSION.to_owned()).or_default();
+                            ours.entry = script.clone();
                             behaviors.save()?;
                         }
                         _ => unimplemented!(),
