@@ -12,11 +12,32 @@ use kernel::prelude::{Effect, Perform, SchemaCollection, TaggedJson};
 use crate::{
     module::{AfterEffect, Bag, BeforePerform},
     sources::*,
+    LogEntry,
 };
+
+#[derive(Default, Clone)]
+struct Log {
+    entries: Vec<LogEntry>,
+}
+
+impl Log {}
+
+impl Into<Vec<LogEntry>> for Log {
+    fn into(self) -> Vec<LogEntry> {
+        self.entries
+    }
+}
+
+impl From<Vec<LogEntry>> for Log {
+    fn from(entries: Vec<LogEntry>) -> Self {
+        Self { entries }
+    }
+}
 
 pub struct RuneRunner {
     _ctx: Context,
     _runtime: Arc<RuntimeContext>,
+    logs: Vec<LogEntry>,
     vm: Option<Vm>,
 }
 
@@ -40,6 +61,7 @@ impl RuneRunner {
         ctx.install(rune_modules::rand::module(true)?)?;
         ctx.install(super::module::create(schema, script.owner)?)?;
 
+        let mut logs: Vec<LogEntry> = Vec::new();
         let mut diagnostics = Diagnostics::new();
         let compiled = rune::prepare(&mut sources)
             .with_context(&ctx)
@@ -48,6 +70,19 @@ impl RuneRunner {
         if diagnostics.has_error() {
             let mut writer = StandardStream::stderr(ColorChoice::Always);
             diagnostics.emit(&mut writer, &sources)?;
+
+            logs.extend(
+                diagnostics
+                    .into_diagnostics()
+                    .into_iter()
+                    .map(|d| match d {
+                        rune::diagnostics::Diagnostic::Fatal(fatal) => fatal.to_string(),
+                        rune::diagnostics::Diagnostic::Warning(warning) => warning.to_string(),
+                        _ => todo!("New diagnostic!"),
+                    })
+                    .map(LogEntry::new_now)
+                    .collect::<Vec<_>>(),
+            );
         }
 
         let runtime: Arc<RuntimeContext> = Arc::new(ctx.runtime());
@@ -67,6 +102,7 @@ impl RuneRunner {
         Ok(Self {
             _ctx: ctx,
             _runtime: runtime,
+            logs,
             vm,
         })
     }

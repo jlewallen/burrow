@@ -213,10 +213,19 @@ impl Middleware for RuneMiddleware {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct LogEntry {
     pub time: DateTime<Utc>,
     pub message: String,
+}
+
+impl LogEntry {
+    pub fn new_now(message: String) -> Self {
+        Self {
+            time: Utc::now(),
+            message,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
