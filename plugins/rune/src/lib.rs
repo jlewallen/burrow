@@ -124,6 +124,10 @@ impl Plugin for RunePlugin {
         "rune"
     }
 
+    fn schema(&self) -> Schema {
+        Schema::empty().action::<actions::RuneAction>()
+    }
+
     fn key(&self) -> &'static str {
         Self::plugin_key()
     }
@@ -137,7 +141,7 @@ impl Plugin for RunePlugin {
     }
 
     fn sources(&self) -> Vec<Box<dyn ActionSource>> {
-        vec![Box::new(SaveScriptActionSource::default())]
+        vec![Box::new(ActionSources::default())]
     }
 
     fn middleware(&mut self) -> Result<Vec<Rc<dyn Middleware>>> {
@@ -155,14 +159,14 @@ impl ParsesActions for RunePlugin {
 }
 
 #[derive(Default)]
-pub struct SaveScriptActionSource {}
+pub struct ActionSources {}
 
-impl ActionSource for SaveScriptActionSource {
+impl ActionSource for ActionSources {
     fn try_deserialize_action(
         &self,
         tagged: &TaggedJson,
     ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
-        try_deserialize_all!(tagged, actions::SaveScriptAction);
+        try_deserialize_all!(tagged, actions::SaveScriptAction, actions::RuneAction);
 
         Ok(None)
     }
@@ -415,6 +419,25 @@ pub mod actions {
                 }
                 None => Ok(SimpleReply::NotFound.try_into()?),
             }
+        }
+    }
+
+    #[action]
+    pub struct RuneAction {
+        pub key: EntityKey,
+        pub tagged: TaggedJson,
+    }
+
+    impl Action for RuneAction {
+        fn is_read_only() -> bool
+        where
+            Self: Sized,
+        {
+            false
+        }
+
+        fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+            todo!()
         }
     }
 }
