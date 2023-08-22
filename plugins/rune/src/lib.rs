@@ -150,6 +150,7 @@ impl Plugin for RunePlugin {
 impl ParsesActions for RunePlugin {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
         try_parsing(parser::EditActionParser {}, i)
+            .or_else(|_| try_parsing(parser::ShowLogsActionParser {}, i))
     }
 }
 
@@ -299,9 +300,13 @@ impl Scope for Behaviors {
 
 pub mod actions {
     use plugins_core::library::actions::*;
+    use serde_json::json;
     use std::collections::HashMap;
 
-    use crate::{sources::get_script, Behaviors, RUNE_EXTENSION};
+    use crate::{
+        sources::{get_logs, get_script},
+        Behaviors, RUNE_EXTENSION,
+    };
 
     #[action]
     pub struct EditAction {
@@ -328,6 +333,38 @@ pub mod actions {
                         SaveScriptAction::new_template(editing.key().clone())?,
                     )
                     .try_into()?)
+                }
+                None => Ok(SimpleReply::NotFound.try_into()?),
+            }
+        }
+    }
+
+    #[action]
+    pub struct ShowLogAction {
+        pub item: Item,
+    }
+
+    impl Action for ShowLogAction {
+        fn is_read_only() -> bool
+        where
+            Self: Sized,
+        {
+            true
+        }
+
+        fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+            info!("editing {:?}", self.item);
+
+            match session.find_item(surroundings, &self.item)? {
+                Some(editing) => {
+                    let logs = match get_logs(&editing)? {
+                        Some(logs) => logs,
+                        None => Vec::default(),
+                    };
+                    let logs = serde_json::to_value(logs)?;
+                    Ok(Effect::Reply(EffectReply::TaggedJson(
+                        TaggedJson::new_from(json!({ "logs": logs }))?,
+                    )))
                 }
                 None => Ok(SimpleReply::NotFound.try_into()?),
             }
@@ -387,6 +424,7 @@ mod parser {
     use plugins_core::library::parser::*;
 
     use super::actions::EditAction;
+    use super::actions::ShowLogAction;
 
     pub struct EditActionParser {}
 
@@ -395,6 +433,19 @@ mod parser {
             let (_, action) = map(
                 preceded(pair(tag("rune"), spaces), noun_or_specific),
                 |item| -> EvaluationResult { Ok(Some(Box::new(EditAction { item }))) },
+            )(i)?;
+
+            action
+        }
+    }
+
+    pub struct ShowLogsActionParser {}
+
+    impl ParsesActions for ShowLogsActionParser {
+        fn try_parse_action(&self, i: &str) -> EvaluationResult {
+            let (_, action) = map(
+                preceded(pair(tag("@log"), spaces), noun_or_specific),
+                |item| -> EvaluationResult { Ok(Some(Box::new(ShowLogAction { item }))) },
             )(i)?;
 
             action

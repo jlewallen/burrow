@@ -6,7 +6,7 @@ use tracing::*;
 
 use kernel::prelude::{EntityKey, EntityPtr, OpenScope, Surroundings};
 
-use crate::Behaviors;
+use crate::{Behaviors, LogEntry};
 
 pub static RUNE_EXTENSION: &str = "rn";
 
@@ -149,6 +149,17 @@ pub fn get_script(entity: &EntityPtr) -> Result<Option<String>> {
     match &behaviors.langs {
         Some(langs) => match langs.get(RUNE_EXTENSION) {
             Some(script) => Ok(Some(script.entry.clone())),
+            None => Ok(None),
+        },
+        None => Ok(None),
+    }
+}
+
+pub fn get_logs(entity: &EntityPtr) -> Result<Option<Vec<LogEntry>>> {
+    let behaviors = entity.scope::<Behaviors>()?.unwrap_or_default();
+    match &behaviors.langs {
+        Some(langs) => match langs.get(RUNE_EXTENSION) {
+            Some(script) => Ok(Some(script.logs.clone())),
             None => Ok(None),
         },
         None => Ok(None),
