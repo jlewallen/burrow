@@ -62,14 +62,34 @@ pub mod model {
 }
 
 pub mod actions {
+    use chrono::Duration;
+
     use super::model::*;
+
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    pub enum ScheduleTime {
+        Utc(DateTime<Utc>),
+        Delay(i64),
+    }
+
+    impl Into<DateTime<Utc>> for ScheduleTime {
+        fn into(self) -> DateTime<Utc> {
+            match self {
+                ScheduleTime::Utc(utc) => utc,
+                ScheduleTime::Delay(millis) => Utc::now()
+                    .checked_add_signed(Duration::milliseconds(millis))
+                    .unwrap(),
+            }
+        }
+    }
 
     #[action]
     pub struct ScheduleAction {
         pub key: String,
         pub entity: EntityKey,
-        pub time: DateTime<Utc>,
-        pub message: TaggedJson,
+        pub time: ScheduleTime,
+        pub action: TaggedJson,
     }
 
     impl Action for ScheduleAction {
@@ -81,8 +101,8 @@ pub mod actions {
             let destined = FutureAction::new(
                 self.key.clone(),
                 self.entity.clone(),
-                self.time,
-                self.message.clone(),
+                self.time.clone().into(),
+                self.action.clone(),
             );
 
             session.schedule(destined)?;

@@ -214,24 +214,14 @@ impl Middleware for RuneMiddleware {
         let living: Option<EntityPtr> = value.find_living()?;
 
         if let Some(living) = living {
+            let session = get_my_session()?;
             for value in handler_rvs.into_iter().flatten() {
-                // Annoying that Object doesn't impl Serialize so this clone.
-                match value.clone() {
-                    rune::Value::Object(object) => {
-                        info!("{:#?}", object);
-                        let value = serde_json::to_value(value)?;
-                        let tagged = TaggedJson::new_from(value)?;
-
-                        let session = get_my_session()?;
-                        let action = PerformAction::TaggedJson(tagged);
-                        let living = living.clone();
-                        session
-                            .perform(Perform::Living { living, action })
-                            .with_context(|| format!("Rune perform"))?;
-                    }
-                    rune::Value::EmptyTuple => {}
-                    _ => warn!("unexpected handler answer: {:#?}", value),
+                RuneReturn {
+                    session: session.clone(),
+                    living: living.clone(),
+                    value,
                 }
+                .handle()?;
             }
         }
 
@@ -267,6 +257,46 @@ impl Middleware for RuneMiddleware {
         } else {
             Ok(Effect::Prevented)
         }
+    }
+}
+
+pub struct RuneReturn {
+    session: SessionRef,
+    living: EntityPtr,
+    value: rune::runtime::Value,
+}
+
+impl RuneReturn {
+    fn handle(&self) -> Result<()> {
+        // Annoying that Object doesn't impl Serialize so this clone.
+        match self.value.clone() {
+            rune::Value::Object(_object) => {
+                let value = serde_json::to_value(self.value.clone())?;
+                info!("{:#?}", &value);
+
+                let tagged = TaggedJson::new_from(value)?;
+                let action = PerformAction::TaggedJson(tagged);
+                let living = self.living.clone();
+                self.session
+                    .perform(Perform::Living { living, action })
+                    .with_context(|| format!("Rune perform"))?;
+            }
+            rune::Value::Vec(vec) => {
+                let vec = vec.borrow_mut()?;
+                for child in vec.iter() {
+                    Self {
+                        session: self.session.clone(),
+                        living: self.living.clone(),
+                        value: child.clone(),
+                    }
+                    .handle()?;
+                }
+            }
+            rune::Value::EmptyTuple => {}
+            _ => warn!("unexpected handler answer: {:?}", self.value),
+        };
+
+        Ok(())
     }
 }
 
@@ -424,7 +454,7 @@ pub mod actions {
 
     #[action]
     pub struct RuneAction {
-        pub key: EntityKey,
+        pub target: EntityKey,
         pub tagged: TaggedJson,
     }
 
@@ -437,7 +467,7 @@ pub mod actions {
         }
 
         fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
-            todo!()
+            Ok(Effect::Ok)
         }
     }
 }
@@ -488,7 +518,8 @@ impl TryFindLiving for Perform {
                 action: _,
             } => surroundings.find_living(),
             Perform::Raised(raised) => Ok(raised.living.clone()),
-            _ => todo!(),
+            Perform::Schedule(_) => Ok(None),
+            _ => todo!("Unable to get living for {:?}", self),
         }
     }
 }

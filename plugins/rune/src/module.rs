@@ -91,12 +91,17 @@ fn action_factory(
     action_name: &str,
     value: rune::Value,
 ) -> Result<Object, anyhow::Error> {
-    let args: ActionArgs = rune::from_value(value)?;
+    let args: Object = match value.clone() {
+        rune::Value::Object(args) => args.borrow_ref()?.clone(),
+        rune::Value::Any(_args) => {
+            let args: ActionArgs = rune::from_value(value)?;
+            args.to_rune_object()?
+        }
+        _ => panic!("Unexpected action arguments: {:?}", value),
+    };
+
     let mut action = Object::new();
-    action.insert(action_name.to_owned(), args.to_rune_object()?.into());
-    // Not prepared to handle plugin tag/namespace right now.
-    // let mut obj = Object::new();
-    // obj.insert(plugin_name.to_owned(), action.into());
+    action.insert(action_name.to_owned(), args.into());
     Ok(action)
 }
 

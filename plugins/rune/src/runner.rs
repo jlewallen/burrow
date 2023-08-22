@@ -261,7 +261,11 @@ impl Handlers {
                 Ok(Some(
                     match func.borrow_ref().unwrap().call::<_, rune::Value>((bag,)) {
                         rune::runtime::VmResult::Ok(v) => v,
-                        rune::runtime::VmResult::Err(_) => todo!(),
+                        rune::runtime::VmResult::Err(e) => {
+                            warn!("{:?}", e);
+
+                            rune::Value::EmptyTuple
+                        }
                     },
                 ))
             }

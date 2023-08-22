@@ -407,7 +407,7 @@ impl TryInto<Surroundings> for MakeSurroundings {
         let living = self.living.clone();
         let area: EntityPtr = self
             .finder
-            .find_location(&living)
+            .find_area(&living)
             .with_context(|| "find-location")?;
 
         Ok(Surroundings::Living {

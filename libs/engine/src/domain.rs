@@ -56,6 +56,7 @@ impl Domain {
         match storage.query_futures_before(now)? {
             PendingFutures::Futures(futures) => {
                 let session = self.open_session()?;
+                let session = session.set_session()?;
                 let processing = futures.len();
 
                 for future in futures {

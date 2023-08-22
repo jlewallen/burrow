@@ -32,7 +32,7 @@ mod finder {
     pub trait Finder: Send + Sync {
         fn find_world(&self) -> Result<EntityPtr, DomainError>;
 
-        fn find_location(&self, entry: &EntityPtr) -> Result<EntityPtr, DomainError>;
+        fn find_area(&self, entry: &EntityPtr) -> Result<EntityPtr, DomainError>;
 
         fn find_item(
             &self,
