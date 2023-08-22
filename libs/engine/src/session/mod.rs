@@ -167,6 +167,11 @@ impl Session {
         Ok(())
     }
 
+    pub fn schema(&self) -> SchemaCollection {
+        let plugins = self.plugins.borrow();
+        plugins.schema()
+    }
+
     pub fn flush<T: Notifier>(&self, notifier: &T) -> Result<()> {
         let _activated = self.set_session()?;
 

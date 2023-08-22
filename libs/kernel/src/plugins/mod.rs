@@ -134,13 +134,16 @@ impl SessionPlugins {
         Self { plugins }
     }
 
-    pub fn initialize(&mut self) -> anyhow::Result<()> {
-        let all_schema = self
-            .plugins
+    pub fn schema(&self) -> SchemaCollection {
+        self.plugins
             .iter()
             .map(|p| (p.key().to_owned(), p.schema()))
             .collect::<HashMap<_, _>>()
-            .into();
+            .into()
+    }
+
+    pub fn initialize(&mut self) -> anyhow::Result<()> {
+        let all_schema = self.schema();
 
         for plugin in self.plugins.iter_mut() {
             let _span = span!(Level::INFO, "I", plugin = plugin.key()).entered();

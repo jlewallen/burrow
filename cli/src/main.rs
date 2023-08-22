@@ -46,6 +46,7 @@ enum Commands {
     Eval(eval::Command),
     Dump(dump::Command),
     Migrate(migrate::Command),
+    Schema,
     Hacking,
 }
 
@@ -227,6 +228,26 @@ fn main() -> Result<(), Box<dyn Error>> {
         Some(Commands::Dump(cmd)) => Ok(dump::execute_command(cmd)?),
         Some(Commands::Migrate(cmd)) => Ok(migrate::execute_command(cmd)?),
         Some(Commands::Hacking) => Ok(hacking::execute_command()?),
+        Some(Commands::Schema) => Ok(schema::execute_command()?),
         None => Ok(()),
+    }
+}
+
+mod schema {
+    use engine::prelude::SessionOpener;
+
+    use crate::DomainBuilder;
+    use anyhow::Result;
+
+    #[tokio::main]
+    pub async fn execute_command() -> Result<()> {
+        let builder = DomainBuilder::default();
+        let domain = builder.build().await?;
+        let session = domain.open_session()?;
+        let schema = session.schema();
+
+        println!("{:#?}", schema);
+
+        Ok(())
     }
 }
