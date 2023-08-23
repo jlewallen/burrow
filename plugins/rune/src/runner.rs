@@ -4,15 +4,20 @@ use rune::{
     termcolor::{ColorChoice, StandardStream, WriteColor},
     Context, Diagnostics, Sources, Value, Vm,
 };
-use std::{io::Write, sync::Arc, time::Instant};
+use std::{cell::RefCell, io::Write, sync::Arc, time::Instant};
 use tracing::*;
 
-use kernel::prelude::{Effect, Perform, Raised, SchemaCollection, TaggedJson};
+use kernel::{
+    prelude::{
+        Effect, EntityKey, LookupBy, OpenScopeRefMut, Perform, Raised, SchemaCollection, TaggedJson,
+    },
+    session::get_my_session,
+};
 
 use crate::{
     module::{AfterEffect, Bag, BeforePerform},
     sources::*,
-    LogEntry,
+    Behaviors, LogEntry,
 };
 
 #[derive(Default, Clone)]
@@ -291,4 +296,137 @@ impl FunctionTree {
             _ => todo!(),
         }
     }
+}
+
+#[derive(Default)]
+pub struct Runners {
+    schema: Option<SchemaCollection>,
+    runners: Vec<RuneRunner>,
+}
+
+impl Runners {
+    fn add_runners_for(&mut self, scripts: impl Iterator<Item = Script>) -> Result<()> {
+        for script in scripts {
+            self.runners
+                .push(RuneRunner::new(self.schema.as_ref().unwrap(), script)?);
+        }
+
+        Ok(())
+    }
+
+    fn call(&mut self, call: Call) -> Result<Vec<Value>> {
+        let from_handler = self
+            .runners
+            .iter_mut()
+            .map(|runner| runner.call(call.clone()))
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
+
+        self.flush()?;
+
+        Ok(from_handler)
+    }
+
+    fn flush(&mut self) -> Result<()> {
+        for runner in self.runners.iter_mut() {
+            if let Some(owner) = runner.owner().cloned() {
+                if let Some(logs) = runner.logs() {
+                    flush_logs(owner, logs)?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Default)]
+pub struct SharedRunners(Arc<RefCell<Runners>>);
+
+impl SharedRunners {
+    pub fn new(runners: Arc<RefCell<Runners>>) -> Self {
+        Self(runners)
+    }
+}
+
+impl SharedRunners {
+    pub fn weak(&self) -> std::sync::Weak<RefCell<Runners>> {
+        Arc::downgrade(&self.0)
+    }
+
+    pub fn add_runners_for(&self, scripts: impl Iterator<Item = Script>) -> Result<()> {
+        let mut runners = self.0.borrow_mut();
+        runners.add_runners_for(scripts)
+    }
+
+    pub fn initialize(&self, schema: &SchemaCollection) {
+        let mut slf = self.0.borrow_mut();
+        slf.schema = Some(schema.clone())
+    }
+
+    pub fn call(&self, call: Call) -> Result<Vec<rune::runtime::Value>> {
+        let mut runners = self.0.borrow_mut();
+        runners.call(call)
+    }
+
+    pub fn before(&self, value: Perform) -> Result<Option<Perform>> {
+        let mut runners = self.0.borrow_mut();
+
+        let before = runners
+            .runners
+            .iter_mut()
+            .fold(Some(value), |perform, runner| {
+                perform.and_then(|perform| runner.before(perform).expect("Error in before"))
+            });
+
+        runners.flush()?;
+
+        Ok(before)
+    }
+
+    pub fn after(&self, value: Effect) -> Result<Effect> {
+        let mut runners = self.0.borrow_mut();
+
+        let after = runners.runners.iter_mut().fold(value, |effect, runner| {
+            runner.after(effect).expect("Error in after")
+        });
+
+        runners.flush()?;
+
+        info!("after");
+
+        Ok(after)
+    }
+}
+
+fn flush_logs(owner: Owner, logs: Vec<LogEntry>) -> Result<()> {
+    let Some(owner) = get_my_session()?.entity(&LookupBy::Key(&EntityKey::new(&owner.key())))? else {
+        panic!("error getting owner");
+    };
+
+    let mut behaviors = owner.scope_mut::<Behaviors>()?;
+    let Some (rune) = behaviors
+        .langs
+        .get_or_insert_with(|| panic!("expected langs"))
+        .get_mut(RUNE_EXTENSION) else {
+        panic!("expected rune");
+    };
+
+    let skipping = match rune.logs.last() {
+        Some(last) => match logs.as_slice() {
+            [] => panic!(),
+            [solo] => last.message == solo.message,
+            _ => false,
+        },
+        None => false,
+    };
+
+    if !skipping {
+        rune.logs.extend(logs);
+        behaviors.save()?;
+    }
+
+    Ok(())
 }
