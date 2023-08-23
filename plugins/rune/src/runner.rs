@@ -204,15 +204,15 @@ impl RuneRunner {
         }
     }
 
-    fn handlers(&mut self) -> Result<Option<Handlers>> {
+    fn handlers(&mut self) -> Result<Option<FunctionTree>> {
         self.lookup_function_tree("handlers")
     }
 
-    fn actions(&mut self) -> Result<Option<Handlers>> {
+    fn actions(&mut self) -> Result<Option<FunctionTree>> {
         self.lookup_function_tree("actions")
     }
 
-    fn lookup_function_tree(&mut self, name: &str) -> Result<Option<Handlers>> {
+    fn lookup_function_tree(&mut self, name: &str) -> Result<Option<FunctionTree>> {
         let Some(vm) = self.vm.as_ref() else {
             return Ok(None);
         };
@@ -223,7 +223,7 @@ impl RuneRunner {
 
         match func.call::<_, rune::Value>(()) {
             rune::runtime::VmResult::Ok(obj) => match obj {
-                Value::Object(obj) => Ok(Some(Handlers::new(obj))),
+                Value::Object(obj) => Ok(Some(FunctionTree::new(obj))),
                 _ => Ok(None),
             },
             rune::runtime::VmResult::Err(e) => {
@@ -240,26 +240,26 @@ pub enum Call {
     Action(TaggedJson),
 }
 
-pub struct Handlers {
-    handlers: Shared<Object>,
+pub struct FunctionTree {
+    object: Shared<Object>,
 }
 
-impl Default for Handlers {
+impl Default for FunctionTree {
     fn default() -> Self {
         Self {
-            handlers: Shared::new(Object::default()),
+            object: Shared::new(Object::default()),
         }
     }
 }
 
-impl Handlers {
-    fn new(handlers: Shared<Object>) -> Self {
-        Self { handlers }
+impl FunctionTree {
+    fn new(object: Shared<Object>) -> Self {
+        Self { object }
     }
 
     fn apply(&self, json: TaggedJson) -> Result<Option<rune::runtime::Value>> {
-        let handlers = self.handlers.borrow_ref()?;
-        let Some(child) = handlers.get(json.tag()) else {
+        let object = self.object.borrow_ref()?;
+        let Some(child) = object.get(json.tag()) else {
             info!("no-handler");
             return Ok(None);
         };
@@ -269,7 +269,7 @@ impl Handlers {
         match child {
             Value::Object(object) => {
                 if let Ok(json) = TaggedJson::new_from(json.into()) {
-                    Handlers::new(object.clone()).apply(json)
+                    Self::new(object.clone()).apply(json)
                 } else {
                     unimplemented!("unexpected handler value: {:?}", object)
                 }
