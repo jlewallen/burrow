@@ -1,10 +1,10 @@
 use anyhow::Result;
 use glob::glob;
-use plugins_core::{EntityRelationship, EntityRelationshipSet};
 use std::path::PathBuf;
 use tracing::*;
 
-use kernel::prelude::{EntityKey, EntityPtr, OpenScope, Surroundings};
+use kernel::prelude::{EntityKey, EntityPtr, JsonValue, OpenScope, Surroundings};
+use plugins_core::{EntityRelationship, EntityRelationshipSet};
 
 use crate::{Behaviors, LogEntry};
 
@@ -60,6 +60,7 @@ impl Owner {
 pub struct Script {
     pub(super) source: ScriptSource,
     pub(super) owner: Option<Owner>,
+    pub(super) state: Option<JsonValue>,
 }
 
 impl Script {
@@ -85,6 +86,7 @@ pub fn load_directory_sources(path: &str) -> Result<Vec<Script>> {
                 scripts.push(Script {
                     source: ScriptSource::File(path),
                     owner: None,
+                    state: None,
                 });
             }
             Err(e) => warn!("{:?}", e),
@@ -130,13 +132,14 @@ pub fn load_sources_from_surroundings(surroundings: &Surroundings) -> Result<Vec
         if let Some(script) = get_script(entity)? {
             info!("script {:?}", nearby);
             let relation = Relation::new(nearby);
-            let source = ScriptSource::Entity(entity.key().clone(), script);
+            let source = ScriptSource::Entity(entity.key().clone(), script.entry);
             scripts.push(Script {
                 source,
                 owner: Some(Owner {
                     key: entity.key(),
                     relation,
                 }),
+                state: script.state,
             });
         }
     }
@@ -144,11 +147,25 @@ pub fn load_sources_from_surroundings(surroundings: &Surroundings) -> Result<Vec
     Ok(scripts)
 }
 
-pub fn get_script(entity: &EntityPtr) -> Result<Option<String>> {
+pub struct EntryAndState {
+    entry: String,
+    state: Option<JsonValue>,
+}
+
+impl EntryAndState {
+    pub(crate) fn entry(&self) -> &str {
+        &self.entry
+    }
+}
+
+pub fn get_script(entity: &EntityPtr) -> Result<Option<EntryAndState>> {
     let behaviors = entity.scope::<Behaviors>()?.unwrap_or_default();
     match &behaviors.langs {
         Some(langs) => match langs.get(RUNE_EXTENSION) {
-            Some(script) => Ok(Some(script.entry.clone())),
+            Some(script) => Ok(Some(EntryAndState {
+                entry: script.entry.clone(),
+                state: script.state.clone(),
+            })),
             None => Ok(None),
         },
         None => Ok(None),

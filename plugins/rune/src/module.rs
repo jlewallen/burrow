@@ -145,8 +145,6 @@ pub(super) fn create(schema: &SchemaCollection, owner: Option<Owner>) -> Result<
     module.ty::<Relation>()?;
     module.ty::<RuneState>()?;
     module.associated_function(Protocol::STRING_DEBUG, RuneState::string_debug)?;
-    module.associated_function(Protocol::INDEX_GET, RuneState::index_get)?;
-    module.associated_function(Protocol::INDEX_SET, RuneState::index_set)?;
     module.function(["RuneState", "new"], || RuneState::default())?;
     Ok(module)
 }

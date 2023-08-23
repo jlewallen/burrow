@@ -5,13 +5,16 @@ use rune::{
     termcolor::{ColorChoice, StandardStream, WriteColor},
     Context, Diagnostics, Sources, Value, Vm,
 };
+use serde::ser::SerializeMap;
+use serde::Serialize;
 use std::{cell::RefCell, io::Write, sync::Arc, time::Instant};
 use tracing::*;
 
 use kernel::{
     here,
     prelude::{
-        Effect, EntityKey, LookupBy, OpenScopeRefMut, Perform, Raised, SchemaCollection, TaggedJson,
+        Effect, EntityKey, JsonValue, LookupBy, OpenScopeRefMut, Perform, Raised, SchemaCollection,
+        TaggedJson,
     },
     session::get_my_session,
 };
@@ -80,12 +83,14 @@ impl From<Vec<LogEntry>> for Log {
     }
 }
 
+pub type RuneValue = rune::Value;
+
 pub struct RuneRunner {
     _ctx: Context,
     _runtime: Arc<RuntimeContext>,
     owner: Option<Owner>,
     logs: Option<Vec<LogEntry>>,
-    state: Option<RuneState>,
+    state: Option<RuneValue>,
     vm: Option<Vm>,
 }
 
@@ -145,12 +150,50 @@ impl RuneRunner {
             }
         };
 
+        let mut state = None;
+
+        if let Some(setting) = &script.state {
+            fn update_state_in_place(setting: &JsonValue, value: RuneValue) -> Result<()> {
+                match value {
+                    Value::Struct(truct) => {
+                        let try_get: Value = serde_json::from_value(setting.clone())?;
+                        let state_object = try_get.into_object().into_result()?;
+                        let copying = state_object.borrow_ref()?;
+
+                        let mut receiving = truct.borrow_mut()?;
+                        for (key, value) in copying.clone().into_iter() {
+                            receiving.data_mut().insert(key.clone(), value);
+                        }
+
+                        Ok(())
+                    }
+                    _ => todo!(),
+                }
+            }
+
+            if let Some(vm) = &vm {
+                match vm.lookup_function(["state"]) {
+                    Ok(state_fn) => match state_fn.call::<_, rune::Value>(()) {
+                        rune::runtime::VmResult::Ok(value) => {
+                            info!("updating state");
+                            update_state_in_place(setting, value.clone())?;
+                            state = Some(value.clone());
+                        }
+                        rune::runtime::VmResult::Err(e) => warn!("{:?}", e),
+                    },
+                    Err(_) => {}
+                }
+            }
+        }
+
+        info!("state {:?}", state);
+
         Ok(Self {
             _ctx: ctx,
             _runtime: runtime,
             owner,
             logs,
-            state: None,
+            state,
             vm,
         })
     }
@@ -169,7 +212,7 @@ impl RuneRunner {
             Call::Action(tagged) => {
                 if let Some(actions) = self.actions()? {
                     Ok(actions
-                        .apply(None, tagged.clone())?
+                        .apply::<RuneValue>(None, tagged.clone())?
                         .map(|v| Some(self.post(v)))
                         .flatten())
                 } else {
@@ -315,7 +358,7 @@ where
         };
 
         let save_state = if let Some(state) = state {
-            rune.state = Some(state);
+            rune.state = state.value;
             true
         } else {
             false
@@ -358,11 +401,10 @@ impl FunctionTree {
         Self { object }
     }
 
-    fn apply(
-        &self,
-        state: Option<RuneState>,
-        json: TaggedJson,
-    ) -> Result<Option<rune::runtime::Value>> {
+    fn apply<S>(&self, state: Option<S>, json: TaggedJson) -> Result<Option<rune::runtime::Value>>
+    where
+        S: Clone + rune::ToValue,
+    {
         let object = self.object.borrow_ref()?;
         let Some(child) = object.get(json.tag()) else {
             info!("no-handler");
@@ -575,11 +617,48 @@ impl Simplifies for rune::runtime::Value {
                 }
             }
             rune::Value::EmptyTuple => Ok(vec![]),
+            rune::Value::Struct(value) => {
+                let value = value.borrow_ref()?;
+                let data = value.data();
+
+                let serialized = serde_json::to_value(ObjectSerializer {
+                    object: data.clone(),
+                })?;
+                info!("serialized state {:#?}", &serialized);
+
+                Ok(vec![Returned::State(RuneState {
+                    value: Some(serialized),
+                })])
+            }
+            rune::Value::Type(ty) => {
+                warn!("Unexpected rune type: {:?}", ty);
+
+                Ok(vec![])
+            }
             _ => {
                 warn!("Unexpected rune return: {:?}", self);
 
                 Ok(vec![])
             }
         }
+    }
+}
+
+struct ObjectSerializer {
+    object: Object,
+}
+
+impl Serialize for ObjectSerializer {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut serializer = serializer.serialize_map(Some(self.object.len()))?;
+
+        for (key, value) in &self.object {
+            serializer.serialize_entry(key, value)?;
+        }
+
+        serializer.end()
     }
 }

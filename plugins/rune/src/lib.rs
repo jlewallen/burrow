@@ -1,5 +1,4 @@
 use anyhow::Context;
-use rune::runtime::Key;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::{cell::RefCell, rc::Rc};
@@ -191,7 +190,9 @@ impl LogEntry {
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, rune::Any, Clone)]
-pub struct RuneState {}
+pub struct RuneState {
+    value: Option<JsonValue>,
+}
 
 impl RuneState {
     #[inline]
@@ -199,21 +200,13 @@ impl RuneState {
         use std::fmt::Write;
         write!(s, "{:?}", self)
     }
-
-    fn index_get(&self, key: Key) -> rune::Value {
-        todo!()
-    }
-
-    fn index_set(&self, key: Key, value: rune::Value) {
-        todo!()
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct RuneBehavior {
     pub entry: String,
     pub logs: Vec<LogEntry>,
-    pub state: Option<RuneState>,
+    pub state: Option<JsonValue>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]

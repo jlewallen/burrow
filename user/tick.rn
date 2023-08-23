@@ -3,23 +3,15 @@ use rand::*;
 use time::*;
 
 fn test_stuff(state, bag) {
-    let args = #{
+    let scheduling = actions::rune::rune(#{
         "target": bag.living().unwrap().key(),
         "tagged": #{
             "example": #{}
         }
-    };
+    })?;
 
-    let scheduling = actions::rune::rune(args)?;
-
-    let state = match state {
-        Some(state) => state,
-        None => RuneState::new(),
-    };
-
+    /*
     [
-        Some(state),
-
         actions::chat::speak(ActionArgs {
             here: Some("Whoa there!")
         })?,
@@ -31,6 +23,7 @@ fn test_stuff(state, bag) {
             "action": scheduling
         })?
     ]
+    */
 }
 
 pub fn held(state, bag) {
@@ -38,11 +31,6 @@ pub fn held(state, bag) {
 }
 
 pub fn dropped(state, bag) {
-    // info(format!("dropped {:?}", bag));
-    // info(format!("dropped {:?} {:?}", bag.area(), bag.area().unwrap().name()));
-    // info(format!("dropped {:?} {:?}", bag.living(), bag.living().unwrap().name()));
-    // info(format!("dropped {:?} {:?}", bag.item(), bag.item().unwrap().name()));
-
     test_stuff(state, bag)
 }
 

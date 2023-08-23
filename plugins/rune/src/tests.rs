@@ -39,6 +39,7 @@ pub fn test_handlers_apply() -> Result<()> {
         Script {
             source: ScriptSource::System(source.to_owned()),
             owner: None,
+            state: None,
         },
     )?;
 
@@ -74,6 +75,7 @@ pub fn test_missing_handler() -> Result<()> {
         Script {
             source: ScriptSource::System(source.to_owned()),
             owner: None,
+            state: None,
         },
     )?;
 
@@ -105,6 +107,7 @@ pub fn test_missing_handlers_completely() -> Result<()> {
         Script {
             source: ScriptSource::System(source.to_owned()),
             owner: None,
+            state: None,
         },
     )?;
 
@@ -148,6 +151,7 @@ pub fn test_calling_owner_with_one() -> Result<()> {
         Script {
             source: ScriptSource::System(source.to_owned()),
             owner: Some(Owner::new(EntityKey::new("E-0"), Relation::Ground)),
+            state: None,
         },
     )?;
 
@@ -191,6 +195,7 @@ pub fn test_calling_owner_with_none() -> Result<()> {
         Script {
             source: ScriptSource::System(source.to_owned()),
             owner: None,
+            state: None,
         },
     )?;
 

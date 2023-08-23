@@ -23,7 +23,7 @@ impl Action for EditAction {
         match session.find_item(surroundings, &self.item)? {
             Some(editing) => {
                 let script = match get_script(&editing)? {
-                    Some(script) => script,
+                    Some(script) => script.entry().to_owned(),
                     None => "// Default script".to_owned(),
                 };
                 Ok(EditorReply::new(
