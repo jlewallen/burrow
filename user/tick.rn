@@ -2,7 +2,7 @@ use json::*;
 use rand::*;
 use time::*;
 
-fn test_stuff(bag) {
+fn test_stuff(state, bag) {
     let args = #{
         "target": bag.living().unwrap().key(),
         "tagged": #{
@@ -12,7 +12,14 @@ fn test_stuff(bag) {
 
     let scheduling = actions::rune::rune(args)?;
 
+    let state = match state {
+        Some(state) => state,
+        None => RuneState::new(),
+    };
+
     [
+        Some(state),
+
         actions::chat::speak(ActionArgs {
             here: Some("Whoa there!")
         })?,
@@ -26,28 +33,28 @@ fn test_stuff(bag) {
     ]
 }
 
-pub fn held(bag) {
-    test_stuff(bag)
+pub fn held(state, bag) {
+    test_stuff(state, bag)
 }
 
-pub fn dropped(bag) {
+pub fn dropped(state, bag) {
     // info(format!("dropped {:?}", bag));
     // info(format!("dropped {:?} {:?}", bag.area(), bag.area().unwrap().name()));
     // info(format!("dropped {:?} {:?}", bag.living(), bag.living().unwrap().name()));
     // info(format!("dropped {:?} {:?}", bag.item(), bag.item().unwrap().name()));
 
-    test_stuff(bag)
+    test_stuff(state, bag)
 }
 
-pub fn left(bag) {
+pub fn left(state, bag) {
     // info(format!("left"));
 }
 
-pub fn arrived(bag) {
+pub fn arrived(state, bag) {
     // info(format!("arrived"));
 }
 
-pub fn example(bag) {
+pub fn example(state, bag) {
     info(format!("example {:?}", bag));
 }
 

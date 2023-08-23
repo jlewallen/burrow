@@ -156,32 +156,19 @@ pub trait HandleWithTarget {
 
 impl HandleWithTarget for RuneReturn {
     fn handle(&self, target: EntityPtr) -> Result<()> {
-        // Annoying that Object doesn't impl Serialize so this clone.
-        match self.value.clone() {
-            rune::Value::Object(_object) => {
-                let value = serde_json::to_value(self.value.clone())?;
-                info!("{:#?}", &value);
-
-                let tagged = TaggedJson::new_from(value)?;
-                let action = PerformAction::TaggedJson(tagged);
-                let living = target.clone();
-                let session = get_my_session()?;
-                session
-                    .perform(Perform::Living { living, action })
-                    .with_context(|| format!("Rune perform"))?;
-            }
-            rune::Value::Vec(vec) => {
-                let vec = vec.borrow_mut()?;
-                for child in vec.iter() {
-                    Self {
-                        value: child.clone(),
-                    }
-                    .handle(target.clone())?;
+        for returned in self.simplify()? {
+            match returned {
+                Returned::Tagged(action) => {
+                    let action = PerformAction::TaggedJson(action);
+                    let living = target.clone();
+                    let session = get_my_session()?;
+                    session
+                        .perform(Perform::Living { living, action })
+                        .with_context(|| format!("Rune perform"))?;
                 }
+                _ => {}
             }
-            rune::Value::EmptyTuple => {}
-            _ => warn!("unexpected rune return: {:?}", self.value),
-        };
+        }
 
         Ok(())
     }
@@ -202,10 +189,22 @@ impl LogEntry {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Default, rune::Any, Clone)]
+pub struct RuneState {}
+
+impl RuneState {
+    #[inline]
+    fn string_debug(&self, s: &mut String) -> std::fmt::Result {
+        use std::fmt::Write;
+        write!(s, "{:?}", self)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct RuneBehavior {
     pub entry: String,
     pub logs: Vec<LogEntry>,
+    pub state: Option<RuneState>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
