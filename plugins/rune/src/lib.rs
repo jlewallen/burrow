@@ -1,6 +1,7 @@
 use anyhow::Context;
 use plugins_core::library::model::DateTime;
 use plugins_core::library::tests::Utc;
+use rune::Value;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -71,6 +72,25 @@ fn flush_logs(owner: Owner, logs: Vec<LogEntry>) -> Result<()> {
     Ok(())
 }
 
+trait ToCall {
+    fn to_call(&self) -> Option<Call>;
+}
+
+impl ToCall for Perform {
+    fn to_call(&self) -> Option<Call> {
+        match self {
+            Perform::Raised(raised) => Some(Call::Handlers(raised.clone())),
+            _ => None,
+        }
+    }
+}
+
+impl ToCall for TaggedJson {
+    fn to_call(&self) -> Option<Call> {
+        Some(Call::Action(self.clone()))
+    }
+}
+
 impl Runners {
     fn add_runners_for(&mut self, scripts: impl Iterator<Item = Script>) -> Result<()> {
         for script in scripts {
@@ -79,6 +99,21 @@ impl Runners {
         }
 
         Ok(())
+    }
+
+    fn call(&mut self, call: Call) -> Result<Vec<Value>> {
+        let from_handler = self
+            .runners
+            .iter_mut()
+            .map(|runner| runner.call(call.clone()))
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
+
+        self.flush()?;
+
+        Ok(from_handler)
     }
 
     fn flush(&mut self) -> Result<()> {
@@ -135,6 +170,11 @@ impl Plugin for RunePlugin {
     fn initialize(&mut self, schema: &SchemaCollection) -> Result<()> {
         self.runners.initialize(schema);
 
+        RUNNERS.with(|setting| {
+            let mut setting = setting.borrow_mut();
+            *setting = Some(Arc::downgrade(&self.runners.0))
+        });
+
         self.add_runners_for(sources::load_user_sources()?.into_iter())?;
 
         Ok(())
@@ -172,6 +212,20 @@ impl ActionSource for ActionSources {
     }
 }
 
+fn handle_rune_return(living: EntityPtr, rvs: Vec<Value>) -> Result<()> {
+    let session = get_my_session()?;
+    for value in rvs.into_iter() {
+        RuneReturn {
+            session: session.clone(),
+            living: living.clone(),
+            value,
+        }
+        .handle()?;
+    }
+
+    Ok(())
+}
+
 #[derive(Default)]
 struct RuneMiddleware {
     runners: SharedRunners,
@@ -197,32 +251,17 @@ impl Middleware for RuneMiddleware {
             _ => {}
         }
 
-        let handler_rvs: Vec<_> = {
-            let mut runners = self.runners.0.borrow_mut();
-
-            let from_handler = runners
-                .runners
-                .iter_mut()
-                .map(|runner| runner.call_handlers(value.clone()))
-                .collect::<Result<Vec<_>>>()?;
-
-            runners.flush()?;
-
-            from_handler
-        };
-
-        let living: Option<EntityPtr> = value.find_living()?;
-
-        if let Some(living) = living {
-            let session = get_my_session()?;
-            for value in handler_rvs.into_iter().flatten() {
-                RuneReturn {
-                    session: session.clone(),
-                    living: living.clone(),
-                    value,
+        if let Some(living) = value.find_living()? {
+            let handler_rvs: Vec<_> = {
+                let mut runners = self.runners.0.borrow_mut();
+                if let Some(call) = value.to_call() {
+                    runners.call(call)?
+                } else {
+                    vec![]
                 }
-                .handle()?;
-            }
+            };
+
+            handle_rune_return(living, handler_rvs)?;
         }
 
         let before = {
@@ -333,14 +372,15 @@ impl Scope for Behaviors {
 }
 
 pub mod actions {
-    use plugins_core::library::actions::*;
     use serde_json::json;
     use std::collections::HashMap;
 
     use crate::{
+        handle_rune_return,
         sources::{get_logs, get_script},
-        Behaviors, RUNE_EXTENSION,
+        Behaviors, ToCall, RUNE_EXTENSION,
     };
+    use plugins_core::library::actions::*;
 
     #[action]
     pub struct EditAction {
@@ -467,6 +507,33 @@ pub mod actions {
         }
 
         fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+            let Some(target) = session.entity(&LookupBy::Key(&self.target))? else {
+                return Err(DomainError::EntityNotFound(ErrorContext::Simple(here!())).into());
+            };
+
+            info!(target = ?target, "target");
+            info!(surroundings = ?surroundings, "surroundings");
+
+            let runners = super::RUNNERS.with(|getting| {
+                let getting = getting.borrow();
+                if let Some(weak) = &*getting {
+                    if let Some(runners) = weak.upgrade() {
+                        return runners.clone();
+                    }
+                }
+
+                panic!();
+            });
+
+            if let Some(call) = self.tagged.to_call() {
+                let rvs = {
+                    let mut runners = runners.borrow_mut();
+                    runners.call(call)?
+                };
+
+                handle_rune_return(target, rvs)?;
+            }
+
             Ok(Effect::Ok)
         }
     }
@@ -534,4 +601,8 @@ impl TryFindLiving for Surroundings {
             } => Ok(Some(living.clone())),
         }
     }
+}
+
+thread_local! {
+    static RUNNERS: RefCell<Option<std::sync::Weak<RefCell<Runners>>>> = RefCell::new(None)
 }

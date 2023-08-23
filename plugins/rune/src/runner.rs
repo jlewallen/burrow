@@ -7,7 +7,7 @@ use rune::{
 use std::{io::Write, sync::Arc, time::Instant};
 use tracing::*;
 
-use kernel::prelude::{Effect, Perform, SchemaCollection, TaggedJson};
+use kernel::prelude::{Effect, Perform, Raised, SchemaCollection, TaggedJson};
 
 use crate::{
     module::{AfterEffect, Bag, BeforePerform},
@@ -154,16 +154,22 @@ impl RuneRunner {
         self.logs.take()
     }
 
-    pub fn call_handlers(&mut self, perform: Perform) -> Result<Option<rune::runtime::Value>> {
-        match &perform {
-            Perform::Raised(raised) => {
+    pub fn call(&mut self, call: Call) -> Result<Option<Value>> {
+        match call {
+            Call::Handlers(raised) => {
                 if let Some(handlers) = self.handlers()? {
                     handlers.apply(raised.event.clone())
                 } else {
                     Ok(None)
                 }
             }
-            _ => Ok(None),
+            Call::Action(tagged) => {
+                if let Some(actions) = self.actions()? {
+                    actions.apply(tagged.clone())
+                } else {
+                    Ok(None)
+                }
+            }
         }
     }
 
@@ -199,12 +205,19 @@ impl RuneRunner {
     }
 
     fn handlers(&mut self) -> Result<Option<Handlers>> {
+        self.lookup_function_tree("handlers")
+    }
+
+    fn actions(&mut self) -> Result<Option<Handlers>> {
+        self.lookup_function_tree("actions")
+    }
+
+    fn lookup_function_tree(&mut self, name: &str) -> Result<Option<Handlers>> {
         let Some(vm) = self.vm.as_ref() else {
             return Ok(None);
         };
 
-        let Ok(func) = vm.lookup_function(["handlers"]) else {
-            debug!("handlers-unavailable");
+        let Ok(func) = vm.lookup_function([name]) else {
             return Ok(None);
         };
 
@@ -219,6 +232,12 @@ impl RuneRunner {
             }
         }
     }
+}
+
+#[derive(Clone)]
+pub enum Call {
+    Handlers(Raised),
+    Action(TaggedJson),
 }
 
 pub struct Handlers {
