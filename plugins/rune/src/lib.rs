@@ -72,25 +72,6 @@ fn flush_logs(owner: Owner, logs: Vec<LogEntry>) -> Result<()> {
     Ok(())
 }
 
-trait ToCall {
-    fn to_call(&self) -> Option<Call>;
-}
-
-impl ToCall for Perform {
-    fn to_call(&self) -> Option<Call> {
-        match self {
-            Perform::Raised(raised) => Some(Call::Handlers(raised.clone())),
-            _ => None,
-        }
-    }
-}
-
-impl ToCall for TaggedJson {
-    fn to_call(&self) -> Option<Call> {
-        Some(Call::Action(self.clone()))
-    }
-}
-
 impl Runners {
     fn add_runners_for(&mut self, scripts: impl Iterator<Item = Script>) -> Result<()> {
         for script in scripts {
@@ -136,6 +117,11 @@ impl SharedRunners {
     fn initialize(&self, schema: &SchemaCollection) {
         let mut slf = self.0.borrow_mut();
         slf.schema = Some(schema.clone())
+    }
+
+    fn call(&self, call: Call) -> Result<Vec<rune::runtime::Value>> {
+        let mut runners = self.0.borrow_mut();
+        runners.call(call)
     }
 }
 
@@ -252,16 +238,9 @@ impl Middleware for RuneMiddleware {
         }
 
         if let Some(living) = value.find_living()? {
-            let handler_rvs: Vec<_> = {
-                let mut runners = self.runners.0.borrow_mut();
-                if let Some(call) = value.to_call() {
-                    runners.call(call)?
-                } else {
-                    vec![]
-                }
-            };
-
-            handle_rune_return(living, handler_rvs)?;
+            if let Some(call) = value.to_call() {
+                handle_rune_return(living, self.runners.call(call)?)?;
+            }
         }
 
         let before = {
@@ -332,7 +311,7 @@ impl RuneReturn {
                 }
             }
             rune::Value::EmptyTuple => {}
-            _ => warn!("unexpected handler answer: {:?}", self.value),
+            _ => warn!("unexpected rune return: {:?}", self.value),
         };
 
         Ok(())
@@ -506,19 +485,17 @@ pub mod actions {
             false
         }
 
-        fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+        fn perform(&self, session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
             let Some(target) = session.entity(&LookupBy::Key(&self.target))? else {
                 return Err(DomainError::EntityNotFound(ErrorContext::Simple(here!())).into());
             };
-
-            info!(target = ?target, "target");
-            info!(surroundings = ?surroundings, "surroundings");
 
             let runners = super::RUNNERS.with(|getting| {
                 let getting = getting.borrow();
                 if let Some(weak) = &*getting {
                     if let Some(runners) = weak.upgrade() {
-                        return runners.clone();
+                        use crate::SharedRunners;
+                        return SharedRunners(runners.clone());
                     }
                 }
 
@@ -526,12 +503,7 @@ pub mod actions {
             });
 
             if let Some(call) = self.tagged.to_call() {
-                let rvs = {
-                    let mut runners = runners.borrow_mut();
-                    runners.call(call)?
-                };
-
-                handle_rune_return(target, rvs)?;
+                handle_rune_return(target, runners.call(call)?)?;
             }
 
             Ok(Effect::Ok)
@@ -600,6 +572,25 @@ impl TryFindLiving for Surroundings {
                 area: _,
             } => Ok(Some(living.clone())),
         }
+    }
+}
+
+trait ToCall {
+    fn to_call(&self) -> Option<Call>;
+}
+
+impl ToCall for Perform {
+    fn to_call(&self) -> Option<Call> {
+        match self {
+            Perform::Raised(raised) => Some(Call::Handlers(raised.clone())),
+            _ => None,
+        }
+    }
+}
+
+impl ToCall for TaggedJson {
+    fn to_call(&self) -> Option<Call> {
+        Some(Call::Action(self.clone()))
     }
 }
 
