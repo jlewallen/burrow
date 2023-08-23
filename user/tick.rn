@@ -47,6 +47,16 @@ pub fn arrived(bag) {
     // info(format!("arrived"));
 }
 
+pub fn example(bag) {
+    info(format!("example {:?}", bag));
+}
+
+pub fn actions() {
+    #{
+        "example": example,
+    }
+}
+
 pub fn handlers() {
     #{
         "carrying": #{

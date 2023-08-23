@@ -224,9 +224,7 @@ impl Finder for DefaultFinder {
             return Ok(occupying.area.to_entity()?);
         }
 
-        Err(DomainError::Anyhow(anyhow::anyhow!(
-            "No location for entity"
-        )))
+        Ok(entity)
     }
 
     fn find_item(
