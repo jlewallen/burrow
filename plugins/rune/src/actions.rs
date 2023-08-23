@@ -2,9 +2,8 @@ use serde_json::json;
 use std::collections::HashMap;
 
 use crate::{
-    handle_rune_return,
     sources::{get_logs, get_script},
-    Behaviors, ToCall, RUNE_EXTENSION,
+    Behaviors, HandleWithTarget, ToCall, RUNE_EXTENSION,
 };
 use plugins_core::library::actions::*;
 
@@ -146,7 +145,7 @@ impl Action for RuneAction {
         });
 
         if let Some(call) = self.tagged.to_call() {
-            handle_rune_return(target, runners.call(call)?)?;
+            runners.call(call)?.handle(target)?;
         }
 
         Ok(Effect::Ok)

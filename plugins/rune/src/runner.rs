@@ -366,9 +366,9 @@ impl SharedRunners {
         slf.schema = Some(schema.clone())
     }
 
-    pub fn call(&self, call: Call) -> Result<Vec<rune::runtime::Value>> {
+    pub fn call(&self, call: Call) -> Result<RuneReturn> {
         let mut runners = self.0.borrow_mut();
-        runners.call(call)
+        RuneReturn::new(runners.call(call)?)
     }
 
     pub fn before(&self, value: Perform) -> Result<Option<Perform>> {
@@ -398,6 +398,17 @@ impl SharedRunners {
         info!("after");
 
         Ok(after)
+    }
+}
+
+pub struct RuneReturn {
+    pub(crate) value: rune::runtime::Value,
+}
+
+impl RuneReturn {
+    pub fn new(v: Vec<rune::runtime::Value>) -> Result<Self> {
+        let value = rune::runtime::to_value(v)?;
+        Ok(Self { value })
     }
 }
 

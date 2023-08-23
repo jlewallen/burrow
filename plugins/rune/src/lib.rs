@@ -3,8 +3,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::{cell::RefCell, rc::Rc};
 
-use rune::Value;
-
 use plugins_core::library::model::DateTime;
 use plugins_core::library::plugin::*;
 use plugins_core::library::tests::Utc;
@@ -134,7 +132,7 @@ impl Middleware for RuneMiddleware {
 
         if let Some(living) = value.find_living()? {
             if let Some(call) = value.to_call() {
-                handle_rune_return(living, self.runners.call(call)?)?;
+                self.runners.call(call)?.handle(living)?;
             }
         }
 
@@ -152,14 +150,12 @@ impl Middleware for RuneMiddleware {
     }
 }
 
-pub struct RuneReturn {
-    session: SessionRef,
-    living: EntityPtr,
-    value: rune::runtime::Value,
+pub trait HandleWithTarget {
+    fn handle(&self, target: EntityPtr) -> Result<()>;
 }
 
-impl RuneReturn {
-    fn handle(&self) -> Result<()> {
+impl HandleWithTarget for RuneReturn {
+    fn handle(&self, target: EntityPtr) -> Result<()> {
         // Annoying that Object doesn't impl Serialize so this clone.
         match self.value.clone() {
             rune::Value::Object(_object) => {
@@ -168,8 +164,9 @@ impl RuneReturn {
 
                 let tagged = TaggedJson::new_from(value)?;
                 let action = PerformAction::TaggedJson(tagged);
-                let living = self.living.clone();
-                self.session
+                let living = target.clone();
+                let session = get_my_session()?;
+                session
                     .perform(Perform::Living { living, action })
                     .with_context(|| format!("Rune perform"))?;
             }
@@ -177,11 +174,9 @@ impl RuneReturn {
                 let vec = vec.borrow_mut()?;
                 for child in vec.iter() {
                     Self {
-                        session: self.session.clone(),
-                        living: self.living.clone(),
                         value: child.clone(),
                     }
-                    .handle()?;
+                    .handle(target.clone())?;
                 }
             }
             rune::Value::EmptyTuple => {}
@@ -271,20 +266,6 @@ impl ToCall for TaggedJson {
     fn to_call(&self) -> Option<Call> {
         Some(Call::Action(self.clone()))
     }
-}
-
-fn handle_rune_return(living: EntityPtr, rvs: Vec<Value>) -> Result<()> {
-    let session = get_my_session()?;
-    for value in rvs.into_iter() {
-        RuneReturn {
-            session: session.clone(),
-            living: living.clone(),
-            value,
-        }
-        .handle()?;
-    }
-
-    Ok(())
 }
 
 thread_local! {
