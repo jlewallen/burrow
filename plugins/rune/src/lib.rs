@@ -156,7 +156,7 @@ pub trait HandleWithTarget {
 
 impl HandleWithTarget for RuneReturn {
     fn handle(&self, target: EntityPtr) -> Result<()> {
-        for returned in self.simplify()? {
+        for returned in self.simplify().with_context(|| here!())? {
             match returned {
                 Returned::Tagged(action) => {
                     let action = PerformAction::TaggedJson(action);

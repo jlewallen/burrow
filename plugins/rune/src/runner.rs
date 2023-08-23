@@ -1,3 +1,4 @@
+use anyhow::Context as _;
 use anyhow::Result;
 use rune::{
     runtime::{Object, RuntimeContext, Shared},
@@ -289,7 +290,8 @@ where
 
         let state: Option<RuneState> = self
             .value
-            .simplify()?
+            .simplify()
+            .with_context(|| here!())?
             .into_iter()
             .flat_map(|f| match f {
                 Returned::Tagged(_) => None,
@@ -505,7 +507,6 @@ pub struct RuneReturn {
 
 impl RuneReturn {
     pub fn new(v: Vec<rune::runtime::Value>) -> Result<Self> {
-        use anyhow::Context;
         let value = rune::runtime::to_value(v).with_context(|| here!())?;
         Ok(Self { value })
     }
@@ -529,20 +530,16 @@ impl Simplifies for Effect {
 
 impl Simplifies for RuneReturn {
     fn simplify(&self) -> Result<Vec<Returned>> {
-        use anyhow::Context;
         self.value.simplify().with_context(|| here!())
     }
 }
 
 impl Simplifies for rune::runtime::Value {
     fn simplify(&self) -> Result<Vec<Returned>> {
-        use anyhow::Context;
-
-        // Annoying that Object doesn't impl Serialize so this clone.
         match self.clone() {
             rune::Value::Object(_object) => {
                 let value = serde_json::to_value(self.clone())?;
-                info!("{:#?}", &value);
+                info!("object {:#?}", &value);
 
                 let tagged = TaggedJson::new_from(value)?;
                 Ok(vec![Returned::Tagged(tagged)])
@@ -565,11 +562,17 @@ impl Simplifies for rune::runtime::Value {
                     Ok(vec![])
                 }
             }
-            rune::Value::Any(_value) => {
-                let value = self.clone();
-                let state: RuneState = rune::runtime::from_value(value).with_context(|| here!())?;
-
-                Ok(vec![Returned::State(state)])
+            rune::Value::Any(value) => {
+                let value = value.borrow_ref().with_context(|| here!())?;
+                if value.is::<RuneState>() {
+                    if let Some(value) = value.downcast_borrow_ref::<RuneState>() {
+                        Ok(vec![Returned::State(value.clone())])
+                    } else {
+                        Ok(vec![])
+                    }
+                } else {
+                    Ok(vec![])
+                }
             }
             rune::Value::EmptyTuple => Ok(vec![]),
             _ => {
