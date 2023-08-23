@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::{
     sources::{get_logs, get_script},
-    Behaviors, HandleWithTarget, ToCall, RUNE_EXTENSION,
+    Behaviors, PerformTagged, ToCall, RUNE_EXTENSION,
 };
 use plugins_core::library::actions::*;
 

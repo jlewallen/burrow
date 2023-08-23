@@ -28,6 +28,14 @@ impl ScriptSource {
             ScriptSource::System(source) => Ok(rune::Source::new("system".to_string(), source)),
         }
     }
+
+    pub fn describe(&self) -> String {
+        match self {
+            ScriptSource::File(path) => format!("File({:?})", path.to_str()),
+            ScriptSource::System(_) => format!("System()"),
+            ScriptSource::Entity(key, _) => format!("Entity({})", key),
+        }
+    }
 }
 
 #[derive(Clone, Debug, rune::Any)]
@@ -66,6 +74,10 @@ pub struct Script {
 impl Script {
     pub fn source(&self) -> Result<rune::Source> {
         self.source.source()
+    }
+
+    pub fn describe_source(&self) -> String {
+        self.source.describe()
     }
 }
 

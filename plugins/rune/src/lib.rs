@@ -150,11 +150,11 @@ impl Middleware for RuneMiddleware {
     }
 }
 
-pub trait HandleWithTarget {
+pub trait PerformTagged {
     fn handle(&self, target: EntityPtr) -> Result<()>;
 }
 
-impl HandleWithTarget for RuneReturn {
+impl PerformTagged for RuneReturn {
     fn handle(&self, target: EntityPtr) -> Result<()> {
         for returned in self.simplify().with_context(|| here!())? {
             match returned {
@@ -212,6 +212,16 @@ pub struct RuneBehavior {
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Behaviors {
     pub langs: Option<HashMap<String, RuneBehavior>>,
+}
+
+impl Behaviors {
+    fn get_rune_mut(&mut self) -> Result<&mut RuneBehavior> {
+        Ok(self
+            .langs
+            .get_or_insert_with(|| panic!("Expected langs"))
+            .get_mut(RUNE_EXTENSION)
+            .expect("Expected rune"))
+    }
 }
 
 impl Scope for Behaviors {
