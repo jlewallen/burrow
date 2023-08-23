@@ -1,4 +1,5 @@
 use anyhow::Context;
+use rune::runtime::Key;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::{cell::RefCell, rc::Rc};
@@ -197,6 +198,14 @@ impl RuneState {
     fn string_debug(&self, s: &mut String) -> std::fmt::Result {
         use std::fmt::Write;
         write!(s, "{:?}", self)
+    }
+
+    fn index_get(&self, key: Key) -> rune::Value {
+        todo!()
+    }
+
+    fn index_set(&self, key: Key, value: rune::Value) {
+        todo!()
     }
 }
 
