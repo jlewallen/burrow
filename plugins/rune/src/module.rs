@@ -143,6 +143,9 @@ pub(super) fn create(schema: &SchemaCollection, owner: Option<Owner>) -> Result<
     module.associated_function("key", Owner::key)?;
     module.associated_function("relation", Owner::relation)?;
     module.ty::<Relation>()?;
+    module.ty::<RuneState>()?;
+    module.associated_function(Protocol::STRING_DEBUG, RuneState::string_debug)?;
+    module.function(["RuneState", "new"], || RuneState::default())?;
     Ok(module)
 }
 

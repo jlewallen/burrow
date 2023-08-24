@@ -1,15 +1,20 @@
+use anyhow::Context as _;
 use anyhow::Result;
 use rune::{
     runtime::{Object, RuntimeContext, Shared},
     termcolor::{ColorChoice, StandardStream, WriteColor},
     Context, Diagnostics, Sources, Value, Vm,
 };
+use serde::ser::SerializeMap;
+use serde::Serialize;
 use std::{cell::RefCell, io::Write, sync::Arc, time::Instant};
 use tracing::*;
 
 use kernel::{
+    here,
     prelude::{
-        Effect, EntityKey, LookupBy, OpenScopeRefMut, Perform, Raised, SchemaCollection, TaggedJson,
+        Effect, EntityKey, EntityPtr, JsonValue, LookupBy, OpenScopeRefMut, Perform, Raised,
+        SchemaCollection, TaggedJson,
     },
     session::get_my_session,
 };
@@ -17,7 +22,7 @@ use kernel::{
 use crate::{
     module::{AfterEffect, Bag, BeforePerform},
     sources::*,
-    Behaviors, LogEntry,
+    Behaviors, LogEntry, RuneState,
 };
 
 #[derive(Default, Clone)]
@@ -78,20 +83,30 @@ impl From<Vec<LogEntry>> for Log {
     }
 }
 
+pub type RuneValue = rune::Value;
+
+enum State {
+    None,
+    Loaded(JsonValue),
+    Created(RuneValue),
+}
+
 pub struct RuneRunner {
-    _ctx: Context,
-    _runtime: Arc<RuntimeContext>,
+    #[allow(dead_code)]
+    source: String,
     owner: Option<Owner>,
     logs: Option<Vec<LogEntry>>,
+    state: State,
     vm: Option<Vm>,
 }
 
 impl RuneRunner {
     pub fn new(schema: &SchemaCollection, script: Script) -> Result<Self> {
-        debug!("runner:loading");
         let started = Instant::now();
 
         let library_sources = load_library_sources()?;
+
+        let source = script.describe_source();
 
         let mut sources = Sources::new();
         sources.insert(script.source()?);
@@ -101,7 +116,6 @@ impl RuneRunner {
 
         let owner = script.owner.clone();
 
-        debug!("runner:compiling");
         let mut ctx = Context::with_default_modules()?;
         ctx.install(rune_modules::time::module(true)?)?;
         ctx.install(rune_modules::json::module(true)?)?;
@@ -133,7 +147,7 @@ impl RuneRunner {
             Ok(compiled) => {
                 let vm = Vm::new(runtime.clone(), Arc::new(compiled));
                 let elapsed = Instant::now() - started;
-                info!("runner:ready {:?}", elapsed);
+                info!(source = source, "runner:ready {:?}", elapsed);
                 Some(vm)
             }
             Err(e) => {
@@ -142,35 +156,37 @@ impl RuneRunner {
             }
         };
 
+        let state = script
+            .state
+            .map(|s| State::Loaded(s))
+            .unwrap_or(State::None);
+
         Ok(Self {
-            _ctx: ctx,
-            _runtime: runtime,
+            source,
             owner,
             logs,
+            state,
             vm,
         })
     }
 
-    pub fn owner(&self) -> Option<&Owner> {
-        self.owner.as_ref()
-    }
-
-    pub fn logs(&mut self) -> Option<Vec<LogEntry>> {
-        self.logs.take()
-    }
-
-    pub fn call(&mut self, call: Call) -> Result<Option<Value>> {
+    pub fn call(&mut self, call: Call) -> Result<Option<PostEvaluation<rune::runtime::Value>>> {
         match call {
             Call::Handlers(raised) => {
                 if let Some(handlers) = self.handlers()? {
-                    handlers.apply(raised.event.clone())
+                    Ok(handlers
+                        .apply(self.get_or_load_state()?, raised.event.clone())?
+                        .map(|v| self.post(v)))
                 } else {
                     Ok(None)
                 }
             }
             Call::Action(tagged) => {
                 if let Some(actions) = self.actions()? {
-                    actions.apply(tagged.clone())
+                    Ok(actions
+                        .apply::<RuneValue>(None, tagged.clone())?
+                        .map(|v| Some(self.post(v)))
+                        .flatten())
                 } else {
                     Ok(None)
                 }
@@ -178,16 +194,20 @@ impl RuneRunner {
         }
     }
 
-    pub fn before(&mut self, perform: Perform) -> Result<Option<Perform>> {
+    pub fn before(&mut self, perform: Perform) -> Result<Option<PostEvaluation<Perform>>> {
         self.invoke("before", (BeforePerform(perform.clone()),))?;
 
-        Ok(Some(perform))
+        Ok(Some(self.post(perform)))
     }
 
-    pub fn after(&mut self, effect: Effect) -> Result<Effect> {
+    pub fn after(&mut self, effect: Effect) -> Result<PostEvaluation<Effect>> {
         self.invoke("after", (AfterEffect(effect.clone()),))?;
 
-        Ok(effect)
+        Ok(self.post(effect))
+    }
+
+    fn post<T>(&mut self, value: T) -> PostEvaluation<T> {
+        PostEvaluation::new(self.owner.clone(), self.logs.take(), value)
     }
 
     fn invoke<A>(&mut self, name: &str, args: A) -> Result<Option<rune::Value>>
@@ -237,6 +257,147 @@ impl RuneRunner {
             }
         }
     }
+
+    fn get_or_load_state(&mut self) -> Result<Option<RuneValue>> {
+        match &self.state {
+            State::None => Ok(None),
+            State::Loaded(loaded) => {
+                if let Some(loaded) = self.load_state(Some(loaded.clone()))? {
+                    self.state = State::Created(loaded.clone());
+                    Ok(Some(loaded))
+                } else {
+                    Ok(None)
+                }
+            }
+            State::Created(loaded) => Ok(Some(loaded.clone())),
+        }
+    }
+
+    fn load_state(&self, loaded: Option<JsonValue>) -> Result<Option<RuneValue>> {
+        if let Some(loaded) = &loaded {
+            if let Some(vm) = &self.vm {
+                match vm.lookup_function(["create_state"]) {
+                    Ok(state_fn) => match state_fn.call::<_, rune::Value>(()) {
+                        rune::runtime::VmResult::Ok(value) => {
+                            Ok(Some(update_state_in_place(value.clone(), loaded)?))
+                        }
+                        rune::runtime::VmResult::Err(e) => {
+                            warn!("{:?}", e);
+
+                            Ok(None)
+                        }
+                    },
+                    Err(_) => Ok(None),
+                }
+            } else {
+                Ok(None)
+            }
+        } else {
+            Ok(None)
+        }
+    }
+}
+
+fn update_state_in_place(value: RuneValue, setting: &JsonValue) -> Result<RuneValue> {
+    debug!("state:updating {:?} {:?}", &value, setting);
+
+    match &value {
+        Value::Struct(truct) => {
+            let try_get: Value = serde_json::from_value(setting.clone())?;
+            let state_object = try_get.into_object().into_result()?;
+            let copying = state_object.borrow_ref()?;
+            let mut receiving = truct.borrow_mut()?;
+            for (key, value) in copying.clone().into_iter() {
+                receiving.data_mut().insert(key.clone(), value);
+            }
+        }
+        _ => todo!("Rune state should be a struct."),
+    }
+
+    Ok(value)
+}
+
+#[derive(Clone)]
+pub struct PostEvaluation<T> {
+    owner: Option<Owner>,
+    logs: Option<Vec<LogEntry>>,
+    value: T,
+}
+
+impl<T> PostEvaluation<T> {
+    fn new(owner: Option<Owner>, logs: Option<Vec<LogEntry>>, value: T) -> Self {
+        Self { owner, logs, value }
+    }
+
+    fn into_inner(self) -> T {
+        self.value
+    }
+
+    fn owner(&self) -> Result<Option<EntityPtr>> {
+        let Some(owner) = &self.owner else {
+            return Ok(None);
+        };
+
+        Ok(Some(
+            get_my_session()?
+                .entity(&LookupBy::Key(&EntityKey::new(&owner.key())))?
+                .expect("Error getting owner"),
+        ))
+    }
+}
+
+impl<T> PostEvaluation<T>
+where
+    T: Simplifies,
+{
+    fn flush(mut self) -> Result<T> {
+        let Some(owner) = self.owner()? else {
+            debug!("flush: ownerless");
+            return Ok(self.value);
+        };
+
+        let mut behaviors = owner.scope_mut::<Behaviors>()?;
+        let rune = behaviors.get_rune_mut()?;
+
+        let mut save = false;
+        if let Some(state) = self.value.simplify_state()? {
+            info!("state:final {:?}", state.value);
+            rune.state = state.value;
+            save = true;
+        }
+
+        let logs = self.logs.take();
+        if have_logs_changed(&rune.logs, logs.as_ref()) {
+            rune.logs.extend(logs.unwrap_or_default());
+            save = true;
+        }
+
+        if save {
+            behaviors.save()?;
+        }
+
+        Ok(self.value)
+    }
+}
+
+fn have_logs_changed(tail: &Vec<LogEntry>, test: Option<&Vec<LogEntry>>) -> bool {
+    match tail.last() {
+        Some(last) => match test {
+            Some(logs) => match logs.as_slice() {
+                [] => panic!(),
+                [solo] => last.message != solo.message,
+                _ => true,
+            },
+            None => false,
+        },
+        None => false,
+    }
+}
+
+impl Into<RuneReturn> for PostEvaluation<rune::runtime::Value> {
+    fn into(self) -> RuneReturn {
+        RuneReturn { value: self.value }
+    }
 }
 
 #[derive(Clone)]
@@ -262,7 +423,10 @@ impl FunctionTree {
         Self { object }
     }
 
-    fn apply(&self, json: TaggedJson) -> Result<Option<rune::runtime::Value>> {
+    fn apply<S>(&self, state: Option<S>, json: TaggedJson) -> Result<Option<rune::runtime::Value>>
+    where
+        S: Clone + rune::ToValue,
+    {
         let object = self.object.borrow_ref()?;
         let Some(child) = object.get(json.tag()) else {
             info!("no-handler");
@@ -274,7 +438,7 @@ impl FunctionTree {
         match child {
             Value::Object(object) => {
                 if let Ok(json) = TaggedJson::new_from(json.into()) {
-                    Self::new(object.clone()).apply(json)
+                    Self::new(object.clone()).apply(state.clone(), json)
                 } else {
                     unimplemented!("unexpected handler value: {:?}", object)
                 }
@@ -283,7 +447,11 @@ impl FunctionTree {
                 let bag = Bag(json);
 
                 Ok(Some(
-                    match func.borrow_ref().unwrap().call::<_, rune::Value>((bag,)) {
+                    match func
+                        .borrow_ref()
+                        .unwrap()
+                        .call::<_, rune::Value>((state, bag))
+                    {
                         rune::runtime::VmResult::Ok(v) => v,
                         rune::runtime::VmResult::Err(e) => {
                             warn!("{:?}", e);
@@ -314,31 +482,19 @@ impl Runners {
         Ok(())
     }
 
-    fn call(&mut self, call: Call) -> Result<Vec<Value>> {
-        let from_handler = self
-            .runners
-            .iter_mut()
-            .map(|runner| runner.call(call.clone()))
-            .collect::<Result<Vec<_>>>()?
-            .into_iter()
-            .flatten()
-            .collect::<Vec<_>>();
-
-        self.flush()?;
-
-        Ok(from_handler)
-    }
-
-    fn flush(&mut self) -> Result<()> {
-        for runner in self.runners.iter_mut() {
-            if let Some(owner) = runner.owner().cloned() {
-                if let Some(logs) = runner.logs() {
-                    flush_logs(owner, logs)?;
-                }
-            }
-        }
-
-        Ok(())
+    fn call(&mut self, call: Call) -> Result<RuneReturn> {
+        Ok(RuneReturn::new(
+            self.runners
+                .iter_mut()
+                .map(|runner| runner.call(call.clone()))
+                .collect::<Result<Vec<_>>>()?
+                .into_iter()
+                .flatten()
+                .collect::<Vec<PostEvaluation<_>>>()
+                .into_iter()
+                .map(|pe| pe.flush())
+                .collect::<Result<Vec<rune::runtime::Value>>>()?,
+        )?)
     }
 }
 
@@ -368,7 +524,9 @@ impl SharedRunners {
 
     pub fn call(&self, call: Call) -> Result<RuneReturn> {
         let mut runners = self.0.borrow_mut();
-        RuneReturn::new(runners.call(call)?)
+        let returned = runners.call(call)?;
+
+        Ok(returned)
     }
 
     pub fn before(&self, value: Perform) -> Result<Option<Perform>> {
@@ -378,10 +536,13 @@ impl SharedRunners {
             .runners
             .iter_mut()
             .fold(Some(value), |perform, runner| {
-                perform.and_then(|perform| runner.before(perform).expect("Error in before"))
+                perform.and_then(|perform| {
+                    runner
+                        .before(perform)
+                        .expect("Error in before")
+                        .map(|v| v.flush().expect("Error in flush"))
+                })
             });
-
-        runners.flush()?;
 
         Ok(before)
     }
@@ -390,10 +551,8 @@ impl SharedRunners {
         let mut runners = self.0.borrow_mut();
 
         let after = runners.runners.iter_mut().fold(value, |effect, runner| {
-            runner.after(effect).expect("Error in after")
+            runner.after(effect).expect("Error in after").into_inner()
         });
-
-        runners.flush()?;
 
         info!("after");
 
@@ -401,43 +560,137 @@ impl SharedRunners {
     }
 }
 
+pub enum Returned {
+    Tagged(TaggedJson),
+    State(RuneState),
+}
+
 pub struct RuneReturn {
-    pub(crate) value: rune::runtime::Value,
+    value: rune::runtime::Value,
 }
 
 impl RuneReturn {
     pub fn new(v: Vec<rune::runtime::Value>) -> Result<Self> {
-        let value = rune::runtime::to_value(v)?;
+        let value = rune::runtime::to_value(v).with_context(|| here!())?;
         Ok(Self { value })
     }
 }
 
-fn flush_logs(owner: Owner, logs: Vec<LogEntry>) -> Result<()> {
-    let Some(owner) = get_my_session()?.entity(&LookupBy::Key(&EntityKey::new(&owner.key())))? else {
-        panic!("error getting owner");
-    };
+pub trait Simplifies {
+    fn simplify(&self) -> Result<Vec<Returned>>;
 
-    let mut behaviors = owner.scope_mut::<Behaviors>()?;
-    let Some (rune) = behaviors
-        .langs
-        .get_or_insert_with(|| panic!("expected langs"))
-        .get_mut(RUNE_EXTENSION) else {
-        panic!("expected rune");
-    };
-
-    let skipping = match rune.logs.last() {
-        Some(last) => match logs.as_slice() {
-            [] => panic!(),
-            [solo] => last.message == solo.message,
-            _ => false,
-        },
-        None => false,
-    };
-
-    if !skipping {
-        rune.logs.extend(logs);
-        behaviors.save()?;
+    fn simplify_state(&self) -> Result<Option<RuneState>> {
+        Ok(self
+            .simplify()
+            .with_context(|| here!())?
+            .into_iter()
+            .flat_map(|f| match f {
+                Returned::Tagged(_) => None,
+                Returned::State(state) => Some(state),
+            })
+            .last())
     }
+}
 
-    Ok(())
+impl Simplifies for Perform {
+    fn simplify(&self) -> Result<Vec<Returned>> {
+        Ok(vec![])
+    }
+}
+
+impl Simplifies for Effect {
+    fn simplify(&self) -> Result<Vec<Returned>> {
+        Ok(vec![])
+    }
+}
+
+impl Simplifies for RuneReturn {
+    fn simplify(&self) -> Result<Vec<Returned>> {
+        self.value.simplify().with_context(|| here!())
+    }
+}
+
+impl Simplifies for rune::runtime::Value {
+    fn simplify(&self) -> Result<Vec<Returned>> {
+        match self.clone() {
+            rune::Value::Object(_object) => {
+                let value = serde_json::to_value(self.clone())?;
+                info!("object {:#?}", &value);
+
+                let tagged = TaggedJson::new_from(value)?;
+                Ok(vec![Returned::Tagged(tagged)])
+            }
+            rune::Value::Vec(vec) => {
+                let vec = vec.borrow_ref()?;
+                Ok(vec
+                    .iter()
+                    .map(|rr| rr.simplify())
+                    .collect::<Result<Vec<_>>>()?
+                    .into_iter()
+                    .flatten()
+                    .collect())
+            }
+            rune::Value::Option(value) => {
+                let value = value.borrow_ref().with_context(|| here!())?;
+                if let Some(value) = value.clone() {
+                    value.simplify()
+                } else {
+                    Ok(vec![])
+                }
+            }
+            rune::Value::Any(value) => {
+                let value = value.borrow_ref().with_context(|| here!())?;
+                if value.is::<RuneState>() {
+                    if let Some(value) = value.downcast_borrow_ref::<RuneState>() {
+                        Ok(vec![Returned::State(value.clone())])
+                    } else {
+                        Ok(vec![])
+                    }
+                } else {
+                    Ok(vec![])
+                }
+            }
+            rune::Value::EmptyTuple => Ok(vec![]),
+            rune::Value::Struct(value) => {
+                let value = value.borrow_ref()?;
+                let data = value.data();
+                let serialized = serde_json::to_value(ObjectSerializer {
+                    object: data.clone(),
+                })?;
+
+                Ok(vec![Returned::State(RuneState {
+                    value: Some(serialized),
+                })])
+            }
+            rune::Value::Type(ty) => {
+                warn!("Unexpected rune type: {:?}", ty);
+
+                Ok(vec![])
+            }
+            _ => {
+                warn!("Unexpected rune return: {:?}", self);
+
+                Ok(vec![])
+            }
+        }
+    }
+}
+
+struct ObjectSerializer {
+    object: Object,
+}
+
+impl Serialize for ObjectSerializer {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut serializer = serializer.serialize_map(Some(self.object.len()))?;
+
+        for (key, value) in &self.object {
+            serializer.serialize_entry(key, value)?;
+        }
+
+        serializer.end()
+    }
 }

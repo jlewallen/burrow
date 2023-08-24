@@ -2,16 +2,15 @@ use json::*;
 use rand::*;
 use time::*;
 
-fn test_stuff(bag) {
-    let args = #{
+fn test_stuff(state, bag) {
+    let scheduling = actions::rune::rune(#{
         "target": bag.living().unwrap().key(),
         "tagged": #{
             "example": #{}
         }
-    };
+    })?;
 
-    let scheduling = actions::rune::rune(args)?;
-
+    /*
     [
         actions::chat::speak(ActionArgs {
             here: Some("Whoa there!")
@@ -24,30 +23,26 @@ fn test_stuff(bag) {
             "action": scheduling
         })?
     ]
+    */
 }
 
-pub fn held(bag) {
-    test_stuff(bag)
+pub fn held(state, bag) {
+    test_stuff(state, bag)
 }
 
-pub fn dropped(bag) {
-    // info(format!("dropped {:?}", bag));
-    // info(format!("dropped {:?} {:?}", bag.area(), bag.area().unwrap().name()));
-    // info(format!("dropped {:?} {:?}", bag.living(), bag.living().unwrap().name()));
-    // info(format!("dropped {:?} {:?}", bag.item(), bag.item().unwrap().name()));
-
-    test_stuff(bag)
+pub fn dropped(state, bag) {
+    test_stuff(state, bag)
 }
 
-pub fn left(bag) {
+pub fn left(state, bag) {
     // info(format!("left"));
 }
 
-pub fn arrived(bag) {
+pub fn arrived(state, bag) {
     // info(format!("arrived"));
 }
 
-pub fn example(bag) {
+pub fn example(state, bag) {
     info(format!("example {:?}", bag));
 }
 

@@ -150,38 +150,25 @@ impl Middleware for RuneMiddleware {
     }
 }
 
-pub trait HandleWithTarget {
+pub trait PerformTagged {
     fn handle(&self, target: EntityPtr) -> Result<()>;
 }
 
-impl HandleWithTarget for RuneReturn {
+impl PerformTagged for RuneReturn {
     fn handle(&self, target: EntityPtr) -> Result<()> {
-        // Annoying that Object doesn't impl Serialize so this clone.
-        match self.value.clone() {
-            rune::Value::Object(_object) => {
-                let value = serde_json::to_value(self.value.clone())?;
-                info!("{:#?}", &value);
-
-                let tagged = TaggedJson::new_from(value)?;
-                let action = PerformAction::TaggedJson(tagged);
-                let living = target.clone();
-                let session = get_my_session()?;
-                session
-                    .perform(Perform::Living { living, action })
-                    .with_context(|| format!("Rune perform"))?;
-            }
-            rune::Value::Vec(vec) => {
-                let vec = vec.borrow_mut()?;
-                for child in vec.iter() {
-                    Self {
-                        value: child.clone(),
-                    }
-                    .handle(target.clone())?;
+        for returned in self.simplify().with_context(|| here!())? {
+            match returned {
+                Returned::Tagged(action) => {
+                    let action = PerformAction::TaggedJson(action);
+                    let living = target.clone();
+                    let session = get_my_session()?;
+                    session
+                        .perform(Perform::Living { living, action })
+                        .with_context(|| format!("Rune perform"))?;
                 }
+                _ => {}
             }
-            rune::Value::EmptyTuple => {}
-            _ => warn!("unexpected rune return: {:?}", self.value),
-        };
+        }
 
         Ok(())
     }
@@ -202,15 +189,39 @@ impl LogEntry {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Default, rune::Any, Clone)]
+pub struct RuneState {
+    value: Option<JsonValue>,
+}
+
+impl RuneState {
+    #[inline]
+    fn string_debug(&self, s: &mut String) -> std::fmt::Result {
+        use std::fmt::Write;
+        write!(s, "{:?}", self)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct RuneBehavior {
     pub entry: String,
     pub logs: Vec<LogEntry>,
+    pub state: Option<JsonValue>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Behaviors {
     pub langs: Option<HashMap<String, RuneBehavior>>,
+}
+
+impl Behaviors {
+    fn get_rune_mut(&mut self) -> Result<&mut RuneBehavior> {
+        Ok(self
+            .langs
+            .get_or_insert_with(|| panic!("Expected langs"))
+            .get_mut(RUNE_EXTENSION)
+            .expect("Expected rune"))
+    }
 }
 
 impl Scope for Behaviors {
