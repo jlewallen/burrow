@@ -28,6 +28,7 @@ pub struct DynamicNext<'a> {
 }
 
 #[derive(Copy, Clone)]
+#[allow(improper_ctypes_definitions)]
 pub struct PluginDeclaration {
     // pub rustc_version: &'static str,
     pub core_version: &'static str,
