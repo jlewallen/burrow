@@ -4,7 +4,7 @@ use plugins_core::{
     carrying::model::{Carryable, Containing},
     fashion::model::{Wearable, Wearing},
     location::Location,
-    memory::model::Memory,
+    memory::model::Mind,
     moving::model::{Occupyable, Occupying},
 };
 use plugins_rune::Behaviors;
@@ -95,7 +95,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
                     load_and_save_scope::<Containing>(&entity)?;
                     load_and_save_scope::<Wearable>(&entity)?;
                     load_and_save_scope::<Wearing>(&entity)?;
-                    load_and_save_scope::<Memory>(&entity)?;
+                    load_and_save_scope::<Mind>(&entity)?;
                     load_and_save_scope::<Behaviors>(&entity)?;
                 }
             }
