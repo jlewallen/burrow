@@ -68,7 +68,7 @@ pub mod model {
 
     #[derive(Debug, Serialize, ToTaggedJson)]
     #[serde(rename_all = "camelCase")]
-    pub enum FashionEvent {
+    pub enum Fashion {
         Worn {
             living: EntityRef,
             item: ObservedEntity,
@@ -81,7 +81,7 @@ pub mod model {
         },
     }
 
-    impl DomainEvent for FashionEvent {}
+    impl DomainEvent for Fashion {}
 
     #[derive(Clone, Debug, Serialize, Deserialize)]
     pub enum Article {
@@ -239,7 +239,7 @@ pub mod actions {
                         true => Ok(reply_ok(
                             living.clone(),
                             Audience::Area(area.key().clone()),
-                            FashionEvent::Worn {
+                            Fashion::Worn {
                                 living: living.entity_ref(),
                                 item: (&wearing).observe(&living)?.expect("No observed entity"),
                                 area: area.entity_ref(),
@@ -274,7 +274,7 @@ pub mod actions {
                         true => Ok(reply_ok(
                             living.clone(),
                             Audience::Area(area.key().clone()),
-                            FashionEvent::Removed {
+                            Fashion::Removed {
                                 living: living.entity_ref(),
                                 item: (&removing).observe(&living)?.expect("No observed entity"),
                                 area: area.entity_ref(),

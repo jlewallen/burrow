@@ -1,1 +1,0 @@
-{{ moving | json_encode(pretty=true) }}
