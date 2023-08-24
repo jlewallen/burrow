@@ -381,14 +381,14 @@ where
 }
 
 fn have_logs_changed(tail: &Vec<LogEntry>, test: Option<&Vec<LogEntry>>) -> bool {
-    match tail.last() {
-        Some(last) => match test {
-            Some(logs) => match logs.as_slice() {
+    match test {
+        Some(logs) => match tail.last() {
+            Some(tail) => match logs.as_slice() {
                 [] => panic!(),
-                [solo] => last.message != solo.message,
+                [solo] => tail.message != solo.message,
                 _ => true,
             },
-            None => false,
+            None => true,
         },
         None => false,
     }
