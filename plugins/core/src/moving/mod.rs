@@ -35,6 +35,8 @@ impl Plugin for MovingPlugin {
             .action::<actions::GoAction>()
             .action::<actions::AddRouteAction>()
             .action::<actions::RemoveRouteAction>()
+            .action::<actions::ActivateRouteAction>()
+            .action::<actions::DeactivateRouteAction>()
     }
 
     fn key(&self) -> &'static str {
@@ -65,7 +67,9 @@ impl ActionSource for ActionSources {
             tagged,
             actions::GoAction,
             actions::AddRouteAction,
-            actions::RemoveRouteAction
+            actions::RemoveRouteAction,
+            actions::ActivateRouteAction,
+            actions::DeactivateRouteAction
         );
 
         Ok(None)

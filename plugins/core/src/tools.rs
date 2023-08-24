@@ -257,7 +257,8 @@ pub fn get_adjacent_keys(entity: &EntityPtr) -> Result<Vec<EntityKey>> {
 
     Ok(routes
         .into_iter()
-        .map(|r| r.destination().key().clone())
+        .flat_map(|r| r.destination())
+        .map(|v| v.key().clone())
         .collect())
 }
 

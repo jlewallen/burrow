@@ -1,0 +1,13 @@
+---
+source: plugins/core/src/moving/tests.rs
+expression: reply.to_debug_json()?
+---
+{
+  "reply": {
+    "taggedJson": {
+      "simpleReply": {
+        "prevented": "A rock slide is blocking your way."
+      }
+    }
+  }
+}
