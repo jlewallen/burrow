@@ -66,9 +66,9 @@ pub mod model {
     impl From<SpecificMemory> for RecalledMemory {
         fn from(value: SpecificMemory) -> Self {
             let entity = match value.event {
-                MemoryEvent::Created(e) => e,
-                MemoryEvent::Destroyed(e) => e,
-                MemoryEvent::Constructed(e) => e,
+                Memory::Created(e) => e,
+                Memory::Destroyed(e) => e,
+                Memory::Constructed(e) => e,
             };
 
             Self {
@@ -106,7 +106,7 @@ pub mod model {
     }
 
     #[derive(Debug, Serialize, Deserialize, Clone)]
-    pub enum MemoryEvent {
+    pub enum Memory {
         Created(EntityEvent),
         Destroyed(EntityEvent),
         Constructed(EntityEvent),
@@ -115,39 +115,37 @@ pub mod model {
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct SpecificMemory {
         pub time: DateTime<Utc>,
-        pub event: MemoryEvent,
+        pub event: Memory,
     }
 
     #[derive(Debug, Serialize, Deserialize, Default)]
-    pub struct Memory {
+    pub struct Mind {
         memory: Vec<SpecificMemory>,
     }
 
-    impl Memory {}
-
-    impl Scope for Memory {
+    impl Scope for Mind {
         fn scope_key() -> &'static str {
             "memory"
         }
     }
 
-    impl From<Memory> for Vec<SpecificMemory> {
-        fn from(value: Memory) -> Self {
+    impl From<Mind> for Vec<SpecificMemory> {
+        fn from(value: Mind) -> Self {
             value.memory
         }
     }
 
     pub fn memories_of(entity: &EntityPtr) -> Result<Vec<SpecificMemory>, DomainError> {
-        let memory = entity.scope::<Memory>()?.unwrap_or_default();
+        let memory = entity.scope::<Mind>()?.unwrap_or_default();
         Ok(memory.memory.clone())
     }
 
     pub fn remember(
         entity: &EntityPtr,
         time: DateTime<Utc>,
-        event: MemoryEvent,
+        event: Memory,
     ) -> Result<(), DomainError> {
-        let mut memory = entity.scope_mut::<Memory>()?;
+        let mut memory = entity.scope_mut::<Mind>()?;
         memory.memory.push(SpecificMemory { time, event });
         memory.save()
     }
@@ -226,7 +224,7 @@ mod tests {
         remember(
             &living,
             time,
-            MemoryEvent::Created(EntityEvent {
+            Memory::Created(EntityEvent {
                 key: session.new_key(),
                 gid: EntityGid::new(3),
                 name: "Doesn't actually exist".to_owned(),

@@ -7,7 +7,7 @@ use crate::{
     carrying::model::{Carryable, Containing},
     library::actions::*,
     looking::{actions::LookAction, model::new_area_observation},
-    memory::model::{remember, EntityEvent, MemoryEvent},
+    memory::model::{remember, EntityEvent, Memory},
     moving::model::Occupyable,
 };
 
@@ -180,7 +180,7 @@ impl Action for MakeItemAction {
         remember(
             &creator,
             Utc::now(),
-            MemoryEvent::Created(EntityEvent {
+            Memory::Created(EntityEvent {
                 key: new_item.key().clone(),
                 gid: new_item.gid(),
                 name: new_item.name()?.unwrap(),
@@ -351,7 +351,7 @@ impl Action for BuildAreaAction {
         remember(
             &creator,
             Utc::now(),
-            MemoryEvent::Constructed(EntityEvent {
+            Memory::Constructed(EntityEvent {
                 key: new_area.key().clone(),
                 gid: new_area.gid(),
                 name: new_area.name()?.unwrap(),
