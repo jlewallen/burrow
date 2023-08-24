@@ -17,7 +17,7 @@ pub mod parser {
         character::complete::digit1,
         combinator::map,
         combinator::{map_res, opt, recognize},
-        sequence::{pair, preceded, separated_pair, tuple},
+        sequence::{pair, preceded, separated_pair, terminated, tuple},
         IResult,
     };
     pub use tracing::*;
