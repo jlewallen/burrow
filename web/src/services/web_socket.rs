@@ -28,6 +28,7 @@ pub enum WebSocketMessage {
     Reply(JsonValue),
     Notify((String, JsonValue)),
     Error(String),
+    Ping,
 }
 
 #[derive(Debug)]

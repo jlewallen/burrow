@@ -85,7 +85,8 @@ mod manage_connection {
 
                                                 append.dispatch(value);
                                             }
-                                            _ => todo!(),
+                                            WebSocketMessage::Ping => log::trace!("ping"),
+                                            _ => log::warn!("Unknown message: {:?}", item),
                                         };
                                     }
                                 };
