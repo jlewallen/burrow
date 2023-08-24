@@ -177,7 +177,7 @@ pub enum SimpleReply {
     NotFound,
     What,
     Impossible,
-    Prevented,
+    Prevented(Option<String>),
 }
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]

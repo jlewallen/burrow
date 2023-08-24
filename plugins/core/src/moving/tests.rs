@@ -2,7 +2,9 @@ use super::parser::*;
 use super::*;
 use crate::library::tests::*;
 use crate::looking::model::new_area_observation;
-use crate::moving::actions::{AddRouteAction, RemoveRouteAction, ShowRoutesAction};
+use crate::moving::actions::{
+    AddRouteAction, DeactivateRouteAction, RemoveRouteAction, ShowRoutesAction,
+};
 use crate::moving::model::{Occupyable, Route, SimpleRoute};
 
 #[test]
@@ -290,6 +292,32 @@ fn it_picks_best_matching_route_by_name() -> Result<()> {
 
     let reply: SimpleReply = reply.json_as()?;
     assert_eq!(reply, SimpleReply::NotFound);
+
+    build.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn it_deactivates_routes() -> Result<()> {
+    let mut build = BuildSurroundings::new()?;
+    let destination = build.make(QuickThing::Place("Place"))?;
+    let gid = destination.borrow().gid().unwrap();
+    let (session, surroundings) = build.build()?;
+
+    let action = try_parsing(RouteActionParser {}, &format!("@route #{} north", gid))?.unwrap();
+    action.perform(session.clone(), &surroundings)?;
+
+    let action = DeactivateRouteAction {
+        name: "north".to_owned(),
+        reason: "A rock slide is blocking your way.".to_owned(),
+    };
+    action.perform(session.clone(), &surroundings)?;
+
+    let action = try_parsing(GoActionParser {}, "go north")?.unwrap();
+    let reply = action.perform(session.clone(), &surroundings)?;
+
+    insta::assert_json_snapshot!(reply.to_debug_json()?);
 
     build.close()?;
 

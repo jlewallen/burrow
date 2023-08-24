@@ -92,30 +92,56 @@ impl SimpleRoute {
             to,
         }
     }
+
+    pub fn destination(&self) -> &EntityRef {
+        &self.to
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum Route {
     Simple(SimpleRoute),
+    Deactivated(String, Box<Route>),
 }
 
 impl Route {
-    fn conflicts_with(&self, other: &Route) -> bool {
-        match (self, other) {
-            (Route::Simple(a), Route::Simple(b)) => a.name == b.name,
+    fn name(&self) -> &str {
+        match self {
+            Route::Simple(simple) => &simple.name,
+            Route::Deactivated(_, route) => route.name(),
         }
+    }
+
+    fn conflicts_with(&self, other: &Route) -> bool {
+        self.name() == other.name()
     }
 
     fn matching_name(&self, name: &str) -> bool {
         match self {
             Route::Simple(simple) => simple.name.to_lowercase().contains(&name.to_lowercase()),
+            Route::Deactivated(_, route) => route.matching_name(name),
         }
     }
 
-    pub fn destination(&self) -> &EntityRef {
+    pub fn destination(&self) -> Option<&EntityRef> {
         match self {
-            Route::Simple(simple) => &simple.to,
+            Route::Simple(simple) => Some(&simple.to),
+            Route::Deactivated(_, _) => None,
+        }
+    }
+
+    fn activated(&self) -> Route {
+        match self {
+            Route::Simple(_) => self.clone(),
+            Route::Deactivated(_, route) => *route.clone(),
+        }
+    }
+
+    fn deactivated(&self, reason: &str) -> Route {
+        match self {
+            Route::Simple(_) => Route::Deactivated(reason.to_owned(), self.clone().into()),
+            Route::Deactivated(_, _) => self.clone(),
         }
     }
 }
@@ -129,7 +155,7 @@ pub struct Occupyable {
 }
 
 impl Occupyable {
-    pub fn stop_occupying(&mut self, item: &EntityPtr) -> Result<bool, DomainError> {
+    pub(crate) fn stop_occupying(&mut self, item: &EntityPtr) -> Result<bool, DomainError> {
         let before = self.occupied.len();
         self.occupied.retain(|i| *i.key() != item.key());
         let after = self.occupied.len();
@@ -140,13 +166,13 @@ impl Occupyable {
         Ok(true)
     }
 
-    pub fn start_occupying(&mut self, item: &EntityPtr) -> Result<(), DomainError> {
+    pub(crate) fn start_occupying(&mut self, item: &EntityPtr) -> Result<(), DomainError> {
         self.occupied.push(item.entity_ref());
 
         Ok(())
     }
 
-    pub fn remove_route(&mut self, name: &str) -> Result<bool, DomainError> {
+    pub(crate) fn remove_route(&mut self, name: &str) -> Result<bool, DomainError> {
         if let Some(routes) = &mut self.routes {
             if let Some(found) = routes.iter().position(|r| r.matching_name(name)) {
                 routes.remove(found);
@@ -157,7 +183,7 @@ impl Occupyable {
         Ok(false)
     }
 
-    pub fn add_route(&mut self, route: Route) -> Result<(), DomainError> {
+    pub(crate) fn add_route(&mut self, route: Route) -> Result<(), DomainError> {
         let routes = self.routes.get_or_insert_with(|| Vec::new());
 
         if let Some(conflict) = routes.iter().position(|r| r.conflicts_with(&route)) {
@@ -169,18 +195,60 @@ impl Occupyable {
         Ok(())
     }
 
-    pub fn find_route(&self, name: &str) -> Result<Option<EntityPtr>, DomainError> {
+    pub(crate) fn find_route(&self, name: &str) -> Option<&Route> {
         let Some(routes) = &self.routes else {
-            return Ok(None);
+            return None;
         };
 
         for route in routes {
             if route.matching_name(name) {
-                return Ok(Some(route.destination().to_entity()?));
+                return Some(route);
             }
         }
 
-        Ok(None)
+        None
+    }
+
+    pub(crate) fn activate(&mut self, name: &str) -> Result<(), DomainError> {
+        let Some(routes) = &self.routes else {
+            return Ok(());
+        };
+
+        self.routes = Some(
+            routes
+                .into_iter()
+                .map(|r| {
+                    if r.matching_name(name) {
+                        r.activated()
+                    } else {
+                        r.clone()
+                    }
+                })
+                .collect::<Vec<Route>>(),
+        );
+
+        Ok(())
+    }
+
+    pub(crate) fn deactivate(&mut self, name: &str, reason: &str) -> Result<(), DomainError> {
+        let Some(routes) = &self.routes else {
+            return Ok(());
+        };
+
+        self.routes = Some(
+            routes
+                .into_iter()
+                .map(|r| {
+                    if r.matching_name(name) {
+                        r.deactivated(reason)
+                    } else {
+                        r.clone()
+                    }
+                })
+                .collect::<Vec<Route>>(),
+        );
+
+        Ok(())
     }
 }
 

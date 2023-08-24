@@ -3,7 +3,7 @@ use std::rc::Rc;
 use crate::library::actions::*;
 use crate::looking::actions::*;
 use crate::looking::model::Observe;
-use crate::moving::model::{AfterMoveHook, BeforeMovingHook, CanMove, MovingHooks};
+use crate::moving::model::{AfterMoveHook, BeforeMovingHook, CanMove, MovingHooks, Route};
 
 use super::model::Occupyable;
 
@@ -68,7 +68,7 @@ impl GoAction {
                 }
                 false => Ok(SimpleReply::NotFound.try_into()?),
             },
-            CanMove::Prevent => Ok(SimpleReply::Prevented.try_into()?),
+            CanMove::Prevent => Ok(SimpleReply::Prevented(None).try_into()?),
         }
     }
 }
@@ -85,13 +85,18 @@ impl Action for GoAction {
 
         if let Some(occupyable) = area.scope::<Occupyable>()? {
             match &self.item {
-                Item::Route(route) => {
-                    if let Some(to_area) = occupyable.find_route(&route)? {
-                        return self.navigate(session, living, area, to_area, surroundings);
-                    } else {
-                        Ok(SimpleReply::NotFound.try_into()?)
-                    }
-                }
+                Item::Route(route) => match occupyable.find_route(&route) {
+                    Some(route) => match route {
+                        Route::Simple(to_area) => {
+                            let to_area = to_area.destination().to_entity()?;
+                            self.navigate(session, living, area, to_area, surroundings)
+                        }
+                        Route::Deactivated(reason, _) => {
+                            Ok(SimpleReply::Prevented(Some(reason.clone())).try_into()?)
+                        }
+                    },
+                    None => Ok(SimpleReply::NotFound.try_into()?),
+                },
                 Item::Gid(_) => match session.find_item(surroundings, &self.item)? {
                     Some(to_area) => self.navigate(session, living, area, to_area, surroundings),
                     None => Ok(SimpleReply::NotFound.try_into()?),
@@ -168,6 +173,49 @@ impl Action for RemoveRouteAction {
             return Ok(SimpleReply::NotFound.try_into()?);
         }
 
+        occupyable.save()?;
+
+        Ok(SimpleReply::Done.try_into()?)
+    }
+}
+
+#[action]
+pub struct ActivateRouteAction {
+    pub name: String,
+}
+
+impl Action for ActivateRouteAction {
+    fn is_read_only() -> bool {
+        false
+    }
+
+    fn perform(&self, _session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+        let (_, _, area) = surroundings.unpack();
+
+        let mut occupyable = area.scope_mut::<Occupyable>()?;
+        occupyable.activate(&self.name)?;
+        occupyable.save()?;
+
+        Ok(SimpleReply::Done.try_into()?)
+    }
+}
+
+#[action]
+pub struct DeactivateRouteAction {
+    pub name: String,
+    pub reason: String,
+}
+
+impl Action for DeactivateRouteAction {
+    fn is_read_only() -> bool {
+        false
+    }
+
+    fn perform(&self, _session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+        let (_, _, area) = surroundings.unpack();
+
+        let mut occupyable = area.scope_mut::<Occupyable>()?;
+        occupyable.deactivate(&self.name, &self.reason)?;
         occupyable.save()?;
 
         Ok(SimpleReply::Done.try_into()?)
