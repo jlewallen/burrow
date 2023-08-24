@@ -157,13 +157,16 @@ pub fn add_route(area: &EntityPtr, name: &str, to: &EntityPtr) -> Result<(), Dom
 }
 
 pub fn occupied_by(area: &EntityPtr) -> Result<Vec<EntityPtr>> {
-    let occupyable = area.scope::<Occupyable>()?.unwrap();
-
-    occupyable
-        .occupied
-        .iter()
-        .map(|e| Ok(e.to_entity()?))
-        .collect::<Result<Vec<_>>>()
+    if let Some(occupyable) = area.scope::<Occupyable>()? {
+        occupyable
+            .occupied
+            .iter()
+            .map(|e| Ok(e.to_entity()?))
+            .collect::<Result<Vec<_>>>()
+    } else {
+        tracing::warn!("No occupyable on {:?}", area);
+        Ok(Vec::new())
+    }
 }
 
 pub fn get_occupant_keys(area: &EntityPtr) -> Result<Vec<EntityKey>> {

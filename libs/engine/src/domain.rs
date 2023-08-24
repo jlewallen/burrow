@@ -49,6 +49,23 @@ impl Domain {
         }
     }
 
+    pub fn everywhere<T: Notifier>(
+        &self,
+        actions: Vec<Rc<dyn Action>>,
+        notifier: &T,
+    ) -> Result<()> {
+        let session = self.open_session()?;
+        let session = session.set_session()?;
+        for action in actions {
+            let action = PerformAction::Instance(action);
+            let living = session.world()?.unwrap();
+            session.perform(Perform::Living { living, action }).unwrap();
+        }
+        session.close(notifier)?;
+
+        Ok(())
+    }
+
     pub fn tick<T: Notifier>(&self, now: DateTime<Utc>, notifier: &T) -> Result<AfterTick> {
         trace!("{:?} tick", now);
 

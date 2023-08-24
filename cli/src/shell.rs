@@ -1,6 +1,7 @@
 use anyhow::Result;
 use chrono::Utc;
 use clap::Args;
+use plugins_core::sched::actions::RefreshCronAction;
 use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
 use std::cell::RefCell;
@@ -259,10 +260,23 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
         let standard_out = StandardOutNotifier::new(&self_key, text);
 
         async move {
+            let mut counter = 0;
+
             loop {
                 sleep(std::time::Duration::from_secs(1)).await;
 
                 let notifier = QueuedNotifier::default();
+
+                if counter == 60 {
+                    let refresh = RefreshCronAction { now: Utc::now() };
+                    if let Err(e) = domain.everywhere(vec![Rc::new(refresh)], &notifier) {
+                        warn!("tick failed everywhere: {:?}", e);
+                    }
+                    counter = 0;
+                } else {
+                    counter += 1;
+                }
+
                 let now = Utc::now();
                 if let Err(e) = domain.tick(now, &notifier) {
                     warn!("tick failed: {:?}", e);

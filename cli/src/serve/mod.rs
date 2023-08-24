@@ -43,9 +43,23 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
         let notifier = app_state.notifier();
         let domain = domain.clone();
         async move {
+            let mut counter = 0;
+
             loop {
                 sleep(std::time::Duration::from_secs(1)).await;
                 let now = Utc::now();
+
+                if counter == 60 {
+                    let refresh =
+                        plugins_core::sched::actions::RefreshCronAction { now: now.clone() };
+                    if let Err(e) = domain.everywhere(vec![std::rc::Rc::new(refresh)], &notifier) {
+                        warn!("tick failed everywhere: {:?}", e);
+                    }
+                    counter = 0;
+                } else {
+                    counter += 1;
+                }
+
                 if let Err(e) = domain.tick(now, &notifier) {
                     warn!("tick failed: {:?}", e);
                 }
