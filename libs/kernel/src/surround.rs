@@ -22,6 +22,16 @@ impl Surroundings {
         }
     }
 
+    pub fn world(&self) -> &EntityPtr {
+        match self {
+            Surroundings::Living {
+                world,
+                living: _,
+                area: _,
+            } => world,
+        }
+    }
+
     pub fn living(&self) -> &EntityPtr {
         match self {
             Surroundings::Living {
