@@ -6,9 +6,9 @@ use futures::{
     stream::{SplitStream, StreamExt},
 };
 use serde::{Deserialize, Serialize};
-use std::{borrow::Borrow, rc::Rc, sync::Arc};
-use tokio::sync::broadcast;
+use std::{borrow::Borrow, rc::Rc, sync::Arc, time::Duration};
 use tokio::task::JoinHandle;
+use tokio::{sync::broadcast, time::timeout};
 use tracing::{info, trace, warn};
 
 use engine::prelude::{EvaluateAs, Notifier, Session, SessionOpener};
@@ -38,6 +38,7 @@ pub enum ServerMessage {
     Welcome { self_key: String },
     Reply(JsonValue),
     Notify(String, JsonValue),
+    Ping,
 }
 
 pub async fn ws_handler(
@@ -129,81 +130,102 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
     let mut recv_task = tokio::spawn({
         let state = state.clone();
         async move {
-            while let Some(Ok(Message::Item(message))) = receiver.next().await {
-                trace!("item {:?}", &message);
+            loop {
+                let maybe_message = timeout(Duration::from_millis(10000), receiver.next()).await;
 
-                match message {
-                    ClientMessage::Perform(value) => {
-                        let app_state: &AppState = state.borrow();
-
-                        let handle: JoinHandle<Result<JsonValue>> = tokio::task::spawn_blocking({
-                            let domain = app_state.domain.clone();
-                            let notifier = app_state.notifier();
-                            let our_key = our_key.clone();
-
-                            move || {
-                                let session = domain.open_session().expect("Error opening session");
-                                let action: Rc<_> = session
-                                    .try_deserialize_action(&value)
-                                    .expect("try parse action failed")
-                                    .unwrap()
-                                    .into();
-                                let living = session
-                                    .entity(&LookupBy::Key(&EntityKey::new(&our_key)))
-                                    .expect("Living lookup failed")
-                                    .expect("Living not found");
-                                let perform = Perform::Living {
-                                    living,
-                                    action: PerformAction::Instance(action),
-                                };
-                                trace!("perform {:?}", &perform.enum_name());
-                                let session = session.set_session()?;
-                                let effect = session.perform(perform).expect("Perform failed");
-                                session.close(&notifier).expect("Error closing session");
-                                Ok(serde_json::to_value(effect)?)
-                            }
-                        });
-
-                        match handle.await {
-                            Ok(Ok(reply)) => session_tx
-                                .send(ServerMessage::Reply(reply))
-                                .expect("Error sending reply"),
-                            Ok(Err(e)) => todo!("{:?}", e),
-                            Err(e) => todo!("{:?}", e),
-                        };
+                let message = match maybe_message {
+                    Ok(message) => message,
+                    Err(_) => {
+                        session_tx
+                            .send(ServerMessage::Ping)
+                            .expect("Error sending reply");
+                        continue;
                     }
-                    ClientMessage::Evaluate(text) => {
-                        let app_state: &AppState = state.borrow();
+                };
 
-                        let handle: JoinHandle<Result<JsonValue>> = tokio::task::spawn_blocking({
-                            let domain = app_state.domain.clone();
-                            let notifier = app_state.notifier();
-                            let text = text.clone();
-                            let our_key = our_key.clone();
+                if let Some(Ok(Message::Item(message))) = message {
+                    trace!("item {:?}", &message);
 
-                            move || {
-                                let session = domain.open_session().expect("Error opening session");
-                                let effect = evaluate_commands(
-                                    session,
-                                    &notifier,
-                                    EvaluateAs::Key(&EntityKey::new(&our_key)),
-                                    &text,
-                                )?;
-                                Ok(serde_json::to_value(effect)?)
-                            }
-                        });
+                    match message {
+                        ClientMessage::Perform(value) => {
+                            let app_state: &AppState = state.borrow();
 
-                        match handle.await {
-                            Ok(Ok(reply)) => {
-                                session_tx
+                            let handle: JoinHandle<Result<JsonValue>> =
+                                tokio::task::spawn_blocking({
+                                    let domain = app_state.domain.clone();
+                                    let notifier = app_state.notifier();
+                                    let our_key = our_key.clone();
+
+                                    move || {
+                                        let session =
+                                            domain.open_session().expect("Error opening session");
+                                        let action: Rc<_> = session
+                                            .try_deserialize_action(&value)
+                                            .expect("try parse action failed")
+                                            .unwrap()
+                                            .into();
+                                        let living = session
+                                            .entity(&LookupBy::Key(&EntityKey::new(&our_key)))
+                                            .expect("Living lookup failed")
+                                            .expect("Living not found");
+                                        let perform = Perform::Living {
+                                            living,
+                                            action: PerformAction::Instance(action),
+                                        };
+                                        trace!("perform {:?}", &perform.enum_name());
+                                        let session = session.set_session()?;
+                                        let effect =
+                                            session.perform(perform).expect("Perform failed");
+                                        session.close(&notifier).expect("Error closing session");
+                                        Ok(serde_json::to_value(effect)?)
+                                    }
+                                });
+
+                            match handle.await {
+                                Ok(Ok(reply)) => session_tx
                                     .send(ServerMessage::Reply(reply))
-                                    .expect("Error sending reply");
-                            }
-                            Ok(Err(e)) => warn!("{:?}", e),
-                            Err(e) => warn!("{:?}", e),
-                        };
+                                    .expect("Error sending reply"),
+                                Ok(Err(e)) => todo!("{:?}", e),
+                                Err(e) => todo!("{:?}", e),
+                            };
+                        }
+                        ClientMessage::Evaluate(text) => {
+                            let app_state: &AppState = state.borrow();
+
+                            let handle: JoinHandle<Result<JsonValue>> =
+                                tokio::task::spawn_blocking({
+                                    let domain = app_state.domain.clone();
+                                    let notifier = app_state.notifier();
+                                    let text = text.clone();
+                                    let our_key = our_key.clone();
+
+                                    move || {
+                                        let session =
+                                            domain.open_session().expect("Error opening session");
+                                        let effect = evaluate_commands(
+                                            session,
+                                            &notifier,
+                                            EvaluateAs::Key(&EntityKey::new(&our_key)),
+                                            &text,
+                                        )?;
+                                        Ok(serde_json::to_value(effect)?)
+                                    }
+                                });
+
+                            match handle.await {
+                                Ok(Ok(reply)) => {
+                                    session_tx
+                                        .send(ServerMessage::Reply(reply))
+                                        .expect("Error sending reply");
+                                }
+                                Ok(Err(e)) => warn!("{:?}", e),
+                                Err(e) => warn!("{:?}", e),
+                            };
+                        }
+                        _ => todo!(),
                     }
-                    _ => todo!(),
+                } else {
+                    break;
                 }
             }
         }
