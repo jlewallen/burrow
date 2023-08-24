@@ -110,7 +110,7 @@ impl Renderer {
 
         let tree = get_tree(&PathBuf::from_str(directory)?)?;
 
-        info!("{:?}", &tree);
+        tracing::trace!("{:?}", &tree);
 
         {
             let files: Vec<_> = tree
