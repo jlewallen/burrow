@@ -1,0 +1,1 @@
+{{ left | json_encode(pretty=true) }}

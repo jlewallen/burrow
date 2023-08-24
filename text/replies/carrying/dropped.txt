@@ -1,0 +1,1 @@
+{{ dropped.living.name }} dropped {{ dropped.item.qualified }}.
