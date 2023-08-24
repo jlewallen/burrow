@@ -1,7 +1,5 @@
 use crate::library::plugin::*;
 
-use kernel::prelude::EvaluationError;
-
 pub use model::{change_location, container_of, Location};
 
 mod actions;
@@ -48,8 +46,8 @@ impl Plugin for LocationPlugin {
 }
 
 impl ParsesActions for LocationPlugin {
-    fn try_parse_action(&self, _i: &str) -> EvaluationResult {
-        Err(EvaluationError::ParseFailed)
+    fn try_parse_action(&self, i: &str) -> EvaluationResult {
+        try_parsing(parser::MoveActionParser {}, i)
     }
 }
 
