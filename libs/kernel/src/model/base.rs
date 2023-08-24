@@ -126,6 +126,7 @@ pub enum Item {
     Named(String),
     Route(String),
     Gid(EntityGid),
+    Key(EntityKey),
     Contained(Box<Item>),
     Held(Box<Item>),
 }
