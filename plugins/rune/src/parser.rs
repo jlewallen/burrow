@@ -1,6 +1,8 @@
 use kernel::prelude::*;
 use plugins_core::library::parser::*;
 
+use crate::actions::RegisterAction;
+
 use super::actions::EditAction;
 use super::actions::ShowLogAction;
 
@@ -24,6 +26,19 @@ impl ParsesActions for ShowLogsActionParser {
         let (_, action) = map(
             preceded(pair(tag("@log"), spaces), noun_or_specific),
             |item| -> EvaluationResult { Ok(Some(Box::new(ShowLogAction { item }))) },
+        )(i)?;
+
+        action
+    }
+}
+
+pub struct RegisterActionParser {}
+
+impl ParsesActions for RegisterActionParser {
+    fn try_parse_action(&self, i: &str) -> EvaluationResult {
+        let (_, action) = map(
+            preceded(pair(tag("@register"), spaces), noun_or_specific),
+            |target| -> EvaluationResult { Ok(Some(Box::new(RegisterAction { target }))) },
         )(i)?;
 
         action

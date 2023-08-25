@@ -110,6 +110,7 @@ pub fn load_directory_sources(path: &str) -> Result<Vec<Script>> {
 
 #[derive(Clone, Debug, rune::Any)]
 pub enum Relation {
+    Target,
     World,
     User,
     Area,
@@ -135,24 +136,32 @@ impl Relation {
     }
 }
 
+pub fn load_sources_from_entity(entity: &EntityPtr, relation: Relation) -> Result<Option<Script>> {
+    trace!(key = ?entity.key(), "check-sources");
+    if let Some(script) = get_script(entity)? {
+        info!("script {:?}", entity);
+        let source = ScriptSource::Entity(entity.key().clone(), script.entry);
+        Ok(Some(Script {
+            source,
+            owner: Some(Owner {
+                key: entity.key(),
+                relation,
+            }),
+            state: script.state,
+        }))
+    } else {
+        Ok(None)
+    }
+}
+
 pub fn load_sources_from_surroundings(surroundings: &Surroundings) -> Result<Vec<Script>> {
     let mut scripts = Vec::new();
     let haystack = EntityRelationshipSet::new_from_surroundings(surroundings).expand()?;
     for nearby in haystack.iter() {
         let entity = nearby.entity()?;
-        trace!(key = ?entity.key(), "check-sources");
-        if let Some(script) = get_script(entity)? {
-            info!("script {:?}", nearby);
-            let relation = Relation::new(nearby);
-            let source = ScriptSource::Entity(entity.key().clone(), script.entry);
-            scripts.push(Script {
-                source,
-                owner: Some(Owner {
-                    key: entity.key(),
-                    relation,
-                }),
-                state: script.state,
-            });
+        let relation = Relation::new(nearby);
+        if let Some(script) = load_sources_from_entity(entity, relation)? {
+            scripts.push(script);
         }
     }
 

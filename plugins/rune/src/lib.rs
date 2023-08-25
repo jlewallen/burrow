@@ -91,6 +91,7 @@ impl ParsesActions for RunePlugin {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
         try_parsing(parser::EditActionParser {}, i)
             .or_else(|_| try_parsing(parser::ShowLogsActionParser {}, i))
+            .or_else(|_| try_parsing(parser::RegisterActionParser {}, i))
     }
 }
 
@@ -102,7 +103,12 @@ impl ActionSource for ActionSources {
         &self,
         tagged: &TaggedJson,
     ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
-        try_deserialize_all!(tagged, actions::SaveScriptAction, actions::RuneAction);
+        try_deserialize_all!(
+            tagged,
+            actions::SaveScriptAction,
+            actions::RuneAction,
+            actions::RegisterAction
+        );
 
         Ok(None)
     }

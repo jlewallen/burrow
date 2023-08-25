@@ -2,7 +2,8 @@ use serde_json::json;
 use std::collections::HashMap;
 
 use crate::{
-    sources::{get_logs, get_script},
+    runner::{Call, RuneRunner, SharedRunners},
+    sources::{get_logs, get_script, load_sources_from_entity, Relation},
     Behaviors, PerformTagged, ToCall, RUNE_EXTENSION,
 };
 use plugins_core::library::actions::*;
@@ -113,6 +114,19 @@ impl Action for SaveScriptAction {
     }
 }
 
+fn get_local_runners() -> SharedRunners {
+    super::RUNNERS.with(|getting| {
+        let getting = getting.borrow();
+        if let Some(weak) = &*getting {
+            if let Some(runners) = weak.upgrade() {
+                return SharedRunners::new(runners.clone());
+            }
+        }
+
+        panic!();
+    })
+}
+
 #[action]
 pub struct RuneAction {
     pub target: EntityKey,
@@ -129,25 +143,49 @@ impl Action for RuneAction {
 
     fn perform(&self, session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
         let Some(target) = session.entity(&LookupBy::Key(&self.target))? else {
-                return Err(DomainError::EntityNotFound(ErrorContext::Simple(here!())).into());
-            };
+            return Err(DomainError::EntityNotFound(ErrorContext::Simple(here!())).into());
+        };
 
-        let runners = super::RUNNERS.with(|getting| {
-            let getting = getting.borrow();
-            if let Some(weak) = &*getting {
-                if let Some(runners) = weak.upgrade() {
-                    use crate::SharedRunners;
-                    return SharedRunners::new(runners.clone());
-                }
-            }
-
-            panic!();
-        });
+        let runners = get_local_runners();
 
         if let Some(call) = self.tagged.to_call() {
             runners.call(call)?.handle(target)?;
         }
 
         Ok(Effect::Ok)
+    }
+}
+
+#[action]
+pub struct RegisterAction {
+    pub target: Item,
+}
+
+impl Action for RegisterAction {
+    fn is_read_only() -> bool
+    where
+        Self: Sized,
+    {
+        false
+    }
+
+    fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+        match session.find_item(surroundings, &self.target)? {
+            Some(target) => {
+                let runners = get_local_runners();
+                let schema = runners.schema().unwrap();
+                if let Some(script) = load_sources_from_entity(&target, Relation::Target)? {
+                    let mut runner = RuneRunner::new(&schema, script)?;
+                    if let Some(post) = runner.call(Call::Register)? {
+                        post.flush()?;
+                    }
+
+                    Ok(SimpleReply::Done.try_into()?)
+                } else {
+                    Ok(SimpleReply::Impossible.try_into()?)
+                }
+            }
+            None => Ok(SimpleReply::NotFound.try_into()?),
+        }
     }
 }

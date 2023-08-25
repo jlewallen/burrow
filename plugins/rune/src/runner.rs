@@ -191,6 +191,10 @@ impl RuneRunner {
                     Ok(None)
                 }
             }
+            Call::Register => Ok(self
+                .invoke("register", ())?
+                .map(|v| Some(self.post(v)))
+                .flatten()),
         }
     }
 
@@ -350,7 +354,7 @@ impl<T> PostEvaluation<T>
 where
     T: Simplifies,
 {
-    fn flush(mut self) -> Result<T> {
+    pub(super) fn flush(mut self) -> Result<T> {
         let Some(owner) = self.owner()? else {
             debug!("flush: ownerless");
             return Ok(self.value);
@@ -404,6 +408,7 @@ impl Into<RuneReturn> for PostEvaluation<rune::runtime::Value> {
 pub enum Call {
     Handlers(Raised),
     Action(TaggedJson),
+    Register,
 }
 
 pub struct FunctionTree {
@@ -505,9 +510,12 @@ impl SharedRunners {
     pub fn new(runners: Arc<RefCell<Runners>>) -> Self {
         Self(runners)
     }
-}
 
-impl SharedRunners {
+    pub fn schema(&self) -> Option<SchemaCollection> {
+        let runners = self.0.borrow();
+        runners.schema.clone()
+    }
+
     pub fn weak(&self) -> std::sync::Weak<RefCell<Runners>> {
         Arc::downgrade(&self.0)
     }
