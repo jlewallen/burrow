@@ -2,7 +2,7 @@ use serde_json::json;
 use std::collections::HashMap;
 
 use crate::{
-    runner::{Call, RuneRunner, SharedRunners},
+    runner::{Call, RuneReturn, RuneRunner, SharedRunners},
     sources::{get_logs, get_script, load_sources_from_entity, Relation},
     Behaviors, PerformTagged, ToCall, RUNE_EXTENSION,
 };
@@ -149,7 +149,7 @@ impl Action for RuneAction {
         let runners = get_local_runners();
 
         if let Some(call) = self.tagged.to_call() {
-            runners.call(call)?.handle(target)?;
+            runners.call(call)?.handle(&target)?;
         }
 
         Ok(Effect::Ok)
@@ -177,7 +177,8 @@ impl Action for RegisterAction {
                 if let Some(script) = load_sources_from_entity(&target, Relation::Target)? {
                     let mut runner = RuneRunner::new(&schema, script)?;
                     if let Some(post) = runner.call(Call::Register)? {
-                        post.flush()?;
+                        let rr = RuneReturn::new(vec![post.flush()?])?;
+                        rr.handle(surroundings.living())?;
                     }
 
                     Ok(SimpleReply::Done.try_into()?)

@@ -138,7 +138,7 @@ impl Middleware for RuneMiddleware {
 
         if let Some(living) = value.find_living()? {
             if let Some(call) = value.to_call() {
-                self.runners.call(call)?.handle(living)?;
+                self.runners.call(call)?.handle(&living)?;
             }
         }
 
@@ -157,11 +157,11 @@ impl Middleware for RuneMiddleware {
 }
 
 pub trait PerformTagged {
-    fn handle(&self, target: EntityPtr) -> Result<()>;
+    fn handle(&self, target: &EntityPtr) -> Result<()>;
 }
 
 impl PerformTagged for RuneReturn {
-    fn handle(&self, target: EntityPtr) -> Result<()> {
+    fn handle(&self, target: &EntityPtr) -> Result<()> {
         for returned in self.simplify().with_context(|| here!())? {
             match returned {
                 Returned::Tagged(action) => {
