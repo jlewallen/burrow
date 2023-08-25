@@ -145,6 +145,7 @@ impl Action for ShowRoutesAction {
 
 #[action]
 pub struct AddRouteAction {
+    pub area: Item,
     pub name: String,
     pub destination: Item,
 }
@@ -169,6 +170,7 @@ impl Action for AddRouteAction {
 
 #[action]
 pub struct RemoveRouteAction {
+    pub area: Item,
     pub name: String,
 }
 
@@ -177,16 +179,20 @@ impl Action for RemoveRouteAction {
         false
     }
 
-    fn perform(&self, _session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
-        let (_, _living, area) = surroundings.unpack();
-        let mut occupyable = area.scope_mut::<Occupyable>()?;
-        if !occupyable.remove_route(&self.name)? {
-            return Ok(SimpleReply::NotFound.try_into()?);
+    fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+        match session.find_item(&surroundings, &self.area)? {
+            Some(area) => {
+                let mut occupyable = area.scope_mut::<Occupyable>()?;
+                if !occupyable.remove_route(&self.name)? {
+                    return Ok(SimpleReply::NotFound.try_into()?);
+                }
+
+                occupyable.save()?;
+
+                Ok(SimpleReply::Done.try_into()?)
+            }
+            None => Ok(SimpleReply::NotFound.try_into()?),
         }
-
-        occupyable.save()?;
-
-        Ok(SimpleReply::Done.try_into()?)
     }
 }
 
