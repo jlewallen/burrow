@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::model::{EntityPtr, EntityRef, JsonValue, OpenScope, Scope};
+use crate::model::{EntityPtr, JsonValue, OpenScope, Scope};
 
 pub fn get_diagnostics(entity: &EntityPtr) -> anyhow::Result<Option<JsonValue>> {
     if let Some(diagnostics) = entity.scope::<Diagnostics>()? {
@@ -11,17 +11,20 @@ pub fn get_diagnostics(entity: &EntityPtr) -> anyhow::Result<Option<JsonValue>> 
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub enum Diagnostics {
-    #[default]
-    None,
-    Foreign(EntityRef),
-    Local {
+pub enum Run {
+    Diagnostics {
         time: DateTime<Utc>,
         desc: String,
         logs: Vec<serde_json::Value>,
     },
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Diagnostics {
+    runs: Vec<Run>,
 }
 
 impl Scope for Diagnostics {
@@ -33,8 +36,16 @@ impl Scope for Diagnostics {
     }
 }
 
+impl Run {
+    pub fn new(time: DateTime<Utc>, desc: String, logs: Vec<serde_json::Value>) -> Self {
+        Self::Diagnostics { time, desc, logs }
+    }
+}
+
 impl Diagnostics {
     pub fn new(time: DateTime<Utc>, desc: String, logs: Vec<serde_json::Value>) -> Self {
-        Self::Local { time, desc, logs }
+        Self {
+            runs: vec![Run::new(time, desc, logs)],
+        }
     }
 }
