@@ -13,8 +13,10 @@ impl Location {
     }
 
     pub fn get(item: &EntityPtr) -> Result<Option<EntityRef>, DomainError> {
-        let location = item.scope::<Location>()?.unwrap();
-        Ok(location.container.clone())
+        match item.scope::<Location>()? {
+            Some(location) => Ok(location.container.clone()),
+            None => Ok(None),
+        }
     }
 }
 

@@ -41,7 +41,7 @@ impl Containing {
 
         self.holding.push(item.entity_ref());
 
-        Ok(false)
+        Ok(true)
     }
 
     pub fn is_holding(&self, item: &EntityPtr) -> bool {

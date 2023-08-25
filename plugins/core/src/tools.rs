@@ -51,6 +51,23 @@ pub fn remove_article(
     )
 }
 
+pub fn start_carrying(to: &EntityPtr, item: &EntityPtr) -> Result<bool, DomainError> {
+    info!("carry {:?} {:?}", item, to);
+
+    assert!(item.scope::<Location>()?.is_none());
+
+    let mut into = to.scope_mut::<Containing>()?;
+
+    if into.start_carrying(item)? {
+        Location::set(item, to.entity_ref())?;
+        into.save()?;
+
+        Ok(true)
+    } else {
+        Ok(false)
+    }
+}
+
 pub fn move_between(
     from: &EntityPtr,
     to: &EntityPtr,

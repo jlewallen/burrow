@@ -1,4 +1,6 @@
-use crate::{library::actions::*, tools::container_of};
+use crate::library::actions::*;
+
+use super::Location;
 
 #[action]
 pub struct MoveAction {
@@ -18,9 +20,12 @@ impl Action for MoveAction {
         match session.find_item(surroundings, &self.item)? {
             Some(item) => match session.find_item(surroundings, &self.destination)? {
                 Some(destination) => {
-                    let moving_from = container_of(&item)?;
-
-                    tools::move_between(&moving_from, &destination, &item)?;
+                    match Location::get(&item)? {
+                        Some(location) => {
+                            tools::move_between(&location.to_entity()?, &destination, &item)?
+                        }
+                        None => tools::start_carrying(&destination, &item)?,
+                    };
 
                     Ok(SimpleReply::Done.try_into()?)
                 }
