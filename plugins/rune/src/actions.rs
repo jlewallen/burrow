@@ -40,11 +40,11 @@ impl Action for EditAction {
 }
 
 #[action]
-pub struct ShowLogAction {
+pub struct DiagnosticsAction {
     pub item: Item,
 }
 
-impl Action for ShowLogAction {
+impl Action for DiagnosticsAction {
     fn is_read_only() -> bool
     where
         Self: Sized,
