@@ -65,11 +65,14 @@ pub mod model {
 }
 
 pub mod actions {
+    use anyhow::Context;
+
     use super::model::*;
     use crate::{library::actions::*, looking::model::Observe};
 
     #[action]
     pub struct SpeakAction {
+        pub(crate) speaker: Item,
         pub(crate) here: Option<String>,
     }
 
@@ -79,20 +82,24 @@ pub mod actions {
         }
 
         fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
-            let (_, living, area) = surroundings.unpack();
-
-            if let Some(message) = &self.here {
-                session.raise(
-                    Some(living.clone()),
-                    Audience::Area(area.key().clone()),
-                    Raising::TaggedJson(
-                        Talking::Conversation(Spoken::new(
-                            (&living).observe(&living)?.expect("No observed entity"),
-                            message,
-                        ))
-                        .to_tagged_json()?,
-                    ),
-                )?;
+            match session.find_item(&surroundings, &self.speaker)? {
+                Some(living) => {
+                    let area_of = tools::area_of(&living).with_context(|| "Speaker has no area")?;
+                    if let Some(message) = &self.here {
+                        session.raise(
+                            Some(living.clone()),
+                            Audience::Area(area_of.key().clone()),
+                            Raising::TaggedJson(
+                                Talking::Conversation(Spoken::new(
+                                    (&living).observe(&living)?.expect("No observed entity"),
+                                    message,
+                                ))
+                                .to_tagged_json()?,
+                            ),
+                        )?;
+                    }
+                }
+                None => todo!(),
             }
 
             Ok(Effect::Ok)
@@ -115,6 +122,7 @@ pub mod parser {
                 ),
                 |text| {
                     Box::new(SpeakAction {
+                        speaker: Item::Myself,
                         here: Some(text.to_owned()),
                     }) as Box<dyn Action>
                 },
