@@ -205,7 +205,10 @@ pub struct DefaultFinder {}
 impl DefaultFinder {
     fn find_top_container(&self, entity: EntityPtr) -> Result<EntityPtr, DomainError> {
         if let Some(container) = entity.scope::<Location>()? {
-            self.find_top_container(container.container.as_ref().unwrap().to_entity()?)
+            match &container.container {
+                Some(container) => self.find_top_container(container.to_entity()?),
+                None => Ok(entity),
+            }
         } else {
             Ok(entity)
         }
