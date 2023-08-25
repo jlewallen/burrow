@@ -33,7 +33,7 @@ impl Plugin for LocationPlugin {
     }
 
     fn schema(&self) -> Schema {
-        Schema::empty().action::<actions::MoveAction>()
+        Schema::empty().action::<actions::RelocateAction>()
     }
 
     fn key(&self) -> &'static str {
@@ -59,7 +59,7 @@ impl ActionSource for ActionSources {
         &self,
         tagged: &TaggedJson,
     ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
-        try_deserialize_all!(tagged, actions::MoveAction);
+        try_deserialize_all!(tagged, actions::RelocateAction);
 
         Ok(None)
     }

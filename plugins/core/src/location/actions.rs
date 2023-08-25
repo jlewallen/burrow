@@ -3,12 +3,12 @@ use crate::library::actions::*;
 use super::Location;
 
 #[action]
-pub struct MoveAction {
+pub struct RelocateAction {
     pub item: Item,
     pub destination: Item,
 }
 
-impl Action for MoveAction {
+impl Action for RelocateAction {
     fn is_read_only() -> bool
     where
         Self: Sized,

@@ -1,6 +1,6 @@
 use crate::library::parser::*;
 
-use super::actions::MoveAction;
+use super::actions::RelocateAction;
 
 pub struct MoveActionParser {}
 
@@ -11,7 +11,7 @@ impl ParsesActions for MoveActionParser {
                 preceded(tuple((tag("move"), spaces)), noun_or_specific),
                 preceded(spaces, noun_or_specific),
             ),
-            |(item, destination)| MoveAction { item, destination },
+            |(item, destination)| RelocateAction { item, destination },
         )(i)?;
 
         Ok(Some(Box::new(action)))
