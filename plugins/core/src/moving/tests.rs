@@ -134,6 +134,7 @@ fn it_parses_add_or_set_route() -> Result<()> {
     assert_eq!(
         action.unwrap().to_tagged_json()?,
         AddRouteAction {
+            area: Item::Area,
             name: "north".to_owned(),
             destination: Item::Gid(EntityGid::new(5)),
         }
@@ -149,6 +150,7 @@ fn it_parses_remove_route() -> Result<()> {
     assert_eq!(
         action.unwrap().to_tagged_json()?,
         RemoveRouteAction {
+            area: Item::Area,
             name: "north".to_owned()
         }
         .to_tagged_json()?

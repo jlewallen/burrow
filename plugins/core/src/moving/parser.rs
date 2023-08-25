@@ -30,6 +30,7 @@ impl ParsesActions for RouteActionParser {
             ),
             |(destination, name)| {
                 Box::new(AddRouteAction {
+                    area: Item::Area,
                     name: name.to_string(),
                     destination,
                 }) as Box<dyn Action>
@@ -44,6 +45,7 @@ impl ParsesActions for RouteActionParser {
             ),
             |(_, name)| {
                 Box::new(RemoveRouteAction {
+                    area: Item::Area,
                     name: name.to_string(),
                 }) as Box<dyn Action>
             },
