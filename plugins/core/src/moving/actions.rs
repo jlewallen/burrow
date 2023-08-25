@@ -156,15 +156,18 @@ impl Action for AddRouteAction {
     }
 
     fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
-        let (_, _living, area) = surroundings.unpack();
+        match session.find_item(&surroundings, &self.area)? {
+            Some(area) => {
+                let Some(destination) = session.find_item(surroundings, &self.destination)? else {
+                    return Ok(SimpleReply::NotFound.try_into()?);
+                };
 
-        let Some(destination) = session.find_item(surroundings, &self.destination)? else {
-            return Ok(SimpleReply::NotFound.try_into()?);
-        };
+                tools::add_route(&area, &self.name, &destination)?;
 
-        tools::add_route(&area, &self.name, &destination)?;
-
-        Ok(SimpleReply::Done.try_into()?)
+                Ok(SimpleReply::Done.try_into()?)
+            }
+            None => Ok(SimpleReply::Done.try_into()?),
+        }
     }
 }
 
