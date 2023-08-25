@@ -98,24 +98,35 @@ impl EntityBuilder {
         self.class(EntityClass::living())
     }
 
-    pub fn default_scope<T>(mut self) -> Result<Self>
+    pub fn diagnostics(self) -> Self {
+        self.class(EntityClass::diagnostics())
+    }
+
+    pub fn scope<T>(mut self, scope: T) -> Result<Self>
     where
-        T: Scope + Default,
+        T: Scope,
     {
         if self.scopes.is_none() {
             self.scopes = Some(ScopeMap::default());
         }
         let scopes = self.scopes.as_mut().unwrap();
-        scopes.replace_scope(&T::default())?;
+        scopes.replace_scope(&scope)?;
 
         Ok(self)
+    }
+
+    pub fn default_scope<T>(self) -> Result<Self>
+    where
+        T: Scope + Default,
+    {
+        self.scope::<T>(T::default())
     }
 }
 
 impl TryInto<Entity> for EntityBuilder {
     type Error = DomainError;
 
-    fn try_into(self) -> Result<Entity, Self::Error> {
+    fn try_into(self) -> std::result::Result<Entity, Self::Error> {
         let identity = match self.identity {
             Some(identity) => identity,
             None => get_my_session()?.new_identity(),
