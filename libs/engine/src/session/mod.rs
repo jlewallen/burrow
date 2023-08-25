@@ -11,6 +11,7 @@ use std::{
 use tracing::{debug, info, span, trace, warn, Level};
 
 mod internal;
+mod logs;
 mod state;
 
 use crate::identifiers;
@@ -253,7 +254,7 @@ impl Performer for Session {
     fn perform(&self, perform: Perform) -> Result<Effect, DomainError> {
         let _span = span!(Level::DEBUG, "P").entered();
 
-        debug!("perform {:?}", perform);
+        info!("perform {:?}", perform);
 
         let target = self.state.clone();
         let request_fn =
