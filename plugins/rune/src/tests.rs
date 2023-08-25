@@ -37,7 +37,7 @@ pub fn test_handlers_apply() -> Result<()> {
     let mut runner = RuneRunner::new(
         &SchemaCollection::default(),
         Script {
-            source: ScriptSource::System(source.to_owned()),
+            source: ScriptSource::System("TEST".to_owned(), source.to_owned()),
             owner: None,
             state: None,
         },
@@ -73,7 +73,7 @@ pub fn test_missing_handler() -> Result<()> {
     let mut runner = RuneRunner::new(
         &SchemaCollection::default(),
         Script {
-            source: ScriptSource::System(source.to_owned()),
+            source: ScriptSource::System("TEST".to_owned(), source.to_owned()),
             owner: None,
             state: None,
         },
@@ -105,7 +105,7 @@ pub fn test_missing_handlers_completely() -> Result<()> {
     let mut runner = RuneRunner::new(
         &SchemaCollection::default(),
         Script {
-            source: ScriptSource::System(source.to_owned()),
+            source: ScriptSource::System("TEST".to_owned(), source.to_owned()),
             owner: None,
             state: None,
         },
@@ -149,7 +149,7 @@ pub fn test_calling_owner_with_one() -> Result<()> {
     let mut runner = RuneRunner::new(
         &SchemaCollection::default(),
         Script {
-            source: ScriptSource::System(source.to_owned()),
+            source: ScriptSource::System("TEST".to_owned(), source.to_owned()),
             owner: Some(Owner::new(EntityKey::new("E-0"), Relation::Ground)),
             state: None,
         },
@@ -193,7 +193,7 @@ pub fn test_calling_owner_with_none() -> Result<()> {
     let mut runner = RuneRunner::new(
         &SchemaCollection::default(),
         Script {
-            source: ScriptSource::System(source.to_owned()),
+            source: ScriptSource::System("TEST".to_owned(), source.to_owned()),
             owner: None,
             state: None,
         },

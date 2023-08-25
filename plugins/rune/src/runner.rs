@@ -106,7 +106,7 @@ impl RuneRunner {
 
         let library_sources = load_library_sources()?;
 
-        let source = script.describe_source();
+        let source = script.describe();
 
         let mut sources = Sources::new();
         sources.insert(script.source()?);

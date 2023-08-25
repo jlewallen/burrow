@@ -1,6 +1,6 @@
 use anyhow::Result;
 use glob::glob;
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 use tracing::*;
 
 use kernel::prelude::{EntityKey, EntityPtr, JsonValue, OpenScope, Surroundings};
@@ -13,10 +13,10 @@ pub static RUNE_EXTENSION: &str = "rn";
 // Not super happy about Clone here, this is so we can store them mapped to
 // RuneRunners and makes building that hash easier. Maybe, move to generating a
 // key from this and using that.
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub enum ScriptSource {
     File(PathBuf),
-    System(String),
+    System(String, String),
     Entity(EntityKey, String),
 }
 
@@ -25,14 +25,14 @@ impl ScriptSource {
         match self {
             ScriptSource::File(path) => Ok(rune::Source::from_path(path.as_path())?),
             ScriptSource::Entity(key, source) => Ok(rune::Source::new(key.to_string(), source)),
-            ScriptSource::System(source) => Ok(rune::Source::new("system".to_string(), source)),
+            ScriptSource::System(name, source) => Ok(rune::Source::new(name.clone(), source)),
         }
     }
 
     pub fn describe(&self) -> String {
         match self {
             ScriptSource::File(path) => format!("File({:?})", path.to_str()),
-            ScriptSource::System(_) => format!("System()"),
+            ScriptSource::System(key, _) => format!("System({})", key),
             ScriptSource::Entity(key, _) => format!("Entity({})", key),
         }
     }
@@ -76,7 +76,7 @@ impl Script {
         self.source.source()
     }
 
-    pub fn describe_source(&self) -> String {
+    pub fn describe(&self) -> String {
         self.source.describe()
     }
 }
@@ -155,17 +155,19 @@ pub fn load_sources_from_entity(entity: &EntityPtr, relation: Relation) -> Resul
 }
 
 pub fn load_sources_from_surroundings(surroundings: &Surroundings) -> Result<Vec<Script>> {
-    let mut scripts = Vec::new();
+    let mut scripts = HashMap::new();
     let haystack = EntityRelationshipSet::new_from_surroundings(surroundings).expand()?;
     for nearby in haystack.iter() {
         let entity = nearby.entity()?;
-        let relation = Relation::new(nearby);
-        if let Some(script) = load_sources_from_entity(entity, relation)? {
-            scripts.push(script);
+        if !scripts.contains_key(&entity.key()) {
+            let relation = Relation::new(nearby);
+            if let Some(script) = load_sources_from_entity(entity, relation)? {
+                scripts.insert(entity.key(), script);
+            }
         }
     }
 
-    Ok(scripts)
+    Ok(scripts.into_iter().map(|(_, v)| v).collect())
 }
 
 pub struct EntryAndState {
