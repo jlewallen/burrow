@@ -38,6 +38,12 @@ impl BuildEntityPtr {
         Ok(self)
     }
 
+    pub fn occupyable(&mut self) -> Result<&mut Self> {
+        self.entity.scope_mut::<Occupyable>()?.save()?;
+
+        Ok(self)
+    }
+
     pub fn carryable(&mut self) -> Result<&mut Self> {
         tools::set_quantity(&self.entity, 1.0)?;
 
@@ -127,6 +133,7 @@ impl Build {
 
         Ok(self)
     }
+
     pub fn save(&mut self) -> Result<BuildEntityPtr> {
         let entity = self.session.add_entity(self.entity.clone())?;
         assert!(entity.borrow().gid().is_some());
@@ -165,9 +172,11 @@ impl QuickThing {
                 .save()?
                 .of_quantity(*quantity)?
                 .into_entity()?),
-            QuickThing::Place(name) => {
-                Ok(Build::new(session)?.named(name)?.save()?.into_entity()?)
-            }
+            QuickThing::Place(name) => Ok(Build::new(session)?
+                .named(name)?
+                .save()?
+                .occupyable()?
+                .into_entity()?),
             QuickThing::Actual(ep) => Ok(ep.clone()),
         }
     }

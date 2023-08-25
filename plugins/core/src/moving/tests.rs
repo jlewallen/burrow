@@ -323,3 +323,27 @@ fn it_deactivates_routes() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn it_goes_into_nested_areas() -> Result<()> {
+    let mut build = BuildSurroundings::new()?;
+    let destination = build.make(QuickThing::Place("Place"))?;
+    let (session, surroundings) = build
+        .ground(vec![QuickThing::Actual(destination.clone())])
+        .build()?;
+
+    let action = try_parsing(GoActionParser {}, "go place")?;
+    let action = action.unwrap();
+    let reply = action.perform(session.clone(), &surroundings)?;
+    let (_, living, area) = surroundings.unpack();
+
+    let reply: AreaObservation = reply.json_as()?;
+    assert_eq!(reply, new_area_observation(&living, &destination)?);
+
+    assert_ne!(tools::area_of(&living)?.key(), area.key());
+    assert_eq!(tools::area_of(&living)?.key(), destination.key());
+
+    build.close()?;
+
+    Ok(())
+}

@@ -58,6 +58,14 @@ expression: domain.snapshot().await?
     "key": "E-0",
     "parent": null,
     "scopes": {
+      "occupyable": {
+        "acls": {
+          "rules": []
+        },
+        "occupancy": 0,
+        "occupied": [],
+        "routes": null
+      },
       "props": {
         "core": {
           "gid": {
