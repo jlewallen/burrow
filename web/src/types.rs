@@ -67,6 +67,7 @@ pub struct Entry {
     pub target: String,
     pub name: String,
     pub level: String,
+    pub spans: Vec<HashMap<String, JsonValue>>,
     pub fields: LogFields,
 }
 

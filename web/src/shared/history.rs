@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use regex::Captures;
 use replies::*;
 use yew::prelude::*;
@@ -289,12 +291,42 @@ impl Render for Diagnostics {
     }
 }
 
+impl Render for JsonValue {
+    fn render(&self, myself: &Myself) -> Option<Html> {
+        match self {
+            JsonValue::Null => Some(html! { "<null>" }),
+            JsonValue::Bool(b) => Some(html! { b }),
+            JsonValue::Number(value) => Some(html! { value }),
+            JsonValue::String(value) => Some(html! { value }),
+            JsonValue::Array(values) => Some(html! {
+                <>{ values.iter().flat_map(|value| value.render(myself)).collect::<Html>() }</>
+            }),
+            JsonValue::Object(obj) => Some(html! {
+                obj.iter().map(|(key, value)| {
+                    html! { <> <span class="key">{ key }{ ": " }</span>{ value.render(myself) } </> }
+                }).collect::<Html>()
+            }),
+        }
+    }
+}
+
 impl Render for Run {
-    fn render(&self, _myself: &Myself) -> Option<Html> {
-        fn entry(entry: &Entry) -> Html {
+    fn render(&self, myself: &Myself) -> Option<Html> {
+        fn span(span: &HashMap<String, JsonValue>, myself: &Myself) -> Html {
+            html! {
+                <span class="span"> {
+                    span.iter().map(|(key, value)| {
+                        html! { <> <span class="key">{ key }{ ": " }</span>{ value.render(myself) } </> }
+                    }).collect::<Html>()
+                } </span>
+            }
+        }
+
+        fn entry(entry: &Entry, myself: &Myself) -> Html {
             html! {
                 <div class="log-entry">
-                    <span class="level">{ &entry.level }</span>
+                    <span class={classes!("level", &entry.level)}>{ &entry.level }</span>
+                    <span class="spans">{ entry.spans.iter().map(|s| span(s, myself)).collect::<Html>() }</span>
                     <span class="target">{ &entry.target }</span>
                     <span class="message">{ &entry.fields.message }</span>
                     if !entry.fields.extra.is_empty() {
@@ -314,7 +346,7 @@ impl Render for Run {
                     <h4>{ &desc }</h4>
 
                     <div class="logs">
-                        { logs.iter().map(|l| entry(&l)).collect::<Html>() }
+                        { logs.iter().map(|l| entry(&l, myself)).collect::<Html>() }
                     </div>
                 </div>
             }),

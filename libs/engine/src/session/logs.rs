@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, RwLock};
 use tracing::dispatcher::WeakDispatch;
 use tracing::*;
@@ -21,14 +21,18 @@ where
 #[derive(Clone)]
 struct SessionSubscriber {
     target: WeakDispatch,
+    spans: Arc<RwLock<HashMap<span::Id, BTreeMap<String, serde_json::Value>>>>,
     entries: Arc<RwLock<Option<Vec<serde_json::Value>>>>,
+    stack: Arc<RwLock<Vec<span::Id>>>,
 }
 
 impl SessionSubscriber {
     fn new(target: WeakDispatch) -> Self {
         Self {
             target,
-            entries: Arc::new(RwLock::new(Some(Vec::new()))),
+            spans: Default::default(),
+            stack: Default::default(),
+            entries: Arc::new(RwLock::new(Some(Default::default()))),
         }
     }
 
@@ -50,7 +54,19 @@ impl Subscriber for SessionSubscriber {
     }
 
     fn new_span(&self, span: &span::Attributes<'_>) -> span::Id {
-        self.with(|d| d.new_span(span))
+        let id = self.with(|d| d.new_span(span));
+
+        let mut values = BTreeMap::new();
+        let mut visitor = JsonVisitor {
+            values: &mut values,
+        };
+        span.record(&mut visitor);
+
+        if !values.is_empty() {
+            self.spans.write().unwrap().insert(id.clone(), values);
+        }
+
+        id
     }
 
     fn record(&self, span: &span::Id, values: &span::Record<'_>) {
@@ -68,10 +84,19 @@ impl Subscriber for SessionSubscriber {
         };
         event.record(&mut visitor);
 
+        let stack = self.stack.read().unwrap();
+        let spans = self.spans.read().unwrap();
+
+        let span_stack = stack
+            .iter()
+            .flat_map(|id| spans.get(id))
+            .collect::<Vec<_>>();
+
         let entry = serde_json::json!({
             "target": event.metadata().target(),
             "name": event.metadata().name(),
             "level": event.metadata().level().to_string(),
+            "spans": span_stack,
             "fields": fields,
         });
 
@@ -81,11 +106,13 @@ impl Subscriber for SessionSubscriber {
     }
 
     fn enter(&self, span: &span::Id) {
+        self.stack.write().unwrap().push(span.clone());
         self.with(|d| d.enter(span))
     }
 
     fn exit(&self, span: &span::Id) {
-        self.with(|d| d.exit(span))
+        self.with(|d| d.exit(span));
+        self.stack.write().unwrap().pop();
     }
 }
 

@@ -139,12 +139,36 @@ form {
 
     .diagnostics {
       .log-entry {
+        /*
         display: flex;
         flex-direction: row;
         flex-flow: flex-start;
+        */
 
         span {
           padding-right: 0.2em;
+        }
+
+        .level.INFO {
+          color: #383858;
+          color: #e7eadc;
+        }
+
+        .level.DEBUG {
+          color: #fee6dd
+        }
+
+        .level.WARN {
+          color: #dd4d68;
+          color: #ffdfab;
+        }
+
+        .key {
+          color: #656565;
+        }
+
+        .extra {
+          color: #656565;
         }
       }
     }
