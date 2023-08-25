@@ -136,6 +136,18 @@ form {
         padding-top: 0.3em;
       }
     }
+
+    .diagnostics {
+      .log-entry {
+        display: flex;
+        flex-direction: row;
+        flex-flow: flex-start;
+
+        span {
+          padding-right: 0.2em;
+        }
+      }
+    }
   }
 
   .gid {

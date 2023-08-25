@@ -71,7 +71,7 @@ impl Subscriber for SessionSubscriber {
         let entry = serde_json::json!({
             "target": event.metadata().target(),
             "name": event.metadata().name(),
-            "level": format!("{:?}", event.metadata().level()),
+            "level": event.metadata().level().to_string(),
             "fields": fields,
         });
 
