@@ -39,7 +39,9 @@ impl Containing {
             }
         }
 
-        self.holding.push(item.entity_ref());
+        if !self.is_holding(item) {
+            self.holding.push(item.entity_ref());
+        }
 
         Ok(true)
     }
