@@ -1,3 +1,5 @@
+mod diags;
+
 pub mod actions;
 pub mod hooks;
 pub mod model;
@@ -23,6 +25,8 @@ pub mod prelude {
     pub use crate::plugins::*;
     pub use crate::session::*;
     pub use crate::surround::*;
+
+    pub use crate::diags::{get_diagnostics, Diagnostics};
 }
 
 mod finder {

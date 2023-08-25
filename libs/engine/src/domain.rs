@@ -5,6 +5,7 @@ use tracing::{info, trace};
 
 use crate::{
     notifications::Notifier,
+    prelude::Dependencies,
     sequences::Sequence,
     session::Session,
     storage::{PendingFutures, PersistedEntity, StorageFactory},
@@ -81,9 +82,8 @@ impl Domain {
 
                     let value = serde_json::from_str(&future.serialized)?;
                     if let Ok(Some(action)) = session.try_deserialize_action(&value) {
-                        if let Some(living) = session.entity(&LookupBy::Key(&future.entity))? {
-                            let action = PerformAction::Instance(action.into());
-                            session.perform(Perform::Living { living, action })?;
+                        if let Some(target) = session.entity(&LookupBy::Key(&future.entity))? {
+                            session.captured(target, action)?;
                         }
                     }
                 }
@@ -119,14 +119,14 @@ impl Domain {
     ) -> Result<Rc<Session>> {
         info!("session-open");
 
-        let storage = self.storage_factory.create_storage()?;
-
         Session::new(
-            &self.keys,
-            &self.identities,
-            &self.finder,
-            &self.plugins,
-            storage,
+            Dependencies::new(
+                &self.keys,
+                &self.identities,
+                &self.finder,
+                &self.plugins,
+                &self.storage_factory,
+            ),
             middleware,
         )
     }

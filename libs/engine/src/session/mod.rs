@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use chrono::{DateTime, Utc};
 use std::rc::Weak;
 use std::sync::Arc;
 use std::time::Instant;
@@ -16,24 +17,62 @@ mod state;
 
 use crate::identifiers;
 use crate::notifications::Notifier;
+use crate::prelude::DevNullNotifier;
 use crate::sequences::Sequence;
-use crate::storage::Storage;
+use crate::storage::{Storage, StorageFactory};
 use crate::users::model::HasUsernames;
 use kernel::{here, prelude::*};
 use state::State;
+
+#[derive(Clone)]
+pub struct Dependencies {
+    keys: Arc<dyn Sequence<EntityKey>>,
+    identities: Arc<dyn Sequence<Identity>>,
+    finder: Arc<dyn Finder>,
+    storage_factory: Arc<dyn StorageFactory>,
+    registered_plugins: Arc<RegisteredPlugins>,
+}
+
+impl Dependencies {
+    pub(crate) fn new(
+        keys: &Arc<dyn Sequence<EntityKey>>,
+        identities: &Arc<dyn Sequence<Identity>>,
+        finder: &Arc<dyn Finder>,
+        plugins: &Arc<RegisteredPlugins>,
+        storage_factory: &Arc<dyn StorageFactory>,
+    ) -> Dependencies {
+        Dependencies {
+            keys: Arc::clone(keys),
+            identities: Arc::clone(identities),
+            finder: Arc::clone(finder),
+            storage_factory: Arc::clone(storage_factory),
+            registered_plugins: Arc::clone(plugins),
+        }
+    }
+}
 
 pub struct Session {
     opened: Instant,
     open: AtomicBool,
     storage: Rc<dyn Storage>,
+    storage_factory: Arc<dyn StorageFactory>,
     weak: Weak<Session>,
     finder: Arc<dyn Finder>,
+    registered_plugins: Arc<RegisteredPlugins>,
     plugins: Arc<RefCell<SessionPlugins>>,
     middleware: Arc<RefCell<Vec<Rc<dyn Middleware>>>>,
     hooks: ManagedHooks,
     keys: Arc<dyn Sequence<EntityKey>>,
     identities: Arc<dyn Sequence<Identity>>,
     state: Rc<State>,
+    captures: RefCell<Vec<Captured>>,
+}
+
+struct Captured {
+    target_key: EntityKey,
+    time: DateTime<Utc>,
+    desc: String,
+    logs: Vec<JsonValue>,
 }
 
 pub enum EvaluateAs<'a> {
@@ -42,27 +81,36 @@ pub enum EvaluateAs<'a> {
 }
 
 impl Session {
-    pub fn new(
-        keys: &Arc<dyn Sequence<EntityKey>>,
-        identities: &Arc<dyn Sequence<Identity>>,
-        finder: &Arc<dyn Finder>,
-        registered_plugins: &Arc<RegisteredPlugins>,
-        storage: Rc<dyn Storage>,
-        middleware: Vec<Rc<dyn Middleware>>,
-    ) -> Result<Rc<Self>> {
+    pub fn open(&self) -> Result<Rc<Self>> {
+        Session::new(
+            Dependencies::new(
+                &self.keys,
+                &self.identities,
+                &self.finder,
+                &self.registered_plugins,
+                &self.storage_factory,
+            ),
+            vec![],
+        )
+    }
+
+    pub fn new(deps: Dependencies, middleware: Vec<Rc<dyn Middleware>>) -> Result<Rc<Self>> {
         trace!("session-new");
 
         let opened = Instant::now();
 
+        let storage = deps.storage_factory.create_storage()?;
+
         storage.begin()?;
 
-        let plugins = registered_plugins.create_plugins()?;
+        let plugins = deps.registered_plugins.create_plugins()?;
         let plugins = Arc::new(RefCell::new(plugins));
 
         let expand_surroundings: Rc<dyn Middleware> = Rc::new(ExpandSurroundingsMiddleware {
-            finder: Arc::clone(finder),
+            finder: Arc::clone(&deps.finder),
         });
         let middleware: Vec<Rc<dyn Middleware>> = middleware
+            .clone()
             .into_iter()
             .chain([expand_surroundings].into_iter())
             .collect();
@@ -73,15 +121,18 @@ impl Session {
         let session = Rc::new_cyclic(move |weak: &Weak<Session>| Self {
             opened,
             storage,
+            storage_factory: Arc::clone(&deps.storage_factory),
             weak: Weak::clone(weak),
             open: AtomicBool::new(true),
-            finder: Arc::clone(finder),
+            finder: Arc::clone(&deps.finder),
+            registered_plugins: deps.registered_plugins,
             plugins,
             middleware,
             hooks,
-            keys: Arc::clone(keys),
-            identities: Arc::clone(identities),
+            keys: Arc::clone(&deps.keys),
+            identities: Arc::clone(&deps.identities),
             state: Default::default(),
+            captures: Default::default(),
         });
 
         session.initialize()?;
@@ -101,6 +152,71 @@ impl Session {
         self.evaluate_and_perform_as(EvaluateAs::Name(user_name), text)
     }
 
+    pub(super) fn captured(
+        &self,
+        target: EntityPtr,
+        action: Box<dyn Action>,
+    ) -> Result<Effect, DomainError> {
+        let target_key = target.key().clone();
+        let action = PerformAction::Instance(action.into());
+        let perform = Perform::Living {
+            living: target,
+            action,
+        };
+
+        let desc = format!("{:?}", perform);
+        logs::capture(
+            || self.perform(perform.clone()),
+            |logs| {
+                let mut captures = self.captures.borrow_mut();
+                captures.push(Captured {
+                    target_key,
+                    time: Utc::now(),
+                    desc,
+                    logs,
+                });
+
+                Ok(())
+            },
+        )
+    }
+
+    fn save_logs(&self) -> Result<()> {
+        let _span = span!(Level::INFO, "logs").entered();
+
+        let captures = self.captures.borrow();
+        for captured in captures.iter() {
+            let target = get_my_session()?
+                .entity(&LookupBy::Key(&captured.target_key))?
+                .unwrap();
+
+            let mut target = target.borrow_mut();
+            target.replace_scope(&Diagnostics::new(
+                captured.time,
+                captured.desc.clone(),
+                captured.logs.clone(),
+            ))?;
+        }
+
+        Ok(())
+    }
+
+    fn parse_action(&self, text: &str) -> Result<Option<Box<dyn Action>>, EvaluationError> {
+        let plugins = self.plugins.borrow();
+        plugins.try_parse_action(text)
+    }
+
+    fn find_target(&self, evaluate_as: EvaluateAs) -> Result<EntityPtr, DomainError> {
+        let key = match evaluate_as {
+            EvaluateAs::Name(user_name) => user_name_to_key(self, user_name)?,
+            EvaluateAs::Key(key) => key.clone(),
+        };
+
+        Ok(self
+            .recursive_entity(&LookupBy::Key(&key), USER_DEPTH)?
+            .expect("No living found with key"))
+    }
+
     pub fn evaluate_and_perform_as(
         &self,
         evaluate_as: EvaluateAs,
@@ -110,31 +226,14 @@ impl Session {
             return Err(DomainError::SessionClosed.into());
         }
 
-        let _activated = self.set_session()?;
-
-        let action = {
-            let plugins = self.plugins.borrow();
-            plugins.try_parse_action(text)?
-        };
-
-        match action {
+        match self.parse_action(text)? {
             Some(action) => {
                 debug!("{:#?}", action.to_tagged_json()?.into_tagged());
 
-                let key = match evaluate_as {
-                    EvaluateAs::Name(user_name) => user_name_to_key(self, user_name)?,
-                    EvaluateAs::Key(key) => key.clone(),
-                };
+                let session = self.set_session()?;
+                let target = session.find_target(evaluate_as)?;
 
-                let living = self
-                    .recursive_entity(&LookupBy::Key(&key), USER_DEPTH)?
-                    .expect("No living found with key");
-
-                let perform = Perform::Living {
-                    living,
-                    action: PerformAction::Instance(action.into()),
-                };
-                match self.perform(perform) {
+                match session.captured(target, action) {
                     Ok(i) => Ok(Some(i)),
                     Err(original_err) => {
                         warn!("error: {:?}", original_err);
@@ -143,6 +242,11 @@ impl Session {
                             // TODO Include that this failed as part of the error.
                             panic!("TODO error rolling back");
                         }
+
+                        let separate = self.open()?.set_session()?;
+                        self.save_logs()?;
+                        separate.close(&DevNullNotifier {})?;
+
                         Err(original_err)
                     }
                 }
@@ -183,6 +287,8 @@ impl Session {
 
     pub fn close<T: Notifier>(&self, notifier: &T) -> Result<()> {
         let _activated = self.set_session()?;
+
+        self.save_logs()?;
 
         self.save_changes(notifier)?;
 

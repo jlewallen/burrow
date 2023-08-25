@@ -98,10 +98,6 @@ impl EntityBuilder {
         self.class(EntityClass::living())
     }
 
-    pub fn diagnostics(self) -> Self {
-        self.class(EntityClass::diagnostics())
-    }
-
     pub fn scope<T>(mut self, scope: T) -> Result<Self>
     where
         T: Scope,
