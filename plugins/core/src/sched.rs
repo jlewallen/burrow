@@ -107,6 +107,16 @@ pub mod model {
 
     impl CronTab {
         pub fn push(&mut self, entry: CronEntry) {
+            if let Some(v) = self
+                .entries
+                .iter()
+                .enumerate()
+                .filter(|(_, v)| v.key == entry.key)
+                .next()
+            {
+                self.entries.remove(v.0);
+            }
+
             self.entries.push(entry);
         }
 
