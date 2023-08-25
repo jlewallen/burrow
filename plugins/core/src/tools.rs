@@ -111,10 +111,14 @@ pub fn navigate_between(
     }
 }
 
-pub fn area_of(living: &EntityPtr) -> Result<EntityPtr, DomainError> {
-    let occupying = living.scope::<Occupying>()?.unwrap();
-
-    occupying.area.to_entity()
+pub fn area_of(entity: &EntityPtr) -> Result<EntityPtr, DomainError> {
+    if let Some(occupying) = entity.scope::<Occupying>()? {
+        return occupying.area.to_entity();
+    }
+    if let Some(location) = entity.scope::<Location>()? {
+        return location.container.as_ref().unwrap().to_entity();
+    }
+    panic!("No area for entity: {:?}", entity);
 }
 
 pub fn get_contained_keys(area: &EntityPtr) -> Result<Vec<EntityKey>, DomainError> {
