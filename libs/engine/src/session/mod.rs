@@ -305,6 +305,7 @@ impl ActiveSession for Session {
 
         match item {
             Item::Gid(gid) => Ok(self.entity(&LookupBy::Gid(gid))?),
+            Item::Key(key) => Ok(self.entity(&LookupBy::Key(key))?),
             _ => self.finder.find_item(surroundings, item),
         }
     }

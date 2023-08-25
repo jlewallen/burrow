@@ -142,8 +142,7 @@ impl Performer for State {
                     info!("action:perform {:?}", &action);
                     let res = action.perform(get_my_session()?, &surroundings);
                     if let Ok(effect) = &res {
-                        trace!("action:effect {:?}", effect);
-                        info!("action:effect");
+                        info!("action:effect {:?}", effect);
                     } else {
                         warn!("action:error {:?}", res);
                     }
@@ -204,7 +203,7 @@ impl<'a> SavesEntities<'a> {
             let serialized = modified.after.to_string();
 
             // By now we should have a global identifier.
-            let Some(gid) = l.gid.clone() else  {
+            let Some(gid) = l.gid.clone() else {
                 return Err(anyhow!("Expected EntityGid in check_for_changes"));
             };
 
