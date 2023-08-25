@@ -95,7 +95,18 @@ impl Action for GoAction {
                             Ok(SimpleReply::Prevented(Some(reason.clone())).try_into()?)
                         }
                     },
-                    None => Ok(SimpleReply::NotFound.try_into()?),
+                    None => {
+                        match session.find_item(surroundings, &Item::Named(route.to_owned()))? {
+                            Some(maybe) => {
+                                if maybe.scope::<Occupyable>()?.is_some() {
+                                    self.navigate(session, living, area, maybe, surroundings)
+                                } else {
+                                    Ok(SimpleReply::NotFound.try_into()?)
+                                }
+                            }
+                            None => Ok(SimpleReply::NotFound.try_into()?),
+                        }
+                    }
                 },
                 Item::Gid(_) => match session.find_item(surroundings, &self.item)? {
                     Some(to_area) => self.navigate(session, living, area, to_area, surroundings),
@@ -147,7 +158,7 @@ impl Action for AddRouteAction {
         let (_, _living, area) = surroundings.unpack();
 
         let Some(destination) = session.find_item(surroundings, &self.destination)? else {
-             return Ok(SimpleReply::NotFound.try_into()?);
+            return Ok(SimpleReply::NotFound.try_into()?);
         };
 
         tools::add_route(&area, &self.name, &destination)?;
