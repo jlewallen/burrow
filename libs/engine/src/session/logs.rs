@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock};
 use tracing::dispatcher::WeakDispatch;
 use tracing::*;
@@ -61,11 +62,17 @@ impl Subscriber for SessionSubscriber {
     }
 
     fn event(&self, event: &tracing::Event<'_>) {
+        let mut fields = BTreeMap::new();
+        let mut visitor = JsonVisitor {
+            values: &mut fields,
+        };
+        event.record(&mut visitor);
+
         let entry = serde_json::json!({
             "target": event.metadata().target(),
             "name": event.metadata().name(),
             "level": format!("{:?}", event.metadata().level()),
-            // "fields": event.fields(),
+            "fields": fields,
         });
 
         self.entries.write().unwrap().as_mut().unwrap().push(entry);
@@ -79,5 +86,57 @@ impl Subscriber for SessionSubscriber {
 
     fn exit(&self, span: &span::Id) {
         self.with(|d| d.exit(span))
+    }
+}
+
+struct JsonVisitor<'a> {
+    values: &'a mut BTreeMap<String, serde_json::Value>,
+}
+
+impl<'a> tracing::field::Visit for JsonVisitor<'a> {
+    fn record_f64(&mut self, field: &tracing::field::Field, value: f64) {
+        self.values
+            .insert(field.name().to_string(), serde_json::json!(value));
+    }
+
+    /// Visit a signed 64-bit integer value.
+    fn record_i64(&mut self, field: &tracing::field::Field, value: i64) {
+        self.values
+            .insert(field.name().to_string(), serde_json::Value::from(value));
+    }
+
+    /// Visit an unsigned 64-bit integer value.
+    fn record_u64(&mut self, field: &tracing::field::Field, value: u64) {
+        self.values
+            .insert(field.name().to_string(), serde_json::Value::from(value));
+    }
+
+    /// Visit a boolean value.
+    fn record_bool(&mut self, field: &tracing::field::Field, value: bool) {
+        self.values
+            .insert(field.name().to_string(), serde_json::Value::from(value));
+    }
+
+    /// Visit a string value.
+    fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
+        self.values
+            .insert(field.name().to_string(), serde_json::Value::from(value));
+    }
+
+    fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
+        match field.name() {
+            name if name.starts_with("r#") => {
+                self.values.insert(
+                    name[2..].to_string(),
+                    serde_json::Value::from(format!("{:?}", value)),
+                );
+            }
+            name => {
+                self.values.insert(
+                    name.to_string(),
+                    serde_json::Value::from(format!("{:?}", value)),
+                );
+            }
+        };
     }
 }
