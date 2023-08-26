@@ -10,7 +10,7 @@ use super::{CoreProps, Entity};
 pub struct EntityRef {
     key: EntityKey,
     class: String,
-    name: Option<String>,
+    name: String,
     gid: Option<EntityGid>,
     #[serde(skip)]
     entity: Option<Weak<RefCell<Entity>>>,
@@ -84,14 +84,10 @@ impl EntityRef {
 
 impl std::fmt::Debug for EntityRef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let name = match &self.name {
-            Some(name) => name.to_owned(),
-            None => "<none>".to_owned(),
-        };
         if let Some(gid) = &self.gid {
-            write!(f, "Entity(#{}, `{}`, {})", &gid, &name, &self.key)
+            write!(f, "Entity(#{}, `{}`, {})", &gid, &self.name, &self.key)
         } else {
-            write!(f, "Entity(?, `{}`, {})", &name, &self.key)
+            write!(f, "Entity(?, `{}`, {})", &self.name, &self.key)
         }
     }
 }
@@ -122,7 +118,7 @@ impl PotentialRef {
         Some(EntityRef {
             key: EntityKey::new(&key),
             class,
-            name: Some(name),
+            name,
             gid: Some(gid),
             entity: None,
         })

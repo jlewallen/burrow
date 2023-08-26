@@ -97,7 +97,7 @@ impl From<Props> for Properties {
 pub trait CoreProps {
     fn props(&self) -> Props;
     fn set_props(&mut self, props: Props) -> Result<(), DomainError>;
-    fn name(&self) -> Option<String>;
+    fn name(&self) -> String;
     fn set_name(&mut self, value: &str) -> Result<(), DomainError>;
     fn gid(&self) -> Option<EntityGid>;
     fn set_gid(&mut self, gid: EntityGid) -> Result<(), DomainError>;
@@ -132,7 +132,7 @@ impl CoreProps for Entity {
         save_props(self, scope)
     }
 
-    fn name(&self) -> Option<String> {
+    fn name(&self) -> String {
         let scope = load_props(self).expect("Failed to load properties scope");
 
         scope.name()
@@ -184,8 +184,12 @@ impl CoreProps for Properties {
         unimplemented!()
     }
 
-    fn name(&self) -> Option<String> {
-        self.core.as_ref().unwrap().string_property(NAME_PROPERTY)
+    fn name(&self) -> String {
+        self.core
+            .as_ref()
+            .unwrap()
+            .string_property(NAME_PROPERTY)
+            .expect("Entity name missing")
     }
 
     fn set_name(&mut self, value: &str) -> Result<(), DomainError> {

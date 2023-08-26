@@ -131,13 +131,11 @@ pub mod model {
             let observing = self.entity().borrow();
             let name = observing.name();
             let desc = observing.desc();
-            let qualified = name
-                .as_ref()
-                .map(|n| match quantity {
-                    Some(quantity) => Unqualified::Quantity(quantity, n),
-                    None => Unqualified::Living(n),
-                })
-                .map(|u| u.qualify());
+            let qualified = match quantity {
+                Some(quantity) => Unqualified::Quantity(quantity, &name),
+                None => Unqualified::Living(&name),
+            }
+            .qualify();
             Ok(Some(ObservedEntity {
                 key,
                 gid,

@@ -185,8 +185,8 @@ pub enum SimpleReply {
 pub struct ObservedEntity {
     pub key: String,
     pub gid: u64,
-    pub name: Option<String>,
-    pub qualified: Option<String>,
+    pub name: String,
+    pub qualified: String,
     pub desc: Option<String>,
 }
 

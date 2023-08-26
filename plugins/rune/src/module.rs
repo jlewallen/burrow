@@ -82,7 +82,7 @@ impl LocalEntity {
     }
 
     fn name(&self) -> String {
-        self.0.name().expect("Error getting name").unwrap()
+        self.0.name().expect("Error getting name")
     }
 }
 

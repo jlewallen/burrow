@@ -12,11 +12,7 @@ use kernel::prelude::{
 /// no other context at all.
 /// TODO Not very excited about this returning Result.
 pub fn matches_description(entity: &EntityPtr, desc: &str) -> Result<bool> {
-    if let Some(name) = entity.name()? {
-        Ok(matches_string(&name, desc))
-    } else {
-        Ok(false)
-    }
+    Ok(matches_string(&entity.name()?, desc))
 }
 
 pub fn matches_string(haystack: &str, desc: &str) -> bool {

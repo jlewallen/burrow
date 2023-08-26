@@ -9,8 +9,6 @@ use crate::{
     types::{AllKnownItems, Diagnostics, Entry, HistoryEntityPtr, Myself, Run},
 };
 
-const NO_NAME: &str = "No Name";
-
 const WIKI_WORD: &str = "([A-Z]+[a-z]+([A-Z]+[a-z]+)+)";
 
 fn md_string(s: &str) -> Html {
@@ -40,7 +38,7 @@ fn join_html(v: Vec<Html>, separator: Html) -> Vec<Html> {
 fn simple_entities_list(entities: &Vec<ObservedEntity>) -> Html {
     let entities = entities
         .iter()
-        .map(|e| (e.qualified.clone().or(Some(NO_NAME.into())).unwrap(), e.gid))
+        .map(|e| (&e.qualified, e.gid))
         .map(|(name, gid)| html!(<>{ name }{ NBSP }{ gid_span(gid) }</>))
         .collect::<Vec<_>>();
     let separator = html! { { ", " } };
@@ -60,11 +58,7 @@ const NBSP: &str = "\u{00a0}";
 
 fn entity_name_desc(entity: &ObservedEntity) -> (Html, Html) {
     let gid = gid_span(entity.gid);
-    let name: Html = if let Some(name) = &entity.name {
-        html! { <h3> { name }{ NBSP }{ gid } </h3> }
-    } else {
-        html! { <h3> { NO_NAME } </h3> }
-    };
+    let name: Html = html! { <h3> { &entity.name }{ NBSP }{ gid } </h3> };
 
     let desc: Html = if let Some(desc) = &entity.desc {
         let desc = md_string(desc);
@@ -229,11 +223,11 @@ pub fn history_entry_item(props: &Props) -> Html {
 }
 
 fn subject(e: &ObservedEntity) -> Html {
-    html! { <span>{ e.qualified.as_ref().unwrap() }</span> }
+    html! { <span>{ &e.qualified }</span> }
 }
 
 fn thing(e: &ObservedEntity) -> Html {
-    html! { <span>{ e.qualified.as_ref().unwrap() }</span> }
+    html! { <span>{ &e.qualified }</span> }
 }
 
 impl Render for Carrying {
@@ -274,7 +268,7 @@ impl Render for Talking {
     fn render(&self, _myself: &Myself) -> Option<Html> {
         match self {
             Talking::Conversation(s) => Some(
-                html! { <div class="entry"> <span class="speaker">{ s.who.name.as_ref().unwrap() }</span>{ ": " } { &s.message } </div> },
+                html! { <div class="entry"> <span class="speaker">{ &s.who.name }</span>{ ": " } { &s.message } </div> },
             ),
             Talking::Whispering(_) => todo!(),
         }

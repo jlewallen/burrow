@@ -32,7 +32,7 @@ impl TryFrom<&EntityPtr> for QuickEdit {
     type Error = DomainError;
 
     fn try_from(value: &EntityPtr) -> std::result::Result<Self, Self::Error> {
-        let name = value.name()?;
+        let name = Some(value.name()?);
         let desc = value.desc()?;
         Ok(Self { name, desc })
     }

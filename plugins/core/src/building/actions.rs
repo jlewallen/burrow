@@ -183,7 +183,7 @@ impl Action for MakeItemAction {
             Memory::Created(EntityEvent {
                 key: new_item.key().clone(),
                 gid: new_item.gid(),
-                name: new_item.name()?.unwrap(),
+                name: new_item.name()?,
             }),
         )?;
 
@@ -354,7 +354,7 @@ impl Action for BuildAreaAction {
             Memory::Constructed(EntityEvent {
                 key: new_area.key().clone(),
                 gid: new_area.gid(),
-                name: new_area.name()?.unwrap(),
+                name: new_area.name()?,
             }),
         )?;
 

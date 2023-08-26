@@ -52,7 +52,7 @@ impl EntityPtr {
         self
     }
 
-    pub fn name(&self) -> Result<Option<String>, DomainError> {
+    pub fn name(&self) -> Result<String, DomainError> {
         let entity = self.0.borrow();
         Ok(entity.name())
     }

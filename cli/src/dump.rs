@@ -99,12 +99,7 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
                 .filter(|f| {
                     cmd.name
                         .as_ref()
-                        .and_then(|pattern| {
-                            f.entity()
-                                .unwrap()
-                                .name()
-                                .map(|name| name.contains(pattern))
-                        })
+                        .and_then(|pattern| Some(f.entity().unwrap().name().contains(pattern)))
                         .unwrap_or(true)
                 })
                 .map(|f| f.into())
