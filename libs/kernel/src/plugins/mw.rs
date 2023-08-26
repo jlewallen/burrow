@@ -141,7 +141,7 @@ mod tests {
 
     #[test]
     fn should_call_handle_with_no_middleware() -> Result<()> {
-        let living = EntityPtr::new_from_entity(
+        let actor = EntityPtr::new_from_entity(
             build_entity()
                 .living()
                 .with_key(EntityKey::new("E-0"))
@@ -153,7 +153,7 @@ mod tests {
         let request_fn =
             Box::new(|_value: Perform| -> Result<Effect, anyhow::Error> { Ok(Effect::Ok) });
         let action = PerformAction::Instance(Rc::new(ExampleAction::default()));
-        let perform = Perform::Living { living, action };
+        let perform = Perform::Actor { actor, action };
         let effect = apply_middleware(&all, perform, request_fn)?;
         assert_eq!(effect, Effect::Ok);
         Ok(())
@@ -161,7 +161,7 @@ mod tests {
 
     #[test]
     fn should_middleware_in_expected_order() -> Result<()> {
-        let living = EntityPtr::new_from_entity(
+        let actor = EntityPtr::new_from_entity(
             build_entity()
                 .living()
                 .with_key(EntityKey::new("E-0"))
@@ -174,7 +174,7 @@ mod tests {
         let request_fn =
             Box::new(|_value: Perform| -> Result<Effect, anyhow::Error> { Ok(Effect::Ok) });
         let action = PerformAction::Instance(Rc::new(ExampleAction::default()));
-        let perform = Perform::Living { living, action };
+        let perform = Perform::Actor { actor, action };
         let effect = apply_middleware(&all, perform, request_fn)?;
         assert_eq!(effect, Effect::Ok);
         Ok(())

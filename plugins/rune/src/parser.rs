@@ -38,7 +38,7 @@ impl ParsesActions for RegisterActionParser {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
         let (_, action) = map(
             preceded(pair(tag("@register"), spaces), noun_or_specific),
-            |target| -> EvaluationResult { Ok(Some(Box::new(RegisterAction { target }))) },
+            |actor| -> EvaluationResult { Ok(Some(Box::new(RegisterAction { actor }))) },
         )(i)?;
 
         action

@@ -43,7 +43,7 @@ pub trait ActiveSession: Performer + EntityPtrResolver {
 
     fn raise(
         &self,
-        living: Option<EntityPtr>,
+        actor: Option<EntityPtr>,
         audience: Audience,
         raising: Raising,
     ) -> Result<(), DomainError>;

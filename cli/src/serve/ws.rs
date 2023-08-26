@@ -81,7 +81,7 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
 
     info!("authenticating");
     let Ok(session) = wait_for_token(&mut receiver, &state).await else {
-            return;
+        return;
     };
 
     info!("welcome");
@@ -164,12 +164,12 @@ async fn handle_socket(stream: WebSocket<ServerMessage, ClientMessage>, state: A
                                             .expect("try parse action failed")
                                             .unwrap()
                                             .into();
-                                        let living = session
+                                        let actor = session
                                             .entity(&LookupBy::Key(&EntityKey::new(&our_key)))
-                                            .expect("Living lookup failed")
-                                            .expect("Living not found");
-                                        let perform = Perform::Living {
-                                            living,
+                                            .expect("Actor lookup failed")
+                                            .expect("Actor not found");
+                                        let perform = Perform::Actor {
+                                            actor,
                                             action: PerformAction::Instance(action),
                                         };
                                         trace!("perform {:?}", &perform.enum_name());

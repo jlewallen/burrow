@@ -4,7 +4,7 @@ use time::*;
 
 fn test_stuff(state, bag) {
     let scheduling = actions::rune::rune(#{
-        "target": bag.living().unwrap().key(),
+        "actor": bag.actor().unwrap().key(),
         "tagged": #{
             "example": #{}
         }

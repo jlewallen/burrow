@@ -117,7 +117,7 @@ pub static TEXT_EXTENSION: &str = "txt";
 pub static JSON_EXTENSION: &str = "json";
 
 pub struct InteractiveEditor {
-    living: EntityKey,
+    actor: EntityKey,
 }
 
 impl Middleware for InteractiveEditor {
@@ -172,11 +172,11 @@ impl Middleware for InteractiveEditor {
                                             .into();
 
                                         match session
-                                            .entity(&kernel::prelude::LookupBy::Key(&self.living))?
+                                            .entity(&kernel::prelude::LookupBy::Key(&self.actor))?
                                         {
-                                            Some(living) => {
-                                                return Ok(session.perform(Perform::Living {
-                                                    living,
+                                            Some(actor) => {
+                                                return Ok(session.perform(Perform::Actor {
+                                                    actor,
                                                     action: PerformAction::Instance(action),
                                                 })?);
                                             }
@@ -206,7 +206,7 @@ fn evaluate_commands(
     line: String,
 ) -> Result<()> {
     let interactive = Rc::new(InteractiveEditor {
-        living: self_key.clone(),
+        actor: self_key.clone(),
     });
     let session = domain.open_session_with_middleware(vec![interactive])?;
 

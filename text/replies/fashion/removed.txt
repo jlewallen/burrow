@@ -1,1 +1,1 @@
-{{ removed.living.name }} removed {{ removed.item.qualified }}.
+{{ removed.actor.name }} removed {{ removed.item.qualified }}.

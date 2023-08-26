@@ -123,7 +123,7 @@ fn get_local_runners() -> SharedRunners {
 
 #[action]
 pub struct RuneAction {
-    pub target: EntityKey,
+    pub actor: EntityKey,
     pub tagged: TaggedJson,
 }
 
@@ -136,14 +136,14 @@ impl Action for RuneAction {
     }
 
     fn perform(&self, session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
-        let Some(target) = session.entity(&LookupBy::Key(&self.target))? else {
+        let Some(actor) = session.entity(&LookupBy::Key(&self.actor))? else {
             return Err(DomainError::EntityNotFound(ErrorContext::Simple(here!())).into());
         };
 
         let runners = get_local_runners();
 
         if let Some(call) = self.tagged.to_call() {
-            runners.call(call)?.handle(&target)?;
+            runners.call(call)?.handle(&actor)?;
         }
 
         Ok(Effect::Ok)
@@ -152,7 +152,7 @@ impl Action for RuneAction {
 
 #[action]
 pub struct RegisterAction {
-    pub target: Item,
+    pub actor: Item,
 }
 
 impl Action for RegisterAction {
@@ -164,15 +164,15 @@ impl Action for RegisterAction {
     }
 
     fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
-        match session.find_item(surroundings, &self.target)? {
-            Some(target) => {
+        match session.find_item(surroundings, &self.actor)? {
+            Some(actor) => {
                 let runners = get_local_runners();
                 let schema = runners.schema().unwrap();
-                if let Some(script) = load_sources_from_entity(&target, Relation::Target)? {
+                if let Some(script) = load_sources_from_entity(&actor, Relation::Actor)? {
                     let mut runner = RuneRunner::new(&schema, script)?;
                     if let Some(post) = runner.call(Call::Register)? {
                         let rr = RuneReturn::new(vec![post.flush()?])?;
-                        rr.handle(surroundings.living())?;
+                        rr.handle(surroundings.actor())?;
                     }
 
                     Ok(SimpleReply::Done.try_into()?)

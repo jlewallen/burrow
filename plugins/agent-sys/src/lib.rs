@@ -64,7 +64,7 @@ impl WorkingEntities {
 }
 
 struct RaisedEvent {
-    _living: Option<EntityPtr>,
+    _actor: Option<EntityPtr>,
     audience: Audience,
     raising: Raising,
 }
@@ -145,12 +145,12 @@ impl ActiveSession for AgentSession {
 
     fn raise(
         &self,
-        living: Option<EntityPtr>,
+        actor: Option<EntityPtr>,
         audience: Audience,
         raising: Raising,
     ) -> Result<(), DomainError> {
         self.raised.borrow_mut().push(RaisedEvent {
-            _living: living,
+            _actor: actor,
             audience,
             raising,
         });
@@ -309,15 +309,13 @@ where
 
     fn try_into(self) -> std::result::Result<kernel::prelude::Surroundings, Self::Error> {
         match &self.value {
-            rpc_proto::Surroundings::Living {
-                world,
-                living,
-                area,
-            } => Ok(kernel::prelude::Surroundings::Living {
-                world: self.get(world)?,
-                living: self.get(living)?,
-                area: self.get(area)?,
-            }),
+            rpc_proto::Surroundings::Actor { world, actor, area } => {
+                Ok(kernel::prelude::Surroundings::Actor {
+                    world: self.get(world)?,
+                    actor: self.get(actor)?,
+                    area: self.get(area)?,
+                })
+            }
         }
     }
 }

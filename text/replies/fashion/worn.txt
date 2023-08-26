@@ -1,1 +1,1 @@
-{{ worn.living.name }} put on {{ worn.item.qualified }}.
+{{ worn.actor.name }} put on {{ worn.item.qualified }}.

@@ -26,7 +26,7 @@ pub fn matches_string(haystack: &str, desc: &str) -> bool {
 #[derive(Debug, Clone, Serialize)]
 pub enum EntityRelationship {
     World(EntityPtr),
-    User(EntityPtr),
+    Actor(EntityPtr),
     Area(EntityPtr),
     Holding(EntityPtr),
     Occupying(EntityPtr),
@@ -39,7 +39,7 @@ impl EntityRelationship {
     pub fn entity(&self) -> Result<&EntityPtr> {
         Ok(match self {
             EntityRelationship::World(e) => e,
-            EntityRelationship::User(e) => e,
+            EntityRelationship::Actor(e) => e,
             EntityRelationship::Area(e) => e,
             EntityRelationship::Holding(e) => e,
             EntityRelationship::Occupying(e) => e,
@@ -62,15 +62,11 @@ impl EntityRelationshipSet {
 
     pub fn new_from_surroundings(surroundings: &Surroundings) -> Self {
         match surroundings {
-            Surroundings::Living {
-                world,
-                living,
-                area,
-            } => Self {
+            Surroundings::Actor { world, actor, area } => Self {
                 entities: vec![
                     EntityRelationship::World(world.clone()),
                     EntityRelationship::Area(area.clone()),
-                    EntityRelationship::User(living.clone()),
+                    EntityRelationship::Actor(actor.clone()),
                 ],
             },
         }
@@ -83,15 +79,15 @@ impl EntityRelationshipSet {
 
         for entity in &self.entities {
             match entity {
-                EntityRelationship::User(user) => {
+                EntityRelationship::Actor(actor) => {
                     expanded.extend(
-                        tools::contained_by(user)?
+                        tools::contained_by(actor)?
                             .into_iter()
                             .map(EntityRelationship::Holding)
                             .collect::<Vec<_>>(),
                     );
                     expanded.extend(
-                        tools::worn_by(user)?
+                        tools::worn_by(actor)?
                             .unwrap_or(Vec::default())
                             .into_iter()
                             .map(EntityRelationship::Wearing)
@@ -140,7 +136,7 @@ impl EntityRelationshipSet {
             }
             Item::Myself => {
                 for entity in &self.entities {
-                    if let EntityRelationship::User(e) = entity {
+                    if let EntityRelationship::Actor(e) = entity {
                         return Ok(Some(e.clone()));
                     }
                 }
@@ -194,7 +190,7 @@ fn default_priority(e: &EntityRelationship) -> u32 {
         EntityRelationship::Contained(_) => 4,
         EntityRelationship::Occupying(_) => 5,
         EntityRelationship::Wearing(_) => 6,
-        EntityRelationship::User(_) => 8,
+        EntityRelationship::Actor(_) => 8,
         EntityRelationship::World(_) => 9,
     }
 }

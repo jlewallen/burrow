@@ -202,7 +202,7 @@ fn it_digs_bidirectionally() -> Result<()> {
     )?;
     let action = action.unwrap();
     let reply = action.perform(session.clone(), &surroundings)?;
-    let (_, living, _area) = surroundings.unpack();
+    let (_, actor, _area) = surroundings.unpack();
 
     // Not the best way of finding the constructed area.
     let destination = session
@@ -210,7 +210,7 @@ fn it_digs_bidirectionally() -> Result<()> {
         .ok_or(DomainError::EntityNotFound(here!().into()))?;
 
     let reply: AreaObservation = reply.json_as()?;
-    assert_eq!(reply, new_area_observation(&living, &destination)?);
+    assert_eq!(reply, new_area_observation(&actor, &destination)?);
 
     Ok(())
 }
@@ -223,12 +223,12 @@ fn it_makes_items() -> Result<()> {
     let action = try_parsing(MakeItemParser {}, r#"@make item "Blue Rake""#)?;
     let action = action.unwrap();
     let reply = action.perform(session.clone(), &surroundings)?;
-    let (_, living, _area) = surroundings.unpack();
+    let (_, actor, _area) = surroundings.unpack();
 
     let reply: SimpleReply = reply.json_as()?;
     assert_eq!(reply, SimpleReply::Done);
 
-    assert_eq!(living.scope::<Containing>()?.unwrap().holding.len(), 1);
+    assert_eq!(actor.scope::<Containing>()?.unwrap().holding.len(), 1);
 
     Ok(())
 }
@@ -237,7 +237,7 @@ fn it_makes_items() -> Result<()> {
 fn it_saves_changes_to_description() -> Result<()> {
     let mut build = BuildSurroundings::new()?;
     let (session, surroundings) = build.plain().build()?;
-    let (_world, _living, _area) = surroundings.unpack();
+    let (_world, _actor, _area) = surroundings.unpack();
 
     let description = "Would be really weird if this was the original description".to_owned();
     let mut quick_edit = QuickEdit::default();
@@ -249,7 +249,7 @@ fn it_saves_changes_to_description() -> Result<()> {
         copy: WorkingCopy::Markdown(quick_edit.to_string()),
     });
     let reply = action.perform(session.clone(), &surroundings)?;
-    let (world, _living, _area) = surroundings.unpack();
+    let (world, _actor, _area) = surroundings.unpack();
 
     let reply: SimpleReply = reply.json_as()?;
     assert_eq!(reply, SimpleReply::Done);
@@ -263,16 +263,16 @@ fn it_saves_changes_to_description() -> Result<()> {
 fn it_saves_changes_to_whole_entities() -> Result<()> {
     let mut build = BuildSurroundings::new()?;
     let (session, surroundings) = build.plain().build()?;
-    let (_, living, area) = surroundings.unpack();
+    let (_, actor, area) = surroundings.unpack();
 
-    let original = living.borrow().to_json_value()?;
+    let original = actor.borrow().to_json_value()?;
 
     let action = Box::new(SaveEntityJsonAction {
         key: area.key().clone(),
         copy: WorkingCopy::Json(original),
     });
     let reply = action.perform(session.clone(), &surroundings)?;
-    let (_, _living, _area) = surroundings.unpack();
+    let (_, _actor, _area) = surroundings.unpack();
 
     let reply: SimpleReply = reply.json_as()?;
     assert_eq!(reply, SimpleReply::Done);
@@ -302,12 +302,12 @@ fn it_adds_scopes_to_solo_held_items() -> Result<()> {
 
     let action = try_parsing(ScopeActionParser {}, r#"@scope wearable"#)?.unwrap();
     let reply = action.perform(session.clone(), &surroundings)?;
-    let (_, living, _area) = surroundings.unpack();
+    let (_, actor, _area) = surroundings.unpack();
 
     let reply: SimpleReply = reply.json_as()?;
     assert_eq!(reply, SimpleReply::Done);
 
-    assert_eq!(living.scope::<Containing>()?.unwrap().holding.len(), 1);
+    assert_eq!(actor.scope::<Containing>()?.unwrap().holding.len(), 1);
 
     assert!(jacket.scope::<Wearable>()?.is_some());
 
@@ -322,7 +322,7 @@ fn it_builds_areas() -> Result<()> {
     let action = try_parsing(BuildAreaParser {}, r#"@build "Green Room""#)?;
     let action = action.unwrap();
     let reply = action.perform(session.clone(), &surroundings)?;
-    let (_, _living, _area) = surroundings.unpack();
+    let (_, _actor, _area) = surroundings.unpack();
 
     insta::assert_json_snapshot!(reply.to_debug_json()?);
 

@@ -73,7 +73,7 @@ pub mod actions {
     #[action]
     pub struct SpeakAction {
         pub(crate) area: Option<Item>,
-        pub(crate) speaker: Option<Item>,
+        pub(crate) actor: Option<Item>,
         pub(crate) here: Option<String>,
     }
 
@@ -81,16 +81,16 @@ pub mod actions {
         fn say_area(
             &self,
             session: SessionRef,
-            speaker: &EntityPtr,
+            actor: &EntityPtr,
             area: &EntityPtr,
             message: &str,
         ) -> Result<()> {
             Ok(session.raise(
-                Some(speaker.clone()),
+                Some(actor.clone()),
                 Audience::Area(area.key().clone()),
                 Raising::TaggedJson(
                     Talking::Conversation(Spoken::new(
-                        (&speaker).observe(&speaker)?.expect("No observed entity"),
+                        (&actor).observe(&actor)?.expect("No observed entity"),
                         message,
                     ))
                     .to_tagged_json()?,
@@ -106,14 +106,14 @@ pub mod actions {
 
         fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             if let Some(message) = &self.here {
-                let (_, target, _) = surroundings.unpack();
+                let (_, actor, _) = surroundings.unpack();
 
-                let speaker = match &self.speaker {
-                    Some(speaker) => match session.find_item(&surroundings, &speaker)? {
-                        Some(speaker) => speaker,
+                let actor = match &self.actor {
+                    Some(actor) => match session.find_item(&surroundings, &actor)? {
+                        Some(actor) => actor,
                         None => return Ok(SimpleReply::NotFound.try_into()?),
                     },
-                    None => target,
+                    None => actor,
                 };
 
                 let area = match &self.area {
@@ -121,17 +121,17 @@ pub mod actions {
                         Some(area) => area,
                         None => return Ok(SimpleReply::NotFound.try_into()?),
                     },
-                    None => tools::area_of(&speaker).with_context(|| "Speaker has no area")?,
+                    None => tools::area_of(&actor).with_context(|| "Actor has no area")?,
                 };
 
                 info!(
-                    "speaker={:?} area={:?} {:?}",
-                    speaker.name()?,
+                    "actor={:?} area={:?} {:?}",
+                    actor.name()?,
                     area.name()?,
                     &message
                 );
 
-                self.say_area(session, &speaker, &area, &message)?;
+                self.say_area(session, &actor, &area, &message)?;
             }
 
             Ok(Effect::Ok)
@@ -155,7 +155,7 @@ pub mod parser {
                 |text| {
                     Box::new(SpeakAction {
                         area: None,
-                        speaker: Some(Item::Myself),
+                        actor: Some(Item::Myself),
                         here: Some(text.to_owned()),
                     }) as Box<dyn Action>
                 },

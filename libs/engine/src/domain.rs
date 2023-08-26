@@ -59,8 +59,8 @@ impl Domain {
         let session = session.set_session()?;
         for action in actions {
             let action = PerformAction::Instance(action);
-            let living = session.world()?.unwrap();
-            session.perform(Perform::Living { living, action }).unwrap();
+            let actor = session.world()?.unwrap();
+            session.perform(Perform::Actor { actor, action }).unwrap();
         }
         session.close(notifier)?;
 
@@ -82,8 +82,8 @@ impl Domain {
 
                     let value = serde_json::from_str(&future.serialized)?;
                     if let Ok(Some(action)) = session.try_deserialize_action(&value) {
-                        if let Some(target) = session.entity(&LookupBy::Key(&future.entity))? {
-                            session.captured(target, action)?;
+                        if let Some(actor) = session.entity(&LookupBy::Key(&future.entity))? {
+                            session.captured(actor, action)?;
                         }
                     }
                 }

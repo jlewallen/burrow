@@ -18,8 +18,7 @@ pub trait Services {
 
     fn apply_update(&self, update: EntityUpdate) -> Result<()>;
 
-    fn raise(&self, living: Option<EntityPtr>, audience: Audience, raised: JsonValue)
-        -> Result<()>;
+    fn raise(&self, actor: Option<EntityPtr>, audience: Audience, raised: JsonValue) -> Result<()>;
 
     fn schedule(&self, key: &str, entity: EntityKey, millis: i64, serialized: Json) -> Result<()>;
 
@@ -41,7 +40,7 @@ impl Services for AlwaysErrorsServices {
 
     fn raise(
         &self,
-        _living: Option<EntityPtr>,
+        _actor: Option<EntityPtr>,
         _audience: Audience,
         _raised: JsonValue,
     ) -> Result<()> {
@@ -194,15 +193,10 @@ impl Services for SessionServices {
         }
     }
 
-    fn raise(
-        &self,
-        living: Option<EntityPtr>,
-        audience: Audience,
-        raised: JsonValue,
-    ) -> Result<()> {
+    fn raise(&self, actor: Option<EntityPtr>, audience: Audience, raised: JsonValue) -> Result<()> {
         let session = get_my_session().with_context(|| "SessionServer::raise")?;
         Ok(session.raise(
-            living,
+            actor,
             audience,
             Raising::TaggedJson(RpcDomainEvent { value: raised }.to_tagged_json()?),
         )?)

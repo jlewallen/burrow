@@ -98,7 +98,7 @@ pub mod model {
             &self,
             surroundings: &Surroundings,
             user: &EntityPtr,
-            target: &EntityPtr,
+            actor: &EntityPtr,
         ) -> Result<Option<T>>;
     }
 
@@ -107,7 +107,7 @@ pub mod model {
         user: &EntityPtr,
     ) -> Result<Option<Vec<ObservedEntity>>> {
         let Some(observing) = entries else {
-            return Ok(None)
+            return Ok(None);
         };
 
         let mut observed = Vec::new();
@@ -260,9 +260,9 @@ pub mod actions {
             let (_, user, _area) = surroundings.unpack();
 
             match session.find_item(surroundings, &self.item)? {
-                Some(target) => {
-                    if tools::is_container(&target)? {
-                        match new_inside_observation(&user, &target)? {
+                Some(actor) => {
+                    if tools::is_container(&actor)? {
+                        match new_inside_observation(&user, &actor)? {
                             Some(observation) => Ok(observation.try_into()?),
                             None => Ok(SimpleReply::NotFound.try_into()?),
                         }
@@ -289,7 +289,7 @@ pub mod actions {
             let (_, user, _area) = surroundings.unpack();
 
             match session.find_item(surroundings, &self.item)? {
-                Some(target) => match new_entity_observation(&user, &target)? {
+                Some(item) => match new_entity_observation(&user, &item)? {
                     Some(observation) => Ok(observation.try_into()?),
                     None => Ok(SimpleReply::NotFound.try_into()?),
                 },

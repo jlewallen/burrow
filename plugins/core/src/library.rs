@@ -109,12 +109,12 @@ pub mod actions {
     pub use tracing::*;
 
     pub fn reply_ok<T: ToTaggedJson + 'static>(
-        living: EntityPtr,
+        actor: EntityPtr,
         audience: Audience,
         raise: T,
     ) -> Result<Effect> {
         get_my_session()?.raise(
-            Some(living),
+            Some(actor),
             audience,
             Raising::TaggedJson(raise.to_tagged_json()?),
         )?;
@@ -123,12 +123,12 @@ pub mod actions {
     }
 
     pub fn reply_done<T: ToTaggedJson + 'static>(
-        living: EntityPtr,
+        actor: EntityPtr,
         audience: Audience,
         raise: T,
     ) -> Result<SimpleReply> {
         get_my_session()?.raise(
-            Some(living),
+            Some(actor),
             audience,
             Raising::TaggedJson(raise.to_tagged_json()?),
         )?;

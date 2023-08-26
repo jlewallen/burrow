@@ -354,12 +354,12 @@ pub trait DomainEvent {}
 #[serde(rename_all = "camelCase")]
 pub enum Carrying {
     Held {
-        living: ObservedEntity,
+        actor: ObservedEntity,
         item: ObservedEntity,
         area: ObservedEntity,
     },
     Dropped {
-        living: ObservedEntity,
+        actor: ObservedEntity,
         item: ObservedEntity,
         area: ObservedEntity,
     },
@@ -371,11 +371,11 @@ impl DomainEvent for Carrying {}
 #[serde(rename_all = "camelCase")]
 pub enum Moving {
     Left {
-        living: ObservedEntity,
+        actor: ObservedEntity,
         area: ObservedEntity,
     },
     Arrived {
-        living: ObservedEntity,
+        actor: ObservedEntity,
         area: ObservedEntity,
     },
 }

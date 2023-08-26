@@ -1,1 +1,1 @@
-{{ held.living.name }} held {{ held.item.qualified }}.
+{{ held.actor.name }} held {{ held.item.qualified }}.

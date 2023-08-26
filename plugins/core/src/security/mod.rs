@@ -52,8 +52,8 @@ pub mod actions {
         }
 
         fn perform(&self, _session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
-            let (_world, living, _area) = surroundings.unpack();
-            let mut credentials = living.scope_mut::<Credentials>()?;
+            let (_world, actor, _area) = surroundings.unpack();
+            let mut credentials = actor.scope_mut::<Credentials>()?;
             credentials.set(self.password.to_owned());
             credentials.save()?;
 

@@ -56,15 +56,9 @@ pub fn have_surroundings(
 ) -> Result<Vec<Payload>> {
     let mut messages: Vec<Payload> = Vec::new();
     let keys = match &surroundings {
-        kernel::prelude::Surroundings::Living {
-            world,
-            living,
-            area,
-        } => vec![
-            world.key().clone(),
-            living.key().clone(),
-            area.key().clone(),
-        ],
+        kernel::prelude::Surroundings::Actor { world, actor, area } => {
+            vec![world.key().clone(), actor.key().clone(), area.key().clone()]
+        }
     };
     let lookups: Vec<_> = keys
         .into_iter()

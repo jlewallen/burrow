@@ -62,8 +62,8 @@ impl Bag {
         self.get("area")
     }
 
-    fn living(&self) -> Option<LocalEntity> {
-        self.get("living")
+    fn actor(&self) -> Option<LocalEntity> {
+        self.get("actor")
     }
 }
 
@@ -135,7 +135,7 @@ pub(super) fn create(schema: &SchemaCollection, owner: Option<Owner>) -> Result<
     module.associated_function(Protocol::STRING_DEBUG, Bag::string_debug)?;
     module.associated_function("area", Bag::area)?;
     module.associated_function("item", Bag::item)?;
-    module.associated_function("living", Bag::living)?;
+    module.associated_function("actor", Bag::actor)?;
     module.ty::<LocalEntity>()?;
     module.associated_function(Protocol::STRING_DEBUG, LocalEntity::string_debug)?;
     module.associated_function("key", LocalEntity::key)?;

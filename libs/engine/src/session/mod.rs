@@ -69,7 +69,7 @@ pub struct Session {
 }
 
 struct Captured {
-    target_key: EntityKey,
+    actor_key: EntityKey,
     time: DateTime<Utc>,
     desc: String,
     logs: Vec<JsonValue>,
@@ -154,15 +154,12 @@ impl Session {
 
     pub(super) fn captured(
         &self,
-        target: EntityPtr,
+        actor: EntityPtr,
         action: Box<dyn Action>,
     ) -> Result<Effect, DomainError> {
-        let target_key = target.key().clone();
+        let actor_key = actor.key().clone();
         let action = PerformAction::Instance(action.into());
-        let perform = Perform::Living {
-            living: target,
-            action,
-        };
+        let perform = Perform::Actor { actor, action };
 
         let desc = format!("{:?}", perform);
         logs::capture(
@@ -170,7 +167,7 @@ impl Session {
             |logs| {
                 let mut captures = self.captures.borrow_mut();
                 captures.push(Captured {
-                    target_key,
+                    actor_key,
                     time: Utc::now(),
                     desc,
                     logs,
@@ -186,12 +183,12 @@ impl Session {
 
         let captures = self.captures.borrow();
         for captured in captures.iter().filter(|c| !c.logs.is_empty()) {
-            let target = get_my_session()?
-                .entity(&LookupBy::Key(&captured.target_key))?
+            let actor = get_my_session()?
+                .entity(&LookupBy::Key(&captured.actor_key))?
                 .unwrap();
 
-            let mut target = target.borrow_mut();
-            target.replace_scope(&Diagnostics::new(
+            let mut actor = actor.borrow_mut();
+            actor.replace_scope(&Diagnostics::new(
                 captured.time,
                 captured.desc.clone(),
                 captured.logs.clone(),
@@ -206,7 +203,7 @@ impl Session {
         plugins.try_parse_action(text)
     }
 
-    fn find_target(&self, evaluate_as: EvaluateAs) -> Result<EntityPtr, DomainError> {
+    fn find_actor(&self, evaluate_as: EvaluateAs) -> Result<EntityPtr, DomainError> {
         let key = match evaluate_as {
             EvaluateAs::Name(user_name) => user_name_to_key(self, user_name)?,
             EvaluateAs::Key(key) => key.clone(),
@@ -214,7 +211,7 @@ impl Session {
 
         Ok(self
             .recursive_entity(&LookupBy::Key(&key), USER_DEPTH)?
-            .expect("No living found with key"))
+            .expect("No actor found with key"))
     }
 
     pub fn evaluate_and_perform_as(
@@ -231,9 +228,9 @@ impl Session {
                 debug!("{:#?}", action.to_tagged_json()?.into_tagged());
 
                 let session = self.set_session()?;
-                let target = session.find_target(evaluate_as)?;
+                let actor = session.find_actor(evaluate_as)?;
 
-                match session.captured(target, action) {
+                match session.captured(actor, action) {
                     Ok(i) => Ok(Some(i)),
                     Err(original_err) => {
                         warn!("error: {:?}", original_err);
@@ -451,14 +448,14 @@ impl ActiveSession for Session {
 
     fn raise(
         &self,
-        living: Option<EntityPtr>,
+        actor: Option<EntityPtr>,
         audience: Audience,
         raising: Raising,
     ) -> Result<(), DomainError> {
         let perform = Perform::Raised(Raised::new(
             audience.clone(),
             "".to_owned(),
-            living.clone(),
+            actor.clone(),
             raising.into(),
         ));
 
@@ -504,7 +501,7 @@ fn user_name_to_key<R: EntityPtrResolver>(
 
 struct MakeSurroundings {
     finder: Arc<dyn Finder>,
-    living: EntityPtr,
+    actor: EntityPtr,
 }
 
 impl TryInto<Surroundings> for MakeSurroundings {
@@ -512,17 +509,13 @@ impl TryInto<Surroundings> for MakeSurroundings {
 
     fn try_into(self) -> std::result::Result<Surroundings, Self::Error> {
         let world = self.finder.find_world()?;
-        let living = self.living.clone();
+        let actor = self.actor.clone();
         let area: EntityPtr = self
             .finder
-            .find_area(&living)
+            .find_area(&actor)
             .with_context(|| "find-location")?;
 
-        Ok(Surroundings::Living {
-            world,
-            living,
-            area,
-        })
+        Ok(Surroundings::Actor { world, actor, area })
     }
 }
 
@@ -533,12 +526,12 @@ struct ExpandSurroundingsMiddleware {
 impl Middleware for ExpandSurroundingsMiddleware {
     fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
         match value {
-            Perform::Living { living, action } => {
+            Perform::Actor { actor, action } => {
                 let _span = span!(Level::DEBUG, "surround").entered();
 
                 let surroundings = MakeSurroundings {
                     finder: self.finder.clone(),
-                    living: living.clone(),
+                    actor: actor.clone(),
                 }
                 .try_into()
                 .context(here!())?;

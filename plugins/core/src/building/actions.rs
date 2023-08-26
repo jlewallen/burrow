@@ -27,7 +27,7 @@ impl Action for AddScopeAction {
         // TODO Right now this requires scopes to be functionable if all their
         // fields are ommitted. Look into `#[serde(default)]` to make this work
         // w/o a bunch of Option's?
-        let Some(item) = tools::holding_one_item(surroundings.living())? else {
+        let Some(item) = tools::holding_one_item(surroundings.actor())? else {
             return Ok(SimpleReply::NotFound.try_into()?);
         };
 
@@ -164,7 +164,7 @@ impl Action for MakeItemAction {
     fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
         info!("make-item {:?}", self.name);
 
-        let creator = surroundings.living();
+        let creator = surroundings.actor();
 
         let new_item: Entity = build_entity()
             .default_scope::<Carryable>()?
@@ -209,7 +209,7 @@ impl Action for BidirectionalDigAction {
             self.outgoing, self.returning, self.new_area
         );
 
-        let (_, living, area) = surroundings.unpack();
+        let (_, actor, area) = surroundings.unpack();
 
         let new_area: Entity = build_entity()
             .area()
@@ -223,9 +223,9 @@ impl Action for BidirectionalDigAction {
         tools::add_route(&area, &self.outgoing, &new_area)?;
         tools::add_route(&new_area, &self.returning, &area)?;
 
-        match tools::navigate_between(&area, &new_area, &living)? {
-            true => Ok(session.perform(Perform::Living {
-                living,
+        match tools::navigate_between(&area, &new_area, &actor)? {
+            true => Ok(session.perform(Perform::Actor {
+                actor,
                 action: PerformAction::Instance(Rc::new(LookAction {})),
             })?),
             false => Ok(SimpleReply::NotFound.try_into()?),
@@ -336,7 +336,7 @@ impl Action for BuildAreaAction {
     fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
         info!("build-area {:?}", self.name);
 
-        let creator = surroundings.living();
+        let creator = surroundings.actor();
 
         let new_area: Entity = build_entity()
             .area()

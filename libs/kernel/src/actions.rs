@@ -26,7 +26,7 @@ pub trait Action: HasTag + ToTaggedJson + Debug {
 pub struct Raised {
     pub audience: Audience,
     pub key: String,
-    pub living: Option<EntityPtr>,
+    pub actor: Option<EntityPtr>,
     pub event: TaggedJson,
 }
 
@@ -34,13 +34,13 @@ impl Raised {
     pub fn new(
         audience: Audience,
         key: String,
-        living: Option<EntityPtr>,
+        actor: Option<EntityPtr>,
         event: TaggedJson,
     ) -> Self {
         Self {
             audience,
             key,
-            living,
+            actor,
             event,
         }
     }
@@ -110,8 +110,8 @@ impl FutureAction {
 #[derive(Clone, Debug, Serialize)]
 #[non_exhaustive]
 pub enum Perform {
-    Living {
-        living: EntityPtr,
+    Actor {
+        actor: EntityPtr,
         action: PerformAction,
     },
     Surroundings {
@@ -126,10 +126,10 @@ pub enum Perform {
 impl Perform {
     pub fn enum_name(&self) -> &str {
         match self {
-            Perform::Living {
-                living: _,
+            Perform::Actor {
+                actor: _,
                 action: _,
-            } => "Living",
+            } => "Actor",
             Perform::Surroundings {
                 surroundings: _,
                 action: _,
@@ -245,26 +245,6 @@ pub trait JsonAs<D> {
 
     fn json_as(&self) -> Result<D, Self::Error>;
 }
-
-/*
-impl<T: Action> JsonAs<T> for Perform {
-    type Error = TaggedJsonError;
-
-    fn json_as(&self) -> Result<T, Self::Error> {
-        match self {
-            Perform::Living {
-                living: _,
-                action: _,
-            } => todo!(),
-            Perform::Surroundings {
-                surroundings: _,
-                action: _,
-            } => todo!(),
-            _ => todo!(),
-        }
-    }
-}
-*/
 
 impl<T: Reply + DeserializeOwned> JsonAs<T> for Effect {
     type Error = TaggedJsonError;
