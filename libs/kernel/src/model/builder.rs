@@ -3,8 +3,8 @@ use std::collections::HashMap;
 
 use super::{
     base::{DomainError, EntityClass, EntityKey, Identity, GID_PROPERTY},
-    CoreProps, Entity, EntityRef, LoadAndStoreScope, OpenScope, Properties, Scope, ScopeMap,
-    ScopeValue,
+    CoreProps, Entity, EntityRef, HasProps, LoadAndStoreScope, OpenScope, Properties, Scope,
+    ScopeMap, ScopeValue,
 };
 use crate::session::get_my_session;
 

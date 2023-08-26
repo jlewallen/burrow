@@ -94,9 +94,11 @@ impl From<Props> for Properties {
     }
 }
 
-pub trait CoreProps {
+pub trait HasProps {
     fn props(&self) -> Props;
-    fn set_props(&mut self, props: Props) -> Result<(), DomainError>;
+}
+
+pub trait CoreProps {
     fn name(&self) -> String;
     fn set_name(&mut self, value: &str) -> Result<(), DomainError>;
     fn gid(&self) -> Option<EntityGid>;
@@ -106,32 +108,20 @@ pub trait CoreProps {
     fn destroy(&mut self) -> Result<(), DomainError>;
 }
 
-fn load_props(entity: &Entity) -> Result<Box<Properties>, DomainError> {
-    Ok(Box::new(
-        entity
-            .scope::<Properties>()?
-            .map(|v| v.into())
-            .unwrap_or_default(),
-    ))
+impl HasProps for Entity {
+    fn props(&self) -> Props {
+        let scope = load_props(self).expect("Failed to load properties scope");
+        scope.core.unwrap()
+    }
 }
 
-fn save_props(entity: &mut Entity, properties: Box<Properties>) -> Result<(), DomainError> {
-    entity.replace_scope::<Properties>(&properties)
+impl HasProps for Properties {
+    fn props(&self) -> Props {
+        self.core.clone().unwrap()
+    }
 }
 
 impl CoreProps for Entity {
-    fn props(&self) -> Props {
-        let scope = load_props(self).expect("Failed to load properties scope");
-
-        scope.core.unwrap()
-    }
-
-    fn set_props(&mut self, props: Props) -> Result<(), DomainError> {
-        let mut scope = load_props(self).expect("Failed to load properties scope");
-        scope.core = Some(props);
-        save_props(self, scope)
-    }
-
     fn name(&self) -> String {
         let scope = load_props(self).expect("Failed to load properties scope");
 
@@ -176,14 +166,6 @@ impl CoreProps for Entity {
 }
 
 impl CoreProps for Properties {
-    fn props(&self) -> Props {
-        self.core.clone().unwrap()
-    }
-
-    fn set_props(&mut self, _props: Props) -> Result<(), DomainError> {
-        unimplemented!()
-    }
-
     fn name(&self) -> String {
         self.core
             .as_ref()
@@ -246,4 +228,17 @@ impl Scope for Properties {
     fn scope_key() -> &'static str {
         "props"
     }
+}
+
+fn load_props(entity: &Entity) -> Result<Box<Properties>, DomainError> {
+    Ok(Box::new(
+        entity
+            .scope::<Properties>()?
+            .map(|v| v.into())
+            .unwrap_or_default(),
+    ))
+}
+
+fn save_props(entity: &mut Entity, properties: Box<Properties>) -> Result<(), DomainError> {
+    entity.replace_scope::<Properties>(&properties)
 }
