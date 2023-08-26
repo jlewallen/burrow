@@ -1,6 +1,7 @@
 stages:
   - test
   - build
+  - bench
 
 workflow:
   rules:
@@ -13,28 +14,37 @@ cache:
   paths:
     - cargo/
     - target/
-    - apt-cache/
 
 variables:
-  APT_CACHE_DIR: apt-cache
   CARGO_HOME: $CI_PROJECT_DIR/cargo
   RUST_BACKTRACE: FULL
 
-before_script:
-  - export PATH="$CI_PROJECT_DIR/cargo/bin:$PATH"
-  - rustup target add wasm32-unknown-unknown
+build:docker:
+  image: docker:24.0.5
+  services:
+    - name: docker:24.0.5-dind
+      alias: docker
+  variables:
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_TLS_CERTDIR: ""
+  script:
+    - docker build -t jlewallen/burrow .
 
 tests:
   stage: test
   image: rust:latest
+  before_script:
+    - export PATH="$CI_PROJECT_DIR/cargo/bin:$PATH"
   script:
     - cp .env.default .env
     - rustc --version && cargo --version
-    - cargo test --workspace
+    - time cargo test --workspace
 
 build:amd64:
   stage: build
   image: rust:latest
+  before_script:
+    - export PATH="$CI_PROJECT_DIR/cargo/bin:$PATH"
   script:
     - cargo build --release
   artifacts:
@@ -46,12 +56,25 @@ build:web:
   image: rust:latest
   before_script:
     - export PATH="$CI_PROJECT_DIR/cargo/bin:$PATH"
-    - cargo install trunk
-    - rustup target add wasm32-unknown-unknown
+    - time cargo install trunk
+    - time rustup target add wasm32-unknown-unknown
   script:
     - cp .env.default .env
     - cd web
-    - trunk build
+    - time trunk build
   artifacts:
     paths:
       - web/dist
+
+bench:all:
+  stage: bench
+  image: rust:latest
+  needs: [build:amd64]
+  script:
+    - cp .env.default .env
+    - time cargo bench --workspace --verbose
+    - cd libs/tests
+    - time cargo bench --bench simple -- --profile-time=5
+  artifacts:
+    paths:
+      - target/criterion
