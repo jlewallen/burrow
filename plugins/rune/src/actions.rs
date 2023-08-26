@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::{
     runner::{Call, RuneReturn, RuneRunner, SharedRunners},
-    sources::{get_logs, get_script, load_sources_from_entity, Relation},
+    sources::{get_script, load_sources_from_entity, Relation},
     Behaviors, PerformTagged, ToCall, RUNE_EXTENSION,
 };
 use plugins_core::library::actions::*;
@@ -40,11 +40,11 @@ impl Action for EditAction {
 }
 
 #[action]
-pub struct ShowLogAction {
+pub struct DiagnosticsAction {
     pub item: Item,
 }
 
-impl Action for ShowLogAction {
+impl Action for DiagnosticsAction {
     fn is_read_only() -> bool
     where
         Self: Sized,
@@ -53,17 +53,11 @@ impl Action for ShowLogAction {
     }
 
     fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
-        info!("editing {:?}", self.item);
-
         match session.find_item(surroundings, &self.item)? {
             Some(editing) => {
-                let logs = match get_logs(&editing)? {
-                    Some(logs) => logs,
-                    None => Vec::default(),
-                };
-                let logs = serde_json::to_value(logs)?;
+                let diagnostics = get_diagnostics(&editing)?;
                 Ok(Effect::Reply(EffectReply::TaggedJson(
-                    TaggedJson::new_from(json!({ "logs": logs }))?,
+                    TaggedJson::new_from(json!({ "diagnostics": diagnostics }))?,
                 )))
             }
             None => Ok(SimpleReply::NotFound.try_into()?),

@@ -1,11 +1,14 @@
 use anyhow::Context as _;
 use anyhow::Result;
+use plugins_core::sched::model::DateTime;
+use plugins_core::sched::model::Utc;
 use rune::{
     runtime::{Object, RuntimeContext, Shared},
     termcolor::{ColorChoice, StandardStream, WriteColor},
     Context, Diagnostics, Sources, Value, Vm,
 };
 use serde::ser::SerializeMap;
+use serde::Deserialize;
 use serde::Serialize;
 use std::{cell::RefCell, io::Write, sync::Arc, time::Instant};
 use tracing::*;
@@ -22,8 +25,23 @@ use kernel::{
 use crate::{
     module::{AfterEffect, Bag, BeforePerform},
     sources::*,
-    Behaviors, LogEntry, RuneState,
+    Behaviors, RuneState,
 };
+
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+pub struct LogEntry {
+    pub time: DateTime<Utc>,
+    pub message: String,
+}
+
+impl LogEntry {
+    pub fn new_now(message: impl Into<String>) -> Self {
+        Self {
+            time: Utc::now(),
+            message: message.into(),
+        }
+    }
+}
 
 #[derive(Default, Clone)]
 struct Log {
@@ -95,7 +113,6 @@ pub struct RuneRunner {
     #[allow(dead_code)]
     source: String,
     owner: Option<Owner>,
-    logs: Option<Vec<LogEntry>>,
     state: State,
     vm: Option<Vm>,
 }
@@ -128,7 +145,7 @@ impl RuneRunner {
             .with_diagnostics(&mut diagnostics)
             .build();
 
-        let logs = if diagnostics.has_error() {
+        if diagnostics.has_error() {
             let mut writer = StandardStream::stderr(ColorChoice::Always);
             diagnostics.emit(&mut writer, &sources)?;
             writer.flush()?;
@@ -137,9 +154,9 @@ impl RuneRunner {
             diagnostics.emit(&mut lines, &sources)?;
             lines.flush()?;
 
-            Some(lines.entries())
-        } else {
-            Some(vec![LogEntry::new_now("compiled!".to_owned())])
+            for entry in lines.entries().into_iter() {
+                info!("diagnostics {}", &entry.message);
+            }
         };
 
         let runtime: Arc<RuntimeContext> = Arc::new(ctx.runtime());
@@ -164,7 +181,6 @@ impl RuneRunner {
         Ok(Self {
             source,
             owner,
-            logs,
             state,
             vm,
         })
@@ -211,7 +227,7 @@ impl RuneRunner {
     }
 
     fn post<T>(&mut self, value: T) -> PostEvaluation<T> {
-        PostEvaluation::new(self.owner.clone(), self.logs.take(), value)
+        PostEvaluation::new(self.owner.clone(), value)
     }
 
     fn invoke<A>(&mut self, name: &str, args: A) -> Result<Option<rune::Value>>
@@ -324,13 +340,12 @@ fn update_state_in_place(value: RuneValue, setting: &JsonValue) -> Result<RuneVa
 #[derive(Clone)]
 pub struct PostEvaluation<T> {
     owner: Option<Owner>,
-    logs: Option<Vec<LogEntry>>,
     value: T,
 }
 
 impl<T> PostEvaluation<T> {
-    fn new(owner: Option<Owner>, logs: Option<Vec<LogEntry>>, value: T) -> Self {
-        Self { owner, logs, value }
+    fn new(owner: Option<Owner>, value: T) -> Self {
+        Self { owner, value }
     }
 
     fn into_inner(self) -> T {
@@ -354,7 +369,7 @@ impl<T> PostEvaluation<T>
 where
     T: Simplifies,
 {
-    pub(super) fn flush(mut self) -> Result<T> {
+    pub(super) fn flush(self) -> Result<T> {
         let Some(owner) = self.owner()? else {
             debug!("flush: ownerless");
             return Ok(self.value);
@@ -370,31 +385,11 @@ where
             save = true;
         }
 
-        let logs = self.logs.take();
-        if have_logs_changed(&rune.logs, logs.as_ref()) {
-            rune.logs.extend(logs.unwrap_or_default());
-            save = true;
-        }
-
         if save {
             behaviors.save()?;
         }
 
         Ok(self.value)
-    }
-}
-
-fn have_logs_changed(tail: &Vec<LogEntry>, test: Option<&Vec<LogEntry>>) -> bool {
-    match test {
-        Some(logs) => match tail.last() {
-            Some(tail) => match logs.as_slice() {
-                [] => panic!(),
-                [solo] => tail.message != solo.message,
-                _ => true,
-            },
-            None => true,
-        },
-        None => false,
     }
 }
 

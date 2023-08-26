@@ -1,10 +1,12 @@
+use std::collections::HashMap;
+
 use regex::Captures;
 use replies::*;
 use yew::prelude::*;
 
 use crate::{
     hooks::use_user_context,
-    types::{AllKnownItems, HistoryEntityPtr, Myself},
+    types::{AllKnownItems, Diagnostics, Entry, HistoryEntityPtr, Myself, Run},
 };
 
 const NO_NAME: &str = "No Name";
@@ -188,6 +190,8 @@ impl Render for AllKnownItems {
             Self::Carrying(event) => event.render(myself),
             Self::Moving(event) => event.render(myself),
             Self::Talking(event) => event.render(myself),
+
+            Self::Diagnostics(diagnostics) => diagnostics.render(myself),
         }
     }
 }
@@ -273,6 +277,79 @@ impl Render for Talking {
                 html! { <div class="entry"> <span class="speaker">{ s.who.name.as_ref().unwrap() }</span>{ ": " } { &s.message } </div> },
             ),
             Talking::Whispering(_) => todo!(),
+        }
+    }
+}
+
+impl Render for Diagnostics {
+    fn render(&self, myself: &Myself) -> Option<Html> {
+        Some(html! {
+            <div class="entry diagnostics">
+                { self.runs.iter().flat_map(|i| i.render(myself)).collect::<Html>() }
+            </div>
+        })
+    }
+}
+
+impl Render for JsonValue {
+    fn render(&self, myself: &Myself) -> Option<Html> {
+        match self {
+            JsonValue::Null => Some(html! { "<null>" }),
+            JsonValue::Bool(b) => Some(html! { b }),
+            JsonValue::Number(value) => Some(html! { value }),
+            JsonValue::String(value) => Some(html! { value }),
+            JsonValue::Array(values) => Some(html! {
+                <>{ values.iter().flat_map(|value| value.render(myself)).collect::<Html>() }</>
+            }),
+            JsonValue::Object(obj) => Some(html! {
+                obj.iter().map(|(key, value)| {
+                    html! { <> <span class="key">{ key }{ ": " }</span>{ value.render(myself) } </> }
+                }).collect::<Html>()
+            }),
+        }
+    }
+}
+
+impl Render for Run {
+    fn render(&self, myself: &Myself) -> Option<Html> {
+        fn span(span: &HashMap<String, JsonValue>, myself: &Myself) -> Html {
+            html! {
+                <span class="span"> {
+                    span.iter().map(|(key, value)| {
+                        html! { <> <span class="key">{ key }{ ": " }</span>{ value.render(myself) } </> }
+                    }).collect::<Html>()
+                } </span>
+            }
+        }
+
+        fn entry(entry: &Entry, myself: &Myself) -> Html {
+            html! {
+                <div class="log-entry">
+                    <span class={classes!("level", &entry.level)}>{ &entry.level }</span>
+                    <span class="spans">{ entry.spans.iter().map(|s| span(s, myself)).collect::<Html>() }</span>
+                    <span class="target">{ &entry.target }</span>
+                    <span class="message">{ &entry.fields.message }</span>
+                    if !entry.fields.extra.is_empty() {
+                        <span class="extra">{ format!("{:?}", &entry.fields.extra) }</span>
+                    }
+                </div>
+            }
+        }
+
+        match self {
+            Run::Diagnostics {
+                time: _,
+                desc,
+                logs,
+            } => Some(html! {
+                <div class="run">
+                    <h4>{ &desc }</h4>
+
+                    <div class="logs">
+                        { logs.iter().map(|l| entry(&l, myself)).collect::<Html>() }
+                    </div>
+                </div>
+            }),
         }
     }
 }

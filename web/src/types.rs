@@ -1,5 +1,6 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::rc::Rc;
+use std::{collections::HashMap, rc::Rc};
 use yew::prelude::Reducible;
 
 use replies::*;
@@ -44,6 +45,38 @@ pub struct UserInfoWrapper {
     pub user: UserInfo,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum Run {
+    Diagnostics {
+        time: DateTime<Utc>,
+        desc: String,
+        logs: Vec<Entry>,
+    },
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct LogFields {
+    pub message: String,
+    #[serde(flatten)]
+    pub extra: HashMap<String, JsonValue>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Entry {
+    pub target: String,
+    pub name: String,
+    pub level: String,
+    pub spans: Vec<HashMap<String, JsonValue>>,
+    pub fields: LogFields,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct Diagnostics {
+    pub runs: Vec<Run>,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum AllKnownItems {
@@ -57,6 +90,7 @@ pub enum AllKnownItems {
     Carrying(Carrying),
     Moving(Moving),
     Talking(Talking),
+    Diagnostics(Diagnostics),
 }
 
 #[derive(Debug, Serialize, Clone, Eq, PartialEq)]

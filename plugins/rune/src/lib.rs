@@ -3,9 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::{cell::RefCell, rc::Rc};
 
-use plugins_core::library::model::DateTime;
 use plugins_core::library::plugin::*;
-use plugins_core::library::tests::Utc;
 use sources::Script;
 
 mod actions;
@@ -90,7 +88,7 @@ impl Plugin for RunePlugin {
 impl ParsesActions for RunePlugin {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
         try_parsing(parser::EditActionParser {}, i)
-            .or_else(|_| try_parsing(parser::ShowLogsActionParser {}, i))
+            .or_else(|_| try_parsing(parser::DiagnosticsActionParser {}, i))
             .or_else(|_| try_parsing(parser::RegisterActionParser {}, i))
     }
 }
@@ -180,22 +178,7 @@ impl PerformTagged for RuneReturn {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Default, Clone)]
-pub struct LogEntry {
-    pub time: DateTime<Utc>,
-    pub message: String,
-}
-
-impl LogEntry {
-    pub fn new_now(message: impl Into<String>) -> Self {
-        Self {
-            time: Utc::now(),
-            message: message.into(),
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Default, rune::Any, Clone)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone, rune::Any)]
 pub struct RuneState {
     value: Option<JsonValue>,
 }
@@ -211,7 +194,6 @@ impl RuneState {
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct RuneBehavior {
     pub entry: String,
-    pub logs: Vec<LogEntry>,
     pub state: Option<JsonValue>,
 }
 
