@@ -56,9 +56,73 @@ pub trait ParsesActions {
     fn try_parse_action(&self, i: &str) -> EvaluationResult;
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
+pub enum ArgumentType {
+    Item,
+    String,
+    Number,
+    Area,
+    Time,
+}
+
+impl HasArgumentType for String {
+    fn argument_type() -> ArgumentType {
+        ArgumentType::String
+    }
+}
+
+pub trait HasArgumentType {
+    fn argument_type() -> ArgumentType;
+}
+
+#[derive(Debug, Clone)]
+pub struct ArgSchema {
+    name: String,
+    ty: ArgumentType,
+}
+
+#[derive(Debug, Clone)]
+pub struct ActionSchema {
+    name: String,
+    args: Vec<ArgSchema>,
+}
+
+impl ActionSchema {
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_owned(),
+            args: Vec::new(),
+        }
+    }
+
+    pub fn arg(mut self, name: &str, ty: ArgumentType) -> Self {
+        self.args.push(ArgSchema {
+            name: name.to_owned(),
+            ty,
+        });
+        self
+    }
+
+    pub fn item(self, name: &str) -> Self {
+        self.arg(name, ArgumentType::Item)
+    }
+
+    pub fn string(self, name: &str) -> Self {
+        self.arg(name, ArgumentType::String)
+    }
+
+    pub fn number(self, name: &str) -> Self {
+        self.arg(name, ArgumentType::Number)
+    }
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct Schema {
-    actions: Vec<String>,
+    actions: Vec<ActionSchema>,
+}
+
+pub trait HasActionSchema {
+    fn action_schema(schema: ActionSchema) -> ActionSchema;
 }
 
 impl Schema {
@@ -66,9 +130,26 @@ impl Schema {
         Self::default()
     }
 
-    pub fn action<A: Action>(mut self) -> Self {
-        self.actions.push(<A>::tag().to_string());
+    pub fn action<A: Action + HasActionSchema>(mut self) -> Self {
+        self.actions
+            .push(<A>::action_schema(ActionSchema::new(&<A>::tag())));
+
         self
+    }
+
+    pub fn actions(&self) -> Vec<(String, Vec<(String, ArgumentType)>)> {
+        self.actions
+            .iter()
+            .map(|a| {
+                (
+                    a.name.to_owned(),
+                    a.args
+                        .iter()
+                        .map(|a| (a.name.to_owned(), a.ty.clone()))
+                        .collect(),
+                )
+            })
+            .collect::<Vec<(_, _)>>()
     }
 }
 
@@ -76,11 +157,11 @@ impl Schema {
 pub struct SchemaCollection(HashMap<String, Schema>);
 
 impl SchemaCollection {
-    pub fn actions(&self) -> impl Iterator<Item = (&String, &String)> {
+    pub fn actions(&self) -> Vec<(String, Vec<(String, Vec<(String, ArgumentType)>)>)> {
         self.0
             .iter()
-            .map(|(p, acs)| acs.actions.iter().map(move |a| (p, a)))
-            .flatten()
+            .map(|(plugin, schema)| (plugin.to_owned(), schema.actions()))
+            .collect::<Vec<_>>()
     }
 }
 
