@@ -41,7 +41,9 @@ pub struct Inbox {
 
 impl Inbox {
     pub fn recv(&mut self, bytes: &mut [u8]) -> usize {
-        let Some(sending) = self.messages.pop_front() else { return 0 };
+        let Some(sending) = self.messages.pop_front() else {
+            return 0;
+        };
 
         if sending.len() > bytes.len() {
             return sending.len();
@@ -256,7 +258,7 @@ struct LibraryMiddleware {
 impl Middleware for LibraryMiddleware {
     fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
         let _span = span!(Level::INFO, "M" /*, lib = self.prefix*/).entered();
-        debug!("before");
+        trace!("before");
 
         let v = unsafe {
             let sym = self
@@ -271,7 +273,7 @@ impl Middleware for LibraryMiddleware {
             (decl.middleware)(value, temp)
         };
 
-        debug!("after");
+        trace!("after");
         v
     }
 }
@@ -284,7 +286,7 @@ impl Middleware for DynamicMiddleware {
     fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
         let _span = span!(Level::INFO, "M", plugin = "dynlib").entered();
 
-        debug!("before");
+        trace!("before");
 
         let children = self.children.borrow();
         let request_fn =
@@ -298,7 +300,7 @@ impl Middleware for DynamicMiddleware {
 
         let v = inner.handle(value);
 
-        debug!("after");
+        trace!("after");
 
         v
     }

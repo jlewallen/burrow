@@ -272,7 +272,7 @@ impl SessionPlugins {
             if elapsed.as_millis() > 200 {
                 warn!("plugin:{} ready {:?}", plugin.key(), elapsed);
             } else {
-                debug!("plugin:{} ready {:?}", plugin.key(), elapsed);
+                trace!("plugin:{} ready {:?}", plugin.key(), elapsed);
             }
         }
         Ok(())

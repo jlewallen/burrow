@@ -343,7 +343,6 @@ impl Session {
         if let Some(persisted) = self.storage.load(lookup)? {
             let added = self.state.add_persisted(persisted)?;
             if depth > 0 {
-                info!("{:?}", added.find_refs());
                 for key in added.find_refs().into_iter() {
                     self.load_entity(&LookupBy::Key(&key), depth - 1)?;
                 }

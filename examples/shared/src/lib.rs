@@ -59,8 +59,8 @@ unsafe extern "C" fn agent_tick(dh: &mut dyn DynamicHost, state: *const std::ffi
 
 #[allow(improper_ctypes_definitions)]
 unsafe extern "C" fn agent_middleware(perform: Perform, next: DynamicNext) -> Result<Effect> {
-    info!("before");
+    trace!("before");
     let v = (next.n)(perform);
-    info!("after");
+    trace!("after");
     v
 }

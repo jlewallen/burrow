@@ -557,8 +557,6 @@ impl SharedRunners {
             runner.after(effect).expect("Error in after").into_inner()
         });
 
-        info!("after");
-
         Ok(after)
     }
 }
