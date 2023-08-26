@@ -73,14 +73,14 @@ pub mod actions {
         }
 
         fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
-            let (_, living, area) = surroundings.unpack();
+            let (_, actor, area) = surroundings.unpack();
 
             session.raise(
-                Some(living.clone()),
+                Some(actor.clone()),
                 Audience::Area(area.key().clone()),
                 Raising::TaggedJson(
                     Emoting::Laugh(Emoted::new(
-                        (&living).observe(&living)?.expect("No observed entity"),
+                        (&actor).observe(&actor)?.expect("No observed entity"),
                     ))
                     .to_tagged_json()?,
                 ),

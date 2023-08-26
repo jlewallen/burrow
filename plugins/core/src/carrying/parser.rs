@@ -5,8 +5,8 @@ pub struct HoldActionParser {}
 
 impl ParsesActions for HoldActionParser {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
-        let (_, action) = map(separated_pair(tag("hold"), spaces, noun), |(_, target)| {
-            HoldAction { item: target }
+        let (_, action) = map(separated_pair(tag("hold"), spaces, noun), |(_, item)| {
+            HoldAction { item }
         })(i)?;
 
         Ok(Some(Box::new(action)))
@@ -17,9 +17,9 @@ pub struct DropActionParser {}
 
 impl ParsesActions for DropActionParser {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
-        let specific = map(separated_pair(tag("drop"), spaces, noun), |(_, target)| {
+        let specific = map(separated_pair(tag("drop"), spaces, noun), |(_, item)| {
             DropAction {
-                maybe_item: Some(Item::Held(Box::new(target))),
+                maybe_item: Some(Item::Held(Box::new(item))),
             }
         });
 
@@ -35,15 +35,13 @@ pub struct TakeOutActionParser {}
 
 impl ParsesActions for TakeOutActionParser {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
-        let item = map(separated_pair(tag("take"), spaces, noun), |(_, target)| {
-            target
-        });
+        let item = map(separated_pair(tag("take"), spaces, noun), |(_, item)| item);
 
         let (_, action) = map(
             separated_pair(separated_pair(item, spaces, tag("out of")), spaces, noun),
-            |(item, target)| TakeOutAction {
+            |(item, vessel)| TakeOutAction {
                 item: Item::Contained(Box::new(item.0)),
-                vessel: target,
+                vessel: vessel,
             },
         )(i)?;
 
@@ -55,9 +53,7 @@ pub struct PutInsideActionParser {}
 
 impl ParsesActions for PutInsideActionParser {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
-        let item = map(separated_pair(tag("put"), spaces, noun), |(_, target)| {
-            target
-        });
+        let item = map(separated_pair(tag("put"), spaces, noun), |(_, item)| item);
 
         let (_, action) = map(
             separated_pair(
@@ -69,9 +65,9 @@ impl ParsesActions for PutInsideActionParser {
                 spaces,
                 noun,
             ),
-            |(item, target)| PutInsideAction {
+            |(item, vessel)| PutInsideAction {
                 item: item.0,
-                vessel: target,
+                vessel: vessel,
             },
         )(i)?;
 

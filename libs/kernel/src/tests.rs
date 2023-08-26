@@ -86,7 +86,7 @@ impl ActiveSession for KeysOnlySession {
 
     fn raise(
         &self,
-        _living: Option<EntityPtr>,
+        _actor: Option<EntityPtr>,
         _audience: Audience,
         _raising: Raising,
     ) -> Result<(), DomainError> {

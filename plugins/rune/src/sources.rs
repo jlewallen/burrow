@@ -110,9 +110,8 @@ pub fn load_directory_sources(path: &str) -> Result<Vec<Script>> {
 
 #[derive(Clone, Debug, rune::Any)]
 pub enum Relation {
-    Target,
     World,
-    User,
+    Actor,
     Area,
     Holding,
     Occupying,
@@ -125,7 +124,7 @@ impl Relation {
     fn new(value: &EntityRelationship) -> Self {
         match value {
             EntityRelationship::World(_) => Self::World,
-            EntityRelationship::User(_) => Self::User,
+            EntityRelationship::Actor(_) => Self::Actor,
             EntityRelationship::Area(_) => Self::Area,
             EntityRelationship::Holding(_) => Self::Holding,
             EntityRelationship::Occupying(_) => Self::Occupying,

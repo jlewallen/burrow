@@ -70,12 +70,12 @@ pub mod model {
     #[serde(rename_all = "camelCase")]
     pub enum Fashion {
         Worn {
-            living: EntityRef,
+            actor: EntityRef,
             item: ObservedEntity,
             area: EntityRef,
         },
         Removed {
-            living: EntityRef,
+            actor: EntityRef,
             item: ObservedEntity,
             area: EntityRef,
         },
@@ -230,18 +230,18 @@ pub mod actions {
         fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             info!("wear {:?}!", self.item);
 
-            let (_, living, area) = surroundings.unpack();
+            let (_, actor, area) = surroundings.unpack();
 
             match session.find_item(surroundings, &self.item)? {
                 Some(wearing) => {
                     let location = Location::get(&wearing)?.expect("No location").to_entity()?;
-                    match tools::wear_article(&location, &living, &wearing)? {
+                    match tools::wear_article(&location, &actor, &wearing)? {
                         true => Ok(reply_ok(
-                            living.clone(),
+                            actor.clone(),
                             Audience::Area(area.key().clone()),
                             Fashion::Worn {
-                                living: living.entity_ref(),
-                                item: (&wearing).observe(&living)?.expect("No observed entity"),
+                                actor: actor.entity_ref(),
+                                item: (&wearing).observe(&actor)?.expect("No observed entity"),
                                 area: area.entity_ref(),
                             },
                         )?),
@@ -266,17 +266,17 @@ pub mod actions {
         fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
             info!("remove {:?}!", self.maybe_item);
 
-            let (_, living, area) = surroundings.unpack();
+            let (_, actor, area) = surroundings.unpack();
 
             match &self.maybe_item {
                 Some(item) => match session.find_item(surroundings, item)? {
-                    Some(removing) => match tools::remove_article(&living, &living, &removing)? {
+                    Some(removing) => match tools::remove_article(&actor, &actor, &removing)? {
                         true => Ok(reply_ok(
-                            living.clone(),
+                            actor.clone(),
                             Audience::Area(area.key().clone()),
                             Fashion::Removed {
-                                living: living.entity_ref(),
-                                item: (&removing).observe(&living)?.expect("No observed entity"),
+                                actor: actor.entity_ref(),
+                                item: (&removing).observe(&actor)?.expect("No observed entity"),
                                 area: area.entity_ref(),
                             },
                         )?),
@@ -298,8 +298,8 @@ pub mod parser {
 
     impl ParsesActions for WearActionParser {
         fn try_parse_action(&self, i: &str) -> EvaluationResult {
-            let (_, action) = map(separated_pair(tag("wear"), spaces, noun), |(_, target)| {
-                WearAction { item: target }
+            let (_, action) = map(separated_pair(tag("wear"), spaces, noun), |(_, item)| {
+                WearAction { item }
             })(i)?;
 
             Ok(Some(Box::new(action)))
@@ -310,12 +310,11 @@ pub mod parser {
 
     impl ParsesActions for RemoveActionParser {
         fn try_parse_action(&self, i: &str) -> EvaluationResult {
-            let specific = map(
-                separated_pair(tag("remove"), spaces, noun),
-                |(_, target)| RemoveAction {
-                    maybe_item: Some(Item::Held(Box::new(target))),
-                },
-            );
+            let specific = map(separated_pair(tag("remove"), spaces, noun), |(_, item)| {
+                RemoveAction {
+                    maybe_item: Some(Item::Held(Box::new(item))),
+                }
+            });
 
             let everything = map(tag("remove"), |_| RemoveAction { maybe_item: None });
 

@@ -347,9 +347,9 @@ impl BuildSurroundings {
 
         Ok((
             session,
-            Surroundings::Living {
+            Surroundings::Actor {
                 world: self.world.clone(),
-                living: person,
+                actor: person,
                 area,
             },
         ))

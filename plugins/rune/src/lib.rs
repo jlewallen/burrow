@@ -133,9 +133,9 @@ impl Middleware for RuneMiddleware {
             _ => {}
         }
 
-        if let Some(living) = value.find_living()? {
+        if let Some(actor) = value.find_actor()? {
             if let Some(call) = value.to_call() {
-                self.runners.call(call)?.handle(&living)?;
+                self.runners.call(call)?.handle(&actor)?;
             }
         }
 
@@ -154,19 +154,19 @@ impl Middleware for RuneMiddleware {
 }
 
 pub trait PerformTagged {
-    fn handle(&self, target: &EntityPtr) -> Result<()>;
+    fn handle(&self, actor: &EntityPtr) -> Result<()>;
 }
 
 impl PerformTagged for RuneReturn {
-    fn handle(&self, target: &EntityPtr) -> Result<()> {
-        for returned in self.simplify().with_context(|| entity_context!(target))? {
+    fn handle(&self, actor: &EntityPtr) -> Result<()> {
+        for returned in self.simplify().with_context(|| entity_context!(actor))? {
             match returned {
                 Returned::Tagged(action) => {
                     let action = PerformAction::TaggedJson(action);
-                    let living = target.clone();
+                    let actor = actor.clone();
                     let session = get_my_session()?;
                     session
-                        .perform(Perform::Living { living, action })
+                        .perform(Perform::Actor { actor, action })
                         .with_context(|| format!("Rune perform"))?;
                 }
                 _ => {}
@@ -217,32 +217,32 @@ impl Scope for Behaviors {
     }
 }
 
-trait TryFindLiving {
-    fn find_living(&self) -> Result<Option<EntityPtr>>;
+trait TryFindActor {
+    fn find_actor(&self) -> Result<Option<EntityPtr>>;
 }
 
-impl TryFindLiving for Perform {
-    fn find_living(&self) -> Result<Option<EntityPtr>> {
+impl TryFindActor for Perform {
+    fn find_actor(&self) -> Result<Option<EntityPtr>> {
         match self {
             Perform::Surroundings {
                 surroundings,
                 action: _,
-            } => surroundings.find_living(),
-            Perform::Raised(raised) => Ok(raised.living.clone()),
+            } => surroundings.find_actor(),
+            Perform::Raised(raised) => Ok(raised.actor.clone()),
             Perform::Schedule(_) => Ok(None),
-            _ => todo!("Unable to get living for {:?}", self),
+            _ => todo!("Unable to get actor for {:?}", self),
         }
     }
 }
 
-impl TryFindLiving for Surroundings {
-    fn find_living(&self) -> Result<Option<EntityPtr>> {
+impl TryFindActor for Surroundings {
+    fn find_actor(&self) -> Result<Option<EntityPtr>> {
         match self {
-            Surroundings::Living {
+            Surroundings::Actor {
                 world: _,
-                living,
+                actor,
                 area: _,
-            } => Ok(Some(living.clone())),
+            } => Ok(Some(actor.clone())),
         }
     }
 }

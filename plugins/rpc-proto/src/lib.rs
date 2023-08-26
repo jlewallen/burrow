@@ -316,9 +316,9 @@ impl From<Effect> for kernel::prelude::Effect {
 
 #[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Clone)]
 pub enum Surroundings {
-    Living {
+    Actor {
         world: EntityKey,
-        living: EntityKey,
+        actor: EntityKey,
         area: EntityKey,
     },
 }
@@ -337,13 +337,9 @@ impl TryFrom<&kernel::prelude::Surroundings> for Surroundings {
 
     fn try_from(value: &kernel::prelude::Surroundings) -> Result<Self, Self::Error> {
         match value {
-            kernel::prelude::Surroundings::Living {
-                world,
-                living,
-                area,
-            } => Ok(Self::Living {
+            kernel::prelude::Surroundings::Actor { world, actor, area } => Ok(Self::Actor {
                 world: world.key().into(),
-                living: living.key().into(),
+                actor: actor.key().into(),
                 area: area.key().into(),
             }),
         }

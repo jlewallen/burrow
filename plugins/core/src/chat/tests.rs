@@ -11,14 +11,14 @@ fn it_raises_conversation_events() -> Result<()> {
 }
 
 #[test]
-fn it_raises_conversation_events_for_target_area() -> Result<()> {
+fn it_raises_conversation_events_for_actor_area() -> Result<()> {
     let mut build = BuildSurroundings::new()?;
     let (_session, surroundings) = build.plain().encyclopedia()?.build()?;
     let (_world, _, area) = surroundings.unpack();
 
     let (_, effect) = perform_directly(SpeakAction {
         area: Some(Item::Key(area.key())),
-        speaker: Some(Item::Key(area.key())),
+        actor: Some(Item::Key(area.key())),
         here: Some("Hello!".to_owned()),
     })?;
 

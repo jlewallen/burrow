@@ -16,7 +16,7 @@ impl GoAction {
     fn navigate(
         &self,
         session: SessionRef,
-        living: EntityPtr,
+        actor: EntityPtr,
         area: EntityPtr,
         to_area: EntityPtr,
         surroundings: &Surroundings,
@@ -26,43 +26,43 @@ impl GoAction {
             .invoke::<MovingHooks, CanMove, _>(|h| h.before_moving(surroundings, &to_area))?;
 
         match can {
-            CanMove::Allow => match tools::navigate_between(&area, &to_area, &living)? {
+            CanMove::Allow => match tools::navigate_between(&area, &to_area, &actor)? {
                 true => {
                     session
                         .hooks()
                         .invoke::<MovingHooks, (), _>(|h| h.after_move(surroundings, &area))?;
 
-                    let excluding = living.key();
+                    let excluding = actor.key();
                     let hearing_arrive: Vec<_> = tools::get_occupant_keys(&to_area)?
                         .into_iter()
                         .filter(|v| *v != excluding)
                         .collect();
 
                     session.raise(
-                        Some(living.clone()),
+                        Some(actor.clone()),
                         Audience::Area(area.key().clone()),
                         Raising::TaggedJson(
                             Moving::Left {
-                                living: (&living).observe(&living)?.expect("No observed entity"),
-                                area: (&area).observe(&living)?.expect("No observed entity"),
+                                actor: (&actor).observe(&actor)?.expect("No observed entity"),
+                                area: (&area).observe(&actor)?.expect("No observed entity"),
                             }
                             .to_tagged_json()?,
                         ),
                     )?;
                     session.raise(
-                        Some(living.clone()),
+                        Some(actor.clone()),
                         Audience::Individuals(hearing_arrive),
                         Raising::TaggedJson(
                             Moving::Arrived {
-                                living: (&living).observe(&living)?.expect("No observed entity"),
-                                area: (&to_area).observe(&living)?.expect("No observed entity"),
+                                actor: (&actor).observe(&actor)?.expect("No observed entity"),
+                                area: (&to_area).observe(&actor)?.expect("No observed entity"),
                             }
                             .to_tagged_json()?,
                         ),
                     )?;
 
-                    Ok(session.perform(Perform::Living {
-                        living,
+                    Ok(session.perform(Perform::Actor {
+                        actor,
                         action: PerformAction::Instance(Rc::new(LookAction {})),
                     })?)
                 }
@@ -81,7 +81,7 @@ impl Action for GoAction {
     fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
         info!("go {:?}!", self.item);
 
-        let (_, living, area) = surroundings.unpack();
+        let (_, actor, area) = surroundings.unpack();
 
         if let Some(occupyable) = area.scope::<Occupyable>()? {
             match &self.item {
@@ -89,7 +89,7 @@ impl Action for GoAction {
                     Some(route) => match route {
                         Route::Simple(to_area) => {
                             let to_area = to_area.destination().to_entity()?;
-                            self.navigate(session, living, area, to_area, surroundings)
+                            self.navigate(session, actor, area, to_area, surroundings)
                         }
                         Route::Deactivated(reason, _) => {
                             Ok(SimpleReply::Prevented(Some(reason.clone())).try_into()?)
@@ -99,7 +99,7 @@ impl Action for GoAction {
                         match session.find_item(surroundings, &Item::Named(route.to_owned()))? {
                             Some(maybe) => {
                                 if maybe.scope::<Occupyable>()?.is_some() {
-                                    self.navigate(session, living, area, maybe, surroundings)
+                                    self.navigate(session, actor, area, maybe, surroundings)
                                 } else {
                                     Ok(SimpleReply::NotFound.try_into()?)
                                 }
@@ -109,7 +109,7 @@ impl Action for GoAction {
                     }
                 },
                 Item::Gid(_) => match session.find_item(surroundings, &self.item)? {
-                    Some(to_area) => self.navigate(session, living, area, to_area, surroundings),
+                    Some(to_area) => self.navigate(session, actor, area, to_area, surroundings),
                     None => Ok(SimpleReply::NotFound.try_into()?),
                 },
                 _ => panic!("Occupyable::find_route expecting Item::Route or Item::Gid"),

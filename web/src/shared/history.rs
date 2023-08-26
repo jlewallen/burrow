@@ -240,18 +240,18 @@ impl Render for Carrying {
     fn render(&self, _myself: &Myself) -> Option<Html> {
         match self {
             Carrying::Held {
-                living,
+                actor,
                 item,
                 area: _,
             } => Some(
-                html! { <div class="entry"> { subject(living) } { " picked up " } { thing(item) }</div> },
+                html! { <div class="entry"> { subject(actor) } { " picked up " } { thing(item) }</div> },
             ),
             Carrying::Dropped {
-                living,
+                actor,
                 item,
                 area: _,
             } => Some(
-                html! { <div class="entry"> { subject(living) } { " dropped " } { thing(item) }</div> },
+                html! { <div class="entry"> { subject(actor) } { " dropped " } { thing(item) }</div> },
             ),
         }
     }
@@ -260,11 +260,11 @@ impl Render for Carrying {
 impl Render for Moving {
     fn render(&self, _myself: &Myself) -> Option<Html> {
         match self {
-            Moving::Left { living, area: _ } => {
-                Some(html! { <div class="entry"> { subject(living) } { " left." } </div> })
+            Moving::Left { actor, area: _ } => {
+                Some(html! { <div class="entry"> { subject(actor) } { " left." } </div> })
             }
-            Moving::Arrived { living, area: _ } => {
-                Some(html! { <div class="entry"> { subject(living) } { " arrived." } </div> })
+            Moving::Arrived { actor, area: _ } => {
+                Some(html! { <div class="entry"> { subject(actor) } { " arrived." } </div> })
             }
         }
     }

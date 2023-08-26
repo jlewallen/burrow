@@ -42,13 +42,13 @@ fn it_goes_through_correct_route_when_two_nearby() -> Result<()> {
     let action = try_parsing(GoActionParser {}, "go east")?;
     let action = action.unwrap();
     let reply = action.perform(session.clone(), &surroundings)?;
-    let (_, living, area) = surroundings.unpack();
+    let (_, actor, area) = surroundings.unpack();
 
     let reply: AreaObservation = reply.json_as()?;
-    assert_eq!(reply, new_area_observation(&living, &east)?);
+    assert_eq!(reply, new_area_observation(&actor, &east)?);
 
-    assert_ne!(tools::area_of(&living)?.key(), area.key());
-    assert_eq!(tools::area_of(&living)?.key(), east.key());
+    assert_ne!(tools::area_of(&actor)?.key(), area.key());
+    assert_eq!(tools::area_of(&actor)?.key(), east.key());
 
     build.close()?;
 
@@ -66,13 +66,13 @@ fn it_goes_through_routes_when_one_nearby() -> Result<()> {
     let action = try_parsing(GoActionParser {}, "go east")?;
     let action = action.unwrap();
     let reply = action.perform(session.clone(), &surroundings)?;
-    let (_, living, area) = surroundings.unpack();
+    let (_, actor, area) = surroundings.unpack();
 
     let reply: AreaObservation = reply.json_as()?;
-    assert_eq!(reply, new_area_observation(&living, &destination)?);
+    assert_eq!(reply, new_area_observation(&actor, &destination)?);
 
-    assert_ne!(tools::area_of(&living)?.key(), area.key());
-    assert_eq!(tools::area_of(&living)?.key(), destination.key());
+    assert_ne!(tools::area_of(&actor)?.key(), area.key());
+    assert_eq!(tools::area_of(&actor)?.key(), destination.key());
 
     build.close()?;
 
@@ -337,13 +337,13 @@ fn it_goes_into_nested_areas() -> Result<()> {
     let action = try_parsing(GoActionParser {}, "go place")?;
     let action = action.unwrap();
     let reply = action.perform(session.clone(), &surroundings)?;
-    let (_, living, area) = surroundings.unpack();
+    let (_, actor, area) = surroundings.unpack();
 
     let reply: AreaObservation = reply.json_as()?;
-    assert_eq!(reply, new_area_observation(&living, &destination)?);
+    assert_eq!(reply, new_area_observation(&actor, &destination)?);
 
-    assert_ne!(tools::area_of(&living)?.key(), area.key());
-    assert_eq!(tools::area_of(&living)?.key(), destination.key());
+    assert_ne!(tools::area_of(&actor)?.key(), area.key());
+    assert_eq!(tools::area_of(&actor)?.key(), destination.key());
 
     build.close()?;
 

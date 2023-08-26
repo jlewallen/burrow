@@ -4,9 +4,9 @@ use crate::model::EntityPtr;
 
 #[derive(Debug, Clone, Serialize)]
 pub enum Surroundings {
-    Living {
+    Actor {
         world: EntityPtr,
-        living: EntityPtr,
+        actor: EntityPtr,
         area: EntityPtr,
     },
 }
@@ -14,31 +14,29 @@ pub enum Surroundings {
 impl Surroundings {
     pub fn unpack(&self) -> (EntityPtr, EntityPtr, EntityPtr) {
         match self {
-            Surroundings::Living {
-                world,
-                living,
-                area,
-            } => (world.clone(), living.clone(), area.clone()),
+            Surroundings::Actor { world, actor, area } => {
+                (world.clone(), actor.clone(), area.clone())
+            }
         }
     }
 
     pub fn world(&self) -> &EntityPtr {
         match self {
-            Surroundings::Living {
+            Surroundings::Actor {
                 world,
-                living: _,
+                actor: _,
                 area: _,
             } => world,
         }
     }
 
-    pub fn living(&self) -> &EntityPtr {
+    pub fn actor(&self) -> &EntityPtr {
         match self {
-            Surroundings::Living {
+            Surroundings::Actor {
                 world: _,
-                living,
+                actor,
                 area: _,
-            } => living,
+            } => actor,
         }
     }
 }

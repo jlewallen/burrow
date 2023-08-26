@@ -72,7 +72,7 @@ pub mod model {
     #[derive(Debug, Serialize, Deserialize)]
     pub struct CronEntry {
         pub key: String,
-        pub entity: EntityKey,
+        pub actor: EntityKey,
         pub spec: String,
         pub action: TaggedJson,
     }
@@ -92,7 +92,7 @@ pub mod model {
             self.after(now).map(|time| {
                 FutureAction::new(
                     self.key.clone(),
-                    self.entity.clone(),
+                    self.actor.clone(),
                     time.clone(),
                     self.action.clone(),
                 )
@@ -164,7 +164,7 @@ pub mod actions {
     #[action]
     pub struct ScheduleAction {
         pub key: String,
-        pub entity: EntityKey,
+        pub actor: EntityKey,
         pub time: ScheduleTime,
         pub action: TaggedJson,
     }
@@ -177,7 +177,7 @@ pub mod actions {
         fn perform(&self, session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
             let destined = FutureAction::new(
                 self.key.clone(),
-                self.entity.clone(),
+                self.actor.clone(),
                 self.time.clone().into(),
                 self.action.clone(),
             );
@@ -191,7 +191,7 @@ pub mod actions {
     #[action]
     pub struct AddCronAction {
         pub key: String,
-        pub entity: EntityKey,
+        pub actor: EntityKey,
         pub spec: String,
         pub action: TaggedJson,
     }
@@ -207,7 +207,7 @@ pub mod actions {
             let mut tab = world.scope_mut::<CronTab>()?;
             let entry = CronEntry {
                 key: self.key.clone(),
-                entity: self.entity.clone(),
+                actor: self.actor.clone(),
                 spec: self.spec.clone(),
                 action: self.action.clone(),
             };

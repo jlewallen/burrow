@@ -164,8 +164,8 @@ pub mod actions {
         }
 
         fn perform(&self, _session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
-            let (_world, living, _area) = surroundings.unpack();
-            let memories = memories_of(&living)?;
+            let (_world, actor, _area) = surroundings.unpack();
+            let memories = memories_of(&actor)?;
             Ok(RecallReply {
                 memories: memories.into_iter().map(|m| m.into()).collect(),
             }
@@ -219,10 +219,10 @@ mod tests {
         let mut build = BuildSurroundings::new()?;
         let (session, surroundings) = build.build()?;
 
-        let (_, living, _) = surroundings.clone().unpack();
+        let (_, actor, _) = surroundings.clone().unpack();
         let time = Utc.with_ymd_and_hms(1982, 4, 23, 0, 0, 0).unwrap();
         remember(
-            &living,
+            &actor,
             time,
             Memory::Created(EntityEvent {
                 key: session.new_key(),

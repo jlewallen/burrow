@@ -5,7 +5,7 @@ use crate::sources::{Owner, Relation};
 
 use super::*;
 
-fn get_living() -> Option<EntityPtr> {
+fn get_actor() -> Option<EntityPtr> {
     None
 }
 
@@ -46,7 +46,7 @@ pub fn test_handlers_apply() -> Result<()> {
     runner.before(Perform::Raised(Raised::new(
         Audience::Nobody, // Unused
         "UNUSED".to_owned(),
-        get_living(),
+        get_actor(),
         TaggedJson::new_from(json!({
             "carrying": {
                 "dropped": {
@@ -82,7 +82,7 @@ pub fn test_missing_handler() -> Result<()> {
     runner.before(Perform::Raised(Raised::new(
         Audience::Nobody, // Unused
         "UNUSED".to_owned(),
-        get_living(),
+        get_actor(),
         TaggedJson::new_from(json!({
             "carrying": {
                 "dropped": {
@@ -114,7 +114,7 @@ pub fn test_missing_handlers_completely() -> Result<()> {
     runner.before(Perform::Raised(Raised::new(
         Audience::Nobody, // Unused
         "UNUSED".to_owned(),
-        get_living(),
+        get_actor(),
         TaggedJson::new_from(json!({
             "carrying": {
                 "dropped": {
@@ -158,7 +158,7 @@ pub fn test_calling_owner_with_one() -> Result<()> {
     runner.before(Perform::Raised(Raised::new(
         Audience::Nobody, // Unused
         "UNUSED".to_owned(),
-        get_living(),
+        get_actor(),
         TaggedJson::new_from(json!({
             "carrying": {
                 "held": {
@@ -202,7 +202,7 @@ pub fn test_calling_owner_with_none() -> Result<()> {
     runner.before(Perform::Raised(Raised::new(
         Audience::Nobody, // Unused
         "UNUSED".to_owned(),
-        get_living(),
+        get_actor(),
         TaggedJson::new_from(json!({
             "carrying": {
                 "held": {
@@ -220,13 +220,13 @@ pub fn test_calling_owner_with_none() -> Result<()> {
 
 #[test]
 pub fn test_chain() -> Result<()> {
-    let living = build_entity()
+    let actor = build_entity()
         .living()
         .with_key(EntityKey::new("E-0"))
         .identity(Identity::new("".to_lowercase(), "".to_owned()))
         .try_into()?;
-    let perform = Perform::Living {
-        living: EntityPtr::new_from_entity(living),
+    let perform = Perform::Actor {
+        actor: EntityPtr::new_from_entity(actor),
         action: PerformAction::TaggedJson(TaggedJson::new_from(json!({
             "lookAction": { }
         }))?),

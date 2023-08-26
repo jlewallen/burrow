@@ -151,8 +151,8 @@ where
 {
     fn scope<T: Scope>(&self) -> Result<Option<OpenedScope<T>>, DomainError> {
         let Some(value) = self.load_scope(T::scope_key()) else {
-                return Ok(None);
-            };
+            return Ok(None);
+        };
 
         let json = value.clone();
         let value = serde_json::from_value(json).context(here!())?;
