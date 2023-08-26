@@ -110,7 +110,6 @@ enum State {
 }
 
 pub struct RuneRunner {
-    #[allow(dead_code)]
     source: String,
     owner: Option<Owner>,
     state: State,
@@ -268,7 +267,7 @@ impl RuneRunner {
 
         match func.call::<_, rune::Value>(()) {
             rune::runtime::VmResult::Ok(obj) => match obj {
-                Value::Object(obj) => Ok(Some(FunctionTree::new(obj))),
+                Value::Object(obj) => Ok(Some(FunctionTree::new(self.source.clone(), obj))),
                 _ => Ok(None),
             },
             rune::runtime::VmResult::Err(e) => {
@@ -407,20 +406,22 @@ pub enum Call {
 }
 
 pub struct FunctionTree {
+    path: String,
     object: Shared<Object>,
 }
 
 impl Default for FunctionTree {
     fn default() -> Self {
         Self {
+            path: String::default(),
             object: Shared::new(Object::default()),
         }
     }
 }
 
 impl FunctionTree {
-    fn new(object: Shared<Object>) -> Self {
-        Self { object }
+    fn new(path: String, object: Shared<Object>) -> Self {
+        Self { path, object }
     }
 
     fn apply<S>(&self, state: Option<S>, json: TaggedJson) -> Result<Option<rune::runtime::Value>>
@@ -428,23 +429,26 @@ impl FunctionTree {
         S: Clone + rune::ToValue,
     {
         let object = self.object.borrow_ref()?;
-        let Some(child) = object.get(json.tag()) else {
-            info!("no-handler");
+        let tag = json.tag();
+        let Some(child) = object.get(tag) else {
             return Ok(None);
         };
 
+        let path = format!("{}.{}", &self.path, tag);
         let json = json.value().clone();
 
         match child {
             Value::Object(object) => {
                 if let Ok(json) = TaggedJson::new_from(json.into()) {
-                    Self::new(object.clone()).apply(state.clone(), json)
+                    Self::new(path, object.clone()).apply(state.clone(), json)
                 } else {
                     unimplemented!("unexpected handler value: {:?}", object)
                 }
             }
             Value::Function(func) => {
                 let bag = Bag(json);
+
+                info!("calling {}", path);
 
                 Ok(Some(
                     match func
@@ -616,8 +620,6 @@ impl Simplifies for rune::runtime::Value {
         match self.clone() {
             rune::Value::Object(_object) => {
                 let value = serde_json::to_value(self.clone())?;
-                info!("object {:#?}", &value);
-
                 let tagged = TaggedJson::new_from(value)?;
                 Ok(vec![Returned::Tagged(tagged)])
             }
