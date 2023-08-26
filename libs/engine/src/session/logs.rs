@@ -22,18 +22,26 @@ where
 struct SessionSubscriber {
     target: WeakDispatch,
     spans: Arc<RwLock<HashMap<span::Id, BTreeMap<String, serde_json::Value>>>>,
-    entries: Arc<RwLock<Option<Vec<serde_json::Value>>>>,
+    entries: Arc<RwLock<Option<Logs>>>,
     stack: Arc<RwLock<Vec<span::Id>>>,
 }
 
-#[derive(Clone)]
+#[derive(Default, Clone)]
 pub(crate) struct Logs {
+    important: bool,
     logs: Vec<serde_json::Value>,
 }
 
 impl Logs {
-    pub(crate) fn is_empty(&self) -> bool {
-        self.logs.is_empty()
+    pub(crate) fn is_important(&self) -> bool {
+        self.important
+    }
+
+    fn push(&mut self, important: bool, entry: serde_json::Value) {
+        if important {
+            self.important = true;
+        }
+        self.logs.push(entry);
     }
 }
 
@@ -54,9 +62,7 @@ impl SessionSubscriber {
     }
 
     fn take(&mut self) -> Logs {
-        Logs {
-            logs: self.entries.write().unwrap().take().unwrap(),
-        }
+        self.entries.write().unwrap().take().unwrap()
     }
 
     fn with<T, V>(&self, f: T) -> V
@@ -111,6 +117,8 @@ impl Subscriber for SessionSubscriber {
             .flat_map(|id| spans.get(id))
             .collect::<Vec<_>>();
 
+        let level = event.metadata().level();
+        let important = *level == Level::WARN || *level == Level::ERROR;
         let entry = serde_json::json!({
             "target": event.metadata().target(),
             "name": event.metadata().name(),
@@ -119,7 +127,12 @@ impl Subscriber for SessionSubscriber {
             "fields": fields,
         });
 
-        self.entries.write().unwrap().as_mut().unwrap().push(entry);
+        self.entries
+            .write()
+            .unwrap()
+            .as_mut()
+            .unwrap()
+            .push(important, entry);
 
         self.with(|d| d.event(event))
     }
