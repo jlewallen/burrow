@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput};
+use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields};
 
 #[proc_macro_derive(Reply)]
 pub fn derive_reply(input: TokenStream) -> TokenStream {
@@ -67,9 +67,22 @@ pub fn derive_has_action_schema(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = input.ident;
 
+    let fields = match &input.data {
+        Data::Struct(DataStruct {
+            fields: Fields::Named(fields),
+            ..
+        }) => &fields.named,
+        _ => panic!("expected a struct with named fields"),
+    };
+    let field_name = fields.iter().map(|field| &field.ident);
+    let field_type = fields.iter().map(|field| &field.ty);
+
     let done = quote! {
         impl HasActionSchema for #name {
-            fn action_schema(schema: ActionSchema) -> ActionSchema {
+            fn action_schema(mut schema: ActionSchema) -> ActionSchema {
+                #(
+                    schema = schema.arg(stringify!(#field_name), <#field_type>::argument_type());
+                )*
                 schema
             }
         }

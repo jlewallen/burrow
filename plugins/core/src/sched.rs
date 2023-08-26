@@ -144,6 +144,12 @@ pub mod actions {
         Delay(i64),
     }
 
+    impl HasArgumentType for ScheduleTime {
+        fn argument_type() -> ArgumentType {
+            ArgumentType::Time
+        }
+    }
+
     impl Into<DateTime<Utc>> for ScheduleTime {
         fn into(self) -> DateTime<Utc> {
             match self {

@@ -1,5 +1,6 @@
 use anyhow::Result;
-use replies::TaggedJson;
+use chrono::{DateTime, Utc};
+use replies::{TaggedJson, WorkingCopy};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -61,8 +62,31 @@ pub enum ArgumentType {
     Item,
     String,
     Number,
-    Area,
     Time,
+    TaggedJson,
+    Optional(Box<ArgumentType>),
+}
+
+pub trait HasArgumentType {
+    fn argument_type() -> ArgumentType;
+}
+
+impl HasArgumentType for Item {
+    fn argument_type() -> ArgumentType {
+        ArgumentType::Item
+    }
+}
+
+impl HasArgumentType for EntityKey {
+    fn argument_type() -> ArgumentType {
+        ArgumentType::Item
+    }
+}
+
+impl<T: HasArgumentType> HasArgumentType for Option<T> {
+    fn argument_type() -> ArgumentType {
+        ArgumentType::Optional(T::argument_type().into())
+    }
 }
 
 impl HasArgumentType for String {
@@ -71,8 +95,22 @@ impl HasArgumentType for String {
     }
 }
 
-pub trait HasArgumentType {
-    fn argument_type() -> ArgumentType;
+impl HasArgumentType for WorkingCopy {
+    fn argument_type() -> ArgumentType {
+        ArgumentType::String
+    }
+}
+
+impl HasArgumentType for DateTime<Utc> {
+    fn argument_type() -> ArgumentType {
+        ArgumentType::Time
+    }
+}
+
+impl HasArgumentType for TaggedJson {
+    fn argument_type() -> ArgumentType {
+        ArgumentType::TaggedJson
+    }
 }
 
 #[derive(Debug, Clone)]
