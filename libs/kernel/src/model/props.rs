@@ -94,8 +94,62 @@ impl From<Props> for Properties {
     }
 }
 
-pub trait HasProps {
+pub trait HasProps<T> {
     fn props(&self) -> Props;
+}
+
+pub trait CoreProps {
+    fn name(&self) -> String;
+    fn gid(&self) -> Option<EntityGid>;
+    fn desc(&self) -> Option<String>;
+}
+
+impl HasProps<Entity> for Entity {
+    fn props(&self) -> Props {
+        let scope = load_props(self).expect("Failed to load properties scope");
+        scope.core.unwrap()
+    }
+}
+
+impl HasProps<Properties> for Properties {
+    fn props(&self) -> Props {
+        self.core.clone().unwrap()
+    }
+}
+
+impl Scope for Properties {
+    fn scope_key() -> &'static str {
+        "props"
+    }
+}
+
+fn load_props(entity: &Entity) -> Result<Box<Properties>, DomainError> {
+    Ok(Box::new(
+        entity
+            .scope::<Properties>()?
+            .map(|v| v.into())
+            .unwrap_or_default(),
+    ))
+}
+
+fn save_props(entity: &mut Entity, properties: Box<Properties>) -> Result<(), DomainError> {
+    entity.replace_scope::<Properties>(&properties)
+}
+
+impl<T: HasProps<T>> CoreProps for T {
+    fn name(&self) -> String {
+        self.props()
+            .string_property(NAME_PROPERTY)
+            .expect("Entity name missing")
+    }
+
+    fn gid(&self) -> Option<EntityGid> {
+        self.props().u64_property(GID_PROPERTY).map(EntityGid::new)
+    }
+
+    fn desc(&self) -> Option<String> {
+        self.props().string_property(DESC_PROPERTY)
+    }
 }
 
 pub trait MutCoreProps {
@@ -103,25 +157,6 @@ pub trait MutCoreProps {
     fn set_gid(&mut self, gid: EntityGid) -> Result<(), DomainError>;
     fn set_desc(&mut self, value: &str) -> Result<(), DomainError>;
     fn destroy(&mut self) -> Result<(), DomainError>;
-}
-
-pub trait CoreProps: MutCoreProps {
-    fn name(&self) -> String;
-    fn gid(&self) -> Option<EntityGid>;
-    fn desc(&self) -> Option<String>;
-}
-
-impl HasProps for Entity {
-    fn props(&self) -> Props {
-        let scope = load_props(self).expect("Failed to load properties scope");
-        scope.core.unwrap()
-    }
-}
-
-impl HasProps for Properties {
-    fn props(&self) -> Props {
-        self.core.clone().unwrap()
-    }
 }
 
 impl MutCoreProps for Entity {
@@ -147,26 +182,6 @@ impl MutCoreProps for Entity {
         let mut scope = load_props(self).expect("Failed to load properties scope");
         scope.destroy()?;
         save_props(self, scope)
-    }
-}
-
-impl CoreProps for Entity {
-    fn name(&self) -> String {
-        let scope = load_props(self).expect("Failed to load properties scope");
-
-        scope.name()
-    }
-
-    fn gid(&self) -> Option<EntityGid> {
-        let scope = load_props(self).expect("Failed to load properties scope");
-
-        scope.gid()
-    }
-
-    fn desc(&self) -> Option<String> {
-        let scope = load_props(self).expect("Failed to load properties scope");
-
-        scope.desc()
     }
 }
 
@@ -207,45 +222,4 @@ impl MutCoreProps for Properties {
 
         Ok(())
     }
-}
-
-impl CoreProps for Properties {
-    fn name(&self) -> String {
-        self.core
-            .as_ref()
-            .unwrap()
-            .string_property(NAME_PROPERTY)
-            .expect("Entity name missing")
-    }
-
-    fn gid(&self) -> Option<EntityGid> {
-        self.core
-            .as_ref()
-            .unwrap()
-            .u64_property(GID_PROPERTY)
-            .map(EntityGid::new)
-    }
-
-    fn desc(&self) -> Option<String> {
-        self.core.as_ref().unwrap().string_property(DESC_PROPERTY)
-    }
-}
-
-impl Scope for Properties {
-    fn scope_key() -> &'static str {
-        "props"
-    }
-}
-
-fn load_props(entity: &Entity) -> Result<Box<Properties>, DomainError> {
-    Ok(Box::new(
-        entity
-            .scope::<Properties>()?
-            .map(|v| v.into())
-            .unwrap_or_default(),
-    ))
-}
-
-fn save_props(entity: &mut Entity, properties: Box<Properties>) -> Result<(), DomainError> {
-    entity.replace_scope::<Properties>(&properties)
 }
