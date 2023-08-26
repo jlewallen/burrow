@@ -24,6 +24,8 @@ use crate::users::model::HasUsernames;
 use kernel::{here, prelude::*};
 use state::State;
 
+use self::logs::Logs;
+
 #[derive(Clone)]
 pub struct Dependencies {
     keys: Arc<dyn Sequence<EntityKey>>,
@@ -72,7 +74,7 @@ struct Captured {
     actor_key: EntityKey,
     time: DateTime<Utc>,
     desc: String,
-    logs: Vec<JsonValue>,
+    logs: Logs,
 }
 
 pub enum EvaluateAs<'a> {
@@ -191,7 +193,7 @@ impl Session {
             actor.replace_scope(&Diagnostics::new(
                 captured.time,
                 captured.desc.clone(),
-                captured.logs.clone(),
+                captured.logs.clone().into(),
             ))?;
         }
 

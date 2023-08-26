@@ -3,10 +3,10 @@ use std::sync::{Arc, RwLock};
 use tracing::dispatcher::WeakDispatch;
 use tracing::*;
 
-pub fn capture<V, E, F, H>(f: F, h: H) -> Result<V, E>
+pub(crate) fn capture<V, E, F, H>(f: F, h: H) -> Result<V, E>
 where
     F: FnOnce() -> Result<V, E>,
-    H: FnOnce(Vec<serde_json::Value>) -> Result<(), E>,
+    H: FnOnce(Logs) -> Result<(), E>,
 {
     let weak = tracing::dispatcher::get_default(move |d| d.downgrade());
     let mut capturing = SessionSubscriber::new(weak);
@@ -26,6 +26,23 @@ struct SessionSubscriber {
     stack: Arc<RwLock<Vec<span::Id>>>,
 }
 
+#[derive(Clone)]
+pub(crate) struct Logs {
+    logs: Vec<serde_json::Value>,
+}
+
+impl Logs {
+    pub(crate) fn is_empty(&self) -> bool {
+        self.logs.is_empty()
+    }
+}
+
+impl Into<Vec<serde_json::Value>> for Logs {
+    fn into(self) -> Vec<serde_json::Value> {
+        self.logs
+    }
+}
+
 impl SessionSubscriber {
     fn new(target: WeakDispatch) -> Self {
         Self {
@@ -36,8 +53,10 @@ impl SessionSubscriber {
         }
     }
 
-    fn take(&mut self) -> Vec<serde_json::Value> {
-        self.entries.write().unwrap().take().unwrap()
+    fn take(&mut self) -> Logs {
+        Logs {
+            logs: self.entries.write().unwrap().take().unwrap(),
+        }
     }
 
     fn with<T, V>(&self, f: T) -> V
