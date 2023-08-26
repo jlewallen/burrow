@@ -1,4 +1,6 @@
 Dockerfile
 target
+*.tar
 *.sqlite3
+.gitlab-ci.yml
 .env

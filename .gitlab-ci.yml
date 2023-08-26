@@ -8,84 +8,54 @@ workflow:
     - if: $CI_PIPELINE_SOURCE == 'web'
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
 
-cache:
-  key: "$CI_JOB_NAME"
-  untracked: true
-  paths:
-    - cargo/
-    - target/
+services:
+  - name: docker:24.0.5-dind
+    alias: docker
 
 variables:
-  CARGO_HOME: $CI_PROJECT_DIR/cargo
-  RUST_BACKTRACE: FULL
+  DOCKER_BUILDKIT: 1
+  DOCKER_HOST: tcp://docker:2375/
+  DOCKER_TLS_CERTDIR: ""
 
 build:docker:
   image: docker:24.0.5
-  services:
-    - name: docker:24.0.5-dind
-      alias: docker
-  variables:
-    DOCKER_HOST: tcp://docker:2375/
-    DOCKER_TLS_CERTDIR: ""
   script:
-    - ls -alh /cache
     - |
-      if [ -f /cache/burrow.tar ]; then
-        docker load -i /cache/burrow.tar
-      fi
-    # docker build -t jlewallen/burrow .
-    # docker save jlewallen/burrow -o /cache/burrow.tar
-    - ls -alh /cache
-    - mkdir -p /cache/jlewallen/burrow
-    - touch /cache/jlewallen/burrow/hello.txt
-    - touch /cache/hello.txt
+      docker buildx create --use
+      docker buildx build \
+      --cache-from=type=local,src=/cache/docker \
+      --cache-to=type=local,dest=/cache/docker,mode=max \
+      --tag jlewallen/burrow \
+      --target builder .
+    - ls -alh /cache /cache/docker*
 
 tests:
   stage: test
-  image: rust:latest
-  before_script:
-    - export PATH="$CI_PROJECT_DIR/cargo/bin:$PATH"
+  when: manual
+  image: docker:24.0.5
+  needs: [build:docker]
   script:
-    - cp .env.default .env
-    - rustc --version && cargo --version
-    - time cargo test --workspace
-
-build:amd64:
-  stage: build
-  image: rust:latest
-  before_script:
-    - export PATH="$CI_PROJECT_DIR/cargo/bin:$PATH"
-  script:
-    - cargo build --release
-  artifacts:
-    paths:
-      - target/release/cli
-
-build:web:
-  stage: build
-  image: rust:latest
-  before_script:
-    - export PATH="$CI_PROJECT_DIR/cargo/bin:$PATH"
-    - time cargo install trunk
-    - time rustup target add wasm32-unknown-unknown
-  script:
-    - cp .env.default .env
-    - cd web
-    - time trunk build
-  artifacts:
-    paths:
-      - web/dist
+    - |
+      docker buildx create --use
+      docker buildx build \
+      --cache-from=type=local,src=/cache/docker \
+      --cache-to=type=local,dest=/cache/docker,mode=max \
+      --tag jlewallen/burrow-tests \
+      --target tests .
+    - docker run --rm jlewallen/burrow-tests "cargo test --workspace"
 
 bench:all:
   stage: bench
   when: manual
-  image: rust:latest
-  needs: [build:amd64]
+  image: docker:24.0.5
+  needs: [tests]
   script:
-    - cp .env.default .env
-    - time cargo bench --workspace --verbose
-    - cd libs/tests
-    - time cargo bench --bench simple -- --profile-time=5
-  artifacts:
-    paths:
-      - target/criterion
+    - |
+      docker buildx create --use
+      docker buildx build \
+      --cache-from=type=local,src=/cache/docker \
+      --cache-to=type=local,dest=/cache/docker,mode=max \
+      --tag jlewallen/burrow-tests \
+      --target=tests .
+    - docker run --rm jlewallen/burrow-tests "cargo bench --workspace --verbose"
+    - docker run --rm jlewallen/burrow-tests "cd libs/tests && cargo bench --bench simple -- --profile-time=5"

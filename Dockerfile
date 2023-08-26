@@ -6,10 +6,6 @@ RUN cargo install -f cargo-chef
 
 FROM chef AS chef_and_trunk
 RUN cargo install -f trunk
-# This is failing right now due to GLIBC.
-# RUN wget -qO- https://github.com/thedodd/trunk/releases/download/v0.17.3/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
-# RUN chmod +x trunk
-# RUN cp trunk /usr/local/bin
 
 FROM chef AS planner
 COPY . .
@@ -25,6 +21,10 @@ RUN cargo build --release -p cli
 RUN cargo build --release -p plugin-example-shared
 RUN cp .env.prod .env
 RUN cd web && trunk build
+
+FROM builder AS tests
+RUN cargo build --tests --workspace
+RUN cargo build --benches --workspace
 
 FROM base
 RUN apt-get update && apt-get install -y libsqlite3-dev && rm -rf /var/lib/apt/lists/*

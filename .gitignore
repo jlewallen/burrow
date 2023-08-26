@@ -30,3 +30,7 @@ history.txt
 
 # Ignore user provided .env file.
 .env
+
+# Ignore tar archives
+*.tar
+
