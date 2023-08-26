@@ -6,7 +6,7 @@ use std::{
 use anyhow::Result;
 use clap::Args;
 use engine::storage::PersistedEntity;
-use kernel::prelude::{CoreProps, Entity, EntityKey, JsonValue, LookupBy};
+use kernel::prelude::{CoreProps, Entity, EntityGid, EntityKey, JsonValue, LookupBy};
 
 use crate::DomainBuilder;
 
@@ -20,6 +20,8 @@ pub struct Command {
     key: Option<String>,
     #[arg(short, long)]
     name: Option<String>,
+    #[arg(short, long)]
+    gid: Option<u64>,
 }
 
 impl Command {
@@ -69,38 +71,45 @@ pub async fn execute_command(cmd: &Command) -> Result<()> {
     let builder = cmd.builder();
     let domain = builder.build().await?;
 
-    let entities: Vec<PersistedEntity> = match &cmd.key {
-        Some(key) => domain
-            .query_entity(&LookupBy::Key(&EntityKey::new(key)))
+    let entities: Vec<PersistedEntity> = match cmd.gid {
+        Some(gid) => domain
+            .query_entity(&LookupBy::Gid(&EntityGid::new(gid)))
             .into_iter()
             .flatten()
             .collect(),
-        None => domain
-            .query_all()?
-            .into_iter()
-            .map(Filtered::from)
-            .map(|f| {
-                if cmd.name.is_some() {
-                    Ok(f.hydrate()?)
-                } else {
-                    Ok(f)
-                }
-            })
-            .collect::<Result<Vec<_>>>()?
-            .into_iter()
-            .filter(|f| {
-                cmd.name
-                    .as_ref()
-                    .and_then(|pattern| {
-                        f.entity()
-                            .unwrap()
-                            .name()
-                            .map(|name| name.contains(pattern))
-                    })
-                    .unwrap_or(true)
-            })
-            .map(|f| f.into())
-            .collect(),
+        None => match &cmd.key {
+            Some(key) => domain
+                .query_entity(&LookupBy::Key(&EntityKey::new(&key)))
+                .into_iter()
+                .flatten()
+                .collect(),
+            None => domain
+                .query_all()?
+                .into_iter()
+                .map(Filtered::from)
+                .map(|f| {
+                    if cmd.name.is_some() {
+                        Ok(f.hydrate()?)
+                    } else {
+                        Ok(f)
+                    }
+                })
+                .collect::<Result<Vec<_>>>()?
+                .into_iter()
+                .filter(|f| {
+                    cmd.name
+                        .as_ref()
+                        .and_then(|pattern| {
+                            f.entity()
+                                .unwrap()
+                                .name()
+                                .map(|name| name.contains(pattern))
+                        })
+                        .unwrap_or(true)
+                })
+                .map(|f| f.into())
+                .collect(),
+        },
     };
     if cmd.lines {
         for entity in entities {
