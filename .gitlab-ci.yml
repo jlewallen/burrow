@@ -28,7 +28,17 @@ build:docker:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_TLS_CERTDIR: ""
   script:
-    - docker build -t jlewallen/burrow .
+    - ls -alh /cache
+    - |
+      if [ -f /cache/burrow.tar ]; then
+        docker load -i /cache/burrow.tar
+      fi
+    # docker build -t jlewallen/burrow .
+    # docker save jlewallen/burrow -o /cache/burrow.tar
+    - ls -alh /cache
+    - mkdir -p /cache/jlewallen/burrow
+    - touch /cache/jlewallen/burrow/hello.txt
+    - touch /cache/hello.txt
 
 tests:
   stage: test
@@ -68,6 +78,7 @@ build:web:
 
 bench:all:
   stage: bench
+  when: manual
   image: rust:latest
   needs: [build:amd64]
   script:
