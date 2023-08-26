@@ -26,6 +26,8 @@ pub mod prelude {
     pub use crate::session::*;
     pub use crate::surround::*;
 
+    pub use crate::plugins::{ArgumentType, HasArgumentType};
+
     pub use crate::diags::{get_diagnostics, Diagnostics};
 }
 

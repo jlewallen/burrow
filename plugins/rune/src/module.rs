@@ -107,14 +107,16 @@ fn action_factory(
 
 pub(super) fn create(schema: &SchemaCollection, owner: Option<Owner>) -> Result<rune::Module> {
     let mut module = rune::Module::default();
-    for (plugin, action) in schema.actions() {
-        let function_name = action.trim_end_matches("Action");
-        trace!("declaring 'actions.{}.{}'", plugin, function_name);
-        module.function(["actions", &plugin, &function_name], {
-            let plugin = plugin.to_owned();
-            let action = action.to_owned();
-            move |v: rune::Value| action_factory(&plugin, &action, v)
-        })?;
+    for (plugin, actions) in schema.actions() {
+        for action in actions {
+            let function_name = action.0.trim_end_matches("Action");
+            trace!("declaring 'actions.{}.{}'", plugin, function_name);
+            module.function(["actions", &plugin, &function_name], {
+                let plugin = plugin.to_owned();
+                let action = action.to_owned();
+                move |v: rune::Value| action_factory(&plugin, &action.0, v)
+            })?;
+        }
     }
     module.function(["owner"], move || owner.clone())?;
     module.function(["info"], |s: &str| {
