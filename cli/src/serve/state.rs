@@ -44,7 +44,10 @@ impl Notifier for SenderNotifier {
 
         let serialized = observed.clone().into_tagged();
         let outgoing = ServerMessage::Notify(audience.to_string(), serialized);
-        self.tx.send(outgoing)?;
+        match self.tx.send(outgoing) {
+            Err(e) => warn!("Send failed: {:?}", e),
+            Ok(_) => {}
+        }
 
         Ok(())
     }
