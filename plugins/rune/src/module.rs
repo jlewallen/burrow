@@ -93,10 +93,6 @@ fn action_factory(
 ) -> Result<Object, anyhow::Error> {
     let args: Object = match value.clone() {
         rune::Value::Object(args) => args.borrow_ref()?.clone(),
-        rune::Value::Any(_args) => {
-            let args: ActionArgs = rune::from_value(value)?;
-            args.to_rune_object()?
-        }
         _ => panic!("Unexpected action arguments: {:?}", value),
     };
 
@@ -125,8 +121,6 @@ pub(super) fn create(schema: &SchemaCollection, owner: Option<Owner>) -> Result<
     module.function(["debug"], |s: &str| {
         debug!(target: "RUNE", "{}", s);
     })?;
-    module.ty::<ActionArgs>()?;
-    module.associated_function(Protocol::STRING_DEBUG, ActionArgs::string_debug)?;
     module.ty::<BeforePerform>()?;
     module.associated_function(Protocol::STRING_DEBUG, BeforePerform::string_debug)?;
     module.ty::<AfterEffect>()?;
@@ -170,37 +164,5 @@ impl IntoEntityPtr for KeyOnly {
         get_my_session()?
             .entity(&LookupBy::Key(&self.key))?
             .ok_or(DomainError::DanglingEntity)
-    }
-}
-
-#[derive(Default, rune::Any, Debug, Serialize)]
-#[rune(constructor)]
-pub struct ActionArgs {
-    #[rune(get, set)]
-    here: Option<String>,
-}
-
-impl ActionArgs {
-    #[inline]
-    fn string_debug(&self, s: &mut String) -> std::fmt::Result {
-        use std::fmt::Write;
-        write!(s, "{:?}", self)
-    }
-}
-
-pub trait ToRuneObject {
-    fn to_rune_object(&self) -> Result<rune::runtime::Object>;
-}
-
-impl ToRuneObject for ActionArgs {
-    fn to_rune_object(&self) -> Result<rune::runtime::Object> {
-        match &self.here {
-            Some(here) => {
-                let mut obj = Object::new();
-                obj.insert("here".to_owned(), here.to_owned().into());
-                Ok(obj)
-            }
-            None => Ok(Object::new().into()),
-        }
     }
 }
