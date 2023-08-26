@@ -1,4 +1,5 @@
 use anyhow::Context;
+use kernel::entity_context;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::{cell::RefCell, rc::Rc};
@@ -158,7 +159,7 @@ pub trait PerformTagged {
 
 impl PerformTagged for RuneReturn {
     fn handle(&self, target: &EntityPtr) -> Result<()> {
-        for returned in self.simplify().with_context(|| here!())? {
+        for returned in self.simplify().with_context(|| entity_context!(target))? {
             match returned {
                 Returned::Tagged(action) => {
                     let action = PerformAction::TaggedJson(action);

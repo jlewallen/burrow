@@ -57,5 +57,12 @@ macro_rules! here {
     }};
 }
 
+#[macro_export]
+macro_rules! entity_context {
+    ($e:expr) => {{
+        format!("{}:{} {:?}", file!(), line!(), $e.name().unwrap())
+    }};
+}
+
 #[cfg(test)]
 mod tests;
