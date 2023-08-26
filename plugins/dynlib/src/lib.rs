@@ -1,6 +1,6 @@
 use anyhow::Result;
 use libloading::Library;
-use std::{cell::RefCell, collections::VecDeque, rc::Rc, sync::Arc};
+use std::{cell::RefCell, collections::VecDeque, ffi::OsString, rc::Rc, sync::Arc};
 use tracing::{dispatcher::get_default, info, span, trace, warn, Level, Subscriber};
 
 use dynlib_sys::{prelude::*, DynamicNext};
@@ -165,24 +165,37 @@ impl DynamicPlugin {
         Ok(())
     }
 
+    fn search_path(&self, name: &OsString) -> Result<Option<String>> {
+        for libs in ["./target/debug", "./"] {
+            let path = format!("{}/{}", libs, name.to_str().unwrap());
+            if std::fs::metadata(&path).is_ok() {
+                return Ok(Some(path));
+            }
+        }
+
+        Ok(None)
+    }
+
     fn load(&self, name: &str) -> Result<LoadedLibrary> {
         unsafe {
             let _span = span!(Level::INFO, "regdyn", lib = name).entered();
 
             let filename = libloading::library_filename(name);
-            let path = format!("target/debug/{}", filename.to_string_lossy());
+            let Some(path) = self.search_path(&filename)? else {
+                return Err(anyhow::anyhow!("library not found"));
+            };
 
             info!(%path, "loading");
 
             let library = Rc::new(libloading::Library::new(path)?);
 
-            Ok(LoadedLibrary {
+            return Ok(LoadedLibrary {
                 prefix: name.to_owned(),
                 library,
                 inbox: Default::default(),
                 outbox: Default::default(),
                 state: None,
-            })
+            });
         }
     }
 
