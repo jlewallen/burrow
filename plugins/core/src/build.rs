@@ -4,8 +4,8 @@ use std::{rc::Rc, sync::Arc};
 use engine::{domain, prelude::*, sequences::DeterministicKeys, storage::InMemoryStorageFactory};
 use kernel::{
     prelude::{
-        build_entity, CoreProps, Entity, EntityKey, EntityPtr, OpenScopeRefMut, RegisteredPlugins,
-        SessionRef, SetSession, Surroundings, WORLD_KEY,
+        build_entity, CoreProps, Entity, EntityKey, EntityPtr, MutCoreProps, OpenScopeRefMut,
+        RegisteredPlugins, SessionRef, SetSession, Surroundings, WORLD_KEY,
     },
     session::ActiveSession,
 };
