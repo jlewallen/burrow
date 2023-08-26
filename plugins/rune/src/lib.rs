@@ -120,7 +120,7 @@ struct RuneMiddleware {
 
 impl Middleware for RuneMiddleware {
     fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
-        let _span = span!(Level::INFO, "M", plugin = "rune").entered();
+        let _span = span!(Level::TRACE, "M", plugin = "rune").entered();
 
         match &value {
             Perform::Surroundings {

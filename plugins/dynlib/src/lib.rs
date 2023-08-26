@@ -284,7 +284,7 @@ struct DynamicMiddleware {
 
 impl Middleware for DynamicMiddleware {
     fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
-        let _span = span!(Level::INFO, "M", plugin = "dynlib").entered();
+        let _span = span!(Level::TRACE, "M", plugin = "dynlib").entered();
 
         trace!("before");
 
