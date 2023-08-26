@@ -121,8 +121,6 @@ impl Middleware for RuneMiddleware {
     fn handle(&self, value: Perform, next: MiddlewareNext) -> Result<Effect, anyhow::Error> {
         let _span = span!(Level::INFO, "M", plugin = "rune").entered();
 
-        info!("before");
-
         match &value {
             Perform::Surroundings {
                 surroundings,

@@ -176,4 +176,13 @@ pub mod tests {
         build.close()?;
         Ok((surroundings, effect))
     }
+
+    pub fn perform_directly<T: Action>(action: T) -> Result<(Surroundings, Effect)> {
+        let mut build = BuildSurroundings::new()?;
+        let (session, surroundings) = build.plain().encyclopedia()?.build()?;
+        let action: Rc<dyn Action> = Rc::new(action);
+        let effect = action.perform(session.clone(), &surroundings)?;
+        build.close()?;
+        Ok((surroundings, effect))
+    }
 }

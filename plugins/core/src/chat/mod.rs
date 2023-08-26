@@ -72,8 +72,31 @@ pub mod actions {
 
     #[action]
     pub struct SpeakAction {
-        pub(crate) speaker: Item,
+        pub(crate) area: Option<Item>,
+        pub(crate) speaker: Option<Item>,
         pub(crate) here: Option<String>,
+    }
+
+    impl SpeakAction {
+        fn say_area(
+            &self,
+            session: SessionRef,
+            speaker: &EntityPtr,
+            area: &EntityPtr,
+            message: &str,
+        ) -> Result<()> {
+            Ok(session.raise(
+                Some(speaker.clone()),
+                Audience::Area(area.key().clone()),
+                Raising::TaggedJson(
+                    Talking::Conversation(Spoken::new(
+                        (&speaker).observe(&speaker)?.expect("No observed entity"),
+                        message,
+                    ))
+                    .to_tagged_json()?,
+                ),
+            )?)
+        }
     }
 
     impl Action for SpeakAction {
@@ -82,24 +105,33 @@ pub mod actions {
         }
 
         fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
-            match session.find_item(&surroundings, &self.speaker)? {
-                Some(living) => {
-                    let area_of = tools::area_of(&living).with_context(|| "Speaker has no area")?;
-                    if let Some(message) = &self.here {
-                        session.raise(
-                            Some(living.clone()),
-                            Audience::Area(area_of.key().clone()),
-                            Raising::TaggedJson(
-                                Talking::Conversation(Spoken::new(
-                                    (&living).observe(&living)?.expect("No observed entity"),
-                                    message,
-                                ))
-                                .to_tagged_json()?,
-                            ),
-                        )?;
-                    }
-                }
-                None => todo!(),
+            if let Some(message) = &self.here {
+                let (_, target, _) = surroundings.unpack();
+
+                let speaker = match &self.speaker {
+                    Some(speaker) => match session.find_item(&surroundings, &speaker)? {
+                        Some(speaker) => speaker,
+                        None => return Ok(SimpleReply::NotFound.try_into()?),
+                    },
+                    None => target,
+                };
+
+                let area = match &self.area {
+                    Some(area) => match session.find_item(&surroundings, &area)? {
+                        Some(area) => area,
+                        None => return Ok(SimpleReply::NotFound.try_into()?),
+                    },
+                    None => tools::area_of(&speaker).with_context(|| "Speaker has no area")?,
+                };
+
+                info!(
+                    "speaker={:?} area={:?} {:?}",
+                    speaker.name()?,
+                    area.name()?,
+                    &message
+                );
+
+                self.say_area(session, &speaker, &area, &message)?;
             }
 
             Ok(Effect::Ok)
@@ -122,7 +154,8 @@ pub mod parser {
                 ),
                 |text| {
                     Box::new(SpeakAction {
-                        speaker: Item::Myself,
+                        area: None,
+                        speaker: Some(Item::Myself),
                         here: Some(text.to_owned()),
                     }) as Box<dyn Action>
                 },
