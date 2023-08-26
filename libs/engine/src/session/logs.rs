@@ -3,10 +3,10 @@ use std::sync::{Arc, RwLock};
 use tracing::dispatcher::WeakDispatch;
 use tracing::*;
 
-pub fn capture<V, E, F, H>(f: F, h: H) -> Result<V, E>
+pub(crate) fn capture<V, E, F, H>(f: F, h: H) -> Result<V, E>
 where
     F: FnOnce() -> Result<V, E>,
-    H: FnOnce(Vec<serde_json::Value>) -> Result<(), E>,
+    H: FnOnce(Logs) -> Result<(), E>,
 {
     let weak = tracing::dispatcher::get_default(move |d| d.downgrade());
     let mut capturing = SessionSubscriber::new(weak);
@@ -22,8 +22,33 @@ where
 struct SessionSubscriber {
     target: WeakDispatch,
     spans: Arc<RwLock<HashMap<span::Id, BTreeMap<String, serde_json::Value>>>>,
-    entries: Arc<RwLock<Option<Vec<serde_json::Value>>>>,
+    entries: Arc<RwLock<Option<Logs>>>,
     stack: Arc<RwLock<Vec<span::Id>>>,
+}
+
+#[derive(Default, Clone)]
+pub(crate) struct Logs {
+    important: bool,
+    logs: Vec<serde_json::Value>,
+}
+
+impl Logs {
+    pub(crate) fn is_important(&self) -> bool {
+        self.important
+    }
+
+    fn push(&mut self, important: bool, entry: serde_json::Value) {
+        if important {
+            self.important = true;
+        }
+        self.logs.push(entry);
+    }
+}
+
+impl Into<Vec<serde_json::Value>> for Logs {
+    fn into(self) -> Vec<serde_json::Value> {
+        self.logs
+    }
 }
 
 impl SessionSubscriber {
@@ -36,7 +61,7 @@ impl SessionSubscriber {
         }
     }
 
-    fn take(&mut self) -> Vec<serde_json::Value> {
+    fn take(&mut self) -> Logs {
         self.entries.write().unwrap().take().unwrap()
     }
 
@@ -92,6 +117,8 @@ impl Subscriber for SessionSubscriber {
             .flat_map(|id| spans.get(id))
             .collect::<Vec<_>>();
 
+        let level = event.metadata().level();
+        let important = *level == Level::WARN || *level == Level::ERROR;
         let entry = serde_json::json!({
             "target": event.metadata().target(),
             "name": event.metadata().name(),
@@ -100,7 +127,12 @@ impl Subscriber for SessionSubscriber {
             "fields": fields,
         });
 
-        self.entries.write().unwrap().as_mut().unwrap().push(entry);
+        self.entries
+            .write()
+            .unwrap()
+            .as_mut()
+            .unwrap()
+            .push(important, entry);
 
         self.with(|d| d.event(event))
     }
