@@ -172,18 +172,18 @@ impl Occupyable {
         Ok(())
     }
 
-    pub(crate) fn remove_route(&mut self, name: &str) -> Result<bool, DomainError> {
+    pub(crate) fn remove_route(&mut self, name: &str) -> bool {
         if let Some(routes) = &mut self.routes {
             if let Some(found) = routes.iter().position(|r| r.matching_name(name)) {
                 routes.remove(found);
-                return Ok(true);
+                return true;
             }
         }
 
-        Ok(false)
+        false
     }
 
-    pub(crate) fn add_route(&mut self, route: Route) -> Result<(), DomainError> {
+    pub(crate) fn add_route(&mut self, route: Route) {
         let routes = self.routes.get_or_insert_with(|| Vec::new());
 
         if let Some(conflict) = routes.iter().position(|r| r.conflicts_with(&route)) {
@@ -191,8 +191,6 @@ impl Occupyable {
         }
 
         routes.push(route);
-
-        Ok(())
     }
 
     pub(crate) fn find_route(&self, name: &str) -> Option<&Route> {
@@ -209,9 +207,9 @@ impl Occupyable {
         None
     }
 
-    pub(crate) fn activate(&mut self, name: &str) -> Result<(), DomainError> {
+    pub(crate) fn activate(&mut self, name: &str) {
         let Some(routes) = &self.routes else {
-            return Ok(());
+            return;
         };
 
         self.routes = Some(
@@ -226,13 +224,11 @@ impl Occupyable {
                 })
                 .collect::<Vec<Route>>(),
         );
-
-        Ok(())
     }
 
-    pub(crate) fn deactivate(&mut self, name: &str, reason: &str) -> Result<(), DomainError> {
+    pub(crate) fn deactivate(&mut self, name: &str, reason: &str) {
         let Some(routes) = &self.routes else {
-            return Ok(());
+            return;
         };
 
         self.routes = Some(
@@ -247,8 +243,6 @@ impl Occupyable {
                 })
                 .collect::<Vec<Route>>(),
         );
-
-        Ok(())
     }
 }
 

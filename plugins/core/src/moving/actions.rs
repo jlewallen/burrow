@@ -186,7 +186,7 @@ impl Action for RemoveRouteAction {
         match session.find_item(&surroundings, &self.area)? {
             Some(area) => {
                 let mut occupyable = area.scope_mut::<Occupyable>()?;
-                if !occupyable.remove_route(&self.name)? {
+                if !occupyable.remove_route(&self.name) {
                     return Ok(SimpleReply::NotFound.try_into()?);
                 }
 
@@ -213,7 +213,7 @@ impl Action for ActivateRouteAction {
         let (_, _, area) = surroundings.unpack();
 
         let mut occupyable = area.scope_mut::<Occupyable>()?;
-        occupyable.activate(&self.name)?;
+        occupyable.activate(&self.name);
         occupyable.save()?;
 
         Ok(SimpleReply::Done.try_into()?)
@@ -235,7 +235,7 @@ impl Action for DeactivateRouteAction {
         let (_, _, area) = surroundings.unpack();
 
         let mut occupyable = area.scope_mut::<Occupyable>()?;
-        occupyable.deactivate(&self.name, &self.reason)?;
+        occupyable.deactivate(&self.name, &self.reason);
         occupyable.save()?;
 
         Ok(SimpleReply::Done.try_into()?)

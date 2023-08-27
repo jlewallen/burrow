@@ -173,7 +173,7 @@ pub fn contained_by(container: &EntityPtr) -> Result<Vec<EntityPtr>, DomainError
 
 pub fn add_route(area: &EntityPtr, name: &str, to: &EntityPtr) -> Result<(), DomainError> {
     let mut occupyable = area.scope_mut::<Occupyable>()?;
-    occupyable.add_route(Route::Simple(SimpleRoute::new(&name, to.entity_ref())))?;
+    occupyable.add_route(Route::Simple(SimpleRoute::new(&name, to.entity_ref())));
     occupyable.save()
 }
 
