@@ -30,6 +30,7 @@ pub trait StorageFactory: Send + Sync {
 pub struct PersistedFuture {
     pub key: String,
     pub entity: EntityKey,
+    pub cron: Option<String>,
     pub time: chrono::DateTime<chrono::Utc>,
     pub serialized: String,
 }
