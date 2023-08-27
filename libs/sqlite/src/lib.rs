@@ -184,7 +184,7 @@ where
 {
     fn queue(&self, future: PersistedFuture) -> Result<()> {
         let mut stmt = self.connection().prepare(
-            "INSERT OR IGNORE INTO futures (key, entity, time, cron, serialized) VALUES (?1, ?2, ?3, ?4, ?5)",
+            "INSERT OR REPLACE INTO futures (key, entity, time, cron, serialized) VALUES (?1, ?2, ?3, ?4, ?5)",
         )?;
 
         let affected = stmt
@@ -234,7 +234,7 @@ where
         trace!(?upcoming, "query-futures");
 
         let mut stmt = self.connection().prepare(
-            "SELECT key, entity,  time, cron, serialized FROM futures WHERE time <= ?1 ORDER BY time",
+            "SELECT key, entity, time, cron, serialized FROM futures WHERE time <= ?1 ORDER BY time",
         )?;
 
         let futures = stmt.query_map([&now], |row| {
