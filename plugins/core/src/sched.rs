@@ -93,7 +93,7 @@ pub mod model {
                 FutureAction::new(
                     self.key.clone(),
                     self.actor.clone(),
-                    time.clone(),
+                    FutureSchedule::Utc(time.clone()),
                     self.action.clone(),
                 )
             })
@@ -165,7 +165,8 @@ pub mod actions {
     pub struct ScheduleAction {
         pub key: String,
         pub actor: EntityKey,
-        pub time: ScheduleTime,
+        pub time: Option<ScheduleTime>,
+        pub schedule: Option<FutureSchedule>,
         pub action: TaggedJson,
     }
 
@@ -175,12 +176,22 @@ pub mod actions {
         }
 
         fn perform(&self, session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
-            let destined = FutureAction::new(
-                self.key.clone(),
-                self.actor.clone(),
-                self.time.clone().into(),
-                self.action.clone(),
-            );
+            let destined = match (&self.time, &self.schedule) {
+                (None, None) => todo!(),
+                (None, Some(schedule)) => FutureAction::new(
+                    self.key.clone(),
+                    self.actor.clone(),
+                    schedule.clone(),
+                    self.action.clone(),
+                ),
+                (Some(time), None) => FutureAction::new(
+                    self.key.clone(),
+                    self.actor.clone(),
+                    FutureSchedule::Utc(time.clone().into()),
+                    self.action.clone(),
+                ),
+                (Some(_), Some(_)) => todo!(),
+            };
 
             session.schedule(destined)?;
 

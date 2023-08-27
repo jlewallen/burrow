@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
-use std::{cell::RefCell, rc::Rc, sync::Arc};
+use chrono::Utc;
+use std::{cell::RefCell, rc::Rc, str::FromStr, sync::Arc};
 use tracing::*;
 
 use super::internal::{Added, Entities, LoadedEntity};
@@ -100,12 +101,24 @@ impl State {
         }
 
         for future in futures.iter() {
-            storage.queue(PersistedFuture {
-                key: future.key.clone(),
-                entity: future.entity.clone(),
-                time: future.time,
-                serialized: future.action.clone().into_tagged().to_string(),
-            })?;
+            let (cron, time) = match &future.schedule {
+                FutureSchedule::Utc(time) => (None, Some(time.clone())),
+                FutureSchedule::Cron(spec) => (Some(spec.clone()), Some(Utc::now())),
+                // Note that we're using now for the time for Cron actions. This
+                // means they always run immediately, which is usually what you
+                // want anyway. If we want to make scheduling idempotent this
+                // will have to change.
+            };
+
+            if let Some(time) = time {
+                storage.queue(PersistedFuture {
+                    key: future.key.clone(),
+                    entity: future.entity.clone(),
+                    cron,
+                    time,
+                    serialized: future.action.clone().into_tagged().to_string(),
+                })?;
+            }
         }
 
         futures.clear();

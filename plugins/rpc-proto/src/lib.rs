@@ -229,26 +229,46 @@ pub enum LookupBy {
     Gid(u64),
 }
 
-/*
-impl<'a> Into<kernel::LookupBy<'a>> for &LookupBy {
-    fn into(self) -> kernel::LookupBy<'a> {
-        match self {
-            LookupBy::Key(key) => kernel::LookupBy::Key(&key.into()),
-            LookupBy::Gid(gid) => kernel::LookupBy::Gid(&EntityGid::new(*gid)),
+#[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Clone)]
+pub enum FutureSchedule {
+    Utc(i64),
+    Cron(String),
+}
+
+impl From<kernel::prelude::FutureSchedule> for FutureSchedule {
+    fn from(value: kernel::prelude::FutureSchedule) -> Self {
+        match value {
+            kernel::prelude::FutureSchedule::Utc(time) => Self::Utc(time.timestamp_millis()),
+            kernel::prelude::FutureSchedule::Cron(spec) => Self::Cron(spec),
         }
     }
 }
-*/
+
+impl Into<kernel::prelude::FutureSchedule> for FutureSchedule {
+    fn into(self) -> kernel::prelude::FutureSchedule {
+        match self {
+            FutureSchedule::Utc(millis) => {
+                let time = chrono::NaiveDateTime::from_timestamp_opt(
+                    millis / 1000,
+                    ((millis % 1000) * 1_000_000) as u32,
+                )
+                .unwrap();
+
+                kernel::prelude::FutureSchedule::Utc(time.and_utc())
+            }
+            FutureSchedule::Cron(spec) => kernel::prelude::FutureSchedule::Cron(spec),
+        }
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize, Encode, Decode, PartialEq, Clone)]
 pub enum Query {
     Bootstrap,
     Update(EntityUpdate),
     Raise(Audience, Json),
-    Schedule(String, EntityKey, i64, Json),
+    Schedule(String, EntityKey, FutureSchedule, Json),
     Complete,
     Effect(Effect),
-    // Lookup(u32, Vec<LookupBy>),
 }
 
 impl From<Audience> for kernel::prelude::Audience {

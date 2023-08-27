@@ -7,7 +7,7 @@ use std::rc::Rc;
 use std::time::Instant;
 use tracing::*;
 
-use crate::actions::Action;
+use crate::actions::{Action, FutureSchedule};
 use crate::model::*;
 
 mod mw;
@@ -63,6 +63,7 @@ pub enum ArgumentType {
     String,
     Number,
     Time,
+    Schedule,
     TaggedJson,
     Optional(Box<ArgumentType>),
 }
@@ -86,6 +87,12 @@ impl HasArgumentType for EntityKey {
 impl<T: HasArgumentType> HasArgumentType for Option<T> {
     fn argument_type() -> ArgumentType {
         ArgumentType::Optional(T::argument_type().into())
+    }
+}
+
+impl HasArgumentType for FutureSchedule {
+    fn argument_type() -> ArgumentType {
+        ArgumentType::Schedule
     }
 }
 
