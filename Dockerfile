@@ -1,17 +1,14 @@
 FROM rust:1.71-bullseye AS base
 WORKDIR /app
 
-FROM base AS chef
-RUN cargo install -f cargo-chef 
+FROM base AS tooling
+RUN cargo install -f cargo-chef && cargo install -f sccache && cargo install -f trunk
 
-FROM chef AS chef_and_trunk
-RUN cargo install -f trunk
-
-FROM chef AS planner
+FROM tooling AS planner
 COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
-FROM chef_and_trunk AS builder
+FROM tooling AS builder
 RUN rustup target add wasm32-unknown-unknown
 COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook -p plugin-example-shared -p cli --recipe-path recipe.json
