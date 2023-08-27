@@ -26,7 +26,7 @@ tests:
   needs: [build:docker]
   script:
     - |
-      docker build \
+      docker build --load \
       --tag jlewallen/burrow-tests \
       --target tests .
     - docker run --rm jlewallen/burrow-tests "cargo test --workspace"
@@ -38,7 +38,7 @@ bench:all:
   needs: [tests]
   script:
     - |
-      docker build \
+      docker build --load \
       --tag jlewallen/burrow-tests \
       --target=tests .
     - docker run --rm jlewallen/burrow-tests "cargo bench --workspace --verbose"
