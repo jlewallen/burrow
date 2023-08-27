@@ -47,7 +47,20 @@ expression: reply.to_debug_json()?
           "name": "Living",
           "qualified": "Living"
         },
-        "routes": []
+        "routes": [
+          {
+            "Simple": {
+              "name": "East Exit",
+              "to": {
+                "desc": null,
+                "gid": 2,
+                "key": "E-1",
+                "name": "Place",
+                "qualified": "Place"
+              }
+            }
+          }
+        ]
       }
     }
   }

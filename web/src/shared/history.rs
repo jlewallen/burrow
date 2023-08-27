@@ -35,6 +35,21 @@ fn join_html(v: Vec<Html>, separator: Html) -> Vec<Html> {
         .collect()
 }
 
+fn simple_routes_list(routes: &Vec<ObservedRoute>) -> Html {
+    let routes = routes
+        .iter()
+        .map(|r| match r {
+            ObservedRoute::Simple { name, to: _ } => name,
+        })
+        .map(|name| html!(<>{ name }</>))
+        .collect::<Vec<_>>();
+    let separator = html! { { ", " } };
+
+    html! {
+        <span class="routes">{ join_html(routes, separator) }</span>
+    }
+}
+
 fn simple_entities_list(entities: &Vec<ObservedEntity>) -> Html {
     let entities = entities
         .iter()
@@ -124,7 +139,7 @@ fn area_observation(reply: &AreaObservation) -> Html {
     let routes: Html = if reply.routes.len() > 0 {
         html! {
             <div class="routes">
-                { "You can see "} { simple_entities_list(&reply.routes) } { "." }
+                { "You can see "} { simple_routes_list(&reply.routes) } { "." }
             </div>
         }
     } else {

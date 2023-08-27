@@ -190,6 +190,11 @@ pub struct ObservedEntity {
     pub desc: Option<String>,
 }
 
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub enum ObservedRoute {
+    Simple { name: String, to: ObservedEntity },
+}
+
 #[derive(Clone, Serialize, Deserialize, PartialEq, ToTaggedJson, Reply, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct AreaObservation {
@@ -198,7 +203,7 @@ pub struct AreaObservation {
     pub living: Vec<ObservedEntity>,
     pub items: Vec<ObservedEntity>,
     pub carrying: Vec<ObservedEntity>,
-    pub routes: Vec<ObservedEntity>,
+    pub routes: Vec<ObservedRoute>,
 }
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, ToTaggedJson, Reply, Debug)]

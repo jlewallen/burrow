@@ -176,10 +176,25 @@ pub mod model {
 
     pub fn new_area_observation(user: &EntityPtr, area: &EntityPtr) -> Result<AreaObservation> {
         let mut living: Vec<ObservedEntity> = vec![];
+        let mut routes: Vec<ObservedRoute> = vec![];
         if let Ok(Some(occupyable)) = area.scope::<Occupyable>() {
             for entity in &occupyable.occupied {
                 if let Some(observed) = (&entity.to_entity()?).observe(user)? {
                     living.push(observed);
+                }
+                if let Some(outgoing) = &occupyable.routes {
+                    routes.extend(outgoing.iter().map(|r| {
+                        match r {
+                            crate::moving::model::Route::Simple(r) => ObservedRoute::Simple {
+                                name: r.name().to_owned(),
+                                to: (&r.destination().to_entity().unwrap())
+                                    .observe(user)
+                                    .unwrap()
+                                    .unwrap(),
+                            },
+                            crate::moving::model::Route::Deactivated(_, _) => todo!(),
+                        }
+                    }))
                 }
             }
         }
@@ -197,8 +212,6 @@ pub mod model {
                 carrying.push((&entity.to_entity()?).observe(user)?);
             }
         }
-
-        let routes: Vec<ObservedEntity> = vec![];
 
         Ok(AreaObservation {
             area: area

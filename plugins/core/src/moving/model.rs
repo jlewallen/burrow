@@ -93,6 +93,10 @@ impl SimpleRoute {
         }
     }
 
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
     pub fn destination(&self) -> &EntityRef {
         &self.to
     }
