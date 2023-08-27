@@ -14,8 +14,8 @@ RUN cargo chef prepare --recipe-path recipe.json
 FROM chef_and_trunk AS builder
 RUN rustup target add wasm32-unknown-unknown
 COPY --from=planner /app/recipe.json recipe.json
-RUN cargo chef cook --recipe-path recipe.json
-RUN cargo chef cook --release --recipe-path recipe.json
+RUN cargo chef cook -p plugin-example-shared -p cli --recipe-path recipe.json
+RUN cargo chef cook -p plugin-example-shared -p cli --release --recipe-path recipe.json
 COPY . .
 RUN cargo build --release -p cli
 RUN cargo build --release -p plugin-example-shared
