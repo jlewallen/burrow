@@ -9,6 +9,7 @@ workflow:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
 
 variables:
+  DOCKER_BUILDKIT: 1
   DOCKER_TLS_CERTDIR: ""
 
 build:docker:
