@@ -88,20 +88,31 @@ impl Serialize for PerformAction {
     }
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum FutureSchedule {
+    Utc(DateTime<Utc>),
+    Cron(String),
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct FutureAction {
     pub key: String,
     pub entity: EntityKey,
-    pub time: DateTime<Utc>,
+    pub schedule: FutureSchedule,
     pub action: TaggedJson,
 }
 
 impl FutureAction {
-    pub fn new(key: String, entity: EntityKey, time: DateTime<Utc>, action: TaggedJson) -> Self {
+    pub fn new(
+        key: String,
+        entity: EntityKey,
+        schedule: FutureSchedule,
+        action: TaggedJson,
+    ) -> Self {
         Self {
             key,
             entity,
-            time,
+            schedule,
             action,
         }
     }

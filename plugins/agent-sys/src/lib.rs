@@ -266,7 +266,7 @@ where
             queries.push(Query::Schedule(
                 future.key.clone(),
                 future.entity.clone().into(),
-                future.time.timestamp_millis(),
+                future.schedule.clone().into(),
                 future.action.clone().into(),
             ));
         }

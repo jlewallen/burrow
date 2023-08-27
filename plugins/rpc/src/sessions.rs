@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Context, Result};
-use chrono::NaiveDateTime;
 use serde::Serialize;
 use std::{
     collections::HashSet,
@@ -11,7 +10,7 @@ use kernel::common::identifier_to_key;
 use kernel::prelude::*;
 use macros::*;
 use plugins_core::tools;
-use rpc_proto::{EntityKey, EntityUpdate, Json, LookupBy};
+use rpc_proto::{EntityKey, EntityUpdate, FutureSchedule, Json, LookupBy};
 
 pub trait Services {
     fn lookup(&self, depth: u32, lookup: &[LookupBy]) -> Result<Vec<(LookupBy, Option<Json>)>>;
@@ -20,7 +19,13 @@ pub trait Services {
 
     fn raise(&self, actor: Option<EntityPtr>, audience: Audience, raised: JsonValue) -> Result<()>;
 
-    fn schedule(&self, key: &str, entity: EntityKey, millis: i64, serialized: Json) -> Result<()>;
+    fn schedule(
+        &self,
+        key: &str,
+        entity: EntityKey,
+        schedule: FutureSchedule,
+        serialized: Json,
+    ) -> Result<()>;
 
     fn produced(&self, effect: Effect) -> Result<()>;
 }
@@ -52,7 +57,7 @@ impl Services for AlwaysErrorsServices {
         &self,
         _key: &str,
         _entity: EntityKey,
-        _millis: i64,
+        _schedule: FutureSchedule,
         _serialized: Json,
     ) -> Result<()> {
         warn!("AlwaysErrorsServices::schedule");
@@ -202,12 +207,14 @@ impl Services for SessionServices {
         )?)
     }
 
-    fn schedule(&self, key: &str, entity: EntityKey, millis: i64, serialized: Json) -> Result<()> {
+    fn schedule(
+        &self,
+        key: &str,
+        entity: EntityKey,
+        schedule: FutureSchedule,
+        serialized: Json,
+    ) -> Result<()> {
         let session = get_my_session().with_context(|| "SessionServer::schedule")?;
-        let time =
-            NaiveDateTime::from_timestamp_opt(millis / 1000, ((millis % 1000) * 1_000_000) as u32)
-                .ok_or_else(|| DomainError::Overflow)?;
-
         let prefix = self
             .prefix
             .as_ref()
@@ -218,7 +225,7 @@ impl Services for SessionServices {
         Ok(session.schedule(FutureAction::new(
             format!("{}/{}", prefix, key),
             entity.into(),
-            time.and_utc(),
+            schedule.into(),
             serialized.try_into()?,
         ))?)
     }

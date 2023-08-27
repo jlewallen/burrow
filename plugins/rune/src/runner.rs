@@ -1,7 +1,7 @@
 use anyhow::Context as _;
 use anyhow::Result;
-use plugins_core::sched::model::DateTime;
-use plugins_core::sched::model::Utc;
+use plugins_core::sched::actions::DateTime;
+use plugins_core::sched::actions::Utc;
 use rune::{
     runtime::{Object, RuntimeContext, Shared},
     termcolor::{ColorChoice, StandardStream, WriteColor},

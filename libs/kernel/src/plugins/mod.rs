@@ -63,6 +63,7 @@ pub enum ArgumentType {
     String,
     Number,
     Time,
+    Schedule,
     TaggedJson,
     Optional(Box<ArgumentType>),
 }

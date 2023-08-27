@@ -73,6 +73,7 @@ impl Migrate for Connection {
                     key TEXT NOT NULL PRIMARY KEY,
                     entity TEXT NOT NULL,
                     time TIMESTAMP NOT NULL,
+                    cron TEXT,
                     serialized TEXT NOT NULL
                 )"#,
         ))?;
@@ -183,7 +184,7 @@ where
 {
     fn queue(&self, future: PersistedFuture) -> Result<()> {
         let mut stmt = self.connection().prepare(
-            "INSERT OR IGNORE INTO futures (key, entity, time, serialized) VALUES (?1, ?2, ?3, ?4)",
+            "INSERT OR IGNORE INTO futures (key, entity, time, cron, serialized) VALUES (?1, ?2, ?3, ?4, ?5)",
         )?;
 
         let affected = stmt
@@ -191,6 +192,7 @@ where
                 &future.key,
                 future.entity.key_to_string(),
                 &future.time,
+                &future.cron,
                 &future.serialized,
             ))
             .with_context(|| "inserting future")?;
@@ -232,7 +234,7 @@ where
         trace!(?upcoming, "query-futures");
 
         let mut stmt = self.connection().prepare(
-            "SELECT key, entity, time, serialized FROM futures WHERE time <= ?1 ORDER BY time",
+            "SELECT key, entity,  time, cron, serialized FROM futures WHERE time <= ?1 ORDER BY time",
         )?;
 
         let futures = stmt.query_map([&now], |row| {
@@ -240,7 +242,8 @@ where
                 key: row.get(0)?,
                 entity: EntityKey::from_string(row.get(1)?),
                 time: row.get(2)?,
-                serialized: row.get(3)?,
+                cron: row.get(3)?,
+                serialized: row.get(4)?,
             })
         })?;
 
@@ -251,13 +254,33 @@ where
             return Ok(PendingFutures::Waiting(upcoming));
         }
 
+        for future in pending.iter().filter(|r| r.cron.is_some()) {
+            if let Some(spec) = &future.cron {
+                use std::str::FromStr;
+                match cron::Schedule::from_str(&spec) {
+                    Ok(schedule) => {
+                        let time = schedule.after(&now).take(1).next();
+
+                        let mut stmt = self
+                            .connection()
+                            .prepare("UPDATE futures SET time = ?1 WHERE key = ?2")
+                            .with_context(|| "updating cron future")?;
+
+                        let _updating = stmt.execute((time, &future.key))?;
+                    }
+                    Err(e) => warn!("cron error: {:?}", e),
+                }
+            }
+        }
+
         let mut stmt = self
             .connection()
-            .prepare("DELETE FROM futures WHERE time <= ?1")
+            .prepare("DELETE FROM futures WHERE time <= ?1 AND cron IS NULL")
             .with_context(|| "deleting pending futures")?;
 
-        let deleted = stmt.execute((now,))?;
+        let _deleted = stmt.execute((now,))?;
 
+        /*
         if deleted != pending.len() {
             warn!(
                 pending = %pending.len(),
@@ -265,6 +288,7 @@ where
                 "query-futures:mismatch",
             );
         }
+        */
 
         Ok(PendingFutures::Futures(pending))
     }
@@ -597,6 +621,7 @@ mod tests {
         s.queue(PersistedFuture {
             key: "test-1".to_owned(),
             entity: EntityKey::new("E-0"),
+            cron: None,
             time,
             serialized: "{}".to_owned(),
         })?;
@@ -621,6 +646,7 @@ mod tests {
         s.queue(PersistedFuture {
             key: "test-1".to_owned(),
             entity: EntityKey::new("E-0"),
+            cron: None,
             time,
             serialized: "{}".to_owned(),
         })?;
