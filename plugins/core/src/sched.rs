@@ -57,11 +57,9 @@ impl ActionSource for ActionSources {
     }
 }
 
-pub mod model {
-    // pub use crate::library::model::*;
-}
-
 pub mod actions {
+    use std::ops::Add;
+
     pub use crate::library::actions::*;
     pub use crate::library::model::*;
     use chrono::Duration;
@@ -71,6 +69,7 @@ pub mod actions {
     pub enum ScheduleTime {
         Utc(DateTime<Utc>),
         Delay(i64),
+        Cron(String),
     }
 
     impl HasArgumentType for ScheduleTime {
@@ -79,13 +78,14 @@ pub mod actions {
         }
     }
 
-    impl Into<DateTime<Utc>> for ScheduleTime {
-        fn into(self) -> DateTime<Utc> {
+    impl Into<FutureSchedule> for ScheduleTime {
+        fn into(self) -> FutureSchedule {
             match self {
-                ScheduleTime::Utc(utc) => utc,
-                ScheduleTime::Delay(millis) => Utc::now()
-                    .checked_add_signed(Duration::milliseconds(millis))
-                    .unwrap(),
+                ScheduleTime::Utc(time) => FutureSchedule::Utc(time),
+                ScheduleTime::Cron(spec) => FutureSchedule::Cron(spec),
+                ScheduleTime::Delay(millis) => {
+                    FutureSchedule::Utc(Utc::now().add(Duration::milliseconds(millis)))
+                }
             }
         }
     }
@@ -94,8 +94,7 @@ pub mod actions {
     pub struct ScheduleAction {
         pub key: String,
         pub actor: EntityKey,
-        pub time: Option<ScheduleTime>,
-        pub schedule: Option<FutureSchedule>,
+        pub schedule: ScheduleTime,
         pub action: TaggedJson,
     }
 
@@ -105,22 +104,12 @@ pub mod actions {
         }
 
         fn perform(&self, session: SessionRef, _surroundings: &Surroundings) -> ReplyResult {
-            let destined = match (&self.time, &self.schedule) {
-                (None, None) => todo!(),
-                (None, Some(schedule)) => FutureAction::new(
-                    self.key.clone(),
-                    self.actor.clone(),
-                    schedule.clone(),
-                    self.action.clone(),
-                ),
-                (Some(time), None) => FutureAction::new(
-                    self.key.clone(),
-                    self.actor.clone(),
-                    FutureSchedule::Utc(time.clone().into()),
-                    self.action.clone(),
-                ),
-                (Some(_), Some(_)) => todo!(),
-            };
+            let destined = FutureAction::new(
+                self.key.clone(),
+                self.actor.clone(),
+                self.schedule.clone().into(),
+                self.action.clone(),
+            );
 
             session.schedule(destined)?;
 
