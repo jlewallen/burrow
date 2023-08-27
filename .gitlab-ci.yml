@@ -22,7 +22,7 @@ build:docker:
   script:
     - |
       docker buildx create --use
-      docker buildx build \
+      docker buildx build --load \
       --cache-from=type=local,src=/cache/docker \
       --cache-to=type=local,dest=/cache/docker,mode=max \
       --tag jlewallen/burrow \
@@ -37,7 +37,7 @@ tests:
   script:
     - |
       docker buildx create --use
-      docker buildx build \
+      docker buildx build --load \
       --cache-from=type=local,src=/cache/docker \
       --cache-to=type=local,dest=/cache/docker,mode=max \
       --tag jlewallen/burrow-tests \
@@ -52,7 +52,7 @@ bench:all:
   script:
     - |
       docker buildx create --use
-      docker buildx build \
+      docker buildx build --load \
       --cache-from=type=local,src=/cache/docker \
       --cache-to=type=local,dest=/cache/docker,mode=max \
       --tag jlewallen/burrow-tests \
