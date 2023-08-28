@@ -94,6 +94,10 @@ impl Subscriber for SessionSubscriber {
         id
     }
 
+    fn try_close(&self, id: span::Id) -> bool {
+        self.with(|d| d.try_close(id))
+    }
+
     fn record(&self, span: &span::Id, values: &span::Record<'_>) {
         self.with(|d| d.record(span, values))
     }
