@@ -40,6 +40,7 @@ impl Plugin for BuildingPlugin {
             .action::<actions::DuplicateAction>()
             .action::<actions::BidirectionalDigAction>()
             .action::<actions::ObliterateAction>()
+            .action::<actions::LimboAction>()
             .action::<actions::MakeItemAction>()
             .action::<actions::BuildAreaAction>()
             .action::<actions::AddScopeAction>()
@@ -56,6 +57,7 @@ impl ParsesActions for BuildingPlugin {
             .or_else(|_| try_parsing(parser::DuplicateActionParser {}, i))
             .or_else(|_| try_parsing(parser::BidirectionalDigActionParser {}, i))
             .or_else(|_| try_parsing(parser::ObliterateActionParser {}, i))
+            .or_else(|_| try_parsing(parser::LimboActionParser {}, i))
             .or_else(|_| try_parsing(parser::MakeItemParser {}, i))
             .or_else(|_| try_parsing(parser::BuildAreaParser {}, i))
             .or_else(|_| try_parsing(parser::ScopeActionParser {}, i))
@@ -75,6 +77,7 @@ impl ActionSource for SaveActionSource {
             actions::SaveQuickEditAction,
             actions::SaveEntityJsonAction,
             actions::DuplicateAction,
+            actions::LimboAction,
             actions::MakeItemAction,
             actions::BuildAreaAction,
             actions::AddScopeAction,

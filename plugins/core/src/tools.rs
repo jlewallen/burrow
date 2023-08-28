@@ -149,11 +149,11 @@ pub fn set_container(container: &EntityPtr, items: &Vec<EntityPtr>) -> Result<()
     containing.save()
 }
 
-pub fn set_occupying(area: &EntityPtr, living: &Vec<EntityPtr>) -> Result<(), DomainError> {
+pub fn set_occupying(area: &EntityPtr, actor: &Vec<EntityPtr>) -> Result<(), DomainError> {
     let mut occupyable = area.scope_mut::<Occupyable>()?;
-    for item in living {
-        occupyable.start_occupying(item)?;
-        let mut occupying = item.scope_mut::<Occupying>()?;
+    for actor in actor {
+        occupyable.start_occupying(actor)?;
+        let mut occupying = actor.scope_mut::<Occupying>()?;
         occupying.area = area.entity_ref();
         occupying.save()?;
     }

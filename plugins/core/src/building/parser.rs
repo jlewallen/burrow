@@ -2,7 +2,7 @@ use crate::library::parser::*;
 
 use super::actions::{
     AddScopeAction, BidirectionalDigAction, BuildAreaAction, DuplicateAction, EditAction,
-    EditRawAction, MakeItemAction, ObliterateAction,
+    EditRawAction, LimboAction, MakeItemAction, ObliterateAction,
 };
 
 pub struct EditActionParser {}
@@ -48,6 +48,16 @@ impl ParsesActions for DuplicateActionParser {
             preceded(pair(tag("@duplicate"), spaces), noun_or_specific),
             |item| DuplicateAction { item },
         )(i)?;
+
+        Ok(Some(Box::new(action)))
+    }
+}
+
+pub struct LimboActionParser {}
+
+impl ParsesActions for LimboActionParser {
+    fn try_parse_action(&self, i: &str) -> EvaluationResult {
+        let (_, action) = map(tag("@limbo"), |_| LimboAction {})(i)?;
 
         Ok(Some(Box::new(action)))
     }

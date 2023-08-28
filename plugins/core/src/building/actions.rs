@@ -1,6 +1,7 @@
 use std::{rc::Rc, str::FromStr};
 
 use chrono::Utc;
+use engine::prelude::HasWellKnownEntities;
 
 use crate::{
     building::model::{Constructed, QuickEdit},
@@ -100,6 +101,30 @@ impl Action for EditRawAction {
             }
             None => Ok(SimpleReply::NotFound.try_into()?),
         }
+    }
+}
+
+#[action]
+pub struct LimboAction {}
+
+impl Action for LimboAction {
+    fn is_read_only() -> bool
+    where
+        Self: Sized,
+    {
+        false
+    }
+
+    fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+        let (world, actor, _) = surroundings.unpack();
+
+        let limbo = session
+            .entity(&LookupBy::Key(&world.get_limbo()?.unwrap()))?
+            .unwrap();
+
+        tools::set_occupying(&limbo, &vec![actor])?;
+
+        Ok(Effect::Ok)
     }
 }
 
