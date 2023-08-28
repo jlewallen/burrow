@@ -182,20 +182,20 @@ pub mod model {
                 if let Some(observed) = (&entity.to_entity()?).observe(user)? {
                     living.push(observed);
                 }
-                if let Some(outgoing) = &occupyable.routes {
-                    routes.extend(outgoing.iter().map(|r| {
-                        match r {
-                            crate::moving::model::Route::Simple(r) => ObservedRoute::Simple {
-                                name: r.name().to_owned(),
-                                to: (&r.destination().to_entity().unwrap())
-                                    .observe(user)
-                                    .unwrap()
-                                    .unwrap(),
-                            },
-                            crate::moving::model::Route::Deactivated(_, _) => todo!(),
-                        }
-                    }))
-                }
+            }
+            if let Some(outgoing) = &occupyable.routes {
+                routes.extend(outgoing.iter().map(|r| {
+                    match r {
+                        crate::moving::model::Route::Simple(r) => ObservedRoute::Simple {
+                            name: r.name().to_owned(),
+                            to: (&r.destination().to_entity().unwrap())
+                                .observe(user)
+                                .unwrap()
+                                .unwrap(),
+                        },
+                        crate::moving::model::Route::Deactivated(_, _) => todo!(),
+                    }
+                }))
             }
         }
 
