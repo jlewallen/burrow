@@ -1,8 +1,18 @@
-pub use replies::JsonValue;
+use serde::{Deserialize, Serialize};
 
-use crate::model::Acls;
+use crate::core::JsonValue;
 
-#[allow(dead_code)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AclRule {
+    keys: Vec<String>,
+    perm: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+pub struct Acls {
+    rules: Vec<AclRule>,
+}
+
 #[derive(Debug, PartialEq)]
 pub struct AclProtection {
     pub path: String,
@@ -53,13 +63,8 @@ pub fn apply_read_acls(value: JsonValue) -> JsonValue {
 
 #[cfg(test)]
 mod tests {
-    use replies::JsonValue;
+    use super::{find_acls, AclProtection, Acls, JsonValue};
     use serde_json::json;
-
-    use crate::{
-        model::Acls,
-        perms::{find_acls, AclProtection},
-    };
 
     #[test]
     pub fn it_should_return_none_json_primitives() {

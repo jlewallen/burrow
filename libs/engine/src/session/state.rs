@@ -54,7 +54,8 @@ impl State {
     }
 
     pub(crate) fn write_expected(&self) -> bool {
-        self.write_expected.load(core::sync::atomic::Ordering::Relaxed)
+        self.write_expected
+            .load(core::sync::atomic::Ordering::Relaxed)
     }
 
     pub(crate) fn lookup_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
@@ -224,7 +225,7 @@ impl<'a> SavesEntities<'a> {
             before: l.serialized.as_ref().map(Original::String),
             after: l.entity.clone(),
         })? {
-            if let Some(acls) = kernel::perms::find_acls(&modified.before) {
+            if let Some(acls) = burrow_bon::prelude::find_acls(&modified.before) {
                 for acl in acls {
                     trace!("{:?}", &acl.path);
                 }
