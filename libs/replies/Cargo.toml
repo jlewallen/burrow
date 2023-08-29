@@ -10,6 +10,9 @@ doctest = false
 [dependencies.macros]
 path = "../../libs/macros"
 
+[dependencies.burrow-bon]
+path = "../../libs/bon"
+
 [dependencies]
 anyhow = "1.0.72"
 serde = { version = "1.0.180", features = ["derive"] }
