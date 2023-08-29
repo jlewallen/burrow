@@ -159,7 +159,7 @@ pub mod actions {
     pub struct RecallAction {}
 
     impl Action for RecallAction {
-        fn is_read_only() -> bool {
+        fn is_read_only(&self) -> bool {
             true
         }
 

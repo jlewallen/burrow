@@ -15,9 +15,7 @@ use crate::{
 pub type ReplyResult = anyhow::Result<Effect>;
 
 pub trait Action: HasTag + ToTaggedJson + Debug {
-    fn is_read_only() -> bool
-    where
-        Self: Sized;
+    fn is_read_only(&self) -> bool;
 
     fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult;
 }

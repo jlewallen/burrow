@@ -68,7 +68,7 @@ pub mod actions {
     pub struct LaughAction {}
 
     impl Action for LaughAction {
-        fn is_read_only() -> bool {
+        fn is_read_only(&self) -> bool {
             true
         }
 

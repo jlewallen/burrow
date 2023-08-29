@@ -14,7 +14,7 @@ pub struct EditAction {
 }
 
 impl Action for EditAction {
-    fn is_read_only() -> bool {
+    fn is_read_only(&self) -> bool {
         true
     }
 
@@ -45,9 +45,7 @@ pub struct DiagnosticsAction {
 }
 
 impl Action for DiagnosticsAction {
-    fn is_read_only() -> bool
-    where
-        Self: Sized,
+    fn is_read_only(&self) -> bool
     {
         true
     }
@@ -81,7 +79,7 @@ impl SaveScriptAction {
 }
 
 impl Action for SaveScriptAction {
-    fn is_read_only() -> bool {
+    fn is_read_only(&self) -> bool {
         false
     }
 
@@ -128,9 +126,7 @@ pub struct RuneAction {
 }
 
 impl Action for RuneAction {
-    fn is_read_only() -> bool
-    where
-        Self: Sized,
+    fn is_read_only(&self) -> bool
     {
         false
     }
@@ -156,9 +152,7 @@ pub struct RegisterAction {
 }
 
 impl Action for RegisterAction {
-    fn is_read_only() -> bool
-    where
-        Self: Sized,
+    fn is_read_only(&self) -> bool
     {
         false
     }

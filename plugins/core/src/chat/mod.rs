@@ -100,7 +100,7 @@ pub mod actions {
     }
 
     impl Action for SpeakAction {
-        fn is_read_only() -> bool {
+        fn is_read_only(&self) -> bool {
             true
         }
 

@@ -223,7 +223,7 @@ pub mod actions {
     }
 
     impl Action for WearAction {
-        fn is_read_only() -> bool {
+        fn is_read_only(&self) -> bool {
             false
         }
 
@@ -259,7 +259,7 @@ pub mod actions {
     }
 
     impl Action for RemoveAction {
-        fn is_read_only() -> bool {
+        fn is_read_only(&self) -> bool {
             false
         }
 

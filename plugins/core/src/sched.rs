@@ -99,7 +99,7 @@ pub mod actions {
     }
 
     impl Action for ScheduleAction {
-        fn is_read_only() -> bool {
+        fn is_read_only(&self) -> bool {
             false
         }
 

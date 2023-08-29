@@ -118,8 +118,8 @@ pub mod actions {
         create: bool,
     ) -> Result<Option<EntityPtr>, DomainError> {
         let Some(cyclo) = world.get_encyclopedia()? else {
-                return Ok(None);
-            };
+            return Ok(None);
+        };
 
         let cyclo = session.entity(&LookupBy::Key(&cyclo))?;
         let cyclo = cyclo.expect("TODO Dangling entity");
@@ -154,7 +154,7 @@ pub mod actions {
     }
 
     impl Action for ReadHelpAction {
-        fn is_read_only() -> bool {
+        fn is_read_only(&self) -> bool {
             true
         }
 
@@ -163,7 +163,7 @@ pub mod actions {
 
             let page = lookup_page_name(&session, &world, self.page_name.as_deref(), false)?;
             let Some(page) = page else {
-                return Ok(SimpleReply::NotFound.try_into()?)
+                return Ok(SimpleReply::NotFound.try_into()?);
             };
 
             let wiki = page.scope::<Wiki>()?.unwrap();
@@ -178,7 +178,7 @@ pub mod actions {
     }
 
     impl Action for EditHelpAction {
-        fn is_read_only() -> bool {
+        fn is_read_only(&self) -> bool {
             true
         }
 
@@ -222,7 +222,7 @@ pub mod actions {
     }
 
     impl Action for SaveHelpAction {
-        fn is_read_only() -> bool {
+        fn is_read_only(&self) -> bool {
             false
         }
 
