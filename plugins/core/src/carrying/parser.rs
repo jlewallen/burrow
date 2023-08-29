@@ -74,3 +74,23 @@ impl ParsesActions for PutInsideActionParser {
         Ok(Some(Box::new(action)))
     }
 }
+
+pub struct GiveToActionParser {}
+
+impl ParsesActions for GiveToActionParser {
+    fn try_parse_action(&self, i: &str) -> EvaluationResult {
+        let (_, action) = map(
+            separated_pair(
+                preceded(tag("give"), preceded(spaces, noun)),
+                spaces,
+                preceded(tag("to"), preceded(spaces, person)),
+            ),
+            |(item, receiver)| GiveToAction {
+                item: Item::Held(Box::new(item)),
+                receiver,
+            },
+        )(i)?;
+
+        Ok(Some(Box::new(action)))
+    }
+}
