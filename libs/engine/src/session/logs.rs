@@ -33,6 +33,10 @@ pub(crate) struct Logs {
 }
 
 impl Logs {
+    pub(crate) fn is_empty(&self) -> bool {
+        self.logs.is_empty()
+    }
+
     pub(crate) fn is_important(&self) -> bool {
         self.important
     }

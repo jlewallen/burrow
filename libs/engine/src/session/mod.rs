@@ -184,7 +184,10 @@ impl Session {
         let _span = span!(Level::INFO, "logs").entered();
 
         let captures = self.captures.borrow();
-        for captured in captures.iter().filter(|c| forced || c.logs.is_important()) {
+        for captured in captures
+            .iter()
+            .filter(|c| (forced || c.logs.is_important()) && !c.logs.is_empty())
+        {
             let actor = get_my_session()?
                 .entity(&LookupBy::Key(&captured.actor_key))?
                 .unwrap();
