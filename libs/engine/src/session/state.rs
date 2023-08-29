@@ -1,6 +1,10 @@
 use anyhow::{anyhow, Result};
 use chrono::Utc;
-use std::{cell::RefCell, rc::Rc, sync::Arc};
+use std::{
+    cell::RefCell,
+    rc::Rc,
+    sync::{atomic::AtomicBool, Arc},
+};
 use tracing::*;
 
 use super::internal::{Added, Entities, LoadedEntity};
@@ -16,6 +20,7 @@ pub struct State {
     raised: Rc<RefCell<Vec<Raised>>>,
     futures: Rc<RefCell<Vec<FutureAction>>>,
     destroyed: RefCell<Vec<EntityKey>>,
+    write_expected: AtomicBool,
 }
 
 impl State {
@@ -48,6 +53,10 @@ impl State {
         self.entities.size()
     }
 
+    pub(crate) fn write_expected(&self) -> bool {
+        self.write_expected.load(core::sync::atomic::Ordering::Relaxed)
+    }
+
     pub(crate) fn lookup_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
         self.entities.lookup_entity(lookup)
     }
@@ -57,6 +66,8 @@ impl State {
     }
 
     pub fn add_entity(&self, gid: EntityGid, entity: Entity) -> Result<()> {
+        self.write_expected
+            .store(true, std::sync::atomic::Ordering::Relaxed);
         self.entities.add_entity(gid, entity)
     }
 
@@ -137,6 +148,9 @@ impl State {
     fn queue_scheduled(&self, destined: FutureAction) -> Result<()> {
         trace!("{:?}", destined);
 
+        self.write_expected
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+
         self.futures.borrow_mut().push(destined);
 
         Ok(())
@@ -155,6 +169,10 @@ impl Performer for State {
                     info!("action:perform {:?}", &action);
                     let res = action.perform(get_my_session()?, &surroundings);
                     if let Ok(effect) = &res {
+                        if !action.is_read_only() {
+                            self.write_expected
+                                .store(true, std::sync::atomic::Ordering::Relaxed);
+                        }
                         info!("action:effect {:?}", effect);
                     } else {
                         warn!("action:error {:?}", res);
