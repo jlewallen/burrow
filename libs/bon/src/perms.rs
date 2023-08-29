@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::{DottedPath, JsonValue};
+use crate::{core::JsonValue, scour::Scoured};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AclRule {
@@ -13,44 +13,8 @@ pub struct Acls {
     rules: Vec<AclRule>,
 }
 
-#[derive(Debug, PartialEq)]
-pub struct AclProtection {
-    pub path: DottedPath,
-    pub acls: Acls,
-}
-
-impl AclProtection {
-    pub fn prefix(self, value: &str) -> Self {
-        Self {
-            path: self.path.prefix(value),
-            acls: self.acls,
-        }
-    }
-}
-
-pub fn find_acls(value: &JsonValue) -> Option<Vec<AclProtection>> {
-    match value {
-        JsonValue::Null => None,
-        JsonValue::Bool(_) => None,
-        JsonValue::Number(_) => None,
-        JsonValue::String(_) => None,
-        JsonValue::Array(array) => Some(array.iter().flat_map(find_acls).flatten().collect()),
-        JsonValue::Object(o) => {
-            let acls = serde_json::from_value::<Acls>(value.clone());
-            match acls {
-                Ok(acls) => Some(vec![AclProtection {
-                    path: DottedPath::default(),
-                    acls,
-                }]),
-                Err(_) => Some(
-                    o.iter()
-                        .flat_map(|(k, v)| find_acls(v).map(|o| o.into_iter().map(|p| p.prefix(k))))
-                        .flatten()
-                        .collect(),
-                ),
-            }
-        }
-    }
+pub fn find_acls(value: &JsonValue) -> Option<Vec<Scoured<Acls>>> {
+    crate::scour::scour(value)
 }
 
 pub fn apply_read_acls(value: JsonValue) -> JsonValue {
@@ -61,7 +25,7 @@ pub fn apply_read_acls(value: JsonValue) -> JsonValue {
 mod tests {
     use crate::core::DottedPath;
 
-    use super::{find_acls, AclProtection, Acls, JsonValue};
+    use super::{find_acls, Acls, JsonValue, Scoured};
     use serde_json::json;
 
     #[test]
@@ -87,9 +51,9 @@ mod tests {
         let acls = serde_json::to_value(Acls::default()).unwrap();
         assert_eq!(
             find_acls(&acls),
-            Some(vec![AclProtection {
+            Some(vec![Scoured {
                 path: DottedPath::default(),
-                acls: Acls::default()
+                value: Acls::default()
             }])
         );
     }
@@ -104,9 +68,9 @@ mod tests {
         });
         assert_eq!(
             find_acls(&i),
-            Some(vec![AclProtection {
+            Some(vec![Scoured {
                 path: vec!["nested", "acls"].into(),
-                acls: Acls::default()
+                value: Acls::default()
             }])
         );
     }
@@ -128,13 +92,13 @@ mod tests {
         assert_eq!(
             find_acls(&i),
             Some(vec![
-                AclProtection {
+                Scoured {
                     path: "scopes.hello.acls".into(),
-                    acls: Acls::default()
+                    value: Acls::default()
                 },
-                AclProtection {
+                Scoured {
                     path: "scopes.world.acls".into(),
-                    acls: Acls::default()
+                    value: Acls::default()
                 }
             ])
         );
