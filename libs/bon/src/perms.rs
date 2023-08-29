@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::JsonValue;
+use crate::core::{DottedPath, JsonValue};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AclRule {
@@ -15,18 +15,14 @@ pub struct Acls {
 
 #[derive(Debug, PartialEq)]
 pub struct AclProtection {
-    pub path: String,
+    pub path: DottedPath,
     pub acls: Acls,
 }
 
 impl AclProtection {
     pub fn prefix(self, value: &str) -> Self {
         Self {
-            path: if self.path.is_empty() {
-                value.to_owned()
-            } else {
-                format!("{}.{}", value, self.path)
-            },
+            path: self.path.prefix(value),
             acls: self.acls,
         }
     }
@@ -43,7 +39,7 @@ pub fn find_acls(value: &JsonValue) -> Option<Vec<AclProtection>> {
             let acls = serde_json::from_value::<Acls>(value.clone());
             match acls {
                 Ok(acls) => Some(vec![AclProtection {
-                    path: "".to_owned(),
+                    path: DottedPath::default(),
                     acls,
                 }]),
                 Err(_) => Some(
@@ -63,6 +59,8 @@ pub fn apply_read_acls(value: JsonValue) -> JsonValue {
 
 #[cfg(test)]
 mod tests {
+    use crate::core::DottedPath;
+
     use super::{find_acls, AclProtection, Acls, JsonValue};
     use serde_json::json;
 
@@ -90,7 +88,7 @@ mod tests {
         assert_eq!(
             find_acls(&acls),
             Some(vec![AclProtection {
-                path: "".to_owned(),
+                path: DottedPath::default(),
                 acls: Acls::default()
             }])
         );
@@ -107,7 +105,7 @@ mod tests {
         assert_eq!(
             find_acls(&i),
             Some(vec![AclProtection {
-                path: "nested.acls".to_owned(),
+                path: vec!["nested", "acls"].into(),
                 acls: Acls::default()
             }])
         );
@@ -131,11 +129,11 @@ mod tests {
             find_acls(&i),
             Some(vec![
                 AclProtection {
-                    path: "scopes.hello.acls".to_owned(),
+                    path: "scopes.hello.acls".into(),
                     acls: Acls::default()
                 },
                 AclProtection {
-                    path: "scopes.world.acls".to_owned(),
+                    path: "scopes.world.acls".into(),
                     acls: Acls::default()
                 }
             ])
