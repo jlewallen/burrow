@@ -47,7 +47,7 @@ pub mod actions {
     }
 
     impl Action for ChangePasswordAction {
-        fn is_read_only() -> bool {
+        fn is_read_only(&self) -> bool {
             true
         }
 

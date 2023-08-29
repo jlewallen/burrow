@@ -123,10 +123,7 @@ mod tests {
     }
 
     impl Action for ExampleAction {
-        fn is_read_only() -> bool
-        where
-            Self: Sized,
-        {
+        fn is_read_only(&self) -> bool {
             true
         }
 

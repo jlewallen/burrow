@@ -180,11 +180,14 @@ impl Session {
         )
     }
 
-    fn save_logs(&self) -> Result<()> {
+    fn save_logs(&self, forced: bool) -> Result<()> {
         let _span = span!(Level::INFO, "logs").entered();
 
         let captures = self.captures.borrow();
-        for captured in captures.iter().filter(|c| c.logs.is_important()) {
+        for captured in captures
+            .iter()
+            .filter(|c| (forced || c.logs.is_important()) && !c.logs.is_empty())
+        {
             let actor = get_my_session()?
                 .entity(&LookupBy::Key(&captured.actor_key))?
                 .unwrap();
@@ -243,7 +246,7 @@ impl Session {
                         }
 
                         let separate = self.open()?.set_session()?;
-                        self.save_logs()?;
+                        self.save_logs(true)?;
                         separate.close(&DevNullNotifier {})?;
 
                         Err(original_err)
@@ -287,7 +290,7 @@ impl Session {
     pub fn close<T: Notifier>(&self, notifier: &T) -> Result<()> {
         let _activated = self.set_session()?;
 
-        self.save_logs()?;
+        self.save_logs(self.state.write_expected())?;
 
         self.save_changes(notifier)?;
 

@@ -244,7 +244,7 @@ pub mod actions {
     pub struct LookAction {}
 
     impl Action for LookAction {
-        fn is_read_only() -> bool {
+        fn is_read_only(&self) -> bool {
             true
         }
 
@@ -263,7 +263,7 @@ pub mod actions {
     }
 
     impl Action for LookInsideAction {
-        fn is_read_only() -> bool {
+        fn is_read_only(&self) -> bool {
             true
         }
 
@@ -292,7 +292,7 @@ pub mod actions {
     }
 
     impl Action for LookAtAction {
-        fn is_read_only() -> bool {
+        fn is_read_only(&self) -> bool {
             true
         }
 

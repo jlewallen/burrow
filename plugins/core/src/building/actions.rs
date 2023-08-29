@@ -18,7 +18,7 @@ pub struct AddScopeAction {
 }
 
 impl Action for AddScopeAction {
-    fn is_read_only() -> bool {
+    fn is_read_only(&self) -> bool {
         false
     }
 
@@ -48,7 +48,7 @@ pub struct EditAction {
 }
 
 impl Action for EditAction {
-    fn is_read_only() -> bool {
+    fn is_read_only(&self) -> bool {
         true
     }
 
@@ -77,7 +77,7 @@ pub struct EditRawAction {
 }
 
 impl Action for EditRawAction {
-    fn is_read_only() -> bool {
+    fn is_read_only(&self) -> bool {
         true
     }
 
@@ -108,10 +108,7 @@ impl Action for EditRawAction {
 pub struct LimboAction {}
 
 impl Action for LimboAction {
-    fn is_read_only() -> bool
-    where
-        Self: Sized,
-    {
+    fn is_read_only(&self) -> bool {
         false
     }
 
@@ -134,7 +131,7 @@ pub struct DuplicateAction {
 }
 
 impl Action for DuplicateAction {
-    fn is_read_only() -> bool {
+    fn is_read_only(&self) -> bool {
         false
     }
 
@@ -158,7 +155,7 @@ pub struct ObliterateAction {
 }
 
 impl Action for ObliterateAction {
-    fn is_read_only() -> bool {
+    fn is_read_only(&self) -> bool {
         false
     }
 
@@ -182,7 +179,7 @@ pub struct MakeItemAction {
 }
 
 impl Action for MakeItemAction {
-    fn is_read_only() -> bool {
+    fn is_read_only(&self) -> bool {
         false
     }
 
@@ -224,7 +221,7 @@ pub struct BidirectionalDigAction {
 }
 
 impl Action for BidirectionalDigAction {
-    fn is_read_only() -> bool {
+    fn is_read_only(&self) -> bool {
         false
     }
 
@@ -278,7 +275,7 @@ impl SaveQuickEditAction {
 }
 
 impl Action for SaveQuickEditAction {
-    fn is_read_only() -> bool {
+    fn is_read_only(&self) -> bool {
         false
     }
 
@@ -326,7 +323,7 @@ impl SaveEntityJsonAction {
 }
 
 impl Action for SaveEntityJsonAction {
-    fn is_read_only() -> bool {
+    fn is_read_only(&self) -> bool {
         false
     }
 
@@ -354,7 +351,7 @@ pub struct BuildAreaAction {
 }
 
 impl Action for BuildAreaAction {
-    fn is_read_only() -> bool {
+    fn is_read_only(&self) -> bool {
         false
     }
 

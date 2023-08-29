@@ -74,7 +74,7 @@ impl GoAction {
 }
 
 impl Action for GoAction {
-    fn is_read_only() -> bool {
+    fn is_read_only(&self) -> bool {
         false
     }
 
@@ -124,7 +124,7 @@ impl Action for GoAction {
 pub struct ShowRoutesAction {}
 
 impl Action for ShowRoutesAction {
-    fn is_read_only() -> bool {
+    fn is_read_only(&self) -> bool {
         false
     }
 
@@ -151,7 +151,7 @@ pub struct AddRouteAction {
 }
 
 impl Action for AddRouteAction {
-    fn is_read_only() -> bool {
+    fn is_read_only(&self) -> bool {
         false
     }
 
@@ -178,7 +178,7 @@ pub struct RemoveRouteAction {
 }
 
 impl Action for RemoveRouteAction {
-    fn is_read_only() -> bool {
+    fn is_read_only(&self) -> bool {
         false
     }
 
@@ -205,7 +205,7 @@ pub struct ActivateRouteAction {
 }
 
 impl Action for ActivateRouteAction {
-    fn is_read_only() -> bool {
+    fn is_read_only(&self) -> bool {
         false
     }
 
@@ -227,7 +227,7 @@ pub struct DeactivateRouteAction {
 }
 
 impl Action for DeactivateRouteAction {
-    fn is_read_only() -> bool {
+    fn is_read_only(&self) -> bool {
         false
     }
 

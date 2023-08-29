@@ -6,7 +6,7 @@ pub struct HoldAction {
 }
 
 impl Action for HoldAction {
-    fn is_read_only() -> bool {
+    fn is_read_only(&self) -> bool {
         false
     }
 
@@ -39,7 +39,7 @@ pub struct DropAction {
 }
 
 impl Action for DropAction {
-    fn is_read_only() -> bool {
+    fn is_read_only(&self) -> bool {
         false
     }
 
@@ -76,7 +76,7 @@ pub struct PutInsideAction {
 }
 
 impl Action for PutInsideAction {
-    fn is_read_only() -> bool {
+    fn is_read_only(&self) -> bool {
         false
     }
 
@@ -112,7 +112,7 @@ pub struct TakeOutAction {
 }
 
 impl Action for TakeOutAction {
-    fn is_read_only() -> bool {
+    fn is_read_only(&self) -> bool {
         false
     }
 
@@ -147,10 +147,7 @@ pub struct GiveToAction {
 }
 
 impl Action for GiveToAction {
-    fn is_read_only() -> bool
-    where
-        Self: Sized,
-    {
+    fn is_read_only(&self) -> bool {
         false
     }
 
