@@ -11,6 +11,7 @@ RUN cargo chef prepare --recipe-path recipe.json
 FROM tooling AS builder
 ENV SCCACHE_CACHE_SIZE="5G"
 ENV SCCACHE_DIR=/cache/sccache
+ENV RUSTC_WRAPPER=/usr/local/cargo/bin/sccache
 RUN rustup target add wasm32-unknown-unknown
 COPY --from=planner /app/recipe.json recipe.json
 RUN --mount=type=cache,target=/cache/sccache cargo chef cook -p plugin-example-shared -p cli --recipe-path recipe.json

@@ -22,7 +22,6 @@ build:docker:
 
 tests:
   stage: test
-  when: manual
   image: docker:24.0.5
   needs: [build:docker]
   script:
@@ -42,5 +41,5 @@ bench:all:
       docker build --load \
       --tag jlewallen/burrow-tests \
       --target=tests .
-    - docker run --rm jlewallen/burrow-tests cargo bench --workspace --verbose
+    - docker run --rm jlewallen/burrow-tests cargo bench --workspace
     - docker run --rm jlewallen/burrow-tests cargo bench -p tests --bench simple -- --profile-time=5
