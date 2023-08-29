@@ -4,8 +4,8 @@ use std::{rc::Rc, sync::Arc};
 use engine::{domain, prelude::*, sequences::DeterministicKeys, storage::InMemoryStorageFactory};
 use kernel::{
     prelude::{
-        build_entity, CoreProps, Entity, EntityKey, EntityPtr, MutCoreProps, OpenScopeRefMut,
-        RegisteredPlugins, SessionRef, SetSession, Surroundings, WORLD_KEY,
+        build_entity, CoreProps, Entity, EntityBuilder, EntityKey, EntityPtr, MutCoreProps,
+        OpenScopeRefMut, RegisteredPlugins, SessionRef, SetSession, Surroundings, WORLD_KEY,
     },
     session::ActiveSession,
 };
@@ -191,6 +191,7 @@ pub struct BuildSurroundings {
     ground: Vec<QuickThing>,
     routes: Vec<QuickRoute>,
     wearing: Vec<QuickThing>,
+    occupying: Vec<QuickThing>,
     world: EntityPtr,
     #[allow(dead_code)] // TODO Combine with Rc<Session>?
     set: SetSession<Session>,
@@ -224,8 +225,9 @@ impl BuildSurroundings {
         Ok(Self {
             hands: Vec::new(),
             ground: Vec::new(),
-            routes: Vec::new(),
             wearing: Vec::new(),
+            routes: Vec::new(),
+            occupying: Vec::new(),
             session,
             world,
             set,
@@ -242,6 +244,7 @@ impl BuildSurroundings {
             ground: Vec::new(),
             wearing: Vec::new(),
             routes: Vec::new(),
+            occupying: Vec::new(),
             session,
             world,
             set,
@@ -256,12 +259,22 @@ impl BuildSurroundings {
         Ok(self)
     }
 
+    pub fn with(&mut self, e: EntityBuilder) -> Result<EntityPtr> {
+        Ok(self.session.add_entity(e.try_into()?)?)
+    }
+
     pub fn entity(&mut self) -> Result<Build> {
         Build::new(&self.session)
     }
 
     pub fn make(&mut self, q: QuickThing) -> Result<EntityPtr> {
         q.make(&self.session)
+    }
+
+    pub fn occupying(&mut self, items: Vec<QuickThing>) -> &mut Self {
+        self.occupying.extend(items);
+
+        self
     }
 
     pub fn hands(&mut self, items: Vec<QuickThing>) -> &mut Self {
@@ -316,10 +329,20 @@ impl BuildSurroundings {
 
         self.world.add_username_to_key("burrow", &person.key())?;
 
+        let actor = person.clone();
+
+        self.occupying.push(QuickThing::Actual(person));
+
         let area = Build::new(&self.session)?
             .named("Welcome Area")?
             .save()?
-            .occupying(&vec![person.clone()])?
+            .occupying(
+                &self
+                    .occupying
+                    .iter()
+                    .map(|i| -> Result<_> { i.make(&self.session) })
+                    .collect::<Result<Vec<_>>>()?,
+            )?
             .routes(
                 self.routes
                     .iter()
@@ -349,7 +372,7 @@ impl BuildSurroundings {
             session,
             Surroundings::Actor {
                 world: self.world.clone(),
-                actor: person,
+                actor,
                 area,
             },
         ))
