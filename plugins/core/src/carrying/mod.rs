@@ -36,6 +36,7 @@ impl Plugin for CarryingPlugin {
             .action::<actions::HoldAction>()
             .action::<actions::PutInsideAction>()
             .action::<actions::TakeOutAction>()
+            .action::<actions::GiveToAction>()
     }
 
     fn key(&self) -> &'static str {
@@ -53,6 +54,7 @@ impl ParsesActions for CarryingPlugin {
             .or_else(|_| try_parsing(parser::HoldActionParser {}, i))
             .or_else(|_| try_parsing(parser::PutInsideActionParser {}, i))
             .or_else(|_| try_parsing(parser::TakeOutActionParser {}, i))
+            .or_else(|_| try_parsing(parser::GiveToActionParser {}, i))
     }
 }
 
@@ -69,7 +71,8 @@ impl ActionSource for ActionSources {
             actions::DropAction,
             actions::HoldAction,
             actions::PutInsideAction,
-            actions::TakeOutAction
+            actions::TakeOutAction,
+            actions::GiveToAction
         );
 
         Ok(None)

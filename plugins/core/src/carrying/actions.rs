@@ -139,3 +139,38 @@ impl Action for TakeOutAction {
         }
     }
 }
+
+#[action]
+pub struct GiveToAction {
+    pub item: Item,
+    pub receiver: Item,
+}
+
+impl Action for GiveToAction {
+    fn is_read_only() -> bool
+    where
+        Self: Sized,
+    {
+        false
+    }
+
+    fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+        info!("give-to {:?} -> {:?}", self.item, self.receiver);
+
+        let (_, user, _area) = surroundings.unpack();
+
+        // I think there are very interesting permission related implications
+        // here. For example, limiting third party access to your hands except
+        // for key individuals.
+        match session.find_item(surroundings, &self.item)? {
+            Some(item) => match session.find_item(surroundings, &self.receiver)? {
+                Some(receiver) => match tools::move_between(&user, &receiver, &item)? {
+                    true => Ok(SimpleReply::Done.try_into()?),
+                    false => Ok(SimpleReply::NotFound.try_into()?),
+                },
+                None => Ok(SimpleReply::NotFound.try_into()?),
+            },
+            None => Ok(SimpleReply::NotFound.try_into()?),
+        }
+    }
+}

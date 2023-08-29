@@ -286,3 +286,27 @@ fn it_takes_items_out_of_containers() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn it_gives_items_to_others() -> Result<()> {
+    let mut build = BuildSurroundings::new()?;
+    let carla = build.with(build_entity().living().name("Carla").try_into()?)?;
+    let (session, surroundings) = build
+        .hands(vec![QuickThing::Object("key")])
+        .occupying(vec![QuickThing::Actual(carla.clone())])
+        .build()?;
+
+    let action = try_parsing(GiveToActionParser {}, "give key to Carla")?;
+    let action = action.unwrap();
+    let reply = action.perform(session.clone(), &surroundings)?;
+    let (_world, person, _area) = surroundings.unpack();
+
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 0);
+    assert_eq!(carla.scope::<Containing>()?.unwrap().holding.len(), 1);
+
+    insta::assert_json_snapshot!(reply.to_debug_json()?);
+
+    build.close()?;
+
+    Ok(())
+}

@@ -36,6 +36,10 @@ pub mod parser {
         map(word, |s: &str| Item::Named(s.to_owned()))(i)
     }
 
+    pub fn person(i: &str) -> IResult<&str, Item> {
+        map(word, |s: &str| Item::Named(s.to_owned()))(i)
+    }
+
     pub fn text_to_end_of_line(i: &str) -> IResult<&str, &str> {
         take_while1(|_c: char| true)(i)
     }
