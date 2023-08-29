@@ -30,7 +30,7 @@ tests:
       docker build --load \
       --tag jlewallen/burrow-tests \
       --target tests .
-    - docker run --rm jlewallen/burrow-tests "cargo test --workspace"
+    - docker run --rm jlewallen/burrow-tests cargo test --workspace
 
 bench:all:
   stage: bench
@@ -42,5 +42,5 @@ bench:all:
       docker build --load \
       --tag jlewallen/burrow-tests \
       --target=tests .
-    - docker run --rm jlewallen/burrow-tests "cargo bench --workspace --verbose"
-    - docker run --rm jlewallen/burrow-tests "cd libs/tests && cargo bench --bench simple -- --profile-time=5"
+    - docker run --rm jlewallen/burrow-tests cargo bench --workspace --verbose
+    - docker run --rm jlewallen/burrow-tests cargo bench -p tests --bench simple -- --profile-time=5
