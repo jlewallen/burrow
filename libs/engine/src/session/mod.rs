@@ -491,7 +491,7 @@ fn should_force_rollback() -> bool {
     env::var("FORCE_ROLLBACK").is_ok()
 }
 
-const USER_DEPTH: usize = 2;
+pub const USER_DEPTH: usize = 2;
 
 fn user_name_to_key<R: EntityPtrResolver>(
     resolve: &R,

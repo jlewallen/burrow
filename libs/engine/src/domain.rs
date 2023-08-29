@@ -5,7 +5,7 @@ use tracing::{info, trace};
 
 use crate::{
     notifications::Notifier,
-    prelude::Dependencies,
+    prelude::{Dependencies, USER_DEPTH},
     sequences::Sequence,
     session::Session,
     storage::{PendingFutures, PersistedEntity, StorageFactory},
@@ -65,7 +65,9 @@ impl Domain {
 
                     let value = serde_json::from_str(&future.serialized)?;
                     if let Ok(Some(action)) = session.try_deserialize_action(&value) {
-                        if let Some(actor) = session.entity(&LookupBy::Key(&future.entity))? {
+                        if let Some(actor) =
+                            session.recursive_entity(&LookupBy::Key(&future.entity), USER_DEPTH)?
+                        {
                             session.captured(actor, action)?;
                         }
                     }
