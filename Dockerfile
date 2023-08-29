@@ -20,9 +20,11 @@ RUN --mount=type=cache,target=/cache/sccache cargo build --release -p cli && scc
 RUN --mount=type=cache,target=/cache/sccache cargo build --release -p plugin-example-shared && sccache --show-stats
 
 RUN cp .env.prod .env
-
 WORKDIR /app/web
 RUN --mount=type=cache,target=/cache/sccache trunk build
+
+WORKDIR /app
+RUN ls -alh
 
 FROM builder AS tests
 RUN --mount=type=cache,target=/cache/sccache cargo build --tests --workspace

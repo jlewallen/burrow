@@ -4,3 +4,4 @@ target
 *.sqlite3
 .gitlab-ci.yml
 .env
+.git
