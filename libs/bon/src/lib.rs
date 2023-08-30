@@ -32,6 +32,23 @@ mod core {
                 )
             }
         }
+
+        pub fn drop_last(&self) -> Self {
+            Self(
+                self.0[0..self.0.len().saturating_sub(1)]
+                    .iter()
+                    .map(|v| v.to_owned())
+                    .collect(),
+            )
+        }
+
+        pub fn is_parent_of(&self, other: &Self) -> bool {
+            if self.0.len() <= other.0.len() {
+                other.0[0..self.0.len()] == self.0
+            } else {
+                false
+            }
+        }
     }
 
     impl From<Vec<&str>> for DottedPath {
@@ -66,13 +83,17 @@ mod scour {
 
     pub use crate::core::{DottedPath, JsonValue};
 
-    #[derive(Debug, PartialEq)]
+    #[derive(Clone, PartialEq, Debug)]
     pub struct Scoured<T> {
         pub path: DottedPath,
         pub value: T,
     }
 
     impl<T> Scoured<T> {
+        pub fn new(path: DottedPath, value: T) -> Self {
+            Self { path, value }
+        }
+
         pub fn prefix(self, value: &str) -> Self {
             Self {
                 path: self.path.prefix(value),
@@ -119,4 +140,5 @@ mod perms;
 pub mod prelude {
     pub use crate::core::JsonValue;
     pub use crate::perms::{find_acls, AclRule, Acls};
+    pub use crate::perms::{HasSecurityContext, Policy, SecurityContext};
 }
