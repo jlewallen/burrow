@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    core::{DottedPath, JsonValue},
+    dotted::{DottedPath, JsonValue},
     scour::Scoured,
 };
 
