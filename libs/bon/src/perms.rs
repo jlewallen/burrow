@@ -2,29 +2,57 @@ use serde::{Deserialize, Serialize};
 
 use crate::{core::JsonValue, scour::Scoured};
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct AclRule {
-    keys: Vec<String>,
-    perm: String,
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum Subject {
+    Everybody,
+    Owner,
+    Creator,
+    Key(String),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum Perm {
+    Read,
+    Write,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AclRule {
+    keys: Vec<Subject>,
+    perm: Perm,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct Acls {
+    #[serde(default)]
     rules: Vec<AclRule>,
 }
 
-pub fn find_acls(value: &JsonValue) -> Option<Vec<Scoured<Acls>>> {
-    crate::scour::scour(value)
+#[derive(Deserialize)]
+pub struct TaggedAcls {
+    #[allow(dead_code)]
+    acls: Acls,
 }
 
-pub fn apply_read_acls(value: JsonValue) -> JsonValue {
-    value
+impl Into<Acls> for TaggedAcls {
+    fn into(self) -> Acls {
+        self.acls
+    }
+}
+
+pub fn find_acls(value: &JsonValue) -> Option<Vec<Scoured<Acls>>> {
+    crate::scour::scour::<TaggedAcls>(value).map(|i| {
+        i.into_iter()
+            .map(|v| Scoured {
+                path: v.path.join("acls"),
+                value: v.value.into(),
+            })
+            .collect::<Vec<Scoured<Acls>>>()
+    })
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::core::DottedPath;
-
     use super::{find_acls, Acls, JsonValue, Scoured};
     use serde_json::json;
 
@@ -47,12 +75,12 @@ mod tests {
     }
 
     #[test]
-    pub fn it_should_return_basic_acl() {
-        let acls = serde_json::to_value(Acls::default()).unwrap();
+    pub fn it_should_return_basic_tagged_acl() {
+        let acls = serde_json::to_value(json!({ "acls": Acls::default() })).unwrap();
         assert_eq!(
             find_acls(&acls),
             Some(vec![Scoured {
-                path: DottedPath::default(),
+                path: vec!["acls"].into(),
                 value: Acls::default()
             }])
         );

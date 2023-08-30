@@ -79,6 +79,10 @@ mod scour {
                 value: self.value,
             }
         }
+
+        pub fn into(self) -> T {
+            self.value
+        }
     }
 
     pub(crate) fn scour<T>(value: &JsonValue) -> Option<Vec<Scoured<T>>>
@@ -114,5 +118,5 @@ mod perms;
 
 pub mod prelude {
     pub use crate::core::JsonValue;
-    pub use crate::perms::{apply_read_acls, find_acls, AclRule, Acls};
+    pub use crate::perms::{find_acls, AclRule, Acls};
 }
