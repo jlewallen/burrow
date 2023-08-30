@@ -124,18 +124,18 @@ pub enum Denied {
     Disallowed,
 }
 
-pub struct Policy<P> {
-    acls: Vec<Scoured<Acls>>,
+pub struct Policy<'a, P> {
+    acls: &'a Vec<Scoured<Acls>>,
     context: SecurityContext<P>,
 }
 
-impl<P> Policy<P> {
-    pub fn new(acls: Vec<Scoured<Acls>>, context: SecurityContext<P>) -> Self {
+impl<'a, P> Policy<'a, P> {
+    pub fn new(acls: &'a Vec<Scoured<Acls>>, context: SecurityContext<P>) -> Self {
         Self { acls, context }
     }
 }
 
-impl<P> Policy<P>
+impl<'a, P> Policy<'a, P>
 where
     P: PartialEq,
 {
@@ -189,7 +189,8 @@ mod tests {
 
         #[test]
         pub fn it_should_allow_anything_when_empty() {
-            let policy = Policy::new(vec![], SecurityContext::new("actor", "owner", "creator"));
+            let acls = Vec::new();
+            let policy = Policy::new(&acls, SecurityContext::new("actor", "owner", "creator"));
             assert_eq!(
                 policy.allows(Attempted::Write("scopes.containing".into())),
                 None
@@ -205,10 +206,7 @@ mod tests {
                 Acls::from_iter([(Perm::Write, Subject::Everybody)].into_iter()),
             )];
 
-            let allowing = Policy::new(
-                acls.clone(),
-                SecurityContext::new("actor", "owner", "nobody"),
-            );
+            let allowing = Policy::new(&acls, SecurityContext::new("actor", "owner", "nobody"));
             let v = allowing.allows(Attempted::Write("scopes.props.name.value".into()));
             assert_eq!(v, None);
         }
@@ -220,21 +218,15 @@ mod tests {
                 Acls::from_iter([(Perm::Write, Subject::Owner)].into_iter()),
             )];
 
-            let failing = Policy::new(
-                acls.clone(),
-                SecurityContext::new("actor", "owner", "nobody"),
-            );
+            let failing = Policy::new(&acls, SecurityContext::new("actor", "owner", "nobody"));
             let v = failing.allows(Attempted::Write("scopes.props.name.value".into()));
             assert_eq!(v, Some(Denied::Disallowed));
 
-            let allowing = Policy::new(
-                acls.clone(),
-                SecurityContext::new("owner", "owner", "nobody"),
-            );
+            let allowing = Policy::new(&acls, SecurityContext::new("owner", "owner", "nobody"));
             let v = allowing.allows(Attempted::Write("scopes.props.name.value".into()));
             assert_eq!(v, None);
 
-            let allowing = Policy::new(acls, SecurityContext::new("actor", "owner", "nobody"));
+            let allowing = Policy::new(&acls, SecurityContext::new("actor", "owner", "nobody"));
             let v = allowing.allows(Attempted::Write("scopes.props.desc.value".into()));
             assert_eq!(v, None);
         }

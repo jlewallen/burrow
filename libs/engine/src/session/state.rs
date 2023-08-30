@@ -238,7 +238,7 @@ impl<'a> SavesEntities<'a> {
         &self,
         sc: SecurityContext<EntityKey>,
         modified: &DottedPaths,
-        acls: Vec<Scoured<Acls>>,
+        acls: &Vec<Scoured<Acls>>,
     ) -> Result<()> {
         let policy = Policy::new(acls, sc);
         for path in modified.iter() {
@@ -294,9 +294,10 @@ impl<'a> SavesEntities<'a> {
                 if let Some(sc) = sc {
                     let paths: DottedPaths = acls.iter().map(|s| s.path.clone()).collect();
 
-                    self.apply_permissions(sc, &modified.paths, acls)?;
+                    self.apply_permissions(sc.clone(), &modified.paths, &acls)?;
 
                     let paths: Vec<String> = paths.into();
+                    debug!(sc = ?sc, "sc");
                     info!(paths = ?paths, "permitted");
                 }
             }
