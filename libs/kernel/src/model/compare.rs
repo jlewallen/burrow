@@ -2,7 +2,7 @@ use anyhow::Result;
 use thiserror::Error;
 use tracing::*;
 
-use burrow_bon::prelude::{DottedPath, JsonValue};
+use burrow_bon::prelude::{DottedPaths, JsonValue};
 
 pub struct AnyChanges<B, A> {
     pub before: B,
@@ -16,7 +16,7 @@ pub enum Original<'a> {
 
 #[derive(Clone, Debug)]
 pub struct Modified {
-    pub paths: Vec<DottedPath>,
+    pub paths: DottedPaths,
     pub before: JsonValue,
     pub after: JsonValue,
 }
@@ -59,7 +59,7 @@ impl CompareChanges<JsonValue, JsonValue> for TreeDiff {
             .collect::<Vec<_>>();
 
         if !calls.is_empty() {
-            let paths = calls
+            let paths: DottedPaths = calls
                 .iter()
                 .flat_map(|c| match c {
                     ChangeType::Removed(k, _)
@@ -72,10 +72,11 @@ impl CompareChanges<JsonValue, JsonValue> for TreeDiff {
                     ChangeType::Unchanged(_, _) => None,
                 })
                 .map(|v| v.into())
-                .collect::<Vec<DottedPath>>();
+                .collect();
 
             if !paths.is_empty() {
-                info!(npaths = %paths.len(), "modifications");
+                let prefixes: Vec<String> = paths.clone().truncate(3).into();
+                info!(prefixes = ?prefixes, npaths = %paths.len(), "modifications");
             }
 
             Ok(Some(Modified {

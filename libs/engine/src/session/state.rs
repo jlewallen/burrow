@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use burrow_bon::prelude::{Attempted, DottedPath, Policy, Scoured, SecurityContext};
+use burrow_bon::prelude::{Attempted, DottedPaths, Policy, Scoured, SecurityContext};
 use chrono::Utc;
 use std::{
     cell::RefCell,
@@ -237,11 +237,11 @@ impl<'a> SavesEntities<'a> {
     fn apply_permissions(
         &self,
         sc: SecurityContext<EntityKey>,
-        modified: &[DottedPath],
+        modified: &DottedPaths,
         acls: Vec<Scoured<Acls>>,
     ) -> Result<()> {
         let policy = Policy::new(acls, sc);
-        for path in modified {
+        for path in modified.iter() {
             // TODO Easy elim-clone
             match policy.allows(Attempted::Write(path.clone())) {
                 Some(denied) => warn!("{:?} {:?}", denied, path),
@@ -262,7 +262,6 @@ impl<'a> SavesEntities<'a> {
             after: l.entity.clone(),
         })? {
             if let Some(acls) = burrow_bon::prelude::find_acls(&modified.before) {
-                let desc = format!("{} acls", acls.len());
                 let from_entity = {
                     let entity = l.entity.borrow();
                     let owner = entity.owner().cloned();
@@ -293,9 +292,12 @@ impl<'a> SavesEntities<'a> {
                 };
 
                 if let Some(sc) = sc {
+                    let paths: DottedPaths = acls.iter().map(|s| s.path.clone()).collect();
+
                     self.apply_permissions(sc, &modified.paths, acls)?;
 
-                    info!(desc = %desc, "permitted");
+                    let paths: Vec<String> = paths.into();
+                    info!(paths = ?paths, "permitted");
                 }
             }
 

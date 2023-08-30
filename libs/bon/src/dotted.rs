@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 pub use serde_json::Value as JsonValue;
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DottedPath(Vec<String>);
 
 impl DottedPath {
@@ -48,6 +48,14 @@ impl DottedPath {
             false
         }
     }
+
+    pub fn truncate(self, n: usize) -> Self {
+        if self.0.len() > n {
+            Self(self.0.into_iter().take(n).collect())
+        } else {
+            self
+        }
+    }
 }
 
 impl From<Vec<String>> for DottedPath {
@@ -79,5 +87,52 @@ impl FromStr for DottedPath {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(s.into())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct DottedPaths(Vec<DottedPath>);
+
+impl DottedPaths {
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn truncate(self, n: usize) -> Self {
+        use itertools::Itertools;
+
+        let truncated = self.0.into_iter().map(|p| p.truncate(n)).unique().collect();
+
+        Self(truncated)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &DottedPath> {
+        self.0.iter()
+    }
+}
+
+impl FromIterator<DottedPath> for DottedPaths {
+    fn from_iter<T: IntoIterator<Item = DottedPath>>(iter: T) -> Self {
+        Self(iter.into_iter().collect())
+    }
+}
+
+impl IntoIterator for DottedPaths {
+    type Item = DottedPath;
+
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl Into<Vec<String>> for DottedPaths {
+    fn into(self) -> Vec<String> {
+        self.0.into_iter().map(|p| p.to_string()).collect()
     }
 }
