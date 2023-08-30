@@ -245,7 +245,7 @@ impl<'a> SavesEntities<'a> {
             // TODO Easy elim-clone
             match policy.allows(Attempted::Write(path.clone())) {
                 Some(denied) => warn!("{:?} {:?}", denied, path),
-                None => {}
+                None => trace!("{:?} allowed", path),
             }
         }
 
@@ -262,6 +262,7 @@ impl<'a> SavesEntities<'a> {
             after: l.entity.clone(),
         })? {
             if let Some(acls) = burrow_bon::prelude::find_acls(&modified.before) {
+                let desc = format!("{} acls", acls.len());
                 let from_entity = {
                     let entity = l.entity.borrow();
                     let owner = entity.owner().cloned();
@@ -294,7 +295,7 @@ impl<'a> SavesEntities<'a> {
                 if let Some(sc) = sc {
                     self.apply_permissions(sc, &modified.paths, acls)?;
 
-                    info!("permitted");
+                    info!(desc = %desc, "permitted");
                 }
             }
 
