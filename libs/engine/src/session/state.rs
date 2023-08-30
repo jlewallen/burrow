@@ -273,11 +273,18 @@ impl<'a> SavesEntities<'a> {
                     }
                     (None, Some(_)) => todo!(),
                     (Some(_), None) => todo!(),
-                    (Some(owner), Some(creator)) => Some(SecurityContext {
-                        actor: EntityKey::new(""),
-                        owner: owner.key().clone(),
-                        creator: creator.key().clone(),
-                    }),
+                    (Some(owner), Some(creator)) => match &self.actors.as_slice() {
+                        [actor] => Some(SecurityContext {
+                            actor: actor.clone(),
+                            owner: owner.key().clone(),
+                            creator: creator.key().clone(),
+                        }),
+                        _ => {
+                            warn!("expected 1 actor {:?}", &self.actors);
+
+                            None
+                        }
+                    },
                 };
 
                 if let Some(sc) = sc {
