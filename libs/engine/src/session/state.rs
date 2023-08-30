@@ -266,19 +266,25 @@ impl<'a> SavesEntities<'a> {
                 };
 
                 let sc = match from_entity {
-                    (None, None) => todo!(),
+                    (None, None) => {
+                        warn!("no owner/creator");
+
+                        None
+                    }
                     (None, Some(_)) => todo!(),
                     (Some(_), None) => todo!(),
-                    (Some(owner), Some(creator)) => SecurityContext {
+                    (Some(owner), Some(creator)) => Some(SecurityContext {
                         actor: EntityKey::new(""),
                         owner: owner.key().clone(),
                         creator: creator.key().clone(),
-                    },
+                    }),
                 };
 
-                self.apply_permissions(sc, &modified.paths, acls)?;
+                if let Some(sc) = sc {
+                    self.apply_permissions(sc, &modified.paths, acls)?;
 
-                info!("permitted");
+                    info!("permitted");
+                }
             }
 
             // Serialize to string now that we know we'll use this.
