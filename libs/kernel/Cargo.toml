@@ -10,6 +10,9 @@ doctest = false
 [dependencies.replies]
 path = "../replies"
 
+[dependencies.burrow-bon]
+path = "../bon"
+
 [dependencies]
 anyhow = "1.0.72"
 thiserror = "1.0.44"

@@ -7,6 +7,7 @@ use std::{
 use thiserror::Error;
 use tracing::*;
 
+pub use burrow_bon::prelude::Acls;
 pub use replies::JsonValue;
 
 pub static WORLD_KEY: &str = "world";
@@ -197,17 +198,6 @@ impl EntityClass {
     pub fn encyclopedia() -> Self {
         Self::new("scopes.EncyclopediaClass")
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct AclRule {
-    keys: Vec<String>,
-    perm: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-pub struct Acls {
-    rules: Vec<AclRule>,
 }
 
 #[derive(Debug)]

@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use burrow_bon::prelude::{Attempted, DottedPath, Policy, Scoured, SecurityContext};
 use chrono::Utc;
 use std::{
     cell::RefCell,
@@ -17,6 +18,7 @@ use kernel::prelude::*;
 #[derive(Default)]
 pub struct State {
     entities: Rc<Entities>,
+    actors: RefCell<Vec<EntityKey>>,
     raised: Rc<RefCell<Vec<Raised>>>,
     futures: Rc<RefCell<Vec<FutureAction>>>,
     destroyed: RefCell<Vec<EntityKey>>,
@@ -54,7 +56,8 @@ impl State {
     }
 
     pub(crate) fn write_expected(&self) -> bool {
-        self.write_expected.load(core::sync::atomic::Ordering::Relaxed)
+        self.write_expected
+            .load(core::sync::atomic::Ordering::Relaxed)
     }
 
     pub(crate) fn lookup_entity(&self, lookup: &LookupBy) -> Result<Option<EntityPtr>> {
@@ -74,6 +77,7 @@ impl State {
     fn flush_entities(&self, storage: &Rc<dyn Storage>) -> Result<bool> {
         let mut destroyed = self.destroyed.borrow_mut();
         let saves = SavesEntities {
+            actors: self.actors.borrow().clone(),
             storage,
             destroyed: &destroyed,
         };
@@ -155,6 +159,12 @@ impl State {
 
         Ok(())
     }
+
+    fn include_actor(&self, actor: &EntityPtr) -> Result<()> {
+        self.actors.borrow_mut().push(actor.key());
+
+        Ok(())
+    }
 }
 
 impl Performer for State {
@@ -167,6 +177,10 @@ impl Performer for State {
                 PerformAction::Instance(action) => {
                     let _span = span!(Level::DEBUG, "A").entered();
                     info!("action:perform {:?}", &action);
+
+                    let actor = surroundings.actor();
+                    self.include_actor(actor)?;
+
                     let res = action.perform(get_my_session()?, &surroundings);
                     if let Ok(effect) = &res {
                         if !action.is_read_only() {
@@ -210,11 +224,30 @@ impl Performer for State {
 pub struct ModifiedEntity(PersistedEntity);
 
 pub struct SavesEntities<'a> {
+    pub actors: Vec<EntityKey>,
     pub storage: &'a Rc<dyn Storage>,
     pub destroyed: &'a Vec<EntityKey>,
 }
 
 impl<'a> SavesEntities<'a> {
+    fn apply_permissions(
+        &self,
+        sc: SecurityContext<EntityKey>,
+        modified: &[DottedPath],
+        acls: Vec<Scoured<Acls>>,
+    ) -> Result<()> {
+        let policy = Policy::new(acls, sc);
+        for path in modified {
+            // TODO Easy elim-clone
+            match policy.allows(Attempted::Write(path.clone())) {
+                Some(denied) => warn!("{:?} {:?}", denied, path),
+                None => {}
+            }
+        }
+
+        Ok(())
+    }
+
     fn check_for_changes(&self, l: &mut LoadedEntity) -> Result<Option<ModifiedEntity>> {
         use kernel::model::compare::*;
 
@@ -224,9 +257,40 @@ impl<'a> SavesEntities<'a> {
             before: l.serialized.as_ref().map(Original::String),
             after: l.entity.clone(),
         })? {
-            if let Some(acls) = kernel::perms::find_acls(&modified.before) {
-                for acl in acls {
-                    trace!("{:?}", &acl.path);
+            if let Some(acls) = burrow_bon::prelude::find_acls(&modified.before) {
+                let from_entity = {
+                    let entity = l.entity.borrow();
+                    let owner = entity.owner().cloned();
+                    let creator = entity.creator().cloned();
+                    (owner, creator)
+                };
+
+                let sc = match from_entity {
+                    (None, None) => {
+                        warn!("no owner/creator");
+
+                        None
+                    }
+                    (None, Some(_)) => todo!(),
+                    (Some(_), None) => todo!(),
+                    (Some(owner), Some(creator)) => match &self.actors.as_slice() {
+                        [actor] => Some(SecurityContext {
+                            actor: actor.clone(),
+                            owner: owner.key().clone(),
+                            creator: creator.key().clone(),
+                        }),
+                        _ => {
+                            warn!("expected 1 actor {:?}", &self.actors);
+
+                            None
+                        }
+                    },
+                };
+
+                if let Some(sc) = sc {
+                    self.apply_permissions(sc, &modified.paths, acls)?;
+
+                    info!("permitted");
                 }
             }
 

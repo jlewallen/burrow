@@ -28,6 +28,15 @@ impl Entity {
         Ok(serde_json::from_value(value)?)
     }
 
+    // TODO I completely forgot that this wasn't represented.
+    pub fn owner(&self) -> Option<&EntityRef> {
+        self.creator.as_ref()
+    }
+
+    pub fn creator(&self) -> Option<&EntityRef> {
+        self.creator.as_ref()
+    }
+
     pub(super) fn new_heavily_customized(
         key: EntityKey,
         class: EntityClass,

@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "libs/bon",
     "libs/macros",
     "libs/replies",
     "libs/kernel",

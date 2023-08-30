@@ -7,6 +7,9 @@ edition = "2021"
 [lib]
 doctest = false
 
+[dependencies.burrow-bon]
+path = "../bon"
+
 [dependencies.kernel]
 path = "../kernel"
 

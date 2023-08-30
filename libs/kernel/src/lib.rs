@@ -3,7 +3,6 @@ mod diags;
 pub mod actions;
 pub mod hooks;
 pub mod model;
-pub mod perms;
 pub mod plugins;
 pub mod session;
 pub mod surround;
