@@ -51,6 +51,12 @@ mod core {
         }
     }
 
+    impl From<Vec<String>> for DottedPath {
+        fn from(value: Vec<String>) -> Self {
+            Self(value.into_iter().collect())
+        }
+    }
+
     impl From<Vec<&str>> for DottedPath {
         fn from(value: Vec<&str>) -> Self {
             Self(value.into_iter().map(|v| v.to_owned()).collect())
@@ -138,7 +144,8 @@ mod scour {
 mod perms;
 
 pub mod prelude {
-    pub use crate::core::JsonValue;
+    pub use crate::core::{DottedPath, JsonValue};
     pub use crate::perms::{find_acls, AclRule, Acls};
-    pub use crate::perms::{HasSecurityContext, Policy, SecurityContext};
+    pub use crate::perms::{Attempted, Denied, HasSecurityContext, Policy, SecurityContext};
+    pub use crate::scour::Scoured; // TODO Remove this
 }

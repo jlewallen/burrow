@@ -28,7 +28,6 @@ pub struct AclRule {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct Acls {
     #[serde(default)]
-    //#[serde(skip)]
     rules: Vec<AclRule>,
 }
 
@@ -76,7 +75,7 @@ pub fn find_acls(value: &JsonValue) -> Option<Vec<Scoured<Acls>>> {
     })
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SecurityContext<P> {
     pub actor: P,
     pub owner: P,
@@ -178,7 +177,7 @@ where
 }
 
 pub trait HasSecurityContext<P> {
-    fn security_context() -> SecurityContext<P>;
+    fn security_context(&self) -> SecurityContext<P>;
 }
 
 #[cfg(test)]
