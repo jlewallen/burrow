@@ -161,7 +161,11 @@ impl State {
     }
 
     fn include_actor(&self, actor: &EntityPtr) -> Result<()> {
-        self.actors.borrow_mut().push(actor.key());
+        let key = actor.key();
+        let mut actors = self.actors.borrow_mut();
+        if !actors.contains(&key) {
+            actors.push(actor.key());
+        }
 
         Ok(())
     }
