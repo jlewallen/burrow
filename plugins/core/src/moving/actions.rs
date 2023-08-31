@@ -3,7 +3,7 @@ use std::rc::Rc;
 use crate::library::actions::*;
 use crate::looking::actions::*;
 use crate::looking::model::Observe;
-use crate::moving::model::{AfterMoveHook, BeforeMovingHook, CanMove, MovingHooks, Route};
+use crate::moving::model::Route;
 
 use super::model::Occupyable;
 
@@ -19,56 +19,44 @@ impl GoAction {
         actor: EntityPtr,
         area: EntityPtr,
         to_area: EntityPtr,
-        surroundings: &Surroundings,
     ) -> ReplyResult {
-        let can = session
-            .hooks()
-            .invoke::<MovingHooks, CanMove, _>(|h| h.before_moving(surroundings, &to_area))?;
+        match tools::navigate_between(&area, &to_area, &actor)? {
+            true => {
+                let excluding = actor.key();
+                let hearing_arrive: Vec<_> = tools::get_occupant_keys(&to_area)?
+                    .into_iter()
+                    .filter(|v| *v != excluding)
+                    .collect();
 
-        match can {
-            CanMove::Allow => match tools::navigate_between(&area, &to_area, &actor)? {
-                true => {
-                    session
-                        .hooks()
-                        .invoke::<MovingHooks, (), _>(|h| h.after_move(surroundings, &area))?;
+                session.raise(
+                    Some(actor.clone()),
+                    Audience::Area(area.key().clone()),
+                    Raising::TaggedJson(
+                        Moving::Left {
+                            actor: (&actor).observe(&actor)?.expect("No observed entity"),
+                            area: (&area).observe(&actor)?.expect("No observed entity"),
+                        }
+                        .to_tagged_json()?,
+                    ),
+                )?;
+                session.raise(
+                    Some(actor.clone()),
+                    Audience::Individuals(hearing_arrive),
+                    Raising::TaggedJson(
+                        Moving::Arrived {
+                            actor: (&actor).observe(&actor)?.expect("No observed entity"),
+                            area: (&to_area).observe(&actor)?.expect("No observed entity"),
+                        }
+                        .to_tagged_json()?,
+                    ),
+                )?;
 
-                    let excluding = actor.key();
-                    let hearing_arrive: Vec<_> = tools::get_occupant_keys(&to_area)?
-                        .into_iter()
-                        .filter(|v| *v != excluding)
-                        .collect();
-
-                    session.raise(
-                        Some(actor.clone()),
-                        Audience::Area(area.key().clone()),
-                        Raising::TaggedJson(
-                            Moving::Left {
-                                actor: (&actor).observe(&actor)?.expect("No observed entity"),
-                                area: (&area).observe(&actor)?.expect("No observed entity"),
-                            }
-                            .to_tagged_json()?,
-                        ),
-                    )?;
-                    session.raise(
-                        Some(actor.clone()),
-                        Audience::Individuals(hearing_arrive),
-                        Raising::TaggedJson(
-                            Moving::Arrived {
-                                actor: (&actor).observe(&actor)?.expect("No observed entity"),
-                                area: (&to_area).observe(&actor)?.expect("No observed entity"),
-                            }
-                            .to_tagged_json()?,
-                        ),
-                    )?;
-
-                    Ok(session.perform(Perform::Actor {
-                        actor,
-                        action: PerformAction::Instance(Rc::new(LookAction {})),
-                    })?)
-                }
-                false => Ok(SimpleReply::NotFound.try_into()?),
-            },
-            CanMove::Prevent => Ok(SimpleReply::Prevented(None).try_into()?),
+                Ok(session.perform(Perform::Actor {
+                    actor,
+                    action: PerformAction::Instance(Rc::new(LookAction {})),
+                })?)
+            }
+            false => Ok(SimpleReply::NotFound.try_into()?),
         }
     }
 }
@@ -89,7 +77,7 @@ impl Action for GoAction {
                     Some(route) => match route {
                         Route::Simple(to_area) => {
                             let to_area = to_area.destination().to_entity()?;
-                            self.navigate(session, actor, area, to_area, surroundings)
+                            self.navigate(session, actor, area, to_area)
                         }
                         Route::Deactivated(reason, _) => {
                             Ok(SimpleReply::Prevented(Some(reason.clone())).try_into()?)
@@ -99,7 +87,7 @@ impl Action for GoAction {
                         match session.find_item(surroundings, &Item::Named(route.to_owned()))? {
                             Some(maybe) => {
                                 if maybe.scope::<Occupyable>()?.is_some() {
-                                    self.navigate(session, actor, area, maybe, surroundings)
+                                    self.navigate(session, actor, area, maybe)
                                 } else {
                                     Ok(SimpleReply::NotFound.try_into()?)
                                 }
@@ -109,7 +97,7 @@ impl Action for GoAction {
                     }
                 },
                 Item::Gid(_) => match session.find_item(surroundings, &self.item)? {
-                    Some(to_area) => self.navigate(session, actor, area, to_area, surroundings),
+                    Some(to_area) => self.navigate(session, actor, area, to_area),
                     None => Ok(SimpleReply::NotFound.try_into()?),
                 },
                 _ => panic!("Occupyable::find_route expecting Item::Route or Item::Gid"),

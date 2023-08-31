@@ -160,10 +160,6 @@ impl ActiveSession for AgentSession {
         Ok(())
     }
 
-    fn hooks(&self) -> &kernel::prelude::ManagedHooks {
-        unimplemented!("AgentSession:hooks")
-    }
-
     fn schedule(&self, destined: FutureAction) -> Result<(), DomainError> {
         let mut futures = self.futures.borrow_mut();
         futures.push(destined);
