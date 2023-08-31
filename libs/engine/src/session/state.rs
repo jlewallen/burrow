@@ -275,7 +275,11 @@ impl<'a> SavesEntities<'a> {
 
                         None
                     }
-                    (None, Some(_)) => todo!(),
+                    (None, Some(_creator)) => {
+                        warn!("no owner");
+
+                        None
+                    }
                     (Some(_), None) => todo!(),
                     (Some(owner), Some(creator)) => match &self.actors.as_slice() {
                         [actor] => Some(SecurityContext {
