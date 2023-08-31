@@ -14,6 +14,7 @@ pub struct EntityBuilder {
     parent: Option<EntityRef>,
     identity: Option<Identity>,
     creator: Option<EntityRef>,
+    owner: Option<EntityRef>,
     scopes: Option<ScopeMap>,
     properties: Properties,
 }
@@ -30,6 +31,7 @@ impl EntityBuilder {
             key: None,
             parent: None,
             creator: None,
+            owner: None,
             identity: None,
             scopes: None,
             class: EntityClass::item(),
@@ -143,11 +145,13 @@ impl TryInto<Entity> for EntityBuilder {
         map.extend(props);
 
         let scopes: ScopeMap = map.into();
+        let owner = self.owner.or_else(|| self.creator.clone());
         Ok(Entity::new_heavily_customized(
             key,
             self.class,
             identity,
             self.creator,
+            owner,
             self.parent,
             scopes,
         ))

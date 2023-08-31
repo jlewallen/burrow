@@ -16,6 +16,7 @@ expression: domain.snapshot().await?
       "public": "Public#0"
     },
     "key": "world",
+    "owner": null,
     "parent": null,
     "scopes": {
       "identifiers": {
@@ -56,6 +57,7 @@ expression: domain.snapshot().await?
       "public": "Public#1"
     },
     "key": "E-0",
+    "owner": null,
     "parent": null,
     "scopes": {
       "occupyable": {
@@ -100,6 +102,7 @@ expression: domain.snapshot().await?
       "public": "Public#2"
     },
     "key": "E-1",
+    "owner": null,
     "parent": null,
     "scopes": {
       "carryable": {
@@ -146,6 +149,7 @@ expression: domain.snapshot().await?
       "public": "Public#4"
     },
     "key": "E-2",
+    "owner": null,
     "parent": null,
     "scopes": {
       "carryable": {
@@ -204,6 +208,7 @@ expression: domain.snapshot().await?
       "public": "Public#6"
     },
     "key": "E-3",
+    "owner": null,
     "parent": null,
     "scopes": {
       "containing": {
@@ -256,6 +261,7 @@ expression: domain.snapshot().await?
       "public": "Public#7"
     },
     "key": "E-4",
+    "owner": null,
     "parent": null,
     "scopes": {
       "containing": {

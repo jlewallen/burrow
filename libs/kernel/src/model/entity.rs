@@ -6,6 +6,21 @@ use std::str::FromStr;
 use super::base::{Acls, DomainError, EntityClass, EntityKey, Identity, JsonValue};
 use super::{EntityRef, LoadAndStoreScope, ScopeMap, ScopeValue, StoreScope};
 
+#[derive(Clone, Serialize, Deserialize)]
+pub struct AddAcls<T> {
+    acls: Acls,
+    value: T,
+}
+
+impl<T> From<T> for AddAcls<T> {
+    fn from(value: T) -> Self {
+        Self {
+            acls: Acls::default(),
+            value,
+        }
+    }
+}
+
 /// Central Entity model. Right now, the only thing that is ever modified at
 /// this level is `version` and even that could easily be swept into a scope.
 /// It's even possible that 'version' is removed, as we need to track the value
@@ -19,6 +34,7 @@ pub struct Entity {
     identity: Identity,
     pub(super) class: EntityClass,
     pub(super) creator: Option<EntityRef>,
+    pub(super) owner: Option<AddAcls<EntityRef>>,
     pub(super) parent: Option<EntityRef>,
     pub(super) scopes: HashMap<String, ScopeValue>,
 }
@@ -28,9 +44,8 @@ impl Entity {
         Ok(serde_json::from_value(value)?)
     }
 
-    // TODO I completely forgot that this wasn't represented.
     pub fn owner(&self) -> Option<&EntityRef> {
-        self.creator.as_ref()
+        self.owner.as_ref().map(|v| &v.value)
     }
 
     pub fn creator(&self) -> Option<&EntityRef> {
@@ -42,6 +57,7 @@ impl Entity {
         class: EntityClass,
         identity: Identity,
         creator: Option<EntityRef>,
+        owner: Option<EntityRef>,
         parent: Option<EntityRef>,
         scopes: ScopeMap,
     ) -> Self {
@@ -51,6 +67,7 @@ impl Entity {
             class,
             identity,
             creator,
+            owner: owner.map(|v| v.into()),
             parent,
             scopes: scopes.into(),
         }
