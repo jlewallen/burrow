@@ -23,9 +23,13 @@ impl<T> Scoured<T> {
     pub fn into(self) -> T {
         self.value
     }
+
+    pub fn value(&self) -> &T {
+        &self.value
+    }
 }
 
-pub(crate) fn scour<T>(value: &JsonValue) -> Option<Vec<Scoured<T>>>
+pub fn scour<T>(value: &JsonValue) -> Option<Vec<Scoured<T>>>
 where
     T: DeserializeOwned,
 {
