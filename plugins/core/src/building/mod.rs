@@ -44,6 +44,7 @@ impl Plugin for BuildingPlugin {
             .action::<actions::MakeItemAction>()
             .action::<actions::BuildAreaAction>()
             .action::<actions::AddScopeAction>()
+            .action::<actions::ChangeOwnerAction>()
     }
 
     fn sources(&self) -> Vec<Box<dyn ActionSource>> {
@@ -61,6 +62,7 @@ impl ParsesActions for BuildingPlugin {
             .or_else(|_| try_parsing(parser::MakeItemParser {}, i))
             .or_else(|_| try_parsing(parser::BuildAreaParser {}, i))
             .or_else(|_| try_parsing(parser::ScopeActionParser {}, i))
+            .or_else(|_| try_parsing(parser::ChangeOwnerActionParser {}, i))
     }
 }
 
@@ -81,7 +83,8 @@ impl ActionSource for SaveActionSource {
             actions::MakeItemAction,
             actions::BuildAreaAction,
             actions::AddScopeAction,
-            actions::ObliterateAction
+            actions::ObliterateAction,
+            actions::ChangeOwnerAction
         );
 
         Ok(None)
