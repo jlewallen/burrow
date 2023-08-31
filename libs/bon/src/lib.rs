@@ -46,6 +46,65 @@ pub mod prelude {
         }
     }
 
+    #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+    #[serde(rename_all = "camelCase")]
+    pub struct JsonTemplate(JsonValue);
+
+    pub const JSON_TEMPLATE_VALUE_SENTINEL: &str = "!#$value";
+
+    impl JsonTemplate {
+        pub fn instantiate(self, value: &JsonValue) -> JsonValue {
+            match self.0 {
+                JsonValue::Null | JsonValue::Bool(_) | JsonValue::Number(_) => self.0,
+                JsonValue::String(s) => {
+                    if s == JSON_TEMPLATE_VALUE_SENTINEL {
+                        value.clone()
+                    } else {
+                        JsonValue::String(s)
+                    }
+                }
+                JsonValue::Array(v) => JsonValue::Array(
+                    v.into_iter()
+                        .map(|c| JsonTemplate(c).instantiate(value))
+                        .collect(),
+                ),
+                JsonValue::Object(v) => JsonValue::Object(
+                    v.into_iter()
+                        .map(|(k, v)| (k, JsonTemplate(v).instantiate(value)))
+                        .collect(),
+                ),
+            }
+        }
+    }
+
+    impl HasTag for JsonTemplate {
+        fn tag() -> std::borrow::Cow<'static, str>
+        where
+            Self: Sized,
+        {
+            "jsonTemplate".into()
+        }
+    }
+
+    impl ToTaggedJson for JsonTemplate {
+        fn to_tagged_json(&self) -> Result<TaggedJson, TaggedJsonError> {
+            let value = serde_json::to_value(self)?;
+            Ok(TaggedJson::new(Self::tag().to_string(), value.into()))
+        }
+    }
+
+    impl From<JsonValue> for JsonTemplate {
+        fn from(value: JsonValue) -> Self {
+            Self(value)
+        }
+    }
+
+    impl From<TaggedJson> for JsonTemplate {
+        fn from(value: TaggedJson) -> Self {
+            Self(value.into_tagged())
+        }
+    }
+
     use std::borrow::Cow;
 
     pub fn identifier_to_key(id: &'static str) -> Cow<'static, str> {

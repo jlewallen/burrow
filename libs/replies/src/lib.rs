@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use macros::*;
 
 pub use burrow_bon::prelude::{
-    identifier_to_key, DeserializeTagged, HasTag, Json, JsonValue, TaggedJson, TaggedJsonError,
-    ToTaggedJson,
+    identifier_to_key, DeserializeTagged, HasTag, Json, JsonTemplate, JsonValue, TaggedJson,
+    TaggedJsonError, ToTaggedJson, JSON_TEMPLATE_VALUE_SENTINEL,
 };
 
 pub trait Reply {}
@@ -74,49 +74,6 @@ impl std::fmt::Debug for WorkingCopy {
             Self::Json(_) => f.debug_tuple("Json").finish(),
             Self::Script(_) => f.debug_tuple("Script").finish(),
         }
-    }
-}
-
-#[derive(Clone, Serialize, Deserialize, PartialEq, ToTaggedJson, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct JsonTemplate(JsonValue);
-
-pub const JSON_TEMPLATE_VALUE_SENTINEL: &str = "!#$value";
-
-impl JsonTemplate {
-    pub fn instantiate(self, value: &JsonValue) -> JsonValue {
-        match self.0 {
-            JsonValue::Null | JsonValue::Bool(_) | JsonValue::Number(_) => self.0,
-            JsonValue::String(s) => {
-                if s == JSON_TEMPLATE_VALUE_SENTINEL {
-                    value.clone()
-                } else {
-                    JsonValue::String(s)
-                }
-            }
-            JsonValue::Array(v) => JsonValue::Array(
-                v.into_iter()
-                    .map(|c| JsonTemplate(c).instantiate(value))
-                    .collect(),
-            ),
-            JsonValue::Object(v) => JsonValue::Object(
-                v.into_iter()
-                    .map(|(k, v)| (k, JsonTemplate(v).instantiate(value)))
-                    .collect(),
-            ),
-        }
-    }
-}
-
-impl From<JsonValue> for JsonTemplate {
-    fn from(value: JsonValue) -> Self {
-        Self(value)
-    }
-}
-
-impl From<TaggedJson> for JsonTemplate {
-    fn from(value: TaggedJson) -> Self {
-        Self(value.into_tagged())
     }
 }
 
