@@ -253,7 +253,7 @@ impl<'a> SavesEntities<'a> {
     }
 
     fn check_for_changes(&self, l: &mut LoadedEntity) -> Result<Option<ModifiedEntity>> {
-        use kernel::model::compare::*;
+        use burrow_bon::prelude::{AnyChanges, Original};
 
         let _span = span!(Level::INFO, "flushing", key = l.key.to_string()).entered();
 

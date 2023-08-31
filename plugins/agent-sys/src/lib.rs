@@ -2,9 +2,11 @@ use anyhow::Result;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use tracing::*;
 
-pub use rpc_proto::{EntityUpdate, IncomingMessage, LookupBy, Payload, Query};
-
 use kernel::prelude::*;
+
+use burrow_bon::prelude::{AnyChanges, Original};
+
+pub use rpc_proto::{EntityUpdate, IncomingMessage, LookupBy, Payload, Query};
 
 pub use kernel::prelude::{Effect, Perform};
 

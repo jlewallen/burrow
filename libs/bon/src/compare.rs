@@ -1,8 +1,6 @@
-use anyhow::Result;
 use thiserror::Error;
-use tracing::*;
 
-use burrow_bon::prelude::{DottedPaths, JsonValue};
+use crate::prelude::{DottedPaths, JsonValue};
 
 pub struct AnyChanges<B, A> {
     pub before: B,
@@ -74,10 +72,12 @@ impl CompareChanges<JsonValue, JsonValue> for TreeDiff {
                 .map(|v| v.into())
                 .collect();
 
+            /*
             if !paths.is_empty() {
                 let prefixes: Vec<String> = paths.clone().truncate(3).into();
                 info!(prefixes = ?prefixes, npaths = %paths.len(), "modifications");
             }
+            */
 
             Ok(Some(Modified {
                 paths,

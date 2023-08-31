@@ -95,7 +95,6 @@ impl std::fmt::Debug for EntityRef {
 #[derive(Default, Deserialize, Debug)]
 struct PotentialRef {
     key: Option<String>,
-    #[serde(rename = "klass")] // TODO Python name collision.
     class: Option<String>,
     name: Option<String>,
     gid: Option<EntityGid>,
@@ -126,33 +125,13 @@ impl PotentialRef {
 }
 
 pub fn find_entity_refs(value: &JsonValue) -> Option<Vec<EntityRef>> {
-    match value {
-        JsonValue::Null => None,
-        JsonValue::Bool(_) => None,
-        JsonValue::Number(_) => None,
-        JsonValue::String(_) => None,
-        JsonValue::Array(array) => {
-            Some(array.iter().flat_map(find_entity_refs).flatten().collect())
-        }
-        JsonValue::Object(o) => {
-            let potential = serde_json::from_value::<PotentialRef>(value.clone());
-
-            // If this object is an EntityRef, we can stop looking, otherwise we
-            // need to keep going deeper.
-
-            if let Ok(potential) = potential {
-                if let Some(entity_ref) = potential.good_enough() {
-                    return Some(vec![entity_ref]);
-                }
-            }
-
-            Some(
-                o.iter()
-                    .flat_map(|(_k, v)| find_entity_refs(v))
-                    .flatten()
-                    .collect(),
-            )
-        }
+    match burrow_bon::prelude::scour::<PotentialRef>(value) {
+        Some(refs) => Some(
+            refs.into_iter()
+                .flat_map(|p| p.into().good_enough())
+                .collect(),
+        ),
+        None => None,
     }
 }
 
