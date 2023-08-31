@@ -48,6 +48,17 @@ impl Entity {
         self.owner.as_ref().map(|v| &v.value)
     }
 
+    pub fn chown(&mut self, owner: EntityRef) {
+        // Funny enough, this is a reminder that it should be impossible to remove acls blocks w/o permission.
+        tracing::info!("chown");
+        let acls = self
+            .owner
+            .as_ref()
+            .map(|o| o.acls.clone())
+            .unwrap_or_else(Acls::default);
+        self.owner = Some(AddAcls { acls, value: owner });
+    }
+
     pub fn creator(&self) -> Option<&EntityRef> {
         self.creator.as_ref()
     }
