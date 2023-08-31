@@ -95,7 +95,6 @@ impl std::fmt::Debug for EntityRef {
 #[derive(Default, Deserialize, Debug)]
 struct PotentialRef {
     key: Option<String>,
-    #[serde(rename = "klass")] // TODO Python name collision.
     class: Option<String>,
     name: Option<String>,
     gid: Option<EntityGid>,
