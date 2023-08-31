@@ -10,7 +10,6 @@ use std::{
 
 pub mod base;
 pub mod builder;
-pub mod compare;
 pub mod entity;
 pub mod entity_ref;
 pub mod props;
@@ -135,12 +134,12 @@ pub trait EntityPtrResolver {
     }
 }
 
-use compare::{AnyChanges, CompareChanges, CompareError, Modified, Original};
+use burrow_bon::prelude::{AnyChanges, CompareChanges, CompareError, Modified, Original};
 
 pub fn any_entity_changes(
     l: AnyChanges<Option<Original>, EntityPtr>,
 ) -> Result<Option<Modified>, CompareError> {
-    use compare::TreeDiff;
+    use burrow_bon::prelude::TreeDiff;
 
     let value_after = {
         let entity = l.after.borrow();

@@ -1,9 +1,13 @@
+mod compare;
 mod dotted;
 mod perms;
 mod scour;
 mod tagged;
 
 pub mod prelude {
+    pub use crate::compare::{
+        AnyChanges, CompareChanges, CompareError, Modified, Original, TreeDiff,
+    };
     pub use crate::dotted::{DottedPath, DottedPaths, JsonValue};
     pub use crate::perms::{find_acls, AclRule, Acls};
     pub use crate::perms::{Attempted, Denied, HasSecurityContext, Policy, SecurityContext};
