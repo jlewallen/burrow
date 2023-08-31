@@ -103,8 +103,4 @@ impl ActiveSession for KeysOnlySession {
     ) -> Result<Option<Box<dyn Action>>, serde_json::Error> {
         todo!()
     }
-
-    fn hooks(&self) -> &ManagedHooks {
-        todo!()
-    }
 }

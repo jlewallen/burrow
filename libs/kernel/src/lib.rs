@@ -1,7 +1,6 @@
 mod diags;
 
 pub mod actions;
-pub mod hooks;
 pub mod model;
 pub mod plugins;
 pub mod session;
@@ -18,7 +17,6 @@ pub mod prelude {
 
     pub use crate::actions::*;
     pub use crate::finder::*;
-    pub use crate::hooks::*;
     pub use crate::model::*;
     pub use crate::plugins::*;
     pub use crate::session::*;

@@ -63,7 +63,6 @@ pub struct Session {
     registered_plugins: Arc<RegisteredPlugins>,
     plugins: Arc<RefCell<SessionPlugins>>,
     middleware: Arc<RefCell<Vec<Rc<dyn Middleware>>>>,
-    hooks: ManagedHooks,
     keys: Arc<dyn Sequence<EntityKey>>,
     identities: Arc<dyn Sequence<Identity>>,
     state: Rc<State>,
@@ -118,8 +117,6 @@ impl Session {
             .collect();
         let middleware = Arc::new(RefCell::new(middleware));
 
-        let hooks = ManagedHooks::default();
-
         let session = Rc::new_cyclic(move |weak: &Weak<Session>| Self {
             opened,
             storage,
@@ -130,7 +127,6 @@ impl Session {
             registered_plugins: deps.registered_plugins,
             plugins,
             middleware,
-            hooks,
             keys: Arc::clone(&deps.keys),
             identities: Arc::clone(&deps.identities),
             state: Default::default(),
@@ -470,10 +466,6 @@ impl ActiveSession for Session {
         let perform = Perform::Schedule(destined);
 
         self.perform(perform).map(|_| ())
-    }
-
-    fn hooks(&self) -> &ManagedHooks {
-        &self.hooks
     }
 }
 

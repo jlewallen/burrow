@@ -5,7 +5,6 @@ use std::{cell::RefCell, rc::Rc};
 use replies::TaggedJson;
 
 use crate::actions::{Action, FutureAction, Performer};
-use crate::hooks::ManagedHooks;
 use crate::model::Entity;
 use crate::model::{
     Audience, DomainError, EntityKey, EntityPtr, EntityPtrResolver, Identity, Item,
@@ -54,8 +53,6 @@ pub trait ActiveSession: Performer + EntityPtrResolver {
         &self,
         value: &TaggedJson,
     ) -> Result<Option<Box<dyn Action>>, serde_json::Error>;
-
-    fn hooks(&self) -> &ManagedHooks;
 }
 
 thread_local! {
