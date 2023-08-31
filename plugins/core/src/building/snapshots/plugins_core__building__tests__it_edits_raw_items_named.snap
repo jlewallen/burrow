@@ -20,6 +20,7 @@ expression: reply.to_debug_json()?
               "public": "Public#4"
             },
             "key": "E-3",
+            "owner": null,
             "parent": null,
             "scopes": {
               "carryable": {

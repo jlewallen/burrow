@@ -387,3 +387,46 @@ impl Action for BuildAreaAction {
         Ok(reply.try_into()?)
     }
 }
+
+#[action]
+pub struct ChangeOwnerAction {
+    pub item: Item,
+    pub owner: Item,
+}
+
+impl ChangeOwnerAction {
+    fn assure_ownable(&self, item: EntityPtr) -> Option<EntityPtr> {
+        if item.with(|item| item.class() != EntityClass::living().name) {
+            Some(item)
+        } else {
+            None
+        }
+    }
+}
+
+impl Action for ChangeOwnerAction {
+    fn is_read_only(&self) -> bool {
+        false
+    }
+
+    fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+        match session.find_item(surroundings, &self.item)? {
+            Some(item) => match self.assure_ownable(item) {
+                Some(item) => match session.find_item(surroundings, &self.owner)? {
+                    Some(owner) => {
+                        // Only restricting people's ownerhship being modified.
+                        // Not sure if we need to restrict who/what can be an
+                        // owner, though?
+                        let mut item = item.borrow_mut();
+                        item.chown(owner.entity_ref());
+
+                        Ok(SimpleReply::Done.try_into()?)
+                    }
+                    None => Ok(SimpleReply::NotFound.try_into()?),
+                },
+                None => Ok(SimpleReply::Impossible.try_into()?),
+            },
+            None => Ok(SimpleReply::NotFound.try_into()?),
+        }
+    }
+}

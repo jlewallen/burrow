@@ -65,6 +65,16 @@ impl EntityPtr {
     pub fn to_json_value(&self) -> Result<JsonValue, DomainError> {
         self.0.borrow().to_json_value()
     }
+
+    pub fn with<V, F: FnOnce(&Entity) -> V>(&self, f: F) -> V {
+        let e = self.0.borrow();
+        f(&e)
+    }
+
+    pub fn with_mut<V, F: FnOnce(&mut Entity) -> V>(&self, f: F) -> V {
+        let mut e = self.0.borrow_mut();
+        f(&mut e)
+    }
 }
 
 impl From<Rc<RefCell<Entity>>> for EntityPtr {

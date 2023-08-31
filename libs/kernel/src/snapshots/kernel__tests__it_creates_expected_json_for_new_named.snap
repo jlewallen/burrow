@@ -21,6 +21,17 @@ expression: "[world.to_json_value()?, jacob.to_json_value()?]"
       "public": ""
     },
     "key": "E-1",
+    "owner": {
+      "acls": {
+        "rules": []
+      },
+      "value": {
+        "class": "scopes.WorldClass",
+        "gid": null,
+        "key": "E-0",
+        "name": "Jacob"
+      }
+    },
     "parent": null,
     "scopes": {
       "props": {
@@ -50,6 +61,7 @@ expression: "[world.to_json_value()?, jacob.to_json_value()?]"
       "public": ""
     },
     "key": "E-0",
+    "owner": null,
     "parent": null,
     "scopes": {
       "props": {
