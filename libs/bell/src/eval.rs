@@ -177,7 +177,7 @@ impl<'a> Evaluator<'a> {
                 if let Some(var) = self.scope.get(name) {
                     Ok(var.clone())
                 } else {
-                    Ok(Value::Null)
+                    Err(EvaluationError::NotFound(name.to_owned()))
                 }
             }
             Expr::Option(child) => match child
@@ -224,19 +224,21 @@ impl<'a> Evaluator<'a> {
     }
 }
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq)]
 pub enum EvaluationError {
     #[error("Invalid field")]
     InvalidField(String),
     #[error("Invalid cast")]
     InvalidCast,
+    #[error("Not found {0}")]
+    NotFound(String),
 }
 
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
 
-    use crate::eval::{Evaluator, Value};
+    use crate::eval::{EvaluationError, Evaluator, Value};
 
     #[test]
     fn test_evaluate_literals() {
@@ -361,6 +363,9 @@ mod tests {
         assert_eq!(evaluator.eval(&tree).unwrap(), Value::Integer(100));
 
         let tree = crate::parse::parse("healt").unwrap();
-        assert_eq!(evaluator.eval(&tree).unwrap(), Value::Null);
+        assert_eq!(
+            evaluator.eval(&tree).err().unwrap(),
+            EvaluationError::NotFound("healt".to_owned())
+        );
     }
 }
