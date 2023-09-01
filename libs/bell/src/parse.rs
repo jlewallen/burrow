@@ -24,6 +24,7 @@ pub enum Expr {
     Integer(i64),
     Real(f64),
     Variable(String),
+    Option(Option<Box<Expr>>),
     FieldAccess {
         receiver: Box<Expr>,
         name: String,
@@ -90,6 +91,21 @@ fn parse_numeric_literal(i: &str) -> IResult<&str, Expr> {
     alt((float, integer))(i)
 }
 
+fn parse_none_literal(i: &str) -> IResult<&str, Expr> {
+    alt((map(alt((tag("none"), tag("None"))), |_| Expr::Option(None)),))(i)
+}
+
+fn parse_some_expr(i: &str) -> IResult<&str, Expr> {
+    let some = alt((tag("some"), tag("Some")));
+    let args = delimited(
+        tag("("),
+        map(parse_expr, |e| Expr::Option(Some(e.into()))),
+        tag(")"),
+    );
+
+    preceded(some, args)(i)
+}
+
 fn parse_boolean_literal(i: &str) -> IResult<&str, Expr> {
     alt((
         map(tag("true"), |_| Expr::Bool(true)),
@@ -150,6 +166,8 @@ fn parse_atom(i: &str) -> IResult<&str, Expr> {
     alt((
         parse_numeric_literal,
         parse_boolean_literal,
+        parse_none_literal,
+        parse_some_expr,
         parse_variable,
         parse_parenthesized,
     ))(i)

@@ -191,3 +191,17 @@ pub fn test_complex_expressions() {
         }
     );
 }
+
+#[test]
+pub fn test_parse_optionals() {
+    assert_eq!(parse("none").unwrap(), Expr::Option(None));
+    assert_eq!(parse("None").unwrap(), Expr::Option(None));
+    assert_eq!(
+        parse("some(1)").unwrap(),
+        Expr::Option(Some(Expr::Integer(1).into()))
+    );
+    assert_eq!(
+        parse("Some(1)").unwrap(),
+        Expr::Option(Some(Expr::Integer(1).into()))
+    );
+}

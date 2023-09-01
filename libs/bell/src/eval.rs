@@ -13,6 +13,7 @@ pub enum Value {
     Bool(bool),
     Integer(i64),
     Real(f64),
+    Option(Option<Box<Value>>),
 }
 
 impl Value {
@@ -104,6 +105,7 @@ impl Neg for Value {
             Value::Bool(_) => todo!(),
             Value::Integer(value) => (-value).into(),
             Value::Real(value) => (-value).into(),
+            Value::Option(_) => todo!(),
         }
     }
 }
@@ -117,6 +119,7 @@ impl Not for Value {
             Value::Bool(value) => (!value).into(),
             Value::Integer(_) => todo!(),
             Value::Real(_) => todo!(),
+            Value::Option(_) => todo!(),
         }
     }
 }
@@ -166,6 +169,15 @@ impl<'a> Evaluator<'a> {
                     Ok(Value::Null)
                 }
             }
+            Expr::Option(child) => match child
+                .as_ref()
+                .map(|c| self.eval(c))
+                .map_or(Ok(None), |v| v.map(Some))?
+            {
+                Some(child) => Ok(Value::Option(Some(child.into()))),
+                None => Ok(Value::Option(None)),
+            },
+
             Expr::FieldAccess { receiver, name } => {
                 let receiver = self.eval(&receiver)?;
                 match receiver.try_field(name) {
