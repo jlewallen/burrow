@@ -6,6 +6,12 @@ pub fn test_empty_expression_is_error() {
 }
 
 #[test]
+pub fn test_boolean_literals() {
+    assert_eq!(parse("true").unwrap(), Expr::Bool(true));
+    assert_eq!(parse("false").unwrap(), Expr::Bool(false));
+}
+
+#[test]
 pub fn test_numeric_literals() {
     assert_eq!(parse("0").unwrap(), Expr::Integer(0));
     assert_eq!(parse("1").unwrap(), Expr::Integer(1));

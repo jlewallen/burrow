@@ -21,6 +21,7 @@ pub enum BinaryOperator {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr {
+    Bool(bool),
     Integer(i64),
     Real(f64),
     Variable(String),
@@ -90,6 +91,13 @@ fn parse_numeric_literal(i: &str) -> IResult<&str, Expr> {
     alt((float, integer))(i)
 }
 
+fn parse_boolean_literal(i: &str) -> IResult<&str, Expr> {
+    alt((
+        map(tag("true"), |_| Expr::Bool(true)),
+        map(tag("false"), |_| Expr::Bool(false)),
+    ))(i)
+}
+
 fn variable_identifier(i: &str) -> IResult<&str, &str> {
     take_while1(move |c| "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".contains(c))(i)
 }
@@ -141,7 +149,12 @@ fn parse_unary(i: &str) -> IResult<&str, Expr> {
 }
 
 fn parse_atom(i: &str) -> IResult<&str, Expr> {
-    alt((parse_numeric_literal, parse_variable, parse_parenthesized))(i)
+    alt((
+        parse_numeric_literal,
+        parse_boolean_literal,
+        parse_variable,
+        parse_parenthesized,
+    ))(i)
 }
 
 fn parse_expr(i: &str) -> IResult<&str, Expr> {
