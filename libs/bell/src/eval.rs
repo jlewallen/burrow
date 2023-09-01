@@ -40,6 +40,17 @@ impl From<f64> for Value {
     }
 }
 
+impl TryInto<bool> for Value {
+    type Error = EvaluationError;
+
+    fn try_into(self) -> Result<bool, Self::Error> {
+        match self {
+            Value::Bool(value) => Ok(value),
+            _ => unimplemented!(),
+        }
+    }
+}
+
 impl Add for Value {
     type Output = Self;
 
@@ -196,6 +207,12 @@ impl<'a> Evaluator<'a> {
                 BinaryOperator::Divide => Ok(self.eval(lhs)? / self.eval(rhs)?),
                 BinaryOperator::Equal => Ok((self.eval(lhs)? == self.eval(rhs)?).into()),
                 BinaryOperator::NotEqual => Ok((self.eval(lhs)? != self.eval(rhs)?).into()),
+                BinaryOperator::Or => {
+                    Ok((self.eval(lhs)?.try_into()? || self.eval(rhs)?.try_into()?).into())
+                }
+                BinaryOperator::And => {
+                    Ok((self.eval(lhs)?.try_into()? && self.eval(rhs)?.try_into()?).into())
+                }
                 BinaryOperator::GreaterThan => Ok((self.eval(lhs)? > self.eval(rhs)?).into()),
                 BinaryOperator::LessThan => Ok((self.eval(lhs)? < self.eval(rhs)?).into()),
                 BinaryOperator::GreaterThanOrEqual => {
@@ -211,6 +228,8 @@ impl<'a> Evaluator<'a> {
 pub enum EvaluationError {
     #[error("Invalid field")]
     InvalidField(String),
+    #[error("Invalid cast")]
+    InvalidCast,
 }
 
 #[cfg(test)]
@@ -245,6 +264,14 @@ mod tests {
         assert_eq!(evaluator.eval(&tree).unwrap(), Value::Bool(true));
         let tree = crate::parse::parse("true == !false").unwrap();
         assert_eq!(evaluator.eval(&tree).unwrap(), Value::Bool(true));
+        let tree = crate::parse::parse("true || false").unwrap();
+        assert_eq!(evaluator.eval(&tree).unwrap(), Value::Bool(true));
+        let tree = crate::parse::parse("true && false").unwrap();
+        assert_eq!(evaluator.eval(&tree).unwrap(), Value::Bool(false));
+        let tree = crate::parse::parse("true or false").unwrap();
+        assert_eq!(evaluator.eval(&tree).unwrap(), Value::Bool(true));
+        let tree = crate::parse::parse("true and false").unwrap();
+        assert_eq!(evaluator.eval(&tree).unwrap(), Value::Bool(false));
     }
 
     #[test]

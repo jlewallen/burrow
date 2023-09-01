@@ -12,6 +12,8 @@ pub enum BinaryOperator {
     Divide,
     Equal,
     NotEqual,
+    Or,
+    And,
     GreaterThan,
     LessThan,
     GreaterThanOrEqual,
@@ -180,6 +182,10 @@ fn parse_expr(i: &str) -> IResult<&str, Expr> {
 
 fn binary_operator(i: &str) -> IResult<&str, BinaryOperator> {
     alt((
+        map(tag("||"), |_| BinaryOperator::Or),
+        map(tag("&&"), |_| BinaryOperator::And),
+        map(tag("or"), |_| BinaryOperator::Or),
+        map(tag("and"), |_| BinaryOperator::And),
         map(tag(">="), |_| BinaryOperator::GreaterThanOrEqual),
         map(tag(">"), |_| BinaryOperator::GreaterThan),
         map(tag("<="), |_| BinaryOperator::LessThanOrEqual),
