@@ -75,7 +75,9 @@ pub mod parser {
     }
 
     pub fn myself(i: &str) -> IResult<&str, Item> {
-        map(alt((tag("self"), tag("myself"))), |_s: &str| Item::Myself)(i)
+        map(alt((tag("me"), tag("myself"), tag("self"))), |_s: &str| {
+            Item::Myself
+        })(i)
     }
 
     pub fn named_place(i: &str) -> IResult<&str, Item> {
