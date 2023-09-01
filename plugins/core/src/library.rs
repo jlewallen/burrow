@@ -60,6 +60,16 @@ pub mod parser {
         map_res(recognize(digit1), str::parse)(i)
     }
 
+    pub fn key(i: &str) -> IResult<&str, &str> {
+        take_while1(move |c| "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0-9".contains(c))(
+            i,
+        )
+    }
+
+    pub fn key_reference(i: &str) -> IResult<&str, Item> {
+        map(preceded(tag("~"), key), |n| Item::Key(EntityKey::new(n)))(i)
+    }
+
     pub fn gid_reference(i: &str) -> IResult<&str, Item> {
         map(preceded(tag("#"), unsigned_number), |n| {
             Item::Gid(EntityGid::new(n))
@@ -71,7 +81,7 @@ pub mod parser {
     }
 
     pub fn noun_or_specific(i: &str) -> IResult<&str, Item> {
-        alt((surrounding_area, myself, noun, gid_reference))(i)
+        alt((surrounding_area, myself, noun, gid_reference, key_reference))(i)
     }
 
     pub fn myself(i: &str) -> IResult<&str, Item> {
