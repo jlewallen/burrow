@@ -202,6 +202,10 @@ pub struct Behaviors {
 }
 
 impl Behaviors {
+    pub fn get_rune(&self) -> Option<&RuneBehavior> {
+        self.langs.as_ref().map(|f| f.get(RUNE_EXTENSION)).flatten()
+    }
+
     fn get_rune_mut(&mut self) -> Result<&mut RuneBehavior> {
         Ok(self
             .langs

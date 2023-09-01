@@ -1,11 +1,11 @@
-use std::{fs::OpenOptions, io::Write, path::PathBuf};
-
 use anyhow::Result;
 use clap::Args;
+use std::{fs::OpenOptions, io::Write, path::PathBuf};
+use tracing::*;
 
 use engine::storage::{PersistedEntity, StorageFactory};
-use kernel::prelude::{Entity, EntityKey};
-use serde_json::Value as JsonValue;
+use kernel::prelude::{Entity, EntityKey, JsonValue, OpenScope};
+use plugins_rune::Behaviors;
 
 use crate::DomainBuilder;
 
@@ -66,9 +66,24 @@ impl FileExporter {
         Ok(())
     }
 
-    #[allow(unused_variables, dead_code)]
     fn script(&self, key: &EntityKey, data: &str) -> Result<()> {
-        todo!()
+        let key_path = self.to.join(key.key_to_string());
+
+        std::fs::create_dir_all(&key_path)?;
+
+        let file_path = key_path.join("entry.rn");
+
+        debug!("writing {:?}", file_path);
+
+        let mut file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(file_path)?;
+
+        file.write_all(data.as_bytes())?;
+
+        Ok(())
     }
 }
 
@@ -78,12 +93,19 @@ trait Export<E> {
 
 impl Export<FileExporter> for PersistedEntity {
     fn export(&self, exporter: &FileExporter) -> Result<()> {
+        info!("exporting {}", self.key);
+
         let key = EntityKey::new(&self.key);
         let json: JsonValue = serde_json::from_str(&self.serialized)?;
 
-        exporter.json(&key, &json)?;
+        let entity = Entity::from_value(json.clone())?;
+        if let Some(behaviors) = entity.scope::<Behaviors>()? {
+            if let Some(rune) = behaviors.get_rune() {
+                exporter.script(&key, &rune.entry)?;
+            }
+        }
 
-        let _entity = Entity::from_value(json);
+        exporter.json(&key, &json)?;
 
         Ok(())
     }
