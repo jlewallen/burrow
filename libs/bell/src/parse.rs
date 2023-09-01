@@ -1,6 +1,5 @@
 #[derive(Debug, PartialEq, Clone)]
 pub enum UnaryOperator {
-    Plus,
     Minus,
     Not,
 }
@@ -132,7 +131,6 @@ fn parse_parenthesized(i: &str) -> IResult<&str, Expr> {
 fn unary_operator(i: &str) -> IResult<&str, UnaryOperator> {
     map(one_of("-+!"), |v| match v {
         '-' => UnaryOperator::Minus,
-        '+' => UnaryOperator::Plus,
         '!' => UnaryOperator::Not,
         _ => unimplemented!(),
     })(i)
