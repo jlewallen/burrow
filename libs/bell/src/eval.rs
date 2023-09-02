@@ -14,11 +14,22 @@ pub enum Value {
     Integer(i64),
     Real(f64),
     Option(Option<Box<Value>>),
+    Map(HashMap<String, Value>),
 }
 
 impl Value {
-    fn try_field(&self, name: &str) -> Option<Value> {
-        None
+    fn try_field(&self, key: &str) -> Value {
+        match self {
+            Value::Null => todo!(),
+            Value::Bool(_) => todo!(),
+            Value::Integer(_) => todo!(),
+            Value::Real(_) => todo!(),
+            Value::Option(_) => todo!(),
+            Value::Map(map) => match map.get(key) {
+                Some(value) => value.clone(),
+                None => Value::Option(None),
+            },
+        }
     }
 }
 
@@ -117,6 +128,7 @@ impl Neg for Value {
             Value::Integer(value) => (-value).into(),
             Value::Real(value) => (-value).into(),
             Value::Option(_) => todo!(),
+            Value::Map(_) => todo!(),
         }
     }
 }
@@ -131,6 +143,7 @@ impl Not for Value {
             Value::Integer(_) => todo!(),
             Value::Real(_) => todo!(),
             Value::Option(_) => todo!(),
+            Value::Map(_) => todo!(),
         }
     }
 }
@@ -158,6 +171,26 @@ impl PartialOrd for Value {
         }
     }
 }
+
+/*
+impl Index<&str> for Value {
+    type Output = Value;
+
+    fn index(&self, index: &str) -> &Self::Output {
+        match self {
+            Value::Null => todo!(),
+            Value::Bool(_) => todo!(),
+            Value::Integer(_) => todo!(),
+            Value::Real(_) => todo!(),
+            Value::Option(_) => todo!(),
+            Value::Map(map) => match map.get(index) {
+                Some(value) => &Self::Option(Some(value.clone().into())),
+                None => &Self::Option(None),
+            },
+        }
+    }
+}
+*/
 
 pub struct Evaluator<'a> {
     scope: &'a HashMap<String, Value>,
@@ -191,10 +224,7 @@ impl<'a> Evaluator<'a> {
 
             Expr::FieldAccess { receiver, name } => {
                 let receiver = self.eval(&receiver)?;
-                match receiver.try_field(name) {
-                    Some(val) => Ok(val),
-                    None => Err(EvaluationError::InvalidField(name.to_owned())),
-                }
+                Ok(receiver.try_field(name))
             }
             Expr::UnaryExpr { op, child } => match op {
                 UnaryOperator::Minus => Ok(-self.eval(child)?),
@@ -368,4 +398,28 @@ mod tests {
             EvaluationError::NotFound("healt".to_owned())
         );
     }
+
+    #[test]
+    fn test_index_hash_map() {
+        let child: HashMap<_, _> = [("health".to_owned(), Value::Integer(100))].into();
+        let scope: HashMap<_, _> = [("person".to_owned(), Value::Map(child))].into();
+        let evaluator = Evaluator::new(&scope);
+
+        let tree = crate::parse::parse("person.health").unwrap();
+        assert_eq!(evaluator.eval(&tree).unwrap(), Value::Integer(100));
+
+        let tree = crate::parse::parse("person.healt").unwrap();
+        assert_eq!(evaluator.eval(&tree).unwrap(), Value::Option(None));
+    }
+
+    /*
+    #[test]
+    fn test_index_json() {
+        let child = json!({
+            "health": 100
+        });
+        let scope: HashMap<_, _> = [("person".to_owned(), Value::Json(child))].into();
+        let evaluator = Evaluator::new(&scope);
+    }
+    */
 }
