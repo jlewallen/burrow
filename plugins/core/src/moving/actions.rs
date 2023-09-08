@@ -86,6 +86,7 @@ impl Action for GoAction {
                     None => {
                         match session.find_item(surroundings, &Item::Named(route.to_owned()))? {
                             Some(maybe) => {
+                                let maybe = maybe.one()?;
                                 if maybe.scope::<Occupyable>()?.is_some() {
                                     self.navigate(session, actor, area, maybe)
                                 } else {
@@ -97,7 +98,7 @@ impl Action for GoAction {
                     }
                 },
                 Item::Gid(_) => match session.find_item(surroundings, &self.item)? {
-                    Some(to_area) => self.navigate(session, actor, area, to_area),
+                    Some(to_area) => self.navigate(session, actor, area, to_area.one()?),
                     None => Ok(SimpleReply::NotFound.try_into()?),
                 },
                 _ => panic!("Occupyable::find_route expecting Item::Route or Item::Gid"),
@@ -150,6 +151,9 @@ impl Action for AddRouteAction {
                     return Ok(SimpleReply::NotFound.try_into()?);
                 };
 
+                let area = area.one()?;
+                let destination = destination.one()?;
+
                 tools::add_route(&area, &self.name, &destination)?;
 
                 Ok(SimpleReply::Done.try_into()?)
@@ -173,6 +177,7 @@ impl Action for RemoveRouteAction {
     fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
         match session.find_item(&surroundings, &self.area)? {
             Some(area) => {
+                let area = area.one()?;
                 let mut occupyable = area.scope_mut::<Occupyable>()?;
                 if !occupyable.remove_route(&self.name) {
                     return Ok(SimpleReply::NotFound.try_into()?);

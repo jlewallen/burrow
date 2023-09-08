@@ -16,18 +16,21 @@ impl Action for HoldAction {
         let (_, actor, area) = surroundings.unpack();
 
         match session.find_item(surroundings, &self.item)? {
-            Some(holding) => match tools::move_between(&area, &actor, &holding)? {
-                true => Ok(reply_ok(
-                    actor.clone(),
-                    Audience::Area(area.key().clone()),
-                    Carrying::Held {
-                        actor: (&actor).observe(&actor)?.expect("No observed entity"),
-                        item: (&holding).observe(&actor)?.expect("No observed entity"),
-                        area: (&area).observe(&actor)?.expect("No observed entity"),
-                    },
-                )?),
-                false => Ok(SimpleReply::NotFound.try_into()?),
-            },
+            Some(holding) => {
+                let holding = holding.one()?;
+                match tools::move_between(&area, &actor, &holding)? {
+                    true => Ok(reply_ok(
+                        actor.clone(),
+                        Audience::Area(area.key().clone()),
+                        Carrying::Held {
+                            actor: (&actor).observe(&actor)?.expect("No observed entity"),
+                            item: (&holding).observe(&actor)?.expect("No observed entity"),
+                            area: (&area).observe(&actor)?.expect("No observed entity"),
+                        },
+                    )?),
+                    false => Ok(SimpleReply::NotFound.try_into()?),
+                }
+            }
             None => Ok(SimpleReply::NotFound.try_into()?),
         }
     }
@@ -50,18 +53,21 @@ impl Action for DropAction {
 
         match &self.maybe_item {
             Some(item) => match session.find_item(surroundings, item)? {
-                Some(dropping) => match tools::move_between(&actor, &area, &dropping)? {
-                    true => Ok(reply_ok(
-                        actor.clone(),
-                        Audience::Area(area.key().clone()),
-                        Carrying::Dropped {
-                            actor: (&actor).observe(&actor)?.expect("No observed entity"),
-                            item: (&dropping).observe(&actor)?.expect("No observed entity"),
-                            area: (&area).observe(&actor)?.expect("No observed entity"),
-                        },
-                    )?),
-                    false => Ok(SimpleReply::NotFound.try_into()?),
-                },
+                Some(dropping) => {
+                    let dropping = dropping.one()?;
+                    match tools::move_between(&actor, &area, &dropping)? {
+                        true => Ok(reply_ok(
+                            actor.clone(),
+                            Audience::Area(area.key().clone()),
+                            Carrying::Dropped {
+                                actor: (&actor).observe(&actor)?.expect("No observed entity"),
+                                item: (&dropping).observe(&actor)?.expect("No observed entity"),
+                                area: (&area).observe(&actor)?.expect("No observed entity"),
+                            },
+                        )?),
+                        false => Ok(SimpleReply::NotFound.try_into()?),
+                    }
+                }
                 None => Ok(SimpleReply::NotFound.try_into()?),
             },
             None => Ok(SimpleReply::NotFound.try_into()?),
@@ -88,6 +94,8 @@ impl Action for PutInsideAction {
         match session.find_item(surroundings, &self.item)? {
             Some(item) => match session.find_item(surroundings, &self.vessel)? {
                 Some(vessel) => {
+                    let item = item.one()?;
+                    let vessel = vessel.one()?;
                     if tools::is_container(&vessel)? {
                         let from = tools::container_of(&item)?;
                         match tools::move_between(&from, &vessel, &item)? {
@@ -123,9 +131,10 @@ impl Action for TakeOutAction {
 
         match session.find_item(surroundings, &self.vessel)? {
             Some(vessel) => {
+                let vessel = vessel.one()?;
                 if tools::is_container(&vessel)? {
                     match session.find_item(surroundings, &self.item)? {
-                        Some(item) => match tools::move_between(&vessel, &user, &item)? {
+                        Some(item) => match tools::move_between(&vessel, &user, &item.one()?)? {
                             true => Ok(SimpleReply::Done.try_into()?),
                             false => Ok(SimpleReply::NotFound.try_into()?),
                         },
@@ -161,7 +170,8 @@ impl Action for GiveToAction {
         // for key individuals.
         match session.find_item(surroundings, &self.item)? {
             Some(item) => match session.find_item(surroundings, &self.receiver)? {
-                Some(receiver) => match tools::move_between(&user, &receiver, &item)? {
+                Some(receiver) => match tools::move_between(&user, &receiver.one()?, &item.one()?)?
+                {
                     true => Ok(SimpleReply::Done.try_into()?),
                     false => Ok(SimpleReply::NotFound.try_into()?),
                 },

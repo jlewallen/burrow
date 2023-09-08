@@ -10,6 +10,8 @@ use tracing::*;
 pub use burrow_bon::prelude::Acls;
 pub use replies::JsonValue;
 
+use super::EntityPtr;
+
 pub static WORLD_KEY: &str = "world";
 
 pub static NAME_PROPERTY: &str = "name";
@@ -138,6 +140,35 @@ pub enum Item {
     Contained(Box<Item>),
     Quantified(Quantity, Box<Item>),
     Held(Box<Item>),
+}
+
+#[derive(Debug)]
+pub enum Found {
+    One(EntityPtr),
+}
+
+impl From<EntityPtr> for Found {
+    fn from(value: EntityPtr) -> Self {
+        Self::One(value)
+    }
+}
+
+impl Found {
+    pub fn one(self) -> Result<EntityPtr, DomainError> {
+        match self {
+            Found::One(one) => Ok(one),
+        }
+    }
+}
+
+impl TryInto<EntityPtr> for Found {
+    type Error = anyhow::Error;
+
+    fn try_into(self) -> Result<EntityPtr, Self::Error> {
+        match self {
+            Found::One(one) => Ok(one),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]

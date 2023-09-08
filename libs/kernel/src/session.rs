@@ -5,9 +5,8 @@ use std::{cell::RefCell, rc::Rc};
 use replies::TaggedJson;
 
 use crate::actions::{Action, FutureAction, Performer};
-use crate::model::Entity;
 use crate::model::{
-    Audience, DomainError, EntityKey, EntityPtr, EntityPtrResolver, Identity, Item,
+    Audience, DomainError, Entity, EntityKey, EntityPtr, EntityPtrResolver, Found, Identity, Item,
 };
 use crate::surround::Surroundings;
 
@@ -36,7 +35,7 @@ pub trait ActiveSession: Performer + EntityPtrResolver {
         &self,
         surroundings: &Surroundings,
         item: &Item,
-    ) -> Result<Option<EntityPtr>, DomainError>;
+    ) -> Result<Option<Found>, DomainError>;
 
     fn obliterate(&self, entity: &EntityPtr) -> Result<(), DomainError>;
 

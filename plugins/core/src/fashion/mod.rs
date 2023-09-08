@@ -234,6 +234,7 @@ pub mod actions {
 
             match session.find_item(surroundings, &self.item)? {
                 Some(wearing) => {
+                    let wearing = wearing.one()?;
                     let location = Location::get(&wearing)?.expect("No location").to_entity()?;
                     match tools::wear_article(&location, &actor, &wearing)? {
                         true => Ok(reply_ok(
@@ -270,18 +271,21 @@ pub mod actions {
 
             match &self.maybe_item {
                 Some(item) => match session.find_item(surroundings, item)? {
-                    Some(removing) => match tools::remove_article(&actor, &actor, &removing)? {
-                        true => Ok(reply_ok(
-                            actor.clone(),
-                            Audience::Area(area.key().clone()),
-                            Fashion::Removed {
-                                actor: actor.entity_ref(),
-                                item: (&removing).observe(&actor)?.expect("No observed entity"),
-                                area: area.entity_ref(),
-                            },
-                        )?),
-                        false => Ok(SimpleReply::NotFound.try_into()?),
-                    },
+                    Some(removing) => {
+                        let removing = removing.one()?;
+                        match tools::remove_article(&actor, &actor, &removing)? {
+                            true => Ok(reply_ok(
+                                actor.clone(),
+                                Audience::Area(area.key().clone()),
+                                Fashion::Removed {
+                                    actor: actor.entity_ref(),
+                                    item: (&removing).observe(&actor)?.expect("No observed entity"),
+                                    area: area.entity_ref(),
+                                },
+                            )?),
+                            false => Ok(SimpleReply::NotFound.try_into()?),
+                        }
+                    }
                     None => Ok(SimpleReply::NotFound.try_into()?),
                 },
                 None => Ok(SimpleReply::NotFound.try_into()?),

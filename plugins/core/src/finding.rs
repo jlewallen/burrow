@@ -4,8 +4,8 @@ use tracing::debug;
 
 use crate::{location::Location, moving::model::Occupying, tools};
 use kernel::prelude::{
-    get_my_session, here, Audience, DomainError, EntityPtr, Finder, IntoEntityPtr, Item, OpenScope,
-    Surroundings,
+    get_my_session, here, Audience, DomainError, EntityPtr, Finder, Found, IntoEntityPtr, Item,
+    OpenScope, Surroundings,
 };
 
 /// Determines if an entity matches a user's description of that entity, given
@@ -117,14 +117,14 @@ impl EntityRelationshipSet {
         Ok(Self { entities: expanded })
     }
 
-    pub fn find_item(&self, item: &Item) -> Result<Option<EntityPtr>> {
+    pub fn find_item(&self, item: &Item) -> Result<Option<Found>> {
         debug!("haystack {:?}", self);
 
         match item {
             Item::Area => {
                 for entity in &self.entities {
                     if let EntityRelationship::Area(e) = entity {
-                        return Ok(Some(e.clone()));
+                        return Ok(Some(e.clone().into()));
                     }
                 }
 
@@ -133,7 +133,7 @@ impl EntityRelationshipSet {
             Item::Myself => {
                 for entity in &self.entities {
                     if let EntityRelationship::Actor(e) = entity {
-                        return Ok(Some(e.clone()));
+                        return Ok(Some(e.clone().into()));
                     }
                 }
 
@@ -148,7 +148,7 @@ impl EntityRelationshipSet {
                         | EntityRelationship::Occupying(e)
                         | EntityRelationship::Wearing(e) => {
                             if matches_description(e, name)? {
-                                return Ok(Some(e.clone()));
+                                return Ok(Some(e.clone().into()));
                             }
                         }
                         _ => {}
@@ -241,7 +241,7 @@ impl Finder for DefaultFinder {
         &self,
         surroundings: &Surroundings,
         item: &Item,
-    ) -> Result<Option<EntityPtr>, DomainError> {
+    ) -> Result<Option<Found>, DomainError> {
         let haystack = EntityRelationshipSet::new_from_surroundings(surroundings).expand()?;
         Ok(haystack.find_item(item)?)
     }
