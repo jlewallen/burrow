@@ -121,6 +121,13 @@ pub enum Audience {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
+pub enum Quantity {
+    Whole(i64),
+    Fractional(f64),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub enum Item {
     Area,
     Myself,
@@ -129,6 +136,7 @@ pub enum Item {
     Gid(EntityGid),
     Key(EntityKey),
     Contained(Box<Item>),
+    Quantified(Quantity, Box<Item>),
     Held(Box<Item>),
 }
 
