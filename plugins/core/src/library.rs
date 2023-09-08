@@ -41,32 +41,38 @@ pub mod parser {
     }
 
     pub fn text_to_end_of_line(i: &str) -> IResult<&str, &str> {
-        take_while1(|_c: char| true)(i)
+        take_while1(move |_| true)(i)
+    }
+
+    fn string_inside(i: &str) -> IResult<&str, &str> {
+        take_while(move |c: char| c.is_alphabetic() || c.is_whitespace())(i)
     }
 
     pub fn string_literal(i: &str) -> IResult<&str, &str> {
         delimited(tag("\""), string_inside, tag("\""))(i)
     }
 
-    fn string_inside(i: &str) -> IResult<&str, &str> {
-        take_while(|c: char| c.is_alphabetic() || c.is_whitespace())(i)
-    }
+    const LOWER_CASE_CHARS: &str = "abcdefghijklmnopqrstuvwxyz";
+    const LETTER_CHARS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     pub fn camel_case_word(i: &str) -> IResult<&str, &str> {
-        word(i) // TODO
+        recognize(pair(
+            take_while1(move |c| LOWER_CASE_CHARS.contains(c)),
+            many0(take_while1(move |c| LETTER_CHARS.contains(c))),
+        ))(i)
     }
 
-    pub fn unsigned_number(i: &str) -> IResult<&str, u64> {
+    fn unsigned_number(i: &str) -> IResult<&str, u64> {
         map_res(recognize(digit1), str::parse)(i)
     }
 
-    pub fn key(i: &str) -> IResult<&str, &str> {
-        take_while1(move |c| "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0-9".contains(c))(
-            i,
-        )
+    const KEY_CHARS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0-9";
+
+    fn key(i: &str) -> IResult<&str, &str> {
+        take_while1(move |c| KEY_CHARS.contains(c))(i)
     }
 
-    pub fn key_reference(i: &str) -> IResult<&str, Item> {
+    fn key_reference(i: &str) -> IResult<&str, Item> {
         map(preceded(tag("~"), key), |n| Item::Key(EntityKey::new(n)))(i)
     }
 
@@ -76,7 +82,7 @@ pub mod parser {
         })(i)
     }
 
-    pub fn surrounding_area(i: &str) -> IResult<&str, Item> {
+    fn surrounding_area(i: &str) -> IResult<&str, Item> {
         map(alt((tag("area"), tag("here"))), |_s: &str| Item::Area)(i)
     }
 
@@ -99,6 +105,18 @@ pub mod parser {
 
     pub fn try_parsing<T: ParsesActions>(parser: T, i: &str) -> EvaluationResult {
         parser.try_parse_action(i)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use crate::library::parser::camel_case_word;
+
+        #[test]
+        pub fn test_camel_case() {
+            assert_eq!(camel_case_word("hello").unwrap(), ("", "hello"));
+            assert_eq!(camel_case_word("helloWorld").unwrap(), ("", "helloWorld"));
+            assert_eq!(camel_case_word("hello_").unwrap(), ("_", "hello"));
+        }
     }
 }
 
