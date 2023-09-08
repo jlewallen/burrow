@@ -126,7 +126,7 @@ pub mod parser {
         map(alt((tag("area"), tag("here"))), |_s: &str| Item::Area)(i)
     }
 
-    fn quantified(i: &str) -> IResult<&str, Item> {
+    pub fn quantified(i: &str) -> IResult<&str, Item> {
         map(separated_pair(parse_quantity, spaces, noun), |(q, n)| {
             Item::Quantified(q, n.into())
         })(i)

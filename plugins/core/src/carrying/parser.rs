@@ -17,11 +17,12 @@ pub struct DropActionParser {}
 
 impl ParsesActions for DropActionParser {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
-        let specific = map(separated_pair(tag("drop"), spaces, noun), |(_, item)| {
-            DropAction {
+        let specific = map(
+            separated_pair(tag("drop"), spaces, alt((quantified, noun))),
+            |(_, item)| DropAction {
                 maybe_item: Some(Item::Held(Box::new(item))),
-            }
-        });
+            },
+        );
 
         let everything = map(tag("drop"), |_| DropAction { maybe_item: None });
 

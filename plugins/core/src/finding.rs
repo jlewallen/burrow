@@ -159,19 +159,34 @@ impl EntityRelationshipSet {
             }
             Item::Contained(contained) => self.expand()?.find_item(contained),
             Item::Held(held) => self
-                .prioritize(&|e| match e {
+                .prioritize(|e| match e {
                     EntityRelationship::Holding(_) => 0,
                     _ => default_priority(e),
                 })?
                 .find_item(held),
+            Item::Quantified(_q, i) => self.find_item(i),
             _ => Ok(None),
         }
     }
 
-    fn prioritize(
-        &self,
-        order: &dyn Fn(&EntityRelationship) -> u32,
-    ) -> Result<EntityRelationshipSet> {
+    #[allow(dead_code)]
+    fn filter<P>(&self, mut predicate: P) -> EntityRelationshipSet
+    where
+        P: FnMut(&EntityRelationship) -> bool,
+    {
+        let entities = self
+            .entities
+            .iter()
+            .filter(|r| predicate(r))
+            .map(|i| i.clone())
+            .collect();
+        Self { entities }
+    }
+
+    fn prioritize<F>(&self, mut order: F) -> Result<EntityRelationshipSet>
+    where
+        F: FnMut(&EntityRelationship) -> u32,
+    {
         let mut entities = self.entities.clone();
         entities.sort_by_key(|a| order(a));
         Ok(Self { entities })

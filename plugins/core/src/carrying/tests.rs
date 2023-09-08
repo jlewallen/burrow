@@ -310,3 +310,49 @@ fn it_gives_items_to_others() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn it_drops_quantified_items() -> Result<()> {
+    let mut build = BuildSurroundings::new()?;
+    let (session, surroundings) = build
+        .hands(vec![QuickThing::Multiple("Coin", 10.0)])
+        .build()?;
+
+    let action = try_parsing(DropActionParser {}, "drop 2 coin")?;
+    let action = action.unwrap();
+    let effect = action.perform(session.clone(), &surroundings)?;
+
+    assert_eq!(effect, Effect::Ok);
+
+    let (_, person, area) = surroundings.unpack();
+
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 1);
+    assert_eq!(area.scope::<Containing>()?.unwrap().holding.len(), 1);
+
+    build.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn it_verifies_dropped_quantity() -> Result<()> {
+    let mut build = BuildSurroundings::new()?;
+    let (session, surroundings) = build
+        .hands(vec![QuickThing::Multiple("Coin", 4.0)])
+        .build()?;
+
+    let action = try_parsing(DropActionParser {}, "drop 5 coin")?;
+    let action = action.unwrap();
+    let effect = action.perform(session.clone(), &surroundings)?;
+
+    assert_eq!(effect, Effect::Prevented);
+
+    let (_, person, area) = surroundings.unpack();
+
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 1);
+    assert_eq!(area.scope::<Containing>()?.unwrap().holding.len(), 0);
+
+    build.close()?;
+
+    Ok(())
+}
