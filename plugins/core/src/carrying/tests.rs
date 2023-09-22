@@ -485,22 +485,22 @@ fn it_holds_specified_quantity() -> Result<()> {
 }
 
 #[test]
-#[ignore]
 fn it_trades_one_for_one() -> Result<()> {
     let mut build = BuildSurroundings::new()?;
     let rake = build.with(build_entity().name("Rake"))?;
+    let shovel = build.with(build_entity().name("Shovel"))?;
     let carla = build
         .entity()?
         .named("Carla")?
         .save()?
-        .holding(&vec![rake])?
+        .holding(&vec![rake.clone()])?
         .into_entity()?;
     let (session, surroundings) = build
-        .hands(vec![QuickThing::Object("key")])
+        .hands(vec![QuickThing::Actual(shovel.clone())])
         .occupying(vec![QuickThing::Actual(carla.clone())])
         .build()?;
 
-    let action = try_parsing(TradeActionParser {}, "trade Carla key for rake")?;
+    let action = try_parsing(TradeActionParser {}, "trade Carla shovel for rake")?;
     let action = action.unwrap();
     let effect = action.perform(session.clone(), &surroundings)?;
 
@@ -510,6 +510,15 @@ fn it_trades_one_for_one() -> Result<()> {
 
     assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 1);
     assert_eq!(carla.scope::<Containing>()?.unwrap().holding.len(), 1);
+
+    assert_eq!(
+        *person.scope::<Containing>()?.unwrap().holding[0].key(),
+        rake.key()
+    );
+    assert_eq!(
+        *carla.scope::<Containing>()?.unwrap().holding[0].key(),
+        shovel.key()
+    );
 
     build.close()?;
 
