@@ -205,3 +205,15 @@ pub fn test_parse_optionals() {
         Expr::Option(Some(Expr::Integer(1).into()))
     );
 }
+
+#[test]
+pub fn test_value_in_array() {
+    assert_eq!(
+        parse("3 in holding").unwrap(),
+        Expr::BinaryExpr {
+            op: BinaryOperator::InArray,
+            lhs: Expr::Integer(3).into(),
+            rhs: Expr::Variable("holding".to_owned()).into(),
+        }
+    );
+}

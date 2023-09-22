@@ -15,20 +15,22 @@ pub enum Value {
     Real(f64),
     Option(Option<Box<Value>>),
     Map(HashMap<String, Value>),
+    Array(Vec<Value>),
 }
 
 impl Value {
     fn try_field(&self, key: &str) -> Value {
         match self {
+            Value::Map(map) => match map.get(key) {
+                Some(value) => value.clone(),
+                None => Value::Option(None),
+            },
             Value::Null => todo!(),
             Value::Bool(_) => todo!(),
             Value::Integer(_) => todo!(),
             Value::Real(_) => todo!(),
             Value::Option(_) => todo!(),
-            Value::Map(map) => match map.get(key) {
-                Some(value) => value.clone(),
-                None => Value::Option(None),
-            },
+            Value::Array(_) => todo!(),
         }
     }
 }
@@ -123,12 +125,13 @@ impl Neg for Value {
 
     fn neg(self) -> Self::Output {
         match self {
-            Value::Null => todo!(),
-            Value::Bool(_) => todo!(),
             Value::Integer(value) => (-value).into(),
             Value::Real(value) => (-value).into(),
+            Value::Null => todo!(),
+            Value::Bool(_) => todo!(),
             Value::Option(_) => todo!(),
             Value::Map(_) => todo!(),
+            Value::Array(_) => todo!(),
         }
     }
 }
@@ -138,12 +141,13 @@ impl Not for Value {
 
     fn not(self) -> Self::Output {
         match self {
-            Value::Null => todo!(),
             Value::Bool(value) => (!value).into(),
+            Value::Null => todo!(),
             Value::Integer(_) => todo!(),
             Value::Real(_) => todo!(),
             Value::Option(_) => todo!(),
             Value::Map(_) => todo!(),
+            Value::Array(_) => todo!(),
         }
     }
 }
@@ -249,6 +253,20 @@ impl<'a> Evaluator<'a> {
                     Ok((self.eval(lhs)? >= self.eval(rhs)?).into())
                 }
                 BinaryOperator::LessThanOrEqual => Ok((self.eval(lhs)? <= self.eval(rhs)?).into()),
+                BinaryOperator::InArray => {
+                    let lhs = self.eval(lhs)?;
+                    let rhs = self.eval(rhs)?;
+
+                    match (lhs.clone(), rhs) {
+                        (Value::Bool(_), Value::Array(array))
+                        | (Value::Integer(_), Value::Array(array))
+                        | (Value::Real(_), Value::Array(array))
+                        | (Value::Option(_), Value::Array(array)) => {
+                            Ok(array.contains(&lhs).into())
+                        }
+                        _ => todo!(),
+                    }
+                }
             },
         }
     }
@@ -422,4 +440,21 @@ mod tests {
         let evaluator = Evaluator::new(&scope);
     }
     */
+
+    #[test]
+    fn test_in_array() {
+        let child: HashMap<_, _> = [(
+            "holding".to_owned(),
+            Value::Array(vec![Value::Integer(0), Value::Integer(3)]),
+        )]
+        .into();
+        let scope: HashMap<_, _> = [("person".to_owned(), Value::Map(child))].into();
+        let evaluator = Evaluator::new(&scope);
+
+        let tree = crate::parse::parse("3 in person.holding").unwrap();
+        assert_eq!(evaluator.eval(&tree).unwrap(), Value::Bool(true));
+
+        let tree = crate::parse::parse("1 in person.holding").unwrap();
+        assert_eq!(evaluator.eval(&tree).unwrap(), Value::Bool(false));
+    }
 }

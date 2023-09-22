@@ -18,6 +18,7 @@ pub enum BinaryOperator {
     LessThan,
     GreaterThanOrEqual,
     LessThanOrEqual,
+    InArray,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -192,6 +193,7 @@ fn binary_operator(i: &str) -> IResult<&str, BinaryOperator> {
         map(tag("<"), |_| BinaryOperator::LessThan),
         map(tag("=="), |_| BinaryOperator::Equal),
         map(tag("!="), |_| BinaryOperator::NotEqual),
+        map(tag("in"), |_| BinaryOperator::InArray),
         map(one_of("+-*/"), |v| match v {
             '+' => BinaryOperator::Plus,
             '-' => BinaryOperator::Minus,
