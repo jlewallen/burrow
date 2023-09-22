@@ -68,7 +68,7 @@ impl ParsesActions for PutInsideActionParser {
                 noun,
             ),
             |(item, vessel)| PutInsideAction {
-                item: item.0,
+                item: Item::Held(item.0.into()),
                 vessel: vessel,
             },
         )(i)?;
@@ -109,9 +109,9 @@ impl ParsesActions for TradeActionParser {
                 preceded(tag("for"), preceded(spaces, alt((quantified, noun)))),
             )),
             |(receiver, giving, _, receiving)| TradeAction {
-                giving,
+                giving: Item::Held(giving.into()),
                 giver: Item::Myself,
-                receiving,
+                receiving: Item::Contained(receiving.into()),
                 receiver,
             },
         )(i)?;

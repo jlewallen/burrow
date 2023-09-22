@@ -75,7 +75,7 @@ impl EntityRelationshipSet {
 
         for entity in &self.entities {
             match entity {
-                EntityRelationship::Actor(actor) => {
+                EntityRelationship::Actor(actor) | EntityRelationship::Occupying(actor) => {
                     expanded.extend(
                         tools::contained_by(actor)?
                             .into_iter()
