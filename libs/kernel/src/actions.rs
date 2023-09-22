@@ -263,7 +263,7 @@ impl<T: Reply + DeserializeOwned> JsonAs<T> for Effect {
             Effect::Reply(reply) => Ok(serde_json::from_value(
                 reply.to_tagged_json()?.into_untagged(),
             )?),
-            _ => todo!(),
+            _ => todo!("{:?}", self),
         }
     }
 }

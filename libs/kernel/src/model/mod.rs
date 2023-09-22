@@ -44,7 +44,7 @@ impl EntityPtr {
 
     pub fn entity_ref(&self) -> EntityRef {
         let entity = self.0.borrow();
-        entity.entity_ref()
+        EntityRef::new_from_entity(&entity, Some(Rc::downgrade(&self.0)))
     }
 
     pub fn entity(&self) -> &EntityPtr {

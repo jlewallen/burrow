@@ -164,7 +164,11 @@ impl EntityRelationshipSet {
                     _ => default_priority(e),
                 })?
                 .find_item(held),
-            Item::Quantified(_q, i) => self.find_item(i),
+            Item::Quantified(q, i) => Ok(self
+                .find_item(i)?
+                .map(|e| e.one())
+                .map_or(Ok(None), |v| v.map(Some))?
+                .map(|e| Found::Quantified(q.clone(), e))),
             _ => Ok(None),
         }
     }

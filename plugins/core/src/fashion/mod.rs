@@ -162,7 +162,9 @@ pub mod model {
             Ok(true)
         }
 
-        pub fn stop_wearing(&mut self, item: &EntityPtr) -> Result<Option<EntityPtr>, DomainError> {
+        pub fn stop_wearing(&mut self, item: Found) -> Result<Option<EntityPtr>, DomainError> {
+            let item = &item.one()?;
+
             if !self.is_wearing(item) {
                 return Ok(None);
             }

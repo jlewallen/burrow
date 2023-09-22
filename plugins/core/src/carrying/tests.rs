@@ -1,6 +1,6 @@
 use super::parser::*;
 use super::*;
-use crate::carrying::model::Containing;
+use crate::carrying::model::{Carryable, Containing};
 use crate::library::tests::*;
 use crate::location::Location;
 
@@ -65,8 +65,8 @@ fn it_separates_multiple_ground_items_when_held() -> Result<()> {
 fn it_combines_multiple_items_when_together_on_ground() -> Result<()> {
     let mut build = BuildSurroundings::new()?;
     let same_kind = build.make(QuickThing::Object("Cool Rake"))?;
-    tools::set_quantity(&same_kind, 2.0)?;
-    let (first, second) = tools::separate(&same_kind, 1.0)?;
+    tools::set_quantity(&same_kind, &2.0.into())?;
+    let (first, second) = tools::separate(&same_kind, &1.0.into())?;
     let (session, surroundings) = build
         .ground(vec![QuickThing::Actual(first.clone())])
         .hands(vec![QuickThing::Actual(second)])
@@ -335,7 +335,7 @@ fn it_drops_quantified_items() -> Result<()> {
 }
 
 #[test]
-fn it_verifies_dropped_quantity() -> Result<()> {
+fn it_fails_to_drop_when_available_quantity_insufficient() -> Result<()> {
     let mut build = BuildSurroundings::new()?;
     let (session, surroundings) = build
         .hands(vec![QuickThing::Multiple("Coin", 4.0)])
@@ -345,12 +345,64 @@ fn it_verifies_dropped_quantity() -> Result<()> {
     let action = action.unwrap();
     let effect = action.perform(session.clone(), &surroundings)?;
 
-    assert_eq!(effect, Effect::Prevented);
+    let reply: SimpleReply = effect.json_as()?;
+    assert_eq!(reply, SimpleReply::NotFound);
 
     let (_, person, area) = surroundings.unpack();
 
     assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 1);
     assert_eq!(area.scope::<Containing>()?.unwrap().holding.len(), 0);
+
+    build.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn it_drops_specified_quantity() -> Result<()> {
+    let mut build = BuildSurroundings::new()?;
+    let (session, surroundings) = build
+        .hands(vec![QuickThing::Multiple("Coin", 4.0)])
+        .build()?;
+
+    let (_, person, _) = surroundings.unpack();
+
+    assert_eq!(
+        person.scope::<Containing>()?.unwrap().holding[0]
+            .to_entity()?
+            .scope::<Carryable>()?
+            .unwrap()
+            .quantity(),
+        4.0
+    );
+
+    let action = try_parsing(DropActionParser {}, "drop 2 coin")?;
+    let action = action.unwrap();
+    let effect = action.perform(session.clone(), &surroundings)?;
+
+    assert_eq!(effect, Effect::Ok);
+
+    let (_, person, area) = surroundings.unpack();
+
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 1);
+    assert_eq!(area.scope::<Containing>()?.unwrap().holding.len(), 1);
+
+    assert_eq!(
+        person.scope::<Containing>()?.unwrap().holding[0]
+            .to_entity()?
+            .scope::<Carryable>()?
+            .unwrap()
+            .quantity(),
+        2.0
+    );
+    assert_eq!(
+        area.scope::<Containing>()?.unwrap().holding[0]
+            .to_entity()?
+            .scope::<Carryable>()?
+            .unwrap()
+            .quantity(),
+        2.0
+    );
 
     build.close()?;
 

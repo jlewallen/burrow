@@ -127,6 +127,49 @@ pub enum Quantity {
     Whole(i64),
     Fractional(f64),
 }
+impl Quantity {
+    pub fn as_f32(&self) -> f32 {
+        match self {
+            Quantity::Whole(v) => *v as f32,
+            Quantity::Fractional(v) => *v as f32,
+        }
+    }
+}
+
+impl PartialOrd for Quantity {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match (self, other) {
+            (Quantity::Whole(a), Quantity::Whole(b)) => a.partial_cmp(b),
+            (Quantity::Whole(a), Quantity::Fractional(b)) => (*a as f64).partial_cmp(b),
+            (Quantity::Fractional(a), Quantity::Whole(b)) => a.partial_cmp(&(*b as f64)),
+            (Quantity::Fractional(a), Quantity::Fractional(b)) => a.partial_cmp(b),
+        }
+    }
+}
+
+impl From<i32> for Quantity {
+    fn from(value: i32) -> Self {
+        Self::Whole(value as i64)
+    }
+}
+
+impl From<i64> for Quantity {
+    fn from(value: i64) -> Self {
+        Self::Whole(value)
+    }
+}
+
+impl From<f32> for Quantity {
+    fn from(value: f32) -> Self {
+        Self::Fractional(value as f64)
+    }
+}
+
+impl From<f64> for Quantity {
+    fn from(value: f64) -> Self {
+        Self::Fractional(value)
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -142,9 +185,10 @@ pub enum Item {
     Held(Box<Item>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Found {
     One(EntityPtr),
+    Quantified(Quantity, EntityPtr),
 }
 
 impl From<EntityPtr> for Found {
@@ -157,6 +201,13 @@ impl Found {
     pub fn one(self) -> Result<EntityPtr, DomainError> {
         match self {
             Found::One(one) => Ok(one),
+            Found::Quantified(_, _) => todo!(),
+        }
+    }
+
+    pub fn entity(&self) -> Result<&EntityPtr, DomainError> {
+        match self {
+            Found::One(e) | Found::Quantified(_, e) => Ok(e),
         }
     }
 }
@@ -167,6 +218,7 @@ impl TryInto<EntityPtr> for Found {
     fn try_into(self) -> Result<EntityPtr, Self::Error> {
         match self {
             Found::One(one) => Ok(one),
+            Found::Quantified(_, _) => todo!(),
         }
     }
 }

@@ -25,8 +25,8 @@ pub fn wear_article(
     change_location(
         from,
         to,
-        item,
-        |s: &mut Containing, item: EntityPtr| s.stop_carrying(&item),
+        item.clone().into(),
+        |s: &mut Containing, item: Found| s.stop_carrying(item),
         |s: &mut Wearing, item: EntityPtr| {
             s.start_wearing(&item)?;
             Ok(Some(item))
@@ -42,8 +42,8 @@ pub fn remove_article(
     change_location(
         from,
         to,
-        item,
-        |s: &mut Wearing, item: EntityPtr| s.stop_wearing(&item),
+        item.clone().into(),
+        |s: &mut Wearing, item: Found| s.stop_wearing(item),
         |s: &mut Containing, item: EntityPtr| {
             s.start_carrying(&item)?;
             Ok(Some(item))
@@ -51,15 +51,17 @@ pub fn remove_article(
     )
 }
 
-pub fn start_carrying(to: &EntityPtr, item: &EntityPtr) -> Result<bool, DomainError> {
+pub fn start_carrying(to: &EntityPtr, item: Found) -> Result<bool, DomainError> {
     info!("carry {:?} {:?}", item, to);
+
+    let item = item.one()?;
 
     assert!(item.scope::<Location>()?.is_none());
 
     let mut into = to.scope_mut::<Containing>()?;
 
-    if into.start_carrying(item)? {
-        Location::set(item, to.entity_ref())?;
+    if into.start_carrying(&item)? {
+        Location::set(&item, to.entity_ref())?;
         into.save()?;
 
         Ok(true)
@@ -68,16 +70,12 @@ pub fn start_carrying(to: &EntityPtr, item: &EntityPtr) -> Result<bool, DomainEr
     }
 }
 
-pub fn move_between(
-    from: &EntityPtr,
-    to: &EntityPtr,
-    item: &EntityPtr,
-) -> Result<bool, DomainError> {
+pub fn move_between(from: &EntityPtr, to: &EntityPtr, item: Found) -> Result<bool, DomainError> {
     change_location(
         from,
         to,
         item,
-        |s: &mut Containing, item: EntityPtr| s.stop_carrying(&item),
+        |s: &mut Containing, item: Found| s.stop_carrying(item),
         |s: &mut Containing, item: EntityPtr| {
             s.start_carrying(&item)?;
             Ok(Some(item.clone()))
@@ -214,7 +212,10 @@ pub fn quantity(entity: &EntityPtr) -> Result<f32, DomainError> {
     Ok(carryable.quantity())
 }
 
-pub fn set_quantity(entity: &EntityPtr, quantity: f32) -> Result<&EntityPtr, DomainError> {
+pub fn set_quantity<'a, 'b>(
+    entity: &'a EntityPtr,
+    quantity: &'b Quantity,
+) -> Result<&'a EntityPtr, DomainError> {
     let mut carryable = entity.scope_mut::<Carryable>()?;
     carryable.set_quantity(quantity)?;
     carryable.save()?;
@@ -222,7 +223,10 @@ pub fn set_quantity(entity: &EntityPtr, quantity: f32) -> Result<&EntityPtr, Dom
     Ok(entity)
 }
 
-pub fn separate(entity: &EntityPtr, quantity: f32) -> Result<(&EntityPtr, EntityPtr)> {
+pub fn separate<'a, 'b>(
+    entity: &'a EntityPtr,
+    quantity: &'b Quantity,
+) -> Result<(&'a EntityPtr, EntityPtr)> {
     let kind = {
         let mut carryable = entity.scope_mut::<Carryable>()?;
         carryable.decrease_quantity(quantity)?;
@@ -247,7 +251,7 @@ pub fn separate(entity: &EntityPtr, quantity: f32) -> Result<(&EntityPtr, Entity
 
 pub fn duplicate(entity: &EntityPtr) -> Result<EntityPtr> {
     let mut carryable = entity.scope_mut::<Carryable>()?;
-    carryable.increase_quantity(1.0)?;
+    carryable.increase_quantity(&1.0.into())?;
     carryable.save()?;
 
     Ok(entity.clone())
@@ -260,7 +264,7 @@ pub fn obliterate(obliterating: &EntityPtr) -> Result<()> {
         let container = container.to_entity()?;
         let mut containing = container.scope_mut::<Containing>()?;
 
-        containing.stop_carrying(obliterating)?;
+        containing.stop_carrying(obliterating.clone().into())?;
         containing.save()?;
 
         get_my_session()?.obliterate(obliterating)?;

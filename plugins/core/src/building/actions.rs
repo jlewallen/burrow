@@ -198,7 +198,7 @@ impl Action for MakeItemAction {
 
         let new_item = session.add_entity(new_item)?;
 
-        tools::set_quantity(&new_item, 1f32)?;
+        tools::set_quantity(&new_item, &1f32.into())?;
         tools::set_container(creator, &vec![new_item.clone()])?;
 
         remember(
