@@ -7,6 +7,8 @@ use thiserror::Error;
 
 use crate::parse::{BinaryOperator, Expr, UnaryOperator};
 
+pub type JsonValue = serde_json::Value;
+
 #[derive(Debug, Clone)]
 pub enum Value {
     Null,
@@ -14,6 +16,7 @@ pub enum Value {
     Integer(i64),
     Real(f64),
     String(String),
+    Json(JsonValue),
     Option(Option<Box<Value>>),
     Map(HashMap<String, Value>),
     Array(Vec<Value>),
@@ -26,13 +29,45 @@ impl Value {
                 Some(value) => value.clone(),
                 None => Value::Option(None),
             },
-            Value::Null => todo!(),
-            Value::Bool(_) => todo!(),
-            Value::Integer(_) => todo!(),
-            Value::Real(_) => todo!(),
-            Value::Option(_) => todo!(),
-            Value::Array(_) => todo!(),
-            Value::String(_) => todo!(),
+            Value::Json(json) => match json.as_object() {
+                Some(object) => match object.get(key) {
+                    Some(value) => value.clone().into(),
+                    None => Value::Option(None),
+                },
+                None => Value::Option(None),
+            },
+            _ => Value::Option(None),
+        }
+    }
+}
+
+impl From<serde_json::Map<String, JsonValue>> for Value {
+    fn from(value: serde_json::Map<String, JsonValue>) -> Self {
+        Self::Map(
+            value
+                .into_iter()
+                .map(|(key, value)| (key, value.into()))
+                .collect::<HashMap<_, Self>>(),
+        )
+    }
+}
+
+impl From<JsonValue> for Value {
+    fn from(value: JsonValue) -> Self {
+        match value {
+            serde_json::Value::Null => Value::Null,
+            serde_json::Value::Bool(v) => Value::Bool(v),
+            serde_json::Value::Number(v) => match (v.as_i64(), v.as_f64()) {
+                (Some(i), None) => Value::Integer(i),
+                (Some(i), Some(r)) => Value::Integer(i),
+                (None, Some(r)) => Value::Real(r),
+                (None, None) => todo!(),
+            },
+            serde_json::Value::String(v) => Value::String(v),
+            serde_json::Value::Array(array) => {
+                Value::Array(array.into_iter().map(|v| v.into()).collect())
+            }
+            serde_json::Value::Object(map) => map.clone().into(),
         }
     }
 }
@@ -152,6 +187,7 @@ impl PartialEq for Value {
             (Self::Integer(l0), Self::Integer(r0)) => l0 == r0,
             (Self::Real(l0), Self::Real(r0)) => l0 == r0,
             (Self::String(l0), Self::String(r0)) => l0 == r0,
+            (Self::Json(l0), Self::Json(r0)) => l0 == r0,
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
     }
@@ -169,26 +205,6 @@ impl PartialOrd for Value {
         }
     }
 }
-
-/*
-impl Index<&str> for Value {
-    type Output = Value;
-
-    fn index(&self, index: &str) -> &Self::Output {
-        match self {
-            Value::Null => todo!(),
-            Value::Bool(_) => todo!(),
-            Value::Integer(_) => todo!(),
-            Value::Real(_) => todo!(),
-            Value::Option(_) => todo!(),
-            Value::Map(map) => match map.get(index) {
-                Some(value) => &Self::Option(Some(value.clone().into())),
-                None => &Self::Option(None),
-            },
-        }
-    }
-}
-*/
 
 pub struct Evaluator<'a> {
     scope: &'a HashMap<String, Value>,
@@ -280,6 +296,8 @@ pub enum EvaluationError {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+
+    use serde_json::json;
 
     use crate::eval::{EvaluationError, Evaluator, Value};
 
@@ -425,17 +443,6 @@ mod tests {
         assert_eq!(evaluator.eval(&tree).unwrap(), Value::Option(None));
     }
 
-    /*
-    #[test]
-    fn test_index_json() {
-        let child = json!({
-            "health": 100
-        });
-        let scope: HashMap<_, _> = [("person".to_owned(), Value::Json(child))].into();
-        let evaluator = Evaluator::new(&scope);
-    }
-    */
-
     #[test]
     fn test_integer_in_array() {
         let child: HashMap<_, _> = [(
@@ -471,5 +478,22 @@ mod tests {
 
         let tree = crate::parse::parse(r#""C" in person.holding"#).unwrap();
         assert_eq!(evaluator.eval(&tree).unwrap(), Value::Bool(false));
+    }
+
+    #[test]
+    fn test_nested_field_accesses_for_json() {
+        let scope: HashMap<_, _> = [(
+            "person".to_owned(),
+            Value::Json(json!({
+                "props": {
+                    "health": 100
+                }
+            })),
+        )]
+        .into();
+        let evaluator = Evaluator::new(&scope);
+
+        let tree = crate::parse::parse("person.props.health").unwrap();
+        assert_eq!(evaluator.eval(&tree).unwrap(), Value::Integer(100));
     }
 }
