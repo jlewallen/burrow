@@ -13,6 +13,7 @@ pub enum Value {
     Bool(bool),
     Integer(i64),
     Real(f64),
+    String(String),
     Option(Option<Box<Value>>),
     Map(HashMap<String, Value>),
     Array(Vec<Value>),
@@ -31,6 +32,7 @@ impl Value {
             Value::Real(_) => todo!(),
             Value::Option(_) => todo!(),
             Value::Array(_) => todo!(),
+            Value::String(_) => todo!(),
         }
     }
 }
@@ -127,11 +129,7 @@ impl Neg for Value {
         match self {
             Value::Integer(value) => (-value).into(),
             Value::Real(value) => (-value).into(),
-            Value::Null => todo!(),
-            Value::Bool(_) => todo!(),
-            Value::Option(_) => todo!(),
-            Value::Map(_) => todo!(),
-            Value::Array(_) => todo!(),
+            _ => unimplemented!(),
         }
     }
 }
@@ -142,12 +140,7 @@ impl Not for Value {
     fn not(self) -> Self::Output {
         match self {
             Value::Bool(value) => (!value).into(),
-            Value::Null => todo!(),
-            Value::Integer(_) => todo!(),
-            Value::Real(_) => todo!(),
-            Value::Option(_) => todo!(),
-            Value::Map(_) => todo!(),
-            Value::Array(_) => todo!(),
+            _ => unimplemented!(),
         }
     }
 }
@@ -158,6 +151,7 @@ impl PartialEq for Value {
             (Self::Bool(l0), Self::Bool(r0)) => l0 == r0,
             (Self::Integer(l0), Self::Integer(r0)) => l0 == r0,
             (Self::Real(l0), Self::Real(r0)) => l0 == r0,
+            (Self::String(l0), Self::String(r0)) => l0 == r0,
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
     }
@@ -210,6 +204,7 @@ impl<'a> Evaluator<'a> {
             Expr::Bool(val) => Ok(Value::Bool(*val)),
             Expr::Integer(val) => Ok(Value::Integer(*val)),
             Expr::Real(val) => Ok(Value::Real(*val)),
+            Expr::String(val) => Ok(Value::String(val.clone())),
             Expr::Variable(name) => {
                 if let Some(var) = self.scope.get(name) {
                     Ok(var.clone())
@@ -261,7 +256,7 @@ impl<'a> Evaluator<'a> {
                         (Value::Bool(_), Value::Array(array))
                         | (Value::Integer(_), Value::Array(array))
                         | (Value::Real(_), Value::Array(array))
-                        | (Value::Option(_), Value::Array(array)) => {
+                        | (Value::String(_), Value::Array(array)) => {
                             Ok(array.contains(&lhs).into())
                         }
                         _ => todo!(),
@@ -442,7 +437,7 @@ mod tests {
     */
 
     #[test]
-    fn test_in_array() {
+    fn test_integer_in_array() {
         let child: HashMap<_, _> = [(
             "holding".to_owned(),
             Value::Array(vec![Value::Integer(0), Value::Integer(3)]),
@@ -455,6 +450,26 @@ mod tests {
         assert_eq!(evaluator.eval(&tree).unwrap(), Value::Bool(true));
 
         let tree = crate::parse::parse("1 in person.holding").unwrap();
+        assert_eq!(evaluator.eval(&tree).unwrap(), Value::Bool(false));
+    }
+
+    #[test]
+    fn test_string_in_array() {
+        let child: HashMap<_, _> = [(
+            "holding".to_owned(),
+            Value::Array(vec![
+                Value::String("A".to_owned()),
+                Value::String("B".to_owned()),
+            ]),
+        )]
+        .into();
+        let scope: HashMap<_, _> = [("person".to_owned(), Value::Map(child))].into();
+        let evaluator = Evaluator::new(&scope);
+
+        let tree = crate::parse::parse(r#""A" in person.holding"#).unwrap();
+        assert_eq!(evaluator.eval(&tree).unwrap(), Value::Bool(true));
+
+        let tree = crate::parse::parse(r#""C" in person.holding"#).unwrap();
         assert_eq!(evaluator.eval(&tree).unwrap(), Value::Bool(false));
     }
 }

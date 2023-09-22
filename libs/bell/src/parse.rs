@@ -26,6 +26,7 @@ pub enum Expr {
     Bool(bool),
     Integer(i64),
     Real(f64),
+    String(String),
     Variable(String),
     Option(Option<Box<Expr>>),
     FieldAccess {
@@ -45,7 +46,7 @@ pub enum Expr {
 
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_while1},
+    bytes::complete::{tag, take_while, take_while1},
     character::complete::char,
     character::complete::{multispace0, one_of},
     combinator::recognize,
@@ -96,6 +97,16 @@ fn parse_numeric_literal(i: &str) -> IResult<&str, Expr> {
 
 fn parse_none_literal(i: &str) -> IResult<&str, Expr> {
     alt((map(alt((tag("none"), tag("None"))), |_| Expr::Option(None)),))(i)
+}
+
+fn string_inside(i: &str) -> IResult<&str, &str> {
+    take_while(move |c: char| c.is_alphabetic() || c.is_whitespace())(i)
+}
+
+fn parse_string_literal(i: &str) -> IResult<&str, Expr> {
+    map(delimited(tag("\""), string_inside, tag("\"")), |l| {
+        Expr::String(l.to_owned())
+    })(i)
 }
 
 fn parse_some_expr(i: &str) -> IResult<&str, Expr> {
@@ -170,6 +181,7 @@ fn parse_atom(i: &str) -> IResult<&str, Expr> {
         parse_numeric_literal,
         parse_boolean_literal,
         parse_none_literal,
+        parse_string_literal,
         parse_some_expr,
         parse_variable,
         parse_parenthesized,
