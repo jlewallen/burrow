@@ -68,7 +68,7 @@ impl ParsesActions for PutInsideActionParser {
                 noun,
             ),
             |(item, vessel)| PutInsideAction {
-                item: item.0,
+                item: Item::Held(item.0.into()),
                 vessel: vessel,
             },
         )(i)?;
@@ -89,6 +89,29 @@ impl ParsesActions for GiveToActionParser {
             ),
             |(item, receiver)| GiveToAction {
                 item: Item::Held(Box::new(item)),
+                receiver,
+            },
+        )(i)?;
+
+        Ok(Some(Box::new(action)))
+    }
+}
+
+pub struct TradeActionParser {}
+
+impl ParsesActions for TradeActionParser {
+    fn try_parse_action(&self, i: &str) -> EvaluationResult {
+        let (_, action) = map(
+            tuple((
+                preceded(tag("trade"), preceded(spaces, noun)),
+                preceded(spaces, alt((quantified, noun))),
+                spaces,
+                preceded(tag("for"), preceded(spaces, alt((quantified, noun)))),
+            )),
+            |(receiver, giving, _, receiving)| TradeAction {
+                giving: Item::Held(giving.into()),
+                giver: Item::Myself,
+                receiving: Item::Contained(receiving.into()),
                 receiver,
             },
         )(i)?;

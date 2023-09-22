@@ -177,3 +177,47 @@ impl Action for GiveToAction {
         }
     }
 }
+
+#[action]
+pub struct TradeAction {
+    pub giving: Item,
+    pub giver: Item,
+    pub receiving: Item,
+    pub receiver: Item,
+}
+
+impl Action for TradeAction {
+    fn is_read_only(&self) -> bool {
+        false
+    }
+
+    fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+        info!("trade {:?} -> {:?}", self.giving, self.receiving);
+
+        let giver = session.find_item(surroundings, &self.giver)?;
+        let giving = session.find_item(surroundings, &self.giving)?;
+        let receiving = session.find_item(surroundings, &self.receiving)?;
+        let receiver = session.find_item(surroundings, &self.receiver)?;
+
+        match (giving, receiving, giver, receiver) {
+            (Some(giving), Some(receiving), Some(giver), Some(receiver)) => {
+                let giver = giver.one()?;
+                let receiver = receiver.one()?;
+
+                debug!("{:?} (giver) -> {:?}", self.giver, giver);
+                debug!("{:?} (giving) -> {:?}", self.giving, giving);
+                debug!("{:?} (receiving) -> {:?}", self.receiving, receiving);
+                debug!("{:?} (receiver) -> {:?}", self.receiver, receiver);
+
+                match tools::move_between(&giver, &receiver, giving.clone())? {
+                    true => match tools::move_between(&receiver, &giver, receiving.clone())? {
+                        true => Ok(Effect::Ok),
+                        false => Ok(SimpleReply::NotFound.try_into()?),
+                    },
+                    false => Ok(SimpleReply::NotFound.try_into()?),
+                }
+            }
+            _ => Ok(SimpleReply::NotFound.try_into()?),
+        }
+    }
+}
