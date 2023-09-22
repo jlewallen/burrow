@@ -402,14 +402,14 @@ impl ActiveSession for Session {
         &self,
         surroundings: &Surroundings,
         item: &Item,
-    ) -> Result<Option<EntityPtr>, DomainError> {
+    ) -> Result<Option<Found>, DomainError> {
         let _loading_span = span!(Level::INFO, "finding", i = format!("{:?}", item)).entered();
 
         info!("finding");
 
         match item {
-            Item::Gid(gid) => Ok(self.entity(&LookupBy::Gid(gid))?),
-            Item::Key(key) => Ok(self.entity(&LookupBy::Key(key))?),
+            Item::Gid(gid) => Ok(self.entity(&LookupBy::Gid(gid))?.map(|v| v.into())),
+            Item::Key(key) => Ok(self.entity(&LookupBy::Key(key))?.map(|v| v.into())),
             _ => self.finder.find_item(surroundings, item),
         }
     }

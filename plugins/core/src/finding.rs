@@ -4,8 +4,8 @@ use tracing::debug;
 
 use crate::{location::Location, moving::model::Occupying, tools};
 use kernel::prelude::{
-    get_my_session, here, Audience, DomainError, EntityPtr, Finder, IntoEntityPtr, Item, OpenScope,
-    Surroundings,
+    get_my_session, here, Audience, DomainError, EntityPtr, Finder, Found, IntoEntityPtr, Item,
+    OpenScope, Surroundings,
 };
 
 /// Determines if an entity matches a user's description of that entity, given
@@ -117,14 +117,14 @@ impl EntityRelationshipSet {
         Ok(Self { entities: expanded })
     }
 
-    pub fn find_item(&self, item: &Item) -> Result<Option<EntityPtr>> {
+    pub fn find_item(&self, item: &Item) -> Result<Option<Found>> {
         debug!("haystack {:?}", self);
 
         match item {
             Item::Area => {
                 for entity in &self.entities {
                     if let EntityRelationship::Area(e) = entity {
-                        return Ok(Some(e.clone()));
+                        return Ok(Some(e.clone().into()));
                     }
                 }
 
@@ -133,7 +133,7 @@ impl EntityRelationshipSet {
             Item::Myself => {
                 for entity in &self.entities {
                     if let EntityRelationship::Actor(e) = entity {
-                        return Ok(Some(e.clone()));
+                        return Ok(Some(e.clone().into()));
                     }
                 }
 
@@ -148,7 +148,7 @@ impl EntityRelationshipSet {
                         | EntityRelationship::Occupying(e)
                         | EntityRelationship::Wearing(e) => {
                             if matches_description(e, name)? {
-                                return Ok(Some(e.clone()));
+                                return Ok(Some(e.clone().into()));
                             }
                         }
                         _ => {}
@@ -159,19 +159,38 @@ impl EntityRelationshipSet {
             }
             Item::Contained(contained) => self.expand()?.find_item(contained),
             Item::Held(held) => self
-                .prioritize(&|e| match e {
+                .prioritize(|e| match e {
                     EntityRelationship::Holding(_) => 0,
                     _ => default_priority(e),
                 })?
                 .find_item(held),
+            Item::Quantified(q, i) => Ok(self
+                .find_item(i)?
+                .map(|e| e.one())
+                .map_or(Ok(None), |v| v.map(Some))?
+                .map(|e| Found::Quantified(q.clone(), e))),
             _ => Ok(None),
         }
     }
 
-    fn prioritize(
-        &self,
-        order: &dyn Fn(&EntityRelationship) -> u32,
-    ) -> Result<EntityRelationshipSet> {
+    #[allow(dead_code)]
+    fn filter<P>(&self, mut predicate: P) -> EntityRelationshipSet
+    where
+        P: FnMut(&EntityRelationship) -> bool,
+    {
+        let entities = self
+            .entities
+            .iter()
+            .filter(|r| predicate(r))
+            .map(|i| i.clone())
+            .collect();
+        Self { entities }
+    }
+
+    fn prioritize<F>(&self, mut order: F) -> Result<EntityRelationshipSet>
+    where
+        F: FnMut(&EntityRelationship) -> u32,
+    {
         let mut entities = self.entities.clone();
         entities.sort_by_key(|a| order(a));
         Ok(Self { entities })
@@ -226,7 +245,7 @@ impl Finder for DefaultFinder {
         &self,
         surroundings: &Surroundings,
         item: &Item,
-    ) -> Result<Option<EntityPtr>, DomainError> {
+    ) -> Result<Option<Found>, DomainError> {
         let haystack = EntityRelationshipSet::new_from_surroundings(surroundings).expand()?;
         Ok(haystack.find_item(item)?)
     }

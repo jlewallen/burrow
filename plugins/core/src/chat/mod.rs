@@ -110,7 +110,7 @@ pub mod actions {
 
                 let actor = match &self.actor {
                     Some(actor) => match session.find_item(&surroundings, &actor)? {
-                        Some(actor) => actor,
+                        Some(actor) => actor.one()?,
                         None => return Ok(SimpleReply::NotFound.try_into()?),
                     },
                     None => actor,
@@ -118,7 +118,7 @@ pub mod actions {
 
                 let area = match &self.area {
                     Some(area) => match session.find_item(&surroundings, &area)? {
-                        Some(area) => area,
+                        Some(area) => area.one()?,
                         None => return Ok(SimpleReply::NotFound.try_into()?),
                     },
                     None => tools::area_of(&actor).with_context(|| "Actor has no area")?,

@@ -40,18 +40,6 @@ impl From<EntityRef> for EntityKey {
     }
 }
 
-impl From<&Entity> for EntityRef {
-    fn from(value: &Entity) -> Self {
-        Self {
-            key: value.key().clone(),
-            class: value.class().to_owned(),
-            name: value.name(),
-            gid: value.gid(),
-            entity: None,
-        }
-    }
-}
-
 impl EntityRef {
     pub(crate) fn new_from_entity(entity: &Entity, shared: Option<Weak<RefCell<Entity>>>) -> Self {
         Self {
@@ -114,6 +102,7 @@ impl PotentialRef {
         let Some(gid) = self.gid else {
             return None;
         };
+        assert!(false);
         Some(EntityRef {
             key: EntityKey::new(&key),
             class,

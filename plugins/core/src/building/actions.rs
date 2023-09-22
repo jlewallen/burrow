@@ -58,6 +58,7 @@ impl Action for EditAction {
         match session.find_item(surroundings, &self.item)? {
             Some(editing) => {
                 info!("editing {:?}", editing);
+                let editing = editing.one()?;
                 let quick_edit: QuickEdit = (&editing).try_into()?;
                 Ok(EditorReply::new(
                     editing.key().to_string(),
@@ -87,6 +88,7 @@ impl Action for EditRawAction {
         match session.find_item(surroundings, &self.item)? {
             Some(editing) => {
                 info!("editing {:?}", editing);
+                let editing = editing.one()?;
                 let json = {
                     let editing = editing.borrow();
                     editing.to_json_value()?
@@ -141,7 +143,7 @@ impl Action for DuplicateAction {
         match session.find_item(surroundings, &self.item)? {
             Some(duplicating) => {
                 info!("duplicating {:?}", duplicating);
-                _ = tools::duplicate(&duplicating)?;
+                _ = tools::duplicate(&duplicating.one()?)?;
                 Ok(SimpleReply::Done.try_into()?)
             }
             None => Ok(SimpleReply::NotFound.try_into()?),
@@ -165,7 +167,7 @@ impl Action for ObliterateAction {
         match session.find_item(surroundings, &self.item)? {
             Some(obliterating) => {
                 info!("obliterate {:?}", obliterating);
-                tools::obliterate(&obliterating)?;
+                tools::obliterate(&obliterating.one()?)?;
                 Ok(SimpleReply::Done.try_into()?)
             }
             None => Ok(SimpleReply::NotFound.try_into()?),
@@ -196,7 +198,7 @@ impl Action for MakeItemAction {
 
         let new_item = session.add_entity(new_item)?;
 
-        tools::set_quantity(&new_item, 1f32)?;
+        tools::set_quantity(&new_item, &1f32.into())?;
         tools::set_container(creator, &vec![new_item.clone()])?;
 
         remember(
@@ -411,13 +413,14 @@ impl Action for ChangeOwnerAction {
 
     fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
         match session.find_item(surroundings, &self.item)? {
-            Some(item) => match self.assure_ownable(item) {
+            Some(item) => match self.assure_ownable(item.one()?) {
                 Some(item) => match session.find_item(surroundings, &self.owner)? {
                     Some(owner) => {
                         // Only restricting people's ownerhship being modified.
                         // Not sure if we need to restrict who/what can be an
                         // owner, though?
                         let mut item = item.borrow_mut();
+                        let owner = owner.one()?;
                         item.chown(owner.entity_ref());
 
                         Ok(SimpleReply::Done.try_into()?)

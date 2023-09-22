@@ -23,6 +23,7 @@ impl Action for EditAction {
 
         match session.find_item(surroundings, &self.item)? {
             Some(editing) => {
+                let editing = editing.one()?;
                 let script = match get_script(&editing)? {
                     Some(script) => script.entry().to_owned(),
                     None => "// Default script".to_owned(),
@@ -45,14 +46,14 @@ pub struct DiagnosticsAction {
 }
 
 impl Action for DiagnosticsAction {
-    fn is_read_only(&self) -> bool
-    {
+    fn is_read_only(&self) -> bool {
         true
     }
 
     fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
         match session.find_item(surroundings, &self.item)? {
             Some(editing) => {
+                let editing = editing.one()?;
                 let diagnostics = get_diagnostics(&editing)?;
                 Ok(Effect::Reply(EffectReply::TaggedJson(
                     TaggedJson::new_from(json!({ "diagnostics": diagnostics }))?,
@@ -126,8 +127,7 @@ pub struct RuneAction {
 }
 
 impl Action for RuneAction {
-    fn is_read_only(&self) -> bool
-    {
+    fn is_read_only(&self) -> bool {
         false
     }
 
@@ -152,14 +152,14 @@ pub struct RegisterAction {
 }
 
 impl Action for RegisterAction {
-    fn is_read_only(&self) -> bool
-    {
+    fn is_read_only(&self) -> bool {
         false
     }
 
     fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
         match session.find_item(surroundings, &self.actor)? {
             Some(actor) => {
+                let actor = actor.one()?;
                 let runners = get_local_runners();
                 let schema = runners.schema().unwrap();
                 if let Some(script) = load_sources_from_entity(&actor, Relation::Actor)? {

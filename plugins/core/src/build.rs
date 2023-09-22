@@ -5,7 +5,8 @@ use engine::{domain, prelude::*, sequences::DeterministicKeys, storage::InMemory
 use kernel::{
     prelude::{
         build_entity, CoreProps, Entity, EntityBuilder, EntityKey, EntityPtr, MutCoreProps,
-        OpenScopeRefMut, RegisteredPlugins, SessionRef, SetSession, Surroundings, WORLD_KEY,
+        OpenScopeRefMut, Quantity, RegisteredPlugins, SessionRef, SetSession, Surroundings,
+        WORLD_KEY,
     },
     session::ActiveSession,
 };
@@ -45,7 +46,7 @@ impl BuildEntityPtr {
     }
 
     pub fn carryable(&mut self) -> Result<&mut Self> {
-        tools::set_quantity(&self.entity, 1.0)?;
+        tools::set_quantity(&self.entity, &1.0.into())?;
 
         Ok(self)
     }
@@ -56,7 +57,7 @@ impl BuildEntityPtr {
         Ok(self)
     }
 
-    pub fn of_quantity(&mut self, quantity: f32) -> Result<&mut Self> {
+    pub fn of_quantity(&mut self, quantity: &Quantity) -> Result<&mut Self> {
         tools::set_quantity(&self.entity, quantity)?;
 
         Ok(self)
@@ -170,7 +171,7 @@ impl QuickThing {
             QuickThing::Multiple(name, quantity) => Ok(Build::new(session)?
                 .named(name)?
                 .save()?
-                .of_quantity(*quantity)?
+                .of_quantity(&(*quantity).into())?
                 .into_entity()?),
             QuickThing::Place(name) => Ok(Build::new(session)?
                 .named(name)?

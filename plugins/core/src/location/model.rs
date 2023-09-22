@@ -29,14 +29,14 @@ impl Scope for Location {
 pub fn change_location<A, B, C, D>(
     from: &EntityPtr,
     to: &EntityPtr,
-    item: &EntityPtr,
+    item: Found,
     do_from: C,
     do_into: D,
 ) -> Result<bool, DomainError>
 where
     A: Scope + Serialize,
     B: Scope + Serialize,
-    C: FnOnce(&mut A, EntityPtr) -> Result<Option<EntityPtr>, DomainError>,
+    C: FnOnce(&mut A, Found) -> Result<Option<EntityPtr>, DomainError>,
     D: FnOnce(&mut B, EntityPtr) -> Result<Option<EntityPtr>, DomainError>,
 {
     info!("moving {:?} {:?} {:?}", item, from, to);

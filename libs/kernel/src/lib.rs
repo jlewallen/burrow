@@ -28,7 +28,7 @@ pub mod prelude {
 }
 
 mod finder {
-    use crate::model::{Audience, DomainError, EntityKey, EntityPtr, Item};
+    use crate::model::{Audience, DomainError, EntityKey, EntityPtr, Found, Item};
     use crate::surround::Surroundings;
 
     pub trait Finder: Send + Sync {
@@ -40,7 +40,7 @@ mod finder {
             &self,
             surroundings: &Surroundings,
             item: &Item,
-        ) -> Result<Option<EntityPtr>, DomainError>;
+        ) -> Result<Option<Found>, DomainError>;
 
         fn find_audience(&self, audience: &Audience) -> Result<Vec<EntityKey>, DomainError>;
     }

@@ -28,7 +28,7 @@ impl Containing {
                 if is_kind(&held, &carryable.kind)? {
                     let mut combining = held.scope_mut::<Carryable>()?;
 
-                    combining.increase_quantity(carryable.quantity)?;
+                    combining.increase_quantity(&carryable.quantity.into())?;
 
                     combining.save()?;
 
@@ -67,20 +67,35 @@ impl Containing {
         Ok(true)
     }
 
-    pub fn stop_carrying(&mut self, item: &EntityPtr) -> Result<Option<EntityPtr>, DomainError> {
+    pub fn stop_carrying(&mut self, found: Found) -> Result<Option<EntityPtr>, DomainError> {
+        let item = found.entity()?;
+
         if !self.is_holding(item) {
             return Ok(None);
         }
 
         if let Some(carryable) = item.scope::<Carryable>()? {
-            if carryable.quantity > 1.0 {
-                let (_original, separated) = tools::separate(item, 1.0)?;
+            match &found {
+                Found::One(item) => {
+                    if carryable.quantity > 1.0 {
+                        let (_original, separated) = tools::separate(item, &1.0.into())?;
 
-                Ok(Some(separated))
-            } else {
-                self.remove_item(item)?;
+                        Ok(Some(separated))
+                    } else {
+                        self.remove_item(item)?;
 
-                Ok(Some(item.clone()))
+                        Ok(Some(item.clone()))
+                    }
+                }
+                Found::Quantified(q, entity) => {
+                    if carryable.quantity > q.as_f32() {
+                        let (_original, separated) = tools::separate(entity, q)?;
+
+                        Ok(Some(separated))
+                    } else {
+                        Ok(None)
+                    }
+                }
             }
         } else {
             self.remove_item(item)?;
@@ -119,28 +134,28 @@ impl Carryable {
         self.quantity
     }
 
-    pub fn decrease_quantity(&mut self, q: f32) -> Result<&mut Self, DomainError> {
+    pub fn decrease_quantity(&mut self, q: &Quantity) -> Result<&mut Self, DomainError> {
         self.sanity_check_quantity();
 
-        if q < 1.0 || q > self.quantity {
+        if *q < 1.0.into() || *q > self.quantity.into() {
             Err(DomainError::Impossible)
         } else {
-            self.quantity -= q;
+            self.quantity -= q.as_f32();
 
             Ok(self)
         }
     }
 
-    pub fn increase_quantity(&mut self, q: f32) -> Result<&mut Self, DomainError> {
+    pub fn increase_quantity(&mut self, q: &Quantity) -> Result<&mut Self, DomainError> {
         self.sanity_check_quantity();
 
-        self.quantity += q;
+        self.quantity += q.as_f32();
 
         Ok(self)
     }
 
-    pub fn set_quantity(&mut self, q: f32) -> Result<&mut Self, DomainError> {
-        self.quantity = q;
+    pub fn set_quantity(&mut self, q: &Quantity) -> Result<&mut Self, DomainError> {
+        self.quantity = q.as_f32();
 
         Ok(self)
     }

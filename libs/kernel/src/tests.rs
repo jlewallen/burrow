@@ -76,7 +76,7 @@ impl ActiveSession for KeysOnlySession {
         &self,
         _surroundings: &Surroundings,
         _item: &Item,
-    ) -> Result<Option<EntityPtr>, DomainError> {
+    ) -> Result<Option<Found>, DomainError> {
         todo!()
     }
 

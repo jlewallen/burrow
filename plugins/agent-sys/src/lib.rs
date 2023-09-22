@@ -120,7 +120,7 @@ impl ActiveSession for AgentSession {
         &self,
         _surroundings: &kernel::prelude::Surroundings,
         _item: &kernel::prelude::Item,
-    ) -> Result<Option<EntityPtr>, DomainError> {
+    ) -> Result<Option<Found>, DomainError> {
         unimplemented!("AgentSession:find-item")
     }
 

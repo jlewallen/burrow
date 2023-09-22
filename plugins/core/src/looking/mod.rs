@@ -272,6 +272,7 @@ pub mod actions {
 
             match session.find_item(surroundings, &self.item)? {
                 Some(actor) => {
+                    let actor = actor.one()?;
                     if tools::is_container(&actor)? {
                         match new_inside_observation(&user, &actor)? {
                             Some(observation) => Ok(observation.try_into()?),
@@ -300,7 +301,7 @@ pub mod actions {
             let (_, user, _area) = surroundings.unpack();
 
             match session.find_item(surroundings, &self.item)? {
-                Some(item) => match new_entity_observation(&user, &item)? {
+                Some(item) => match new_entity_observation(&user, &item.one()?)? {
                     Some(observation) => Ok(observation.try_into()?),
                     None => Ok(SimpleReply::NotFound.try_into()?),
                 },
