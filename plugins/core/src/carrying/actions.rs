@@ -22,7 +22,7 @@ impl Action for HoldAction {
                     Audience::Area(area.key().clone()),
                     Carrying::Held {
                         actor: (&actor).observe(&actor)?.expect("No observed entity"),
-                        item: (&holding.one()?)
+                        item: (&holding.entity()?)
                             .observe(&actor)?
                             .expect("No observed entity"),
                         area: (&area).observe(&actor)?.expect("No observed entity"),

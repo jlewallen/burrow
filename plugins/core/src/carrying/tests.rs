@@ -408,3 +408,78 @@ fn it_drops_specified_quantity() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn it_fails_to_hold_when_available_quantity_insufficient() -> Result<()> {
+    let mut build = BuildSurroundings::new()?;
+    let (session, surroundings) = build
+        .ground(vec![QuickThing::Multiple("Coin", 4.0)])
+        .build()?;
+
+    let action = try_parsing(HoldActionParser {}, "hold 5 coin")?;
+    let action = action.unwrap();
+    let effect = action.perform(session.clone(), &surroundings)?;
+
+    let reply: SimpleReply = effect.json_as()?;
+    assert_eq!(reply, SimpleReply::NotFound);
+
+    let (_, person, area) = surroundings.unpack();
+
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 0);
+    assert_eq!(area.scope::<Containing>()?.unwrap().holding.len(), 1);
+
+    build.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn it_holds_specified_quantity() -> Result<()> {
+    let mut build = BuildSurroundings::new()?;
+    let (session, surroundings) = build
+        .ground(vec![QuickThing::Multiple("Coin", 4.0)])
+        .build()?;
+
+    let (_, _, area) = surroundings.unpack();
+
+    assert_eq!(
+        area.scope::<Containing>()?.unwrap().holding[0]
+            .to_entity()?
+            .scope::<Carryable>()?
+            .unwrap()
+            .quantity(),
+        4.0
+    );
+
+    let action = try_parsing(HoldActionParser {}, "hold 2 coin")?;
+    let action = action.unwrap();
+    let effect = action.perform(session.clone(), &surroundings)?;
+
+    assert_eq!(effect, Effect::Ok);
+
+    let (_, person, area) = surroundings.unpack();
+
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 1);
+    assert_eq!(area.scope::<Containing>()?.unwrap().holding.len(), 1);
+
+    assert_eq!(
+        person.scope::<Containing>()?.unwrap().holding[0]
+            .to_entity()?
+            .scope::<Carryable>()?
+            .unwrap()
+            .quantity(),
+        2.0
+    );
+    assert_eq!(
+        area.scope::<Containing>()?.unwrap().holding[0]
+            .to_entity()?
+            .scope::<Carryable>()?
+            .unwrap()
+            .quantity(),
+        2.0
+    );
+
+    build.close()?;
+
+    Ok(())
+}

@@ -5,9 +5,10 @@ pub struct HoldActionParser {}
 
 impl ParsesActions for HoldActionParser {
     fn try_parse_action(&self, i: &str) -> EvaluationResult {
-        let (_, action) = map(separated_pair(tag("hold"), spaces, noun), |(_, item)| {
-            HoldAction { item }
-        })(i)?;
+        let (_, action) = map(
+            separated_pair(tag("hold"), spaces, alt((quantified, noun))),
+            |(_, item)| HoldAction { item },
+        )(i)?;
 
         Ok(Some(Box::new(action)))
     }
