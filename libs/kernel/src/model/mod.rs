@@ -99,7 +99,17 @@ impl Deref for EntityPtr {
 
 impl std::fmt::Debug for EntityPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Entity").field("key", &self.key()).finish()
+        if cfg!(debug_assertions) {
+            f.debug_struct("Entity")
+                .field("key", &self.key())
+                .field(
+                    "name",
+                    &self.name().unwrap_or_else(|_| "Unknown".to_owned()),
+                )
+                .finish()
+        } else {
+            f.debug_struct("Entity").field("key", &self.key()).finish()
+        }
     }
 }
 

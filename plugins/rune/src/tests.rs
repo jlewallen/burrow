@@ -223,6 +223,7 @@ pub fn test_chain() -> Result<()> {
     let actor = build_entity()
         .living()
         .with_key(EntityKey::new("E-0"))
+        .name("Thing")
         .identity(Identity::new("".to_lowercase(), "".to_owned()))
         .try_into()?;
     let perform = Perform::Actor {
