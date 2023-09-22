@@ -96,3 +96,26 @@ impl ParsesActions for GiveToActionParser {
         Ok(Some(Box::new(action)))
     }
 }
+
+pub struct TradeActionParser {}
+
+impl ParsesActions for TradeActionParser {
+    fn try_parse_action(&self, i: &str) -> EvaluationResult {
+        let (_, action) = map(
+            tuple((
+                preceded(tag("trade"), preceded(spaces, noun)),
+                preceded(spaces, alt((quantified, noun))),
+                spaces,
+                preceded(tag("for"), preceded(spaces, alt((quantified, noun)))),
+            )),
+            |(receiver, giving, _, receiving)| TradeAction {
+                giving,
+                giver: Item::Myself,
+                receiving,
+                receiver,
+            },
+        )(i)?;
+
+        Ok(Some(Box::new(action)))
+    }
+}

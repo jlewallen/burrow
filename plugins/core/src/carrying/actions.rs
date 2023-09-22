@@ -177,3 +177,57 @@ impl Action for GiveToAction {
         }
     }
 }
+
+#[action]
+pub struct TradeAction {
+    pub giving: Item,
+    pub giver: Item,
+    pub receiving: Item,
+    pub receiver: Item,
+}
+
+impl Action for TradeAction {
+    fn is_read_only(&self) -> bool {
+        false
+    }
+
+    fn perform(&self, session: SessionRef, surroundings: &Surroundings) -> ReplyResult {
+        info!("trade {:?} -> {:?}", self.giving, self.receiving);
+
+        let (_, target, area) = surroundings.unpack();
+
+        // TODO Target removes giving
+        // TODO Receiver removes receiving
+        // TODO Target adds receiving
+        // TODO Receiver adds giving
+
+        let giver = session.find_item(surroundings, &self.giver)?;
+        let giving = session.find_item(surroundings, &self.giving)?;
+        let receiving = session.find_item(surroundings, &self.receiving)?;
+        let receiver = session.find_item(surroundings, &self.receiver)?;
+
+        println!("{:?} (giver) -> {:?}", self.giver, giver);
+        println!("{:?} (giving) -> {:?}", self.giving, giving);
+        println!("{:?} (receiving) -> {:?}", self.receiving, receiving);
+        println!("{:?} (receiver) -> {:?}", self.receiver, receiver);
+
+        match (giving, receiving, giver, receiver) {
+            (None, None, None, None) => todo!(),
+            (None, None, None, Some(_)) => todo!(),
+            (None, None, Some(_), None) => todo!(),
+            (None, None, Some(_), Some(_)) => todo!(),
+            (None, Some(_), None, None) => todo!(),
+            (None, Some(_), None, Some(_)) => todo!(),
+            (None, Some(_), Some(_), None) => todo!(),
+            (None, Some(_), Some(_), Some(_)) => todo!(),
+            (Some(_), None, None, None) => todo!(),
+            (Some(_), None, None, Some(_)) => todo!(),
+            (Some(_), None, Some(_), None) => todo!(),
+            (Some(giving), None, Some(giver), Some(receiver)) => todo!(),
+            (Some(_), Some(_), None, None) => todo!(),
+            (Some(_), Some(_), None, Some(_)) => todo!(),
+            (Some(_), Some(_), Some(_), None) => todo!(),
+            (Some(giving), Some(receiving), Some(giver), Some(receiver)) => todo!(),
+        }
+    }
+}

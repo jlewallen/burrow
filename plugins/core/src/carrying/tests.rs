@@ -483,3 +483,35 @@ fn it_holds_specified_quantity() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+#[ignore]
+fn it_trades_one_for_one() -> Result<()> {
+    let mut build = BuildSurroundings::new()?;
+    let rake = build.with(build_entity().name("Rake"))?;
+    let carla = build
+        .entity()?
+        .named("Carla")?
+        .save()?
+        .holding(&vec![rake])?
+        .into_entity()?;
+    let (session, surroundings) = build
+        .hands(vec![QuickThing::Object("key")])
+        .occupying(vec![QuickThing::Actual(carla.clone())])
+        .build()?;
+
+    let action = try_parsing(TradeActionParser {}, "trade Carla key for rake")?;
+    let action = action.unwrap();
+    let effect = action.perform(session.clone(), &surroundings)?;
+
+    assert_eq!(effect, Effect::Ok);
+
+    let (_, person, _) = surroundings.unpack();
+
+    assert_eq!(person.scope::<Containing>()?.unwrap().holding.len(), 1);
+    assert_eq!(carla.scope::<Containing>()?.unwrap().holding.len(), 1);
+
+    build.close()?;
+
+    Ok(())
+}
