@@ -102,7 +102,6 @@ impl PotentialRef {
         let Some(gid) = self.gid else {
             return None;
         };
-        assert!(false);
         Some(EntityRef {
             key: EntityKey::new(&key),
             class,
