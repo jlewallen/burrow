@@ -153,11 +153,15 @@ impl Session {
     pub(super) fn captured(
         &self,
         actor: EntityPtr,
+        surroundings: Surroundings,
         action: Box<dyn Action>,
     ) -> Result<Effect, DomainError> {
         let actor_key = actor.key().clone();
         let action = PerformAction::Instance(action.into());
-        let perform = Perform::Actor { actor, action };
+        let perform = Perform::Surroundings {
+            surroundings,
+            action,
+        };
 
         let desc = format!("{:?}", perform);
         logs::capture(
@@ -215,6 +219,15 @@ impl Session {
             .expect("No actor found with key"))
     }
 
+    pub(crate) fn surroundins(&self, actor: &EntityPtr) -> Result<Surroundings> {
+        Ok(MakeSurroundings {
+            finder: self.finder.clone(),
+            actor: actor.clone(),
+        }
+        .try_into()
+        .context(here!())?)
+    }
+
     pub fn evaluate_and_perform_as(
         &self,
         evaluate_as: EvaluateAs,
@@ -224,14 +237,15 @@ impl Session {
             return Err(DomainError::SessionClosed.into());
         }
 
+        let session = self.set_session()?;
+        let actor = session.find_actor(evaluate_as)?;
+        let surroundings = session.surroundins(&actor)?;
+
         match self.parse_action(text)? {
             Some(action) => {
                 debug!("{:#?}", action.to_tagged_json()?.into_tagged());
 
-                let session = self.set_session()?;
-                let actor = session.find_actor(evaluate_as)?;
-
-                match session.captured(actor, action) {
+                match session.captured(actor, surroundings, action) {
                     Ok(i) => Ok(Some(i)),
                     Err(original_err) => {
                         warn!("error: {:?}", original_err);
