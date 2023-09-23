@@ -241,6 +241,10 @@ impl Session {
             return Err(DomainError::SessionClosed.into());
         }
 
+        if text.is_empty() {
+            return Ok(None);
+        }
+
         let session = self.set_session()?;
         let actor = session.find_actor(evaluate_as)?;
         let surroundings = session.surroundins(&actor)?;
