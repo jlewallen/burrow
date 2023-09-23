@@ -203,9 +203,13 @@ impl Session {
         Ok(())
     }
 
-    fn parse_action(&self, text: &str) -> Result<Option<Box<dyn Action>>, EvaluationError> {
+    fn parse_action(
+        &self,
+        surroundings: &Surroundings,
+        text: &str,
+    ) -> Result<Option<Box<dyn Action>>, EvaluationError> {
         let plugins = self.plugins.borrow();
-        plugins.try_parse_action(text)
+        plugins.try_parse_action_in_surroundings(surroundings, text)
     }
 
     fn find_actor(&self, evaluate_as: EvaluateAs) -> Result<EntityPtr, DomainError> {
@@ -241,7 +245,7 @@ impl Session {
         let actor = session.find_actor(evaluate_as)?;
         let surroundings = session.surroundins(&actor)?;
 
-        match self.parse_action(text)? {
+        match self.parse_action(&surroundings, text)? {
             Some(action) => {
                 debug!("{:#?}", action.to_tagged_json()?.into_tagged());
 

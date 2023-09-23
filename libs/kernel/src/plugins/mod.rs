@@ -9,6 +9,7 @@ use tracing::*;
 
 use crate::actions::Action;
 use crate::model::*;
+use crate::prelude::Surroundings;
 
 mod mw;
 
@@ -54,7 +55,17 @@ impl RegisteredPlugins {
 }
 
 pub trait ParsesActions {
-    fn try_parse_action(&self, i: &str) -> EvaluationResult;
+    fn try_parse_action(&self, _text: &str) -> EvaluationResult {
+        Err(EvaluationError::ParseFailed)
+    }
+
+    fn try_parse_action_in_surroundings(
+        &self,
+        _surroundings: &Surroundings,
+        text: &str,
+    ) -> EvaluationResult {
+        self.try_parse_action(text)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -304,6 +315,24 @@ impl ParsesActions for SessionPlugins {
             .plugins
             .iter()
             .map(|plugin| plugin.try_parse_action(i))
+            .filter_map(|r| r.ok())
+            .take(1)
+            .last()
+        {
+            Some(Some(e)) => Ok(Some(e)),
+            _ => Ok(None),
+        }
+    }
+
+    fn try_parse_action_in_surroundings(
+        &self,
+        surroundings: &Surroundings,
+        i: &str,
+    ) -> EvaluationResult {
+        match self
+            .plugins
+            .iter()
+            .map(|plugin| plugin.try_parse_action_in_surroundings(surroundings, i))
             .filter_map(|r| r.ok())
             .take(1)
             .last()
