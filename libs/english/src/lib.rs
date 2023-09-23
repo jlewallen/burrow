@@ -30,13 +30,6 @@ pub fn to_english(text: &str) -> IResult<&str, Vec<English>> {
     separated_list0(spaces, term)(text)
 }
 
-pub fn to_tongue(text: &str) -> Option<Vec<English>> {
-    match to_english(text) {
-        Ok((_, e)) => Some(e),
-        Err(_) => None,
-    }
-}
-
 fn term(i: &str) -> IResult<&str, English> {
     alt((
         literal,
@@ -121,9 +114,7 @@ fn word(i: &str) -> IResult<&str, &str> {
     take_while1(move |c| "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".contains(c))(i)
 }
 
-fn english_node_to_parser<'a>(
-    node: &'a English,
-) -> Box<dyn FnMut(&'a str) -> IResult<&'a str, Node> + 'a> {
+fn node_to_parser<'a>(node: &'a English) -> Box<dyn FnMut(&'a str) -> IResult<&'a str, Node> + 'a> {
     match node {
         English::Literal(v) => Box::new(map(tag_no_case::<&str, &str, _>(v), |_| Node::Ignored)),
         English::Phrase(_) => todo!(),
@@ -137,12 +128,10 @@ fn english_node_to_parser<'a>(
     }
 }
 
-fn english_nodes_to_parser<'a>(
-    nodes: &'a [English],
-) -> impl FnMut(&'a str) -> IResult<&'a str, Node> {
+fn nodes_to_parser<'a>(nodes: &'a [English]) -> impl FnMut(&'a str) -> IResult<&'a str, Node> {
     move |mut i: &'a str| {
         // TODO Would love to move this up and out of the closure.
-        let terms = nodes.iter().map(english_node_to_parser).collect::<Vec<_>>();
+        let terms = nodes.iter().map(node_to_parser).collect::<Vec<_>>();
 
         let mut accumulator: Vec<Node> = vec![];
         for mut term in terms {
@@ -170,8 +159,22 @@ pub enum Node {
 }
 
 pub fn try_parse(english: &[English], text: &str) -> Option<Node> {
-    match english_nodes_to_parser(english)(text) {
+    match nodes_to_parser(english)(text) {
         Ok((_, node)) => Some(node),
+        Err(_) => None,
+    }
+}
+
+pub fn to_tongue(text: &str) -> Option<Vec<English>> {
+    match to_english(text) {
+        Ok((left, e)) => {
+            if !left.is_empty() {
+                warn!("unparsed English: {:?}", left);
+                None
+            } else {
+                Some(e)
+            }
+        }
         Err(_) => None,
     }
 }

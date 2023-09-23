@@ -188,6 +188,21 @@ impl RuneRunner {
 
     pub fn call(&mut self, call: Call) -> Result<Option<PostEvaluation<rune::runtime::Value>>> {
         match call {
+            Call::Register => Ok(self
+                .invoke("register", ())?
+                .map(|v| Some(self.post(v)))
+                .flatten()),
+            Call::TryParse(text) => match self.commands()? {
+                Some(commands) => match commands.try_parse(&text) {
+                    Some(parsed) => {
+                        warn!("{:?}", parsed);
+
+                        Ok(None)
+                    }
+                    None => Ok(None),
+                },
+                None => Ok(None),
+            },
             Call::Handlers(raised) => {
                 if let Some(handlers) = self.handlers()? {
                     Ok(handlers
@@ -207,14 +222,6 @@ impl RuneRunner {
                     Ok(None)
                 }
             }
-            Call::Register => Ok(self
-                .invoke("register", ())?
-                .map(|v| Some(self.post(v)))
-                .flatten()),
-            Call::TryParse(text) => match self.commands()? {
-                Some(_) => todo!(),
-                None => Ok(None),
-            },
         }
     }
 
@@ -266,17 +273,15 @@ impl RuneRunner {
             rune::runtime::VmResult::Ok(v) => match v.into_object() {
                 rune::runtime::VmResult::Ok(v) => {
                     let v = v.borrow_ref()?;
-                    for (burrowese, make) in v.iter() {
-                        match english::to_tongue(&burrowese) {
-                            Some(tongue) => {
-                                // english::try_parse(&tongue, text);
-                                println!("{:?} -> {:?}", burrowese, tongue);
-                            }
-                            None => {}
-                        }
-                    }
+                    let commands = v
+                        .iter()
+                        .flat_map(|(burrowese, make)| match english::to_tongue(&burrowese) {
+                            Some(tongue) => Some(Command { tongue }),
+                            None => None,
+                        })
+                        .collect();
 
-                    Ok(None)
+                    Ok(Some(ProvidedCommands::new(commands)))
                 }
                 rune::runtime::VmResult::Err(_) => todo!(),
             },
@@ -354,10 +359,6 @@ impl RuneRunner {
             Ok(None)
         }
     }
-}
-
-struct ProvidedCommands {
-    commands: Vec<English>,
 }
 
 fn update_state_in_place(value: RuneValue, setting: &JsonValue) -> Result<RuneValue> {
@@ -740,4 +741,38 @@ impl Serialize for ObjectSerializer {
 
         serializer.end()
     }
+}
+
+#[derive(Debug)]
+struct Command {
+    tongue: Vec<English>,
+}
+
+impl Command {
+    fn try_parse(&self, text: &str) -> Option<ParsedCommand> {
+        match english::try_parse(&self.tongue, text) {
+            Some(node) => Some(ParsedCommand { node }),
+            None => None,
+        }
+    }
+}
+
+#[derive(Debug)]
+struct ProvidedCommands {
+    commands: Vec<Command>,
+}
+
+impl ProvidedCommands {
+    fn new(commands: Vec<Command>) -> Self {
+        Self { commands }
+    }
+
+    fn try_parse(&self, text: &str) -> Option<ParsedCommand> {
+        self.commands.iter().flat_map(|c| c.try_parse(text)).next()
+    }
+}
+
+#[derive(Debug)]
+struct ParsedCommand {
+    node: english::Node,
 }
