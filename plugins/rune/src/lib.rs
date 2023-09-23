@@ -101,7 +101,14 @@ impl ParsesActions for RunePlugin {
         let sources = load_sources_from_surroundings(surroundings)?;
         self.runners.add_runners_for(sources.into_iter())?;
 
-        self.try_parse_action(text)
+        match self.try_parse_action(text) {
+            Ok(action) => Ok(action),
+            Err(_) => {
+                self.runners.call(Call::TryParse(text.to_owned()))?;
+
+                Err(EvaluationError::ParseFailed)
+            }
+        }
     }
 }
 

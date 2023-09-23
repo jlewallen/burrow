@@ -1,5 +1,6 @@
 use anyhow::Context as _;
 use anyhow::Result;
+use english::English;
 use plugins_core::sched::actions::DateTime;
 use plugins_core::sched::actions::Utc;
 use rune::{
@@ -210,6 +211,10 @@ impl RuneRunner {
                 .invoke("register", ())?
                 .map(|v| Some(self.post(v)))
                 .flatten()),
+            Call::TryParse(text) => match self.commands()? {
+                Some(_) => todo!(),
+                None => Ok(None),
+            },
         }
     }
 
@@ -245,6 +250,40 @@ impl RuneRunner {
                 Err(_) => Ok(None),
             },
             None => Ok(None),
+        }
+    }
+
+    fn commands(&mut self) -> Result<Option<ProvidedCommands>> {
+        let Some(vm) = self.vm.as_ref() else {
+            return Ok(None);
+        };
+
+        let Ok(func) = vm.lookup_function(["commands"]) else {
+            return Ok(None);
+        };
+
+        match func.call::<_, rune::Value>(()) {
+            rune::runtime::VmResult::Ok(v) => match v.into_object() {
+                rune::runtime::VmResult::Ok(v) => {
+                    let v = v.borrow_ref()?;
+                    for (burrowese, make) in v.iter() {
+                        match english::to_tongue(&burrowese) {
+                            Some(tongue) => {
+                                // english::try_parse(&tongue, text);
+                                println!("{:?} -> {:?}", burrowese, tongue);
+                            }
+                            None => {}
+                        }
+                    }
+
+                    Ok(None)
+                }
+                rune::runtime::VmResult::Err(_) => todo!(),
+            },
+            rune::runtime::VmResult::Err(e) => {
+                warn!("handlers-error {}", e);
+                Ok(None)
+            }
         }
     }
 
@@ -315,6 +354,10 @@ impl RuneRunner {
             Ok(None)
         }
     }
+}
+
+struct ProvidedCommands {
+    commands: Vec<English>,
 }
 
 fn update_state_in_place(value: RuneValue, setting: &JsonValue) -> Result<RuneValue> {
@@ -400,9 +443,10 @@ impl Into<RuneReturn> for PostEvaluation<rune::runtime::Value> {
 
 #[derive(Clone)]
 pub enum Call {
+    Register,
     Handlers(Raised),
     Action(TaggedJson),
-    Register,
+    TryParse(String),
 }
 
 pub struct FunctionTree {

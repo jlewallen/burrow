@@ -26,8 +26,15 @@ pub enum English {
     Text,
 }
 
-pub fn to_english(i: &str) -> IResult<&str, Vec<English>> {
-    separated_list0(spaces, term)(i)
+pub fn to_english(text: &str) -> IResult<&str, Vec<English>> {
+    separated_list0(spaces, term)(text)
+}
+
+pub fn to_tongue(text: &str) -> Option<Vec<English>> {
+    match to_english(text) {
+        Ok((_, e)) => Some(e),
+        Err(_) => None,
+    }
 }
 
 fn term(i: &str) -> IResult<&str, English> {
@@ -110,22 +117,10 @@ fn literal(i: &str) -> IResult<&str, English> {
     map(uppercase_word, |v| English::Literal(v.into()))(i)
 }
 
-#[allow(dead_code)]
-#[derive(Debug)]
-enum Node {
-    Ignored,
-    Held(String),
-    Unheld(String),
-    Contained(String),
-    Phrase(Vec<Node>),
-}
-
-#[allow(dead_code)]
 fn word(i: &str) -> IResult<&str, &str> {
     take_while1(move |c| "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".contains(c))(i)
 }
 
-#[allow(dead_code)]
 fn english_node_to_parser<'a>(
     node: &'a English,
 ) -> Box<dyn FnMut(&'a str) -> IResult<&'a str, Node> + 'a> {
@@ -142,7 +137,6 @@ fn english_node_to_parser<'a>(
     }
 }
 
-#[allow(dead_code)]
 fn english_nodes_to_parser<'a>(
     nodes: &'a [English],
 ) -> impl FnMut(&'a str) -> IResult<&'a str, Node> {
@@ -163,5 +157,21 @@ fn english_nodes_to_parser<'a>(
         }
 
         Ok((i, Node::Phrase(accumulator)))
+    }
+}
+
+#[derive(Debug)]
+pub enum Node {
+    Ignored,
+    Held(String),
+    Unheld(String),
+    Contained(String),
+    Phrase(Vec<Node>),
+}
+
+pub fn try_parse(english: &[English], text: &str) -> Option<Node> {
+    match english_nodes_to_parser(english)(text) {
+        Ok((_, node)) => Some(node),
+        Err(_) => None,
     }
 }
