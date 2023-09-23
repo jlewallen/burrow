@@ -6,7 +6,7 @@ use plugins_core::sched::actions::Utc;
 use rune::{
     runtime::{Object, RuntimeContext, Shared},
     termcolor::{ColorChoice, StandardStream, WriteColor},
-    Context, Diagnostics, Sources, Value, Vm,
+    Context, Diagnostics, Sources, Vm,
 };
 use serde::ser::SerializeMap;
 use serde::Deserialize;
@@ -28,6 +28,8 @@ use crate::{
     sources::*,
     Behaviors, RuneState,
 };
+
+pub type RuneValue = rune::Value;
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct LogEntry {
@@ -101,8 +103,6 @@ impl From<Vec<LogEntry>> for Log {
         Self { entries }
     }
 }
-
-pub type RuneValue = rune::Value;
 
 enum State {
     None,
@@ -241,13 +241,13 @@ impl RuneRunner {
         PostEvaluation::new(self.owner.clone(), value)
     }
 
-    fn invoke<A>(&mut self, name: &str, args: A) -> Result<Option<rune::Value>>
+    fn invoke<A>(&mut self, name: &str, args: A) -> Result<Option<RuneValue>>
     where
         A: rune::runtime::Args,
     {
         match &mut self.vm {
             Some(vm) => match vm.lookup_function([name]) {
-                Ok(func) => match func.call::<A, rune::Value>(args) {
+                Ok(func) => match func.call::<A, RuneValue>(args) {
                     rune::runtime::VmResult::Ok(v) => Ok(Some(v)),
                     rune::runtime::VmResult::Err(e) => {
                         error!("rune: {}", e);
@@ -269,14 +269,17 @@ impl RuneRunner {
             return Ok(None);
         };
 
-        match func.call::<_, rune::Value>(()) {
+        match func.call::<_, RuneValue>(()) {
             rune::runtime::VmResult::Ok(v) => match v.into_object() {
                 rune::runtime::VmResult::Ok(v) => {
                     let v = v.borrow_ref()?;
                     let commands = v
                         .iter()
-                        .flat_map(|(burrowese, make)| match english::to_tongue(&burrowese) {
-                            Some(tongue) => Some(Command { tongue }),
+                        .flat_map(|(burrowese, invoke)| match english::to_tongue(&burrowese) {
+                            Some(tongue) => Some(Command {
+                                tongue,
+                                invoke: invoke.clone(),
+                            }),
                             None => None,
                         })
                         .collect();
@@ -309,9 +312,9 @@ impl RuneRunner {
             return Ok(None);
         };
 
-        match func.call::<_, rune::Value>(()) {
+        match func.call::<_, RuneValue>(()) {
             rune::runtime::VmResult::Ok(obj) => match obj {
-                Value::Object(obj) => Ok(Some(FunctionTree::new(self.source.clone(), obj))),
+                RuneValue::Object(obj) => Ok(Some(FunctionTree::new(self.source.clone(), obj))),
                 _ => Ok(None),
             },
             rune::runtime::VmResult::Err(e) => {
@@ -340,7 +343,7 @@ impl RuneRunner {
         if let Some(loaded) = &loaded {
             if let Some(vm) = &self.vm {
                 match vm.lookup_function(["create_state"]) {
-                    Ok(state_fn) => match state_fn.call::<_, rune::Value>(()) {
+                    Ok(state_fn) => match state_fn.call::<_, RuneValue>(()) {
                         rune::runtime::VmResult::Ok(value) => {
                             Ok(Some(update_state_in_place(value.clone(), loaded)?))
                         }
@@ -365,8 +368,8 @@ fn update_state_in_place(value: RuneValue, setting: &JsonValue) -> Result<RuneVa
     debug!("state:updating {:?} {:?}", &value, setting);
 
     match &value {
-        Value::Struct(truct) => {
-            let try_get: Value = serde_json::from_value(setting.clone())?;
+        RuneValue::Struct(truct) => {
+            let try_get: RuneValue = serde_json::from_value(setting.clone())?;
             let state_object = try_get.into_object().into_result()?;
             let copying = state_object.borrow_ref()?;
             let mut receiving = truct.borrow_mut()?;
@@ -483,14 +486,14 @@ impl FunctionTree {
         let json = json.value().clone();
 
         match child {
-            Value::Object(object) => {
+            RuneValue::Object(object) => {
                 if let Ok(json) = TaggedJson::new_from(json.into()) {
                     Self::new(path, object.clone()).apply(state.clone(), json)
                 } else {
                     unimplemented!("unexpected handler value: {:?}", object)
                 }
             }
-            Value::Function(func) => {
+            RuneValue::Function(func) => {
                 let bag = Bag(json);
 
                 info!("calling {}", path);
@@ -499,13 +502,13 @@ impl FunctionTree {
                     match func
                         .borrow_ref()
                         .unwrap()
-                        .call::<_, rune::Value>((state, bag))
+                        .call::<_, RuneValue>((state, bag))
                     {
                         rune::runtime::VmResult::Ok(v) => v,
                         rune::runtime::VmResult::Err(e) => {
                             warn!("{:?}", e);
 
-                            rune::Value::EmptyTuple
+                            RuneValue::EmptyTuple
                         }
                     },
                 ))
@@ -663,12 +666,13 @@ impl Simplifies for RuneReturn {
 impl Simplifies for rune::runtime::Value {
     fn simplify(&self) -> Result<Vec<Returned>> {
         match self.clone() {
-            rune::Value::Object(_object) => {
+            RuneValue::EmptyTuple => Ok(vec![]),
+            RuneValue::Object(_object) => {
                 let value = serde_json::to_value(self.clone())?;
                 let tagged = TaggedJson::new_from(value)?;
                 Ok(vec![Returned::Tagged(tagged)])
             }
-            rune::Value::Vec(vec) => {
+            RuneValue::Vec(vec) => {
                 let vec = vec.borrow_ref()?;
                 Ok(vec
                     .iter()
@@ -678,7 +682,7 @@ impl Simplifies for rune::runtime::Value {
                     .flatten()
                     .collect())
             }
-            rune::Value::Option(value) => {
+            RuneValue::Option(value) => {
                 let value = value.borrow_ref().with_context(|| here!())?;
                 if let Some(value) = value.clone() {
                     value.simplify()
@@ -686,7 +690,7 @@ impl Simplifies for rune::runtime::Value {
                     Ok(vec![])
                 }
             }
-            rune::Value::Any(value) => {
+            RuneValue::Any(value) => {
                 let value = value.borrow_ref().with_context(|| here!())?;
                 if value.is::<RuneState>() {
                     if let Some(value) = value.downcast_borrow_ref::<RuneState>() {
@@ -698,8 +702,7 @@ impl Simplifies for rune::runtime::Value {
                     Ok(vec![])
                 }
             }
-            rune::Value::EmptyTuple => Ok(vec![]),
-            rune::Value::Struct(value) => {
+            RuneValue::Struct(value) => {
                 let value = value.borrow_ref()?;
                 let data = value.data();
                 let serialized = serde_json::to_value(ObjectSerializer {
@@ -710,7 +713,7 @@ impl Simplifies for rune::runtime::Value {
                     value: Some(serialized),
                 })])
             }
-            rune::Value::Type(ty) => {
+            RuneValue::Type(ty) => {
                 warn!("Unexpected rune type: {:?}", ty);
 
                 Ok(vec![])
@@ -746,12 +749,13 @@ impl Serialize for ObjectSerializer {
 #[derive(Debug)]
 struct Command {
     tongue: Vec<English>,
+    invoke: RuneValue,
 }
 
 impl Command {
     fn try_parse(&self, text: &str) -> Option<ParsedCommand> {
         match english::try_parse(&self.tongue, text) {
-            Some(node) => Some(ParsedCommand { node }),
+            Some(node) => Some(ParsedCommand { _node: node }),
             None => None,
         }
     }
@@ -774,5 +778,5 @@ impl ProvidedCommands {
 
 #[derive(Debug)]
 struct ParsedCommand {
-    node: english::Node,
+    _node: english::Node,
 }
