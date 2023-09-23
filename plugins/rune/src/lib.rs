@@ -104,7 +104,7 @@ impl ParsesActions for RunePlugin {
         match self.try_parse_action(text) {
             Ok(action) => Ok(action),
             Err(_) => {
-                self.runners.call(Call::TryParse(text.to_owned()))?;
+                let post = self.runners.call(Call::TryParse(text.to_owned()))?;
 
                 Err(EvaluationError::ParseFailed)
             }

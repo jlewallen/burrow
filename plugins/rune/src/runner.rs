@@ -186,7 +186,7 @@ impl RuneRunner {
         })
     }
 
-    pub fn call(&mut self, call: Call) -> Result<Option<PostEvaluation<rune::runtime::Value>>> {
+    pub fn call(&mut self, call: Call) -> Result<Option<PostEvaluation<RuneValue>>> {
         match call {
             Call::Register => Ok(self
                 .invoke("register", ())?
@@ -194,11 +194,7 @@ impl RuneRunner {
                 .flatten()),
             Call::TryParse(text) => match self.commands()? {
                 Some(commands) => match commands.try_parse(&text) {
-                    Some(parsed) => {
-                        warn!("{:?}", parsed);
-
-                        Ok(None)
-                    }
+                    Some(parsed) => parsed.invoke().map(|v| v.map(|v| self.post(v))),
                     None => Ok(None),
                 },
                 None => Ok(None),
@@ -237,7 +233,8 @@ impl RuneRunner {
         Ok(self.post(effect))
     }
 
-    fn post<T>(&mut self, value: T) -> PostEvaluation<T> {
+    fn post<T: std::fmt::Debug>(&mut self, value: T) -> PostEvaluation<T> {
+        debug!("post-value: {:?}", value);
         PostEvaluation::new(self.owner.clone(), value)
     }
 
@@ -275,13 +272,15 @@ impl RuneRunner {
                     let v = v.borrow_ref()?;
                     let commands = v
                         .iter()
-                        .flat_map(|(burrowese, invoke)| match english::to_tongue(&burrowese) {
-                            Some(tongue) => Some(Command {
-                                tongue,
-                                invoke: invoke.clone(),
-                            }),
-                            None => None,
-                        })
+                        .flat_map(
+                            |(burrowese, handler)| match english::to_tongue(&burrowese) {
+                                Some(tongue) => Some(Command {
+                                    tongue,
+                                    handler: handler.clone(),
+                                }),
+                                None => None,
+                            },
+                        )
                         .collect();
 
                     Ok(Some(ProvidedCommands::new(commands)))
@@ -472,7 +471,7 @@ impl FunctionTree {
         Self { path, object }
     }
 
-    fn apply<S>(&self, state: Option<S>, json: TaggedJson) -> Result<Option<rune::runtime::Value>>
+    fn apply<S>(&self, state: Option<S>, json: TaggedJson) -> Result<Option<RuneValue>>
     where
         S: Clone + rune::ToValue,
     {
@@ -749,13 +748,16 @@ impl Serialize for ObjectSerializer {
 #[derive(Debug)]
 struct Command {
     tongue: Vec<English>,
-    invoke: RuneValue,
+    handler: RuneValue,
 }
 
 impl Command {
     fn try_parse(&self, text: &str) -> Option<ParsedCommand> {
         match english::try_parse(&self.tongue, text) {
-            Some(node) => Some(ParsedCommand { _node: node }),
+            Some(node) => Some(ParsedCommand {
+                handler: self.handler.clone(),
+                node: node,
+            }),
             None => None,
         }
     }
@@ -778,5 +780,35 @@ impl ProvidedCommands {
 
 #[derive(Debug)]
 struct ParsedCommand {
-    _node: english::Node,
+    handler: RuneValue,
+    node: english::Node,
+}
+
+impl ParsedCommand {
+    fn invoke(&self) -> Result<Option<RuneValue>> {
+        info!("invoking {:?} ({:?})", self.handler, self.node);
+
+        match &self.handler {
+            RuneValue::Function(func) => Ok(Some(
+                match func
+                    .borrow_ref()
+                    .unwrap()
+                    .call::<_, RuneValue>((/* TODO Pass self.node, somehow? */))
+                {
+                    rune::runtime::VmResult::Ok(v) => v,
+                    rune::runtime::VmResult::Err(e) => {
+                        warn!("{:?}", e);
+
+                        RuneValue::EmptyTuple
+                    }
+                },
+            )),
+            RuneValue::Object(_) => todo!(),
+            RuneValue::Vec(_) => todo!(),
+            _ => Err(anyhow::anyhow!(
+                "Unexpected handler value: {:?}",
+                self.handler
+            )),
+        }
+    }
 }
