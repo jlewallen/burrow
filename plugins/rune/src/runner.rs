@@ -617,12 +617,13 @@ pub enum Returned {
     State(RuneState),
 }
 
+#[derive(Debug)]
 pub struct RuneReturn {
-    value: rune::runtime::Value,
+    value: RuneValue,
 }
 
 impl RuneReturn {
-    pub fn new(v: Vec<rune::runtime::Value>) -> Result<Self> {
+    pub fn new(v: Vec<RuneValue>) -> Result<Self> {
         let value = rune::runtime::to_value(v).with_context(|| here!())?;
         Ok(Self { value })
     }
