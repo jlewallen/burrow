@@ -3,7 +3,7 @@ use clap::Args;
 use std::{fs::OpenOptions, io::Write, path::PathBuf};
 use tracing::*;
 
-use engine::storage::{PersistedEntity, StorageFactory};
+use engine::storage::PersistedEntity;
 use kernel::prelude::{Entity, EntityKey, JsonValue, OpenScope};
 use plugins_rune::Behaviors;
 
@@ -13,7 +13,7 @@ use crate::DomainBuilder;
 pub struct Command {
     #[arg(short, long, value_name = "FILE")]
     path: Option<String>,
-    #[arg(short, long)]
+    #[arg(long)]
     to: String,
 }
 
@@ -27,10 +27,6 @@ impl Command {
 pub async fn execute_command(cmd: &Command) -> Result<()> {
     let builder = cmd.builder();
     let domain = builder.build().await?;
-
-    let factory = builder.storage_factory()?;
-    let _storage = factory.create_storage()?;
-
     let entities = domain.query_all()?.into_iter();
 
     let exporter = FileExporter {
@@ -51,6 +47,8 @@ struct FileExporter {
 impl FileExporter {
     fn json(&self, key: &EntityKey, data: &JsonValue) -> Result<()> {
         let file_or_dir = self.to.join(key.key_to_string());
+
+        std::fs::create_dir_all(&file_or_dir)?;
 
         let mut file_path = file_or_dir.clone();
         file_path.set_extension("json");
@@ -93,7 +91,7 @@ trait Export<E> {
 
 impl Export<FileExporter> for PersistedEntity {
     fn export(&self, exporter: &FileExporter) -> Result<()> {
-        info!("exporting {}", self.key);
+        info!(key = %self.key, "exporting");
 
         let key = EntityKey::new(&self.key);
         let json: JsonValue = serde_json::from_str(&self.serialized)?;
