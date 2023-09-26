@@ -18,13 +18,13 @@ anyhow = "1.0.72"
 tracing = "0.1.37"
 serde = { version = "1.0.180", features = ["derive"] }
 serde_json = "1.0.104"
-rune = { git = "https://github.com/rune-rs/rune.git" }
+rune = { git = "https://github.com/rune-rs/rune.git", rev = "1208271c96dda553fc27b93187738afa9f50f7ec" }
 glob = "0.3.1"
 rune-modules = { git = "https://github.com/rune-rs/rune.git", features = [
     "rand",
     "time",
     "json",
-] }
+], rev = "1208271c96dda553fc27b93187738afa9f50f7ec" }
 
 [dev-dependencies]
 insta = { version = "1.31.0", features = ["yaml", "json"] }
