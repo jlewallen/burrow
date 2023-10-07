@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "libs/bell",
     "libs/bon",
     "libs/macros",
     "libs/replies",
