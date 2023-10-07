@@ -10,6 +10,9 @@ pub use nom::{
 use nom::{bytes::complete::tag_no_case, combinator::eof};
 pub use tracing::*;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum English {
     Literal(String),
@@ -23,8 +26,8 @@ pub enum English {
     Text,
 }
 
-pub fn to_english(i: &str) -> IResult<&str, Vec<English>> {
-    separated_list0(spaces, term)(i)
+pub fn to_english(text: &str) -> IResult<&str, Vec<English>> {
+    separated_list0(spaces, term)(text)
 }
 
 fn term(i: &str) -> IResult<&str, English> {
@@ -107,150 +110,11 @@ fn literal(i: &str) -> IResult<&str, English> {
     map(uppercase_word, |v| English::Literal(v.into()))(i)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    struct Fixture {
-        text: &'static str,
-        expected: Vec<English>,
-    }
-
-    impl Fixture {
-        pub fn new(text: &'static str, expected: Vec<English>) -> Self {
-            Self { text, expected }
-        }
-    }
-
-    fn get_fixtures() -> Vec<Fixture> {
-        vec![
-            Fixture::new(
-                r#"HOLD #unheld"#,
-                vec![English::Literal("HOLD".into()), English::Unheld],
-            ),
-            Fixture::new(
-                r#"PUT #held IN #held"#,
-                vec![
-                    English::Literal("PUT".into()),
-                    English::Held,
-                    English::Literal("IN".into()),
-                    English::Held,
-                ],
-            ),
-            Fixture::new(
-                r#"PUT #held (INSIDE OF|IN) (#held|#unheld)?"#,
-                vec![
-                    English::Literal("PUT".into()),
-                    English::Held,
-                    English::OneOf(vec![
-                        English::Phrase(vec![
-                            English::Literal("INSIDE".into()),
-                            English::Literal("OF".into()),
-                        ]),
-                        English::Phrase(vec![English::Literal("IN".into())]),
-                    ]),
-                    English::Optional(Box::new(English::OneOf(vec![
-                        English::Phrase(vec![English::Held]),
-                        English::Phrase(vec![English::Unheld]),
-                    ]))),
-                ],
-            ),
-            Fixture::new(
-                r#"TAKE (OUT)? #contained (OUT OF (#held|#unheld))?"#,
-                vec![
-                    English::Literal("TAKE".into()),
-                    English::Optional(Box::new(English::Phrase(vec![English::Literal(
-                        "OUT".into(),
-                    )]))),
-                    English::Contained,
-                    English::Optional(Box::new(English::Phrase(vec![
-                        English::Literal("OUT".into()),
-                        English::Literal("OF".into()),
-                        English::OneOf(vec![
-                            English::Phrase(vec![English::Held]),
-                            English::Phrase(vec![English::Unheld]),
-                        ]),
-                    ]))),
-                ],
-            ),
-            Fixture::new(
-                r#"HOLD #unheld"#,
-                vec![English::Literal("HOLD".into()), English::Unheld],
-            ),
-            Fixture::new(
-                r#"DROP (#held)?"#,
-                vec![
-                    English::Literal("DROP".into()),
-                    English::Optional(Box::new(English::Phrase(vec![English::Held]))),
-                ],
-            ),
-            Fixture::new(
-                r#"EDIT #3493"#,
-                vec![English::Literal("EDIT".into()), English::Numbered(3493)],
-            ),
-            Fixture::new(
-                r#"DIG #text TO #text FOR #text"#,
-                vec![
-                    English::Literal("DIG".into()),
-                    English::Text,
-                    English::Literal("TO".into()),
-                    English::Text,
-                    English::Literal("FOR".into()),
-                    English::Text,
-                ],
-            ),
-            Fixture::new(
-                r#"MAKE ITEM #text"#,
-                vec![
-                    English::Literal("MAKE".into()),
-                    English::Literal("ITEM".into()),
-                    English::Text,
-                ],
-            ),
-        ]
-    }
-
-    #[test]
-    fn should_parse_all_english_fixtures() {
-        for fixture in get_fixtures() {
-            let (remaining, actual) = to_english(fixture.text).unwrap();
-            assert_eq!(remaining, "");
-            assert_eq!(actual, fixture.expected);
-        }
-    }
-
-    #[test]
-    fn should_transform_parser_for_english() {
-        let english = vec![
-            English::Literal("DROP".into()),
-            // English::Literal("EVERYTHING".into()),
-            English::Held,
-        ];
-        let mut parser = english_nodes_to_parser(&english);
-        let value = parser("drop key").unwrap();
-        println!("{:?}", value);
-    }
-}
-
-#[allow(dead_code)]
-#[derive(Debug)]
-enum Node {
-    Ignored,
-    Held(String),
-    Unheld(String),
-    Contained(String),
-    Phrase(Vec<Node>),
-}
-
-#[allow(dead_code)]
 fn word(i: &str) -> IResult<&str, &str> {
     take_while1(move |c| "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".contains(c))(i)
 }
 
-#[allow(dead_code)]
-fn english_node_to_parser<'a>(
-    node: &'a English,
-) -> Box<dyn FnMut(&'a str) -> IResult<&'a str, Node> + 'a> {
+fn node_to_parser<'a>(node: &'a English) -> Box<dyn FnMut(&'a str) -> IResult<&'a str, Node> + 'a> {
     match node {
         English::Literal(v) => Box::new(map(tag_no_case::<&str, &str, _>(v), |_| Node::Ignored)),
         English::Phrase(_) => todo!(),
@@ -264,13 +128,10 @@ fn english_node_to_parser<'a>(
     }
 }
 
-#[allow(dead_code)]
-fn english_nodes_to_parser<'a>(
-    nodes: &'a [English],
-) -> impl FnMut(&'a str) -> IResult<&'a str, Node> {
+fn nodes_to_parser<'a>(nodes: &'a [English]) -> impl FnMut(&'a str) -> IResult<&'a str, Node> {
     move |mut i: &'a str| {
         // TODO Would love to move this up and out of the closure.
-        let terms = nodes.iter().map(english_node_to_parser).collect::<Vec<_>>();
+        let terms = nodes.iter().map(node_to_parser).collect::<Vec<_>>();
 
         let mut accumulator: Vec<Node> = vec![];
         for mut term in terms {
@@ -285,5 +146,35 @@ fn english_nodes_to_parser<'a>(
         }
 
         Ok((i, Node::Phrase(accumulator)))
+    }
+}
+
+#[derive(Debug)]
+pub enum Node {
+    Ignored,
+    Held(String),
+    Unheld(String),
+    Contained(String),
+    Phrase(Vec<Node>),
+}
+
+pub fn try_parse(english: &[English], text: &str) -> Option<Node> {
+    match nodes_to_parser(english)(text) {
+        Ok((_, node)) => Some(node),
+        Err(_) => None,
+    }
+}
+
+pub fn to_tongue(text: &str) -> Option<Vec<English>> {
+    match to_english(text) {
+        Ok((left, e)) => {
+            if !left.is_empty() {
+                warn!("unparsed English: {:?}", left);
+                None
+            } else {
+                Some(e)
+            }
+        }
+        Err(_) => None,
     }
 }

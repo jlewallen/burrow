@@ -10,6 +10,9 @@ doctest = false
 [dependencies.burrow-bon]
 path = "../bon"
 
+[dependencies.english]
+path = "../english"
+
 [dependencies.kernel]
 path = "../kernel"
 

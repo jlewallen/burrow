@@ -10,6 +10,9 @@ doctest = false
 [dependencies.kernel]
 path = "../../libs/kernel"
 
+[dependencies.english]
+path = "../../libs/english"
+
 [dependencies.plugins-core]
 path = "../core"
 

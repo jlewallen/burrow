@@ -73,7 +73,8 @@ impl Domain {
                             if let Some(actor) = session
                                 .recursive_entity(&LookupBy::Key(&future.entity), USER_DEPTH)?
                             {
-                                session.captured(actor, action)?;
+                                let surroundings = session.surroundings(&actor)?;
+                                session.captured(actor, surroundings, action)?;
                             }
                         }
                     }

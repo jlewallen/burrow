@@ -92,6 +92,26 @@ impl ParsesActions for RunePlugin {
             .or_else(|_| try_parsing(parser::DiagnosticsActionParser {}, i))
             .or_else(|_| try_parsing(parser::RegisterActionParser {}, i))
     }
+
+    fn try_parse_action_in_surroundings(
+        &self,
+        surroundings: &Surroundings,
+        text: &str,
+    ) -> EvaluationResult {
+        let sources = load_sources_from_surroundings(surroundings)?;
+        self.runners.add_runners_for(sources.into_iter())?;
+
+        match self.try_parse_action(text) {
+            Ok(action) => Ok(action),
+            Err(_) => {
+                let post = self.runners.call(Call::TryParse(text.to_owned()))?;
+
+                warn!("{:?}", post);
+
+                Err(EvaluationError::ParseFailed)
+            }
+        }
+    }
 }
 
 #[derive(Default)]
