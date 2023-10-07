@@ -223,7 +223,7 @@ impl Session {
             .expect("No actor found with key"))
     }
 
-    pub(crate) fn surroundins(&self, actor: &EntityPtr) -> Result<Surroundings> {
+    pub(crate) fn surroundings(&self, actor: &EntityPtr) -> Result<Surroundings> {
         Ok(MakeSurroundings {
             finder: self.finder.clone(),
             actor: actor.clone(),
@@ -247,7 +247,7 @@ impl Session {
 
         let session = self.set_session()?;
         let actor = session.find_actor(evaluate_as)?;
-        let surroundings = session.surroundins(&actor)?;
+        let surroundings = session.surroundings(&actor)?;
 
         match self.parse_action(&surroundings, text)? {
             Some(action) => {
